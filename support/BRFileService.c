@@ -213,6 +213,7 @@ fileServiceCreate (const char *basePath,
                    const char *network,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler) {
+    if (NULL == basePath || 0 == strlen(basePath)) return NULL;
     if (NULL == currency || 0 == strlen(currency)) return NULL;
     if (NULL == network  || 0 == strlen(network))  return NULL;
 
@@ -235,11 +236,10 @@ fileServiceCreate (const char *basePath,
     // Create the file service itself
     BRFileService fs = calloc (1, sizeof (struct BRFileServiceRecord));
 
-    // A recursive lock - fileServiceLoad() will recursively call fileServiceSave()
     {
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
 
         pthread_mutex_init(&fs->lock, &attr);
         pthread_mutexattr_destroy(&attr);
@@ -259,8 +259,6 @@ fileServiceCreate (const char *basePath,
     size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
     fs->sdbPath = malloc (sdbPathLength);
     sprintf (fs->sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
-
-    pthread_mutex_lock (&fs->lock);
 
     // Create/Open the SQLITE Database
     sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
@@ -330,8 +328,6 @@ fileServiceCreate (const char *basePath,
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
-
-    pthread_mutex_unlock (&fs->lock);
 
     // Allocate the `entityTypes` array
     array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
@@ -500,6 +496,101 @@ fileServiceFailedEntity(BRFileService fs,
                                       });
 }
 
+/// MARK: - Save
+
+static int
+_fileServiceSave (BRFileService fs,
+                  const char *type,  /* block, peers, transactions, logs, ... */
+                  const void *entity,
+                  int needLock) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+
+    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
+    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return 0; };
+
+    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
+    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return 0; };
+
+    // Get then hex-encode the identifer
+    UInt256 identifier = handler->identifier (handler->context, fs, entity);
+    const char *hash = u256hex(identifier);
+
+    // Get the entity bytes
+    uint32_t entityBytesCount;
+    uint8_t *entityBytes = handler->writer (handler->context, fs, entity, &entityBytesCount);
+
+    // Always, always write the header for the currentHeaderFormatVersion
+
+    // Extend the entity bytes with the current header format, which is:
+    //   {HeaderFormatVersion, Current(Type)Version, EntityBytesCount, EntityBytes}
+    size_t  offset = 0;
+    size_t  bytesCount = 1 + 1 + sizeof(uint32_t) + entityBytesCount;
+    uint8_t *bytes = malloc (bytesCount);
+
+    bytes[offset] = (uint8_t) currentHeaderFormatVersion;
+    offset += 1;
+
+    bytes[offset] = (uint8_t) entityType->currentVersion;
+    offset += 1;
+
+    UInt32SetBE (&bytes[offset], entityBytesCount);
+    offset += sizeof (uint32_t);
+
+    memcpy (&bytes[offset], entityBytes, entityBytesCount);
+    free (entityBytes);
+
+    // Nex encode bytes
+    size_t dataCount = 2 * bytesCount + 1;
+    char *data = malloc (dataCount);
+    encodeHex (data, dataCount, bytes, bytesCount);
+    free (bytes);
+
+    // Fill out the SQL statement
+    sqlite3_status_code status;
+
+    if (needLock)
+        pthread_mutex_lock (&fs->lock);
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 1, type, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 2, hash, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    // Execute the Update
+    if (SQLITE_DONE != sqlite3_step (fs->sdbInsertStmt)) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    sqlite3_reset (fs->sdbInsertStmt);
+    sqlite3_clear_bindings(fs->sdbInsertStmt);
+
+    if (needLock)
+        pthread_mutex_unlock (&fs->lock);
+
+    free (data);
+    return 1;
+}
+
+extern int
+fileServiceSave (BRFileService fs,
+                 const char *type,  /* block, peers, transactions, logs, ... */
+                 const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+    return _fileServiceSave (fs, type, entity, 1);
+}
+
 /// MARK: - Load
 
 extern int
@@ -567,6 +658,12 @@ fileServiceLoad (BRFileService fs,
         }
 
         // Assert entityBytesCount remain in dataBytes
+        if (offset + entityBytesCount > dataBytesCount) {
+            assert (0); // In DEBUG builds.
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                          "missed bytes count");
+        }
+
         entityBytes = &dataBytes[offset];
 
         switch (headerVersion) {
@@ -594,97 +691,13 @@ fileServiceLoad (BRFileService fs,
         if (updateVersion &&
             (version != entityType->currentVersion ||
              headerVersion != currentHeaderFormatVersion))
-            fileServiceSave (fs, type, entity);
+            _fileServiceSave (fs, type, entity, 0);
     }
     sqlite3_reset (fs->sdbSelectAllStmt);
     pthread_mutex_unlock (&fs->lock);
 
     if (dataBytes != dataBytesBuffer) free (dataBytes);
 
-    return 1;
-}
-
-/// MARK: - Save
-
-extern int
-fileServiceSave (BRFileService fs,
-                 const char *type,  /* block, peers, transactions, logs, ... */
-                 const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
-
-    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return 0; };
-
-    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return 0; };
-
-    // Get then hex-encode the identifer
-    UInt256 identifier = handler->identifier (handler->context, fs, entity);
-    const char *hash = u256hex(identifier);
-
-    // Get the entity bytes
-    uint32_t entityBytesCount;
-    uint8_t *entityBytes = handler->writer (handler->context, fs, entity, &entityBytesCount);
-
-    // Always, always write the header for the currentHeaderFormatVersion
-
-    // Extend the entity bytes with the current header format, which is:
-    //   {HeaderFormatVersion, Current(Type)Version, EntityBytesCount, EntityBytes}
-    size_t  offset = 0;
-    size_t  bytesCount = 1 + 1 + sizeof(uint32_t) + entityBytesCount;
-    uint8_t *bytes = malloc (bytesCount);
-
-    bytes[offset] = (uint8_t) currentHeaderFormatVersion;
-    offset += 1;
-
-    bytes[offset] = (uint8_t) entityType->currentVersion;
-    offset += 1;
-
-    UInt32SetBE (&bytes[offset], entityBytesCount);
-    offset += sizeof (uint32_t);
-
-    memcpy (&bytes[offset], entityBytes, entityBytesCount);
-    free (entityBytes);
-
-    // Nex encode bytes
-    size_t dataCount = 2 * bytesCount + 1;
-    char *data = malloc (dataCount);
-    encodeHex (data, dataCount, bytes, bytesCount);
-    free (bytes);
-
-    // Fill out the SQL statement
-    sqlite3_status_code status;
-
-    pthread_mutex_lock (&fs->lock);
-
-    status = sqlite3_bind_text (fs->sdbInsertStmt, 1, type, -1, SQLITE_STATIC);
-    if (SQLITE_OK != status) {
-        free (data);
-        return fileServiceFailedSDB (fs, 1, status);
-    }
-
-    status = sqlite3_bind_text (fs->sdbInsertStmt, 2, hash, -1, SQLITE_STATIC);
-    if (SQLITE_OK != status) {
-        free (data);
-        return fileServiceFailedSDB (fs, 1, status);
-    }
-
-    status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_STATIC);
-    if (SQLITE_OK != status) {
-        free (data);
-        return fileServiceFailedSDB (fs, 1, status);
-    }
-
-    // Execute the Update
-    if (SQLITE_DONE != sqlite3_step (fs->sdbInsertStmt)) {
-        free (data);
-        return fileServiceFailedSDB (fs, 1, status);
-    }
-
-    sqlite3_reset (fs->sdbInsertStmt);
-    sqlite3_clear_bindings(fs->sdbInsertStmt);
-    pthread_mutex_unlock (&fs->lock);
-
-    free (data);
     return 1;
 }
 

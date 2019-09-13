@@ -535,7 +535,6 @@
 		3C590F5920950C750005597B /* BRBIP39Mnemonic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP39Mnemonic.c; sourceTree = "<group>"; };
 		3C5F5E73212C82310038B732 /* BREthereumMPT.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMPT.h; sourceTree = "<group>"; };
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
-		3C6AE123231F013800016196 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		3C6AE1272329855300016196 /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
 		3C6AE1282329855300016196 /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
 		3C6AE1292329855300016196 /* sqlite3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sqlite3.h; sourceTree = "<group>"; };
@@ -1305,7 +1304,6 @@
 		3CAB610A20AF938E00810CE4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				3C6AE123231F013800016196 /* libsqlite3.tbd */,
 				3CA15F7F221648D200C84E65 /* libresolv.tbd */,
 				3CEF5FCB220514340010A811 /* libresolv.9.tbd */,
 				3CEF5FC9220513FC0010A811 /* libresolv.tbd */,
