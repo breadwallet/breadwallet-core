@@ -3058,7 +3058,10 @@ ewmTransferDelete (BREthereumEWM ewm,
 extern BREthereumToken
 ewmLookupToken (BREthereumEWM ewm,
                 BREthereumAddress address) {
-    return (BREthereumToken) BRSetGet (ewm->tokens, &address);
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumToken token = (BREthereumToken) BRSetGet (ewm->tokens, &address);
+    pthread_mutex_unlock (&ewm->lock);
+    return token;
 }
 
 extern BREthereumToken
@@ -3073,9 +3076,15 @@ ewmCreateToken (BREthereumEWM ewm,
     if (NULL == address || 0 == strlen(address)) return NULL;
     if (ETHEREUM_BOOLEAN_FALSE == addressValidateString(address)) return NULL;
 
+    // This function is called in potentially two threads.  One in EWM event handler (on
+    // `ewmHandleAnnounceToken()`) and one in `cryptoWalletManagerInstall...()` (on some App
+    // listener thread).  Such a description, used here, is troubling in and of itself.
+
     BREthereumAddress addr  = addressCreate(address);
     BREthereumToken   token = ewmLookupToken (ewm, addr);
 
+    // Lock over BRSetAdd() and tokenUpdate()
+    pthread_mutex_lock (&ewm->lock);
     if (NULL == token) {
         token = tokenCreate (address,
                              symbol,
@@ -3095,6 +3104,7 @@ ewmCreateToken (BREthereumEWM ewm,
                      defaultGasLimit,
                      defaultGasPrice);
     }
+    pthread_mutex_unlock (&ewm->lock);
 
     fileServiceSave (ewm->fs, fileServiceTypeTokens, token);
     return token;
