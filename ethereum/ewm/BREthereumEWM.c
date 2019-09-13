@@ -587,6 +587,16 @@ ewmCreate (BREthereumNetwork network,
             // how to get an ERC20 balance (execute a (free) transaction for 'balance'??); this
             // later case applies for `bcsCreate()` below in P2P modes.
             //
+            // But, on startup we have the transactions and the logs and DO NOT persistently store
+            // the per-wallet balance.  Thus, to get the balance we need an API hit (or a P2P hit).
+            // We might not have network...  So, get the balance assigned from existing transfers.
+            //
+            // Note: at this point transfers are not in wallets - we've just signalled adding the
+            // transactions and logs.  If we are going to update the balance (and it won't be
+            // N^2 as each transfer is added), then we need to signal a wallet balance update.
+            //
+            // One.Event.to.Update.Them.All
+            ewmSignalUpdateWalletBalances(ewm);
 
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;

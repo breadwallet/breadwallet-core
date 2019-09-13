@@ -699,6 +699,33 @@ ewmSignalAnnounceBalance (BREthereumEWM ewm,
 }
 
 //
+// Update Wallet Balances
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumEWM ewm;
+} BREthereumEWMClientUpdateWalletBalancesEvent;
+
+static void
+ewmHandleUpdateWalletBalancesDispatcher (BREventHandler ignore,
+                                         BREthereumEWMClientUpdateWalletBalancesEvent *event) {
+    ewmHandleUpdateWalletBalances (event->ewm);
+}
+
+static BREventType ewmClientUpdateWalletBalancesEventType = {
+    "EWM: Client Update Wallet Balances Event",
+    sizeof (BREthereumEWMClientUpdateWalletBalancesEvent),
+    (BREventDispatcher) ewmHandleUpdateWalletBalancesDispatcher
+};
+
+extern void
+ewmSignalUpdateWalletBalances (BREthereumEWM ewm) {
+    BREthereumEWMClientUpdateWalletBalancesEvent message =
+    { { NULL, &ewmClientUpdateWalletBalancesEventType}, ewm };
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
+}
+
+//
 // Announce Gas Price
 //
 typedef struct {
@@ -978,6 +1005,7 @@ const BREventType *ewmEventTypes[] = {
     &ewmClientAnnounceBlockNumberEventType,
     &ewmClientAnnounceNonceEventType,
     &ewmClientAnnounceBalanceEventType,
+    &ewmClientUpdateWalletBalancesEventType,
     &ewmClientAnnounceGasPriceEventType,
     &ewmClientAnnounceSubmitTransferEventType,
     &ewmClientAnnounceTransactionEventType,

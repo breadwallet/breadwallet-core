@@ -88,6 +88,30 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
     return SUCCESS;
 }
 
+extern void
+ewmHandleUpdateWalletBalances (BREthereumEWM ewm) {
+    int typeMismatch = 0;
+
+    size_t walletCount = array_count (ewm->wallets);
+    for (size_t index = 0; index < walletCount; index++) {
+        BREthereumWallet wallet = ewm->wallets[index];
+
+        BREthereumAmount oldBalance = walletGetBalance (wallet);
+        walletUpdateBalance (wallet);
+        BREthereumAmount newBalance = walletGetBalance (wallet);
+
+        BREthereumComparison comparison = amountCompare (oldBalance, newBalance, &typeMismatch);
+        assert (0 == typeMismatch);
+
+        if (ETHEREUM_COMPARISON_EQ != comparison)
+            ewmSignalWalletEvent (ewm, wallet,
+                                  (BREthereumWalletEvent) {
+                                      WALLET_EVENT_BALANCE_UPDATED,
+                                      SUCCESS
+                              });
+    }
+}
+
 // ==============================================================================================
 //
 // Default Wallet Gas Price
