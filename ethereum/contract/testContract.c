@@ -37,37 +37,37 @@ installTokensForTest (void) {
     
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
-    tokenInstall (tokenBRDAddress,
-                  "BRD",
-                  "BRD Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall (tokenBRDAddress,
+                           "BRD",
+                           "BRD Token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 #if defined (BITCOIN_DEBUG)
-    tokenInstall (tokenTSTAddress,
-                  "TST",
-                  "Test Standard Token",
-                  "TeST Standard Token (TST) for TeSTing (TST)",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall (tokenTSTAddress,
+                           "TST",
+                           "Test Standard Token",
+                           "TeST Standard Token (TST) for TeSTing (TST)",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 #endif
-    tokenInstall (tokenEOSAddress,
-                  "EOS",
-                  "EOS Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
-
-    tokenInstall (tokenKNCAddress,
-                  "KNC",
-                  "KNC token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall (tokenEOSAddress,
+                           "EOS",
+                           "EOS Token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
+    
+    tokenCreateAndInstall (tokenKNCAddress,
+                           "KNC",
+                           "KNC token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 }
 
 static void

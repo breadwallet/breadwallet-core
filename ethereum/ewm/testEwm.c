@@ -55,37 +55,37 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
 
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
-    tokenInstall (getTokenBRDAddress(network),
-                  "BRD",
-                  "BRD Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall (getTokenBRDAddress(network),
+                           "BRD",
+                           "BRD Token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 #if defined (BITCOIN_DEBUG)
-    tokenInstall (getTokenTSTAddress(network),
-                  "TST",
-                  "Test Standard Token",
-                  "TeST Standard Token (TST) for TeSTing (TST)",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall (getTokenTSTAddress(network),
+                           "TST",
+                           "Test Standard Token",
+                           "TeST Standard Token (TST) for TeSTing (TST)",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 #endif
-    tokenInstall ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
-                  "EOS",
-                  "EOS Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
-
-    tokenInstall ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
-                  "KNC",
-                  "KNC token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokenCreateAndInstall ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+                           "EOS",
+                           "EOS Token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
+    
+    tokenCreateAndInstall ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+                           "KNC",
+                           "KNC token",
+                           "",
+                           18,
+                           defaultGasLimit,
+                           defaultGasPrice);
 }
 
 //

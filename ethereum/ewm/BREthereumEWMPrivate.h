@@ -87,6 +87,11 @@ struct BREthereumEWMRecord {
     BREthereumWallet  walletHoldingEther;
 
     /**
+     * ERC20 Tokens
+     */
+    BRSetOf(BREthereumToken) tokens;
+
+    /**
      * The BCS Interface
      */
     BREthereumBCS bcs;
