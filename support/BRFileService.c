@@ -91,7 +91,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
     }
 }
 
-extern void
+static void
 encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
 
