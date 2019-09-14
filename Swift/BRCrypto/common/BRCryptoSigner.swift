@@ -8,7 +8,6 @@
 
 import Foundation
 import BRCryptoC
-import BRCore
 
 ///
 /// Sign 32-byte data with a private key to return a signature; optional recover the public key

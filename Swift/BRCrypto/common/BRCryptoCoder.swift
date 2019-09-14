@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import BRCore
+import BRCryptoC
 
 public protocol Coder {
     func encode (data: Data) -> String
