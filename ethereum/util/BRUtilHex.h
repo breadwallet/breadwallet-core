@@ -1,9 +1,9 @@
 //
 //  BBRUtilHex.h
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
