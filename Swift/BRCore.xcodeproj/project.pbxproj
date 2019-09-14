@@ -533,6 +533,22 @@
 		3C590F5720950C740005597B /* BRWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWallet.c; sourceTree = "<group>"; };
 		3C590F5820950C750005597B /* BRBIP38Key.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP38Key.c; sourceTree = "<group>"; };
 		3C590F5920950C750005597B /* BRBIP39Mnemonic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP39Mnemonic.c; sourceTree = "<group>"; };
+		3C5E17F3232D55B800A558C7 /* secp256k1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = secp256k1.c; path = secp256k1/src/secp256k1.c; sourceTree = "<group>"; };
+		3C5E17F5232D55D100A558C7 /* secp256k1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = secp256k1.h; path = secp256k1/include/secp256k1.h; sourceTree = "<group>"; };
+		3C5E17F6232D55F000A558C7 /* basic-config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "basic-config.h"; path = "secp256k1/src/basic-config.h"; sourceTree = "<group>"; };
+		3C5E17F7232D566D00A558C7 /* field_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = field_impl.h; path = secp256k1/src/field_impl.h; sourceTree = "<group>"; };
+		3C5E17F8232D566D00A558C7 /* group_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = group_impl.h; path = secp256k1/src/group_impl.h; sourceTree = "<group>"; };
+		3C5E17F9232D566E00A558C7 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = secp256k1/src/util.h; sourceTree = "<group>"; };
+		3C5E17FA232D566E00A558C7 /* ecmult_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ecmult_impl.h; path = secp256k1/src/ecmult_impl.h; sourceTree = "<group>"; };
+		3C5E17FB232D566E00A558C7 /* hash_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash_impl.h; path = secp256k1/src/hash_impl.h; sourceTree = "<group>"; };
+		3C5E17FC232D566E00A558C7 /* scratch_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = scratch_impl.h; path = secp256k1/src/scratch_impl.h; sourceTree = "<group>"; };
+		3C5E17FD232D566E00A558C7 /* eckey_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = eckey_impl.h; path = secp256k1/src/eckey_impl.h; sourceTree = "<group>"; };
+		3C5E17FE232D566E00A558C7 /* ecdsa_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ecdsa_impl.h; path = secp256k1/src/ecdsa_impl.h; sourceTree = "<group>"; };
+		3C5E17FF232D56A000A558C7 /* num_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = num_impl.h; path = secp256k1/src/num_impl.h; sourceTree = "<group>"; };
+		3C5E1800232D56A000A558C7 /* scalar_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = scalar_impl.h; path = secp256k1/src/scalar_impl.h; sourceTree = "<group>"; };
+		3C5E1801232D56C400A558C7 /* ecmult_gen_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ecmult_gen_impl.h; path = secp256k1/src/ecmult_gen_impl.h; sourceTree = "<group>"; };
+		3C5E1802232D56C400A558C7 /* ecmult_const_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ecmult_const_impl.h; path = secp256k1/src/ecmult_const_impl.h; sourceTree = "<group>"; };
+		3C5E1804232D574A00A558C7 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		3C5F5E73212C82310038B732 /* BREthereumMPT.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMPT.h; sourceTree = "<group>"; };
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
 		3C6AE1272329855300016196 /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
@@ -1167,6 +1183,36 @@
 			path = ../../bcash;
 			sourceTree = "<group>";
 		};
+		3C5E17F2232D55A000A558C7 /* secp256k1 */ = {
+			isa = PBXGroup;
+			children = (
+				3C5E1803232D56DF00A558C7 /* include */,
+				3C5E17F5232D55D100A558C7 /* secp256k1.h */,
+				3C5E17F3232D55B800A558C7 /* secp256k1.c */,
+			);
+			name = secp256k1;
+			sourceTree = "<group>";
+		};
+		3C5E1803232D56DF00A558C7 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				3C5E17F9232D566E00A558C7 /* util.h */,
+				3C5E17FF232D56A000A558C7 /* num_impl.h */,
+				3C5E17F7232D566D00A558C7 /* field_impl.h */,
+				3C5E1800232D56A000A558C7 /* scalar_impl.h */,
+				3C5E17F8232D566D00A558C7 /* group_impl.h */,
+				3C5E17FA232D566E00A558C7 /* ecmult_impl.h */,
+				3C5E1802232D56C400A558C7 /* ecmult_const_impl.h */,
+				3C5E1801232D56C400A558C7 /* ecmult_gen_impl.h */,
+				3C5E17FE232D566E00A558C7 /* ecdsa_impl.h */,
+				3C5E17FD232D566E00A558C7 /* eckey_impl.h */,
+				3C5E17FB232D566E00A558C7 /* hash_impl.h */,
+				3C5E17FC232D566E00A558C7 /* scratch_impl.h */,
+				3C5E17F6232D55F000A558C7 /* basic-config.h */,
+			);
+			name = include;
+			sourceTree = "<group>";
+		};
 		3C5F5E72212C82170038B732 /* mpt */ = {
 			isa = PBXGroup;
 			children = (
@@ -1179,6 +1225,8 @@
 		3C6AE1252329855300016196 /* vendor */ = {
 			isa = PBXGroup;
 			children = (
+				3C5E1804232D574A00A558C7 /* README */,
+				3C5E17F2232D55A000A558C7 /* secp256k1 */,
 				3C6AE1262329855300016196 /* sqlite3 */,
 			);
 			name = vendor;
@@ -2442,7 +2490,7 @@
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
-					"$(SRCROOT)/../secp256k1",
+					"$(SRCROOT)/../vendor/secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
@@ -2468,7 +2516,7 @@
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
-					"$(SRCROOT)/../secp256k1",
+					"$(SRCROOT)/../vendor/secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";

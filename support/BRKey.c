@@ -48,8 +48,8 @@
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-#include "secp256k1/src/basic-config.h"
-#include "secp256k1/src/secp256k1.c"
+#include "vendor/secp256k1/src/basic-config.h"
+#include "vendor/secp256k1/src/secp256k1.c"
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
