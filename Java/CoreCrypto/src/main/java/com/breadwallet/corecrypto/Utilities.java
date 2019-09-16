@@ -18,6 +18,8 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletState;
 import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
+import com.breadwallet.corenative.support.BRSyncStoppedReasonType;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -26,6 +28,7 @@ import com.breadwallet.crypto.WalletManagerDisconnectReason;
 import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
+import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
@@ -68,24 +71,35 @@ final class Utilities {
             case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
             case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
             case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-                if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative()) {
-                    return WalletManagerState.DISCONNECTED(
+                switch (BRDisconnectReasonType.fromNative(state.u.disconnected.reason.type)) {
+                    case DISCONNECT_REASON_REQUESTED: return WalletManagerState.DISCONNECTED(
+                            WalletManagerDisconnectReason.REQUESTED()
+                    );
+                    case DISCONNECT_REASON_UNKNOWN: return WalletManagerState.DISCONNECTED(
+                            WalletManagerDisconnectReason.UNKNOWN()
+                    );
+                    case DISCONNECT_REASON_POSIX: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.POSIX(
                                     state.u.disconnected.reason.u.posix.errnum,
                                     utf8BytesToString(state.u.disconnected.reason.u.posix.message).orNull()
                             )
                     );
-                } else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_REQUESTED.toNative()) {
-                    return WalletManagerState.DISCONNECTED(
-                            WalletManagerDisconnectReason.REQUESTED()
-                    );
-                }
-                else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_UNKNOWN.toNative()) {
-                    return WalletManagerState.DISCONNECTED(
-                            WalletManagerDisconnectReason.UNKNOWN()
-                    );
                 }
             default: throw new IllegalArgumentException("Unsupported state");
+        }
+    }
+
+    /* package */
+    static WalletManagerSyncStoppedReason walletManagerSyncStoppedReasonFromCrypto(BRSyncStoppedReason reason) {
+        switch (BRSyncStoppedReasonType.fromNative(reason.type)) {
+            case SYNC_STOPPED_REASON_COMPLETE: return WalletManagerSyncStoppedReason.COMPLETE();
+            case SYNC_STOPPED_REASON_REQUESTED: return WalletManagerSyncStoppedReason.REQUESTED();
+            case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
+            case SYNC_STOPPED_REASON_POSIX: return WalletManagerSyncStoppedReason.POSIX(
+                    reason.u.posix.errnum,
+                    utf8BytesToString(reason.u.posix.message).orNull()
+            );
+            default: throw new IllegalArgumentException("Unsupported reason");
         }
     }
 

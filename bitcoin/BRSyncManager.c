@@ -956,7 +956,8 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1013,7 +1014,8 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1232,7 +1234,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 
                     // store control flow flags
                     needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
-                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED};
+                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonComplete() } }};
 
                     // reset sync state
                     BRClientSyncManagerScanStateWipe (&manager->scanState);
@@ -1246,7 +1248,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                 needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
                 needDiscEvent = 1;
 
-                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED};
+                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonUnknown() } }};
                 discEvent = (BRSyncManagerEvent) {SYNC_MANAGER_DISCONNECTED, { .disconnected = { BRDisconnectReasonUnknown() } }};
 
                 // reset sync state on failure
@@ -1740,6 +1742,7 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { BRSyncStoppedReasonUnknown() } }
                                     });
         }
 
@@ -1839,7 +1842,8 @@ _BRPeerSyncManagerSyncStarted (void *info) {
             manager->eventCallback (manager->eventContext,
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1895,7 +1899,13 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
             manager->eventCallback (manager->eventContext,
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = {
+                                                (reason ?
+                                                BRSyncStoppedReasonPosix(reason, strerror (reason)) :
+                                                BRSyncStoppedReasonRequested())
+                                            }
+                                        }
                                     });
         }
 

@@ -28,21 +28,58 @@
 
 #include "BRSyncMode.h"
 
+extern BRSyncStoppedReason
+BRSyncStoppedReasonComplete(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_COMPLETE
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonRequested(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_REQUESTED
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonUnknown(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_UNKNOWN
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonPosix(int errnum,
+                         const char *message) {
+    BRSyncStoppedReason reason = (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_POSIX
+    };
+
+    reason.u.posix.errnum = errnum;
+    memset (reason.u.posix.message, 0, sizeof(reason.u.posix.message));
+    if (message) {
+        strncpy(reason.u.posix.message, message, sizeof(reason.u.posix.message) - 1);
+    }
+
+    return reason;
+}
+
 extern BRDisconnectReason
-BRDisconnectReasonRequested() {
+BRDisconnectReasonRequested(void) {
     return (BRDisconnectReason) {
         DISCONNECT_REASON_REQUESTED
     };
 }
 
-extern const BRDisconnectReason
-BRDisconnectReasonUnknown() {
+extern BRDisconnectReason
+BRDisconnectReasonUnknown(void) {
     return (BRDisconnectReason) {
         DISCONNECT_REASON_UNKNOWN
     };
 }
 
-extern const BRDisconnectReason
+extern BRDisconnectReason
 BRDisconnectReasonPosix(int errnum,
                         const char *message) {
     BRDisconnectReason reason = (BRDisconnectReason) {

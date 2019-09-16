@@ -436,7 +436,7 @@ public final class WalletSweeper {
     }
 }
 
-public enum DisconnectReason: Equatable {
+public enum WalletManagerDisconnectReason: Equatable {
     case requested
     case unknown
     case posix(errno: Int32, message: String?)
@@ -460,7 +460,7 @@ public enum DisconnectReason: Equatable {
 ///
 public enum WalletManagerState: Equatable {
     case created
-    case disconnected(DisconnectReason)
+    case disconnected(WalletManagerDisconnectReason)
     case connected
     case syncing
     case deleted
@@ -468,7 +468,7 @@ public enum WalletManagerState: Equatable {
     internal init (core: BRCryptoWalletManagerState) {
         switch core.type {
         case CRYPTO_WALLET_MANAGER_STATE_CREATED:      self = .created
-        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(DisconnectReason(core: core.u.disconnected.reason))
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(WalletManagerDisconnectReason(core: core.u.disconnected.reason))
         case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
         case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
         case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
@@ -609,6 +609,28 @@ public enum WalletManagerSyncDepth: Equatable {
     // Equatable: [Swift-generated]
 }
 
+public enum WalletManagerSyncStoppedReason: Equatable {
+    case complete
+    case requested
+    case unknown
+    case posix(errno: Int32, message: String?)
+
+    internal init (core: BRSyncStoppedReason) {
+        switch core.type {
+        case SYNC_STOPPED_REASON_COMPLETE:
+            self = .complete
+        case SYNC_STOPPED_REASON_REQUESTED:
+            self = .requested
+        case SYNC_STOPPED_REASON_UNKNOWN:
+            self = .unknown
+        case SYNC_STOPPED_REASON_POSIX:
+            var message = core.u.posix.message
+            self = .posix(errno: core.u.posix.errnum, message: String(cString: &message.0))
+        default: self = .unknown; precondition(false)
+        }
+    }
+}
+
 ///
 /// A WalletManager Event represents a asynchronous announcment of a managera's state change.
 ///
@@ -623,7 +645,7 @@ public enum WalletManagerEvent {
 
     case syncStarted
     case syncProgress (timestamp: Date?, percentComplete: Float)
-    case syncEnded (error: String?)
+    case syncEnded (reason: WalletManagerSyncStoppedReason)
 
     /// An event capturing a change in the block height of the network associated with a
     /// WalletManager. Developers should listen for this event when making use of

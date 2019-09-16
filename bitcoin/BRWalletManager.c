@@ -1717,7 +1717,8 @@ _BRWalletManagerSyncEvent(void * context,
         case SYNC_MANAGER_SYNC_STOPPED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
-                                            BITCOIN_WALLET_MANAGER_SYNC_STOPPED
+                                            BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
+                                            { .syncStopped = { event.u.syncStopped.reason } }
                                         });
             break;
         }

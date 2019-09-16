@@ -246,15 +246,19 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
         case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = {
+                { .syncContinues = {
                     event.u.syncProgress.timestamp,
-                    event.u.syncProgress.percentComplete }}
+                    event.u.syncProgress.percentComplete
+                }}
             };
             break;
         }
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+                { .syncStopped = {
+                    event.u.syncStopped.reason,
+                }}
             };
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
@@ -826,7 +830,8 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake(cwm),
                                                           (BRCryptoWalletManagerEvent) {
-                                                              CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED
+                                                              CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+                                                              { .syncStopped = { BRSyncStoppedReasonUnknown() } }
                                                           });
             }
 
@@ -842,7 +847,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
         case EWM_EVENT_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = {
+                { .syncContinues = {
                     event.u.syncProgress.timestamp,
                     event.u.syncProgress.percentComplete }}
             };

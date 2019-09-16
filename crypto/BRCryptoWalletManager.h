@@ -98,7 +98,11 @@ extern "C" {
             struct {
                 BRSyncTimestamp timestamp;
                 BRSyncPercentComplete percentComplete;
-            } sync;
+            } syncContinues;
+
+            struct {
+                BRSyncStoppedReason reason;
+            } syncStopped;
 
             struct {
                 uint64_t value;
@@ -243,7 +247,7 @@ extern "C" {
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
     /// MARK: Wallet Migrator
-    
+
     typedef struct BRCryptoWalletMigratorRecord *BRCryptoWalletMigrator;
 
     typedef enum {

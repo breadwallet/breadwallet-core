@@ -33,6 +33,35 @@
 extern "C" {
 #endif
 
+typedef enum {
+    SYNC_STOPPED_REASON_COMPLETE,
+    SYNC_STOPPED_REASON_REQUESTED,
+    SYNC_STOPPED_REASON_UNKNOWN,
+    SYNC_STOPPED_REASON_POSIX
+} BRSyncStoppedReasonType;
+
+typedef struct {
+    BRSyncStoppedReasonType type;
+    union {
+        struct {
+            int errnum;
+            char message[128 + 1];
+        } posix;
+    } u;
+} BRSyncStoppedReason;
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonComplete(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonRequested(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonUnknown(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonPosix(int errnum,
+                         const char *message);
 
 typedef enum {
     DISCONNECT_REASON_REQUESTED,
@@ -51,12 +80,12 @@ typedef struct {
 } BRDisconnectReason;
 
 extern BRDisconnectReason
-BRDisconnectReasonRequested();
+BRDisconnectReasonRequested(void);
 
-extern const BRDisconnectReason
-BRDisconnectReasonUnknown();
+extern BRDisconnectReason
+BRDisconnectReasonUnknown(void);
 
-extern const BRDisconnectReason
+extern BRDisconnectReason
 BRDisconnectReasonPosix(int errnum,
                         const char *message);
 

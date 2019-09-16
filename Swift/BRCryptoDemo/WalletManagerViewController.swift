@@ -151,8 +151,13 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
                 }
             case .syncProgress(_, let percentComplete):
                 self.syncProgressLabel.text = percentComplete.description
-            case .syncEnded(let error):
-                self.syncProgressLabel.text = error ?? ""
+            case .syncEnded(let reason):
+                switch reason {
+                case .complete: self.syncProgressLabel.text = "COMPLETE"
+                case .requested: self.syncProgressLabel.text = ""
+                case .unknown: self.syncProgressLabel.text = "<UNKNOWN>"
+                case .posix(let errnum, let message): self.syncProgressLabel.text = "\(errnum): \(message ?? "")"
+                }
             case .blockUpdated(let height):
                 self.blockHeightLabel.text = height.description
             default:

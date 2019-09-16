@@ -232,6 +232,9 @@ typedef struct {
             BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
+            BRSyncStoppedReason reason;
+        } syncStopped;
+        struct {
             BRDisconnectReason reason;
         } disconnected;
         struct {

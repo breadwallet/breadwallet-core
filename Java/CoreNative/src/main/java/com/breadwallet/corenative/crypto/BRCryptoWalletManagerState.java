@@ -26,7 +26,7 @@ public class BRCryptoWalletManagerState extends Structure {
 
 		public static class disconnected_struct extends Structure {
 
-			public BRDisconnectReason reason = new BRDisconnectReason();
+			public BRDisconnectReason reason;
 
 			public disconnected_struct() {
 				super();

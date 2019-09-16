@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -22,7 +23,8 @@ public class BRCryptoWalletManagerEvent extends Structure {
 
 		public state_struct state;
 		public wallet_struct wallet;
-		public sync_struct sync;
+		public syncContinues_struct syncContinues;
+		public syncStopped_struct syncStopped;
 		public blockHeight_struct blockHeight;
 
 		public static class state_struct extends Structure {
@@ -49,11 +51,11 @@ public class BRCryptoWalletManagerEvent extends Structure {
 			}
 
 			public static class ByReference extends state_struct implements Structure.ByReference {
-				
+
 			}
 
 			public static class ByValue extends state_struct implements Structure.ByValue {
-				
+
 			}
 		}
 
@@ -79,19 +81,19 @@ public class BRCryptoWalletManagerEvent extends Structure {
 			}
 
 			public static class ByReference extends wallet_struct implements Structure.ByReference {
-				
+
 			}
 
 			public static class ByValue extends wallet_struct implements Structure.ByValue {
-				
+
 			}
 		}
 
-		public static class sync_struct extends Structure {
+		public static class syncContinues_struct extends Structure {
 
 			public int timestamp;
 			public float percentComplete;
-			public sync_struct() {
+			public syncContinues_struct() {
 				super();
 			}
 
@@ -99,22 +101,52 @@ public class BRCryptoWalletManagerEvent extends Structure {
 				return Arrays.asList("timestamp", "percentComplete");
 			}
 
-			public sync_struct(int timestamp, float percentComplete) {
+			public syncContinues_struct(int timestamp, float percentComplete) {
 				super();
 				this.timestamp = timestamp;
 				this.percentComplete = percentComplete;
 			}
 
-			public sync_struct(Pointer peer) {
+			public syncContinues_struct(Pointer peer) {
 				super(peer);
 			}
 
-			public static class ByReference extends sync_struct implements Structure.ByReference {
-				
+			public static class ByReference extends syncContinues_struct implements Structure.ByReference {
+
 			}
 
-			public static class ByValue extends sync_struct implements Structure.ByValue {
-				
+			public static class ByValue extends syncContinues_struct implements Structure.ByValue {
+
+			}
+		}
+
+		public static class syncStopped_struct extends Structure {
+
+			public BRSyncStoppedReason reason;
+
+			public syncStopped_struct() {
+				super();
+			}
+
+			protected List<String> getFieldOrder() {
+				return Arrays.asList("reason");
+			}
+
+			public syncStopped_struct(BRSyncStoppedReason reason) {
+				super();
+				this.reason = reason;
+			}
+
+			public syncStopped_struct(Pointer peer) {
+				super(peer);
+			}
+
+			public static class ByReference extends syncStopped_struct implements Structure.ByReference {
+
+			}
+
+			public static class ByValue extends syncStopped_struct implements Structure.ByValue {
+
 			}
 		}
 
@@ -140,11 +172,11 @@ public class BRCryptoWalletManagerEvent extends Structure {
 			}
 
 			public static class ByReference extends blockHeight_struct implements Structure.ByReference {
-				
+
 			}
 
 			public static class ByValue extends blockHeight_struct implements Structure.ByValue {
-				
+
 			}
 		}
 
@@ -164,10 +196,16 @@ public class BRCryptoWalletManagerEvent extends Structure {
 			setType(wallet_struct.class);
 		}
 
-		public u_union(sync_struct sync) {
+		public u_union(syncContinues_struct syncContinues) {
 			super();
-			this.sync = sync;
-			setType(sync_struct.class);
+			this.syncContinues = syncContinues;
+			setType(syncContinues_struct.class);
+		}
+
+		public u_union(syncStopped_struct syncStopped) {
+			super();
+			this.syncStopped = syncStopped;
+			setType(syncStopped_struct.class);
 		}
 
 		public u_union(blockHeight_struct blockHeight) {
@@ -181,11 +219,11 @@ public class BRCryptoWalletManagerEvent extends Structure {
 		}
 
 		public static class ByReference extends u_union implements Structure.ByReference {
-			
+
 		}
 
 		public static class ByValue extends u_union implements Structure.ByValue {
-			
+
 		}
 	}
 
@@ -220,7 +258,11 @@ public class BRCryptoWalletManagerEvent extends Structure {
 				u.read();
 				break;
 			case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-				u.setType(u_union.sync_struct.class);
+				u.setType(u_union.syncContinues_struct.class);
+				u.read();
+				break;
+			case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
+				u.setType(u_union.syncStopped_struct.class);
 				u.read();
 				break;
 			case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
@@ -233,10 +275,10 @@ public class BRCryptoWalletManagerEvent extends Structure {
 	}
 
 	public static class ByReference extends BRCryptoWalletManagerEvent implements Structure.ByReference {
-		
+
 	}
 
 	public static class ByValue extends BRCryptoWalletManagerEvent implements Structure.ByValue {
-		
+
 	}
 }
