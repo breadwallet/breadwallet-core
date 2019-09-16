@@ -26,12 +26,33 @@
 #ifndef BRBase_h
 #define BRBase_h
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define OwnershipGiven
 #define OwnershipKept
+
+/**
+ * A Block Height in a block chain.  Note: uint32_t is perhaps enough; conservatively use
+ * uint64_t.
+ */
+typedef uint64_t BRBlockHeight;
+
+// Inclusive bloch chain height bounds
+#define BLOCK_HEIGHT_MINIMUM       (0)
+#define BLOCK_HEIGHT_MAXIMUM       (UINT64_MAX - 5)  // Leave room for special values
+
+/**
+ * Check if `height` is between the MINIMUM and MAXIMUM values.
+ */
+#define BLOCK_HEIGHT_IS_IN_RANGE(height) \
+AS_CRYPTO_BOOLEAN (BLOCK_HEIGHT_MINIMUM <= (height) && (height) <= BLOCK_HEIGHT_MAXIMUM)
+
+// Special values
+#define BLOCK_HEIGHT_UNBOUND       (UINT64_MAX)
 
 #ifdef __cplusplus
 }

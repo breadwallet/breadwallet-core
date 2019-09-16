@@ -1270,7 +1270,9 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                       (const char **) addresses,
                                                       addressCount,
                                                       begBlockNumber,
-                                                      endBlockNumber,
+                                                      (BRClientSyncManagerScanStateIsFullScan (&manager->scanState)
+                                                       ? endBlockNumber
+                                                       : BLOCK_HEIGHT_UNBOUND),  // on 'incrementalSync'
                                                       rid);
     }
 
@@ -1344,7 +1346,9 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
                                                       (const char **) addresses,
                                                       addressCount,
                                                       begBlockNumber,
-                                                      endBlockNumber,
+                                                      (BRClientSyncManagerScanStateIsFullScan (&manager->scanState)
+                                                       ? endBlockNumber
+                                                       : BLOCK_HEIGHT_UNBOUND),  // on 'incrementalSync'
                                                       rid);
     }
 

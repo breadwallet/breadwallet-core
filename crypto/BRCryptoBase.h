@@ -28,6 +28,7 @@
 
 #include <inttypes.h>
 #include <stdatomic.h>
+#include "support/BRBase.h"
 #include "support/BRInt.h"
 #include "support/BRSyncMode.h"
 #include "ethereum/base/BREthereumHash.h"
@@ -53,7 +54,7 @@ extern "C" {
 
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
-    typedef uint64_t BRCryptoBlockChainHeight;
+    typedef BRBlockHeight BRCryptoBlockChainHeight;
 
     // Private-ish
     typedef enum {

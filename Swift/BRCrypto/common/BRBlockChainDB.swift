@@ -779,8 +779,8 @@ public class BlockChainDB {
 
     public func getTransactions (blockchainId: String,
                                  addresses: [String],
-                                 begBlockNumber: UInt64,
-                                 endBlockNumber: UInt64,
+                                 begBlockNumber: UInt64? = nil,
+                                 endBlockNumber: UInt64? = nil,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
@@ -790,53 +790,63 @@ public class BlockChainDB {
             var error: QueryError? = nil
             var results = [Model.Transaction]()
 
+            let queryKeysBase = [
+                "blockchain_id",
+                begBlockNumber.map { (_) in "start_height" },
+                endBlockNumber.map { (_) in "end_height" },
+                "include_proof",
+                "include_raw"]
+                .compactMap { $0 } // Remove `nil` from {beg,end}BlockNumber
+
+            let queryValsBase: [String] = [
+                blockchainId,
+                begBlockNumber.map { $0.description },
+                endBlockNumber.map { $0.description },
+                includeProof.description,
+                includeRaw.description]
+                .compactMap { $0 }  // Remove `nil` from {beg,end}BlockNumber
+
+            let semaphore = DispatchSemaphore (value: 0)
+            var nextURL: URL? = nil
+
+            func handleResult (more: URL?, res: Result<[JSON], QueryError>) {
+                // Append `transactions` with the resulting transactions.
+                results += res
+                    .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
+                    .getWithRecovery { error = $0; return [] }
+
+                // Record if more exist
+                nextURL = more
+
+                // signal completion
+                semaphore.signal()
+            }
+
             for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
                 if nil != error { break }
-                let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
-                    + Array (repeating: "address", count: addresses.count)
 
-                var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
-                    + addresses
+                let queryKeys = queryKeysBase + Array (repeating: "address", count: addresses.count)
+                let queryVals = queryValsBase + addresses
 
-                let semaphore = DispatchSemaphore (value: 0)
-
-                var nextURL: URL? = nil
-
-                queryVals[1] = begBlockNumber.description
-                queryVals[2] = endBlockNumber.description
-
+                // Ensure a 'clean' start for this set of addresses
+                nextURL = nil
+                
                 // Make the first request.  Ideally we'll get all the transactions in one gulp
-                self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
-                    (more: URL?, res: Result<[JSON], QueryError>) in
-
-                    // Append `transactions` with the resulting transactions.
-                    results += try! res
-                        .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
-                        .recover { error = $0; return [] }.get()
-
-                    nextURL = more
-
-                    semaphore.signal()
-                }
+                self.bdbMakeRequest (path: "transactions",
+                                     query: zip (queryKeys, queryVals),
+                                     completion: handleResult)
 
                 // Wait for the first request
                 semaphore.wait()
 
                 // Loop until all 'nextURL' values are queried
                 while let url = nextURL, nil == error {
-                    self.bdbMakeRequest (url: url, embedded: true, embeddedPath: "transactions") {
-                        (more: URL?, res: Result<[JSON], QueryError>) in
+                    self.bdbMakeRequest (url: url,
+                                         embedded: true,
+                                         embeddedPath: "transactions",
+                                         completion: handleResult)
 
-                        // Append `transactions` with the resulting transactions.
-                        results += try! res
-                            .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
-                            .recover { error = $0; return [] }.get()
-
-                        nextURL = more
-
-                        semaphore.signal()
-                    }
-
+                    // Wait for each subsequent result
                     semaphore.wait()
                 }
             }
