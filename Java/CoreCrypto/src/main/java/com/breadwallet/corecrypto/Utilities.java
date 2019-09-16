@@ -70,7 +70,10 @@ final class Utilities {
             case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
                 if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative()) {
                     return WalletManagerState.DISCONNECTED(
-                            WalletManagerDisconnectReason.POSIX(state.u.disconnected.reason.u.posix.errnum)
+                            WalletManagerDisconnectReason.POSIX(
+                                    state.u.disconnected.reason.u.posix.errnum,
+                                    utf8BytesToString(state.u.disconnected.reason.u.posix.message).orNull()
+                            )
                     );
                 } else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_REQUESTED.toNative()) {
                     return WalletManagerState.DISCONNECTED(
@@ -122,13 +125,7 @@ final class Utilities {
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORRED:
-                String message = new String(state.u.errorred.message, StandardCharsets.UTF_8);
-                int len = message.length();
-                int end = 0;
-                while ((end < len) && (message.charAt(end) > ' ')) {
-                    end++;
-                }
-                return TransferState.FAILED(message.substring(0, end));
+                return TransferState.FAILED(utf8BytesToString(state.u.errorred.message).orNull());
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
                 return TransferState.INCLUDED(new TransferConfirmation(
                         UnsignedLong.fromLongBits(state.u.included.blockNumber),
@@ -178,5 +175,14 @@ final class Utilities {
             case FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
             default: throw new IllegalArgumentException("Unsupported depth");
         }
+    }
+
+    private static Optional<String> utf8BytesToString(byte[] message) {
+        int end = 0;
+        int len = message.length;
+        while ((end < len) && (message[end] != 0)) {
+            end++;
+        }
+        return end == 0 ? Optional.absent() : Optional.of(new String(message, 0, end, StandardCharsets.UTF_8));
     }
 }

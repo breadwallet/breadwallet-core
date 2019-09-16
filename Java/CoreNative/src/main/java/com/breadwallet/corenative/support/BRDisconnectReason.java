@@ -26,17 +26,22 @@ public class BRDisconnectReason extends Structure {
         public static class posix_struct extends Structure {
 
             public int errnum = 0;
+            public byte[] message = new byte[128 + 1];
 
             public posix_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("errnum");
+                return Arrays.asList("errnum", "message");
             }
 
-            public posix_struct(int errnum) {
+            public posix_struct(int errnum, byte[] message) {
                 super();
+                if ((message.length != this.message.length)) {
+                    throw new IllegalArgumentException("Wrong array size!");
+                }
+                this.message = message;
                 this.errnum = errnum;
             }
 

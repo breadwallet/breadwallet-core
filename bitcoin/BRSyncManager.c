@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "support/BRArray.h"
 #include "BRSyncManager.h"
@@ -1870,7 +1871,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         SYNC_MANAGER_DISCONNECTED,
                                         { .disconnected = {
                                                 (reason ?
-                                                 BRDisconnectReasonPosix(reason) :
+                                                 BRDisconnectReasonPosix(reason, strerror (reason)) :
                                                  BRDisconnectReasonRequested())
                                             }
                                         }

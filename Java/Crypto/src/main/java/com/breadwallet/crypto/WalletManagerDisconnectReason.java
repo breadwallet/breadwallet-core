@@ -20,8 +20,8 @@ public final class WalletManagerDisconnectReason {
         return UNKNOWN_REASON;
     }
 
-    public static WalletManagerDisconnectReason POSIX(int errNum) {
-        return new WalletManagerDisconnectReason(Type.POSIX, errNum);
+    public static WalletManagerDisconnectReason POSIX(int errNum, String errMessage) {
+        return new WalletManagerDisconnectReason(Type.POSIX, errNum, errMessage);
     }
 
     public enum Type { REQUESTED, UNKNOWN, POSIX }
@@ -31,13 +31,19 @@ public final class WalletManagerDisconnectReason {
     @Nullable
     private final Integer posixErrnum;
 
+    @Nullable
+    private final String posixMessage;
+
     private WalletManagerDisconnectReason(Type type) {
-        this(type, null);
+        this(type, null, null);
     }
 
-    private WalletManagerDisconnectReason(Type type, @Nullable Integer posixErrnum) {
+    private WalletManagerDisconnectReason(Type type,
+                                          @Nullable Integer posixErrnum,
+                                          @Nullable String posixMessage) {
         this.type = type;
         this.posixErrnum = posixErrnum;
+        this.posixMessage = posixMessage;
     }
 
     public Type getType() {
@@ -48,6 +54,10 @@ public final class WalletManagerDisconnectReason {
         return Optional.fromNullable(posixErrnum);
     }
 
+    public Optional<String> getPosixMessage() {
+        return Optional.fromNullable(posixMessage);
+    }
+
     @Override
     public String toString() {
         switch (type) {
@@ -56,7 +66,7 @@ public final class WalletManagerDisconnectReason {
             case UNKNOWN:
                 return "Unknown";
             case POSIX:
-                return String.format("Posix (%d)", posixErrnum);
+                return String.format("Posix (%d: %s)", posixErrnum, posixMessage);
             default:
                 return super.toString();
         }

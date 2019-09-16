@@ -24,6 +24,8 @@
 //  THE SOFTWARE.
 //
 
+#include <string.h>
+
 #include "BRSyncMode.h"
 
 extern BRDisconnectReason
@@ -41,11 +43,19 @@ BRDisconnectReasonUnknown() {
 }
 
 extern const BRDisconnectReason
-BRDisconnectReasonPosix(int errnum) {
-    return (BRDisconnectReason) {
-        DISCONNECT_REASON_POSIX,
-        { .posix = errnum }
+BRDisconnectReasonPosix(int errnum,
+                        const char *message) {
+    BRDisconnectReason reason = (BRDisconnectReason) {
+        DISCONNECT_REASON_POSIX
     };
+
+    reason.u.posix.errnum = errnum;
+    memset (reason.u.posix.message, 0, sizeof(reason.u.posix.message));
+    if (message) {
+        strncpy(reason.u.posix.message, message, sizeof(reason.u.posix.message) - 1);
+    }
+
+    return reason;
 }
 
 extern const char *

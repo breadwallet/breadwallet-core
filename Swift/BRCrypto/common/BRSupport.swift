@@ -23,6 +23,10 @@ public func asUTF8String (_ chars: UnsafePointer<CChar>) -> String {
     return String (cString: chars, encoding: .utf8)!
 }
 
+public func asUTF8String (_ chars: UnsafePointer<UInt8>) -> String {
+    return ""
+}
+
 struct Weak<T:AnyObject> {
     weak var value : T?
     init (value: T) {

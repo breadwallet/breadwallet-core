@@ -45,6 +45,7 @@ typedef struct {
     union {
         struct {
             int errnum;
+            char message[128 + 1];
         } posix;
     } u;
 } BRDisconnectReason;
@@ -56,7 +57,8 @@ extern const BRDisconnectReason
 BRDisconnectReasonUnknown();
 
 extern const BRDisconnectReason
-BRDisconnectReasonPosix(int errnum);
+BRDisconnectReasonPosix(int errnum,
+                        const char *message);
 
 typedef enum {
     /**
