@@ -1192,7 +1192,7 @@ extension System {
                                                 res.resolve(
                                                     success: {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
 
                                                             if var data = model.raw {
@@ -1536,7 +1536,7 @@ extension System {
                                                 res.resolve(
                                                     success: {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
 
                                                             if var data = model.raw {
