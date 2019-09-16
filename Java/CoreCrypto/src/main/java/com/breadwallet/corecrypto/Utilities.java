@@ -72,9 +72,9 @@ final class Utilities {
                     return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.POSIX(state.u.disconnected.reason.u.posix.errnum)
                     );
-                } else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_TEARDOWN.toNative()) {
+                } else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_REQUESTED.toNative()) {
                     return WalletManagerState.DISCONNECTED(
-                            WalletManagerDisconnectReason.TEARDOWN()
+                            WalletManagerDisconnectReason.REQUESTED()
                     );
                 }
                 else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_UNKNOWN.toNative()) {

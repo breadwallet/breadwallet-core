@@ -6,7 +6,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public enum BRDisconnectReasonType {
 
-    DISCONNECT_REASON_TEARDOWN  {
+    DISCONNECT_REASON_REQUESTED  {
         @Override
         public int toNative() {
             return 0;
@@ -32,7 +32,7 @@ public enum BRDisconnectReasonType {
     static {
         ImmutableMap.Builder<Integer, BRDisconnectReasonType> b = ImmutableMap.builder();
 
-        b.put(DISCONNECT_REASON_TEARDOWN.toNative(),        DISCONNECT_REASON_TEARDOWN);
+        b.put(DISCONNECT_REASON_REQUESTED.toNative(),       DISCONNECT_REASON_REQUESTED);
         b.put(DISCONNECT_REASON_UNKNOWN.toNative(),         DISCONNECT_REASON_UNKNOWN);
         b.put(DISCONNECT_REASON_POSIX.toNative(),           DISCONNECT_REASON_POSIX);
         LOOKUP = b.build();

@@ -9,11 +9,11 @@ import java.util.Objects;
 public final class WalletManagerDisconnectReason {
 
     // create constant values, where possible
-    private static final WalletManagerDisconnectReason TEARDOWN_REASON = new WalletManagerDisconnectReason(Type.TEARDOWN);
+    private static final WalletManagerDisconnectReason REQUESTED_REASON = new WalletManagerDisconnectReason(Type.REQUESTED);
     private static final WalletManagerDisconnectReason UNKNOWN_REASON = new WalletManagerDisconnectReason(Type.UNKNOWN);
 
-    public static WalletManagerDisconnectReason TEARDOWN() {
-        return TEARDOWN_REASON;
+    public static WalletManagerDisconnectReason REQUESTED() {
+        return REQUESTED_REASON;
     }
 
     public static WalletManagerDisconnectReason UNKNOWN() {
@@ -24,7 +24,7 @@ public final class WalletManagerDisconnectReason {
         return new WalletManagerDisconnectReason(Type.POSIX, errNum);
     }
 
-    public enum Type { TEARDOWN, UNKNOWN, POSIX }
+    public enum Type { REQUESTED, UNKNOWN, POSIX }
 
     private final Type type;
 
@@ -51,8 +51,8 @@ public final class WalletManagerDisconnectReason {
     @Override
     public String toString() {
         switch (type) {
-            case TEARDOWN:
-                return "Teardown";
+            case REQUESTED:
+                return "Requested";
             case UNKNOWN:
                 return "Unknown";
             case POSIX:

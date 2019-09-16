@@ -35,7 +35,7 @@ extern "C" {
 
 
 typedef enum {
-    DISCONNECT_REASON_TEARDOWN,
+    DISCONNECT_REASON_REQUESTED,
     DISCONNECT_REASON_UNKNOWN,
     DISCONNECT_REASON_POSIX
 } BRDisconnectReasonType;
@@ -50,7 +50,7 @@ typedef struct {
 } BRDisconnectReason;
 
 extern BRDisconnectReason
-BRDisconnectReasonTeardown();
+BRDisconnectReasonRequested();
 
 extern const BRDisconnectReason
 BRDisconnectReasonUnknown();

@@ -27,9 +27,9 @@
 #include "BRSyncMode.h"
 
 extern BRDisconnectReason
-BRDisconnectReasonTeardown() {
+BRDisconnectReasonRequested() {
     return (BRDisconnectReason) {
-        DISCONNECT_REASON_TEARDOWN
+        DISCONNECT_REASON_REQUESTED
     };
 }
 

@@ -964,7 +964,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
-                                         { .disconnected = { BRDisconnectReasonTeardown() } }
+                                         { .disconnected = { BRDisconnectReasonRequested() } }
                                     });
         }
 
@@ -1021,7 +1021,7 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
-                                        { .disconnected = { BRDisconnectReasonTeardown() } }
+                                        { .disconnected = { BRDisconnectReasonRequested() } }
                                     });
 
             manager->eventCallback (manager->eventContext,
@@ -1871,7 +1871,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         { .disconnected = {
                                                 (reason ?
                                                  BRDisconnectReasonPosix(reason) :
-                                                 BRDisconnectReasonTeardown())
+                                                 BRDisconnectReasonRequested())
                                             }
                                         }
                                     });

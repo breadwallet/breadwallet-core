@@ -437,13 +437,13 @@ public final class WalletSweeper {
 }
 
 public enum DisconnectReason: Equatable {
-    case teardown
+    case requested
     case unknown
     case posix(errno: Int32)
 
     internal init (core: BRDisconnectReason) {
         switch core.type {
-        case DISCONNECT_REASON_TEARDOWN:    self = .teardown
+        case DISCONNECT_REASON_REQUESTED:   self = .requested
         case DISCONNECT_REASON_UNKNOWN:     self = .unknown
         case DISCONNECT_REASON_POSIX:       self = .posix(errno: core.u.posix.errnum)
         default: self = .unknown; precondition(false)
