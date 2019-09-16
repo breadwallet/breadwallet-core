@@ -124,7 +124,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public boolean isActive() {
         WalletManagerState state = getState();
-        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
+        WalletManagerState.Type type = state.getType();
+        return type == WalletManagerState.Type.CREATED || type == WalletManagerState.Type.SYNCING;
     }
 
     @Override

@@ -27,8 +27,8 @@ public class BRCryptoWalletManagerEvent extends Structure {
 
 		public static class state_struct extends Structure {
 
-			public int oldValue;
-			public int newValue;
+			public BRCryptoWalletManagerState oldValue;
+			public BRCryptoWalletManagerState newValue;
 
 			public state_struct() {
 				super();
@@ -38,7 +38,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
 				return Arrays.asList("oldValue", "newValue");
 			}
 
-			public state_struct(int oldValue, int newValue) {
+			public state_struct(BRCryptoWalletManagerState oldValue, BRCryptoWalletManagerState newValue) {
 				super();
 				this.oldValue = oldValue;
 				this.newValue = newValue;

@@ -26,6 +26,28 @@
 
 #include "BRSyncMode.h"
 
+extern BRDisconnectReason
+BRDisconnectReasonTeardown() {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_TEARDOWN
+    };
+}
+
+extern const BRDisconnectReason
+BRDisconnectReasonUnknown() {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_UNKNOWN
+    };
+}
+
+extern const BRDisconnectReason
+BRDisconnectReasonPosix(int errnum) {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_POSIX,
+        { .posix = errnum }
+    };
+}
+
 extern const char *
 BRSyncModeString (BRSyncMode m) {
     switch (m) {

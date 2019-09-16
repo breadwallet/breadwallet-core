@@ -33,6 +33,31 @@
 extern "C" {
 #endif
 
+
+typedef enum {
+    DISCONNECT_REASON_TEARDOWN,
+    DISCONNECT_REASON_UNKNOWN,
+    DISCONNECT_REASON_POSIX
+} BRDisconnectReasonType;
+
+typedef struct {
+    BRDisconnectReasonType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRDisconnectReason;
+
+extern BRDisconnectReason
+BRDisconnectReasonTeardown();
+
+extern const BRDisconnectReason
+BRDisconnectReasonUnknown();
+
+extern const BRDisconnectReason
+BRDisconnectReasonPosix(int errnum);
+
 typedef enum {
     /**
      * Use the BRD backend for all Core blockchain state.  The BRD backend includes a 'submit

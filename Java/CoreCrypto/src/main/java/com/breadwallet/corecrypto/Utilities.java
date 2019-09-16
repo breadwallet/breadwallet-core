@@ -13,13 +13,16 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
+import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
+import com.breadwallet.crypto.WalletManagerDisconnectReason;
 import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
@@ -58,25 +61,27 @@ final class Utilities {
     }
 
     /* package */
-    static int walletManagerStateToCrypto(WalletManagerState state) {
-        switch (state) {
-            case CREATED: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_CREATED;
-            case DELETED: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_DELETED;
-            case CONNECTED: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_CONNECTED;
-            case DISCONNECTED: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED;
-            case SYNCING: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_SYNCING;
-            default: throw new IllegalArgumentException("Unsupported state");
-        }
-    }
-
-    /* package */
-    static WalletManagerState walletManagerStateFromCrypto(int state) {
-        switch (state) {
-            case BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED;
-            case BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED;
-            case BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED;
-            case BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: return WalletManagerState.DISCONNECTED;
-            case BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING;
+    static WalletManagerState walletManagerStateFromCrypto(BRCryptoWalletManagerState state) {
+        switch (state.type) {
+            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
+            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
+            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
+            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
+            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative()) {
+                    return WalletManagerState.DISCONNECTED(
+                            WalletManagerDisconnectReason.POSIX(state.u.disconnected.reason.u.posix.errnum)
+                    );
+                } else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_TEARDOWN.toNative()) {
+                    return WalletManagerState.DISCONNECTED(
+                            WalletManagerDisconnectReason.TEARDOWN()
+                    );
+                }
+                else if (state.u.disconnected.reason.type == BRDisconnectReasonType.DISCONNECT_REASON_UNKNOWN.toNative()) {
+                    return WalletManagerState.DISCONNECTED(
+                            WalletManagerDisconnectReason.UNKNOWN()
+                    );
+                }
             default: throw new IllegalArgumentException("Unsupported state");
         }
     }

@@ -49,7 +49,18 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
         CRYPTO_WALLET_MANAGER_STATE_SYNCING,
         CRYPTO_WALLET_MANAGER_STATE_DELETED
+    } BRCryptoWalletManagerStateType;
+
+    typedef struct {
+        BRCryptoWalletManagerStateType type;
+        union {
+            struct {
+                BRDisconnectReason reason;
+            } disconnected;
+        } u;
     } BRCryptoWalletManagerState;
+
+    extern const BRCryptoWalletManagerState CRYPTO_WALLET_MANAGER_STATE_CREATED_INIT;
 
     typedef enum {
         CRYPTO_WALLET_MANAGER_EVENT_CREATED,

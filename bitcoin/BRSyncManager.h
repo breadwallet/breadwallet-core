@@ -106,8 +106,8 @@ typedef struct {
             BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            int reason;
-        } syncStopped;
+            BRDisconnectReason reason;
+        } disconnected;
         struct {
             uint64_t value;
         } blockHeightUpdated;

@@ -45,7 +45,7 @@ public interface CoreBRCryptoWalletManager {
 
     String getPath();
 
-    int getState();
+    BRCryptoWalletManagerState getState();
 
     int getAddressScheme();
 

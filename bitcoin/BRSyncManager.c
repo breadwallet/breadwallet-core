@@ -21,10 +21,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <errno.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include "support/BRArray.h"
 #include "BRSyncManager.h"
@@ -954,8 +955,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }}
+                                        SYNC_MANAGER_SYNC_STOPPED
                                     });
         }
 
@@ -963,7 +963,8 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_DISCONNECTED
+                                        SYNC_MANAGER_DISCONNECTED,
+                                         { .disconnected = { BRDisconnectReasonTeardown() } }
                                     });
         }
 
@@ -1011,8 +1012,7 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }}
+                                        SYNC_MANAGER_SYNC_STOPPED
                                     });
         }
 
@@ -1020,7 +1020,8 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_DISCONNECTED
+                                        SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = { BRDisconnectReasonTeardown() } }
                                     });
 
             manager->eventCallback (manager->eventContext,
@@ -1070,12 +1071,11 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 
         free (tx);
     } else {
-        // TODO(fix): What should the error code be?
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
                                     SYNC_MANAGER_TXN_SUBMITTED,
-                                    { .submitted = {transaction, -1} },
+                                    { .submitted = {transaction, ENOTCONN} },
                                 });
     }
 }
@@ -1193,12 +1193,14 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                 int rid,
                                                 int success) {
     uint8_t needSyncEvent        = 0;
+    uint8_t needDiscEvent        = 0;
     uint8_t needClientCall       = 0;
     uint64_t begBlockNumber      = 0;
     uint64_t endBlockNumber      = 0;
     size_t addressCount          = 0;
     BRArrayOf(char *) addresses  = NULL;
     BRSyncManagerEvent syncEvent = {0};
+    BRSyncManagerEvent discEvent = {0};
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         // confirm completion is for in-progress sync
@@ -1229,18 +1231,22 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 
                     // store control flow flags
                     needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
-                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { 0 }}};
+                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED};
 
                     // reset sync state
                     BRClientSyncManagerScanStateWipe (&manager->scanState);
 
                 }
             } else {
+                // transition to the disconnected state
+                manager->isConnected = 0;
+
                 // store control flow flags
                 needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
+                needDiscEvent = 1;
 
-                // TODO(fix): What should the error code be?
-                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }}};
+                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED};
+                discEvent = (BRSyncManagerEvent) {SYNC_MANAGER_DISCONNECTED, { .disconnected = { BRDisconnectReasonUnknown() } }};
 
                 // reset sync state on failure
                 BRClientSyncManagerScanStateWipe (&manager->scanState);
@@ -1254,6 +1260,12 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     syncEvent);
+        }
+
+        if (needDiscEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    discEvent);
         }
 
         pthread_mutex_unlock (&manager->lock);
@@ -1791,8 +1803,7 @@ _BRPeerSyncManagerSyncStarted (void *info) {
             manager->eventCallback (manager->eventContext,
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }},
+                                        SYNC_MANAGER_SYNC_STOPPED
                                     });
         }
 
@@ -1848,8 +1859,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
             manager->eventCallback (manager->eventContext,
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { reason }},
+                                        SYNC_MANAGER_SYNC_STOPPED
                                     });
         }
 
@@ -1858,6 +1868,12 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = {
+                                                (reason ?
+                                                 BRDisconnectReasonPosix(reason) :
+                                                 BRDisconnectReasonTeardown())
+                                            }
+                                        }
                                     });
         }
         pthread_mutex_unlock (&manager->lock);
@@ -1928,6 +1944,7 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = { BRDisconnectReasonUnknown() } }
                                     });
         }
 

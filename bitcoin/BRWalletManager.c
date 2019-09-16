@@ -1691,7 +1691,8 @@ _BRWalletManagerSyncEvent(void * context,
         case SYNC_MANAGER_DISCONNECTED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
-                                            BITCOIN_WALLET_MANAGER_DISCONNECTED
+                                            BITCOIN_WALLET_MANAGER_DISCONNECTED,
+                                            { .disconnected = { event.u.disconnected.reason } }
                                         });
             break;
         }
@@ -1716,8 +1717,7 @@ _BRWalletManagerSyncEvent(void * context,
         case SYNC_MANAGER_SYNC_STOPPED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
-                                            BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
-                                            { .syncStopped = { event.u.syncStopped.reason }}
+                                            BITCOIN_WALLET_MANAGER_SYNC_STOPPED
                                         });
             break;
         }

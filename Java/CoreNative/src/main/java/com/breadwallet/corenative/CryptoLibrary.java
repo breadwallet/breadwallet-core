@@ -24,6 +24,7 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
@@ -220,7 +221,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
     BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
-    int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
+    BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);

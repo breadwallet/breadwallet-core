@@ -436,20 +436,35 @@ public final class WalletSweeper {
     }
 }
 
+public enum DisconnectReason: Equatable {
+    case teardown
+    case unknown
+    case posix(errno: Int32)
+
+    internal init (core: BRDisconnectReason) {
+        switch core.type {
+        case DISCONNECT_REASON_TEARDOWN:    self = .teardown
+        case DISCONNECT_REASON_UNKNOWN:     self = .unknown
+        case DISCONNECT_REASON_POSIX:       self = .posix(errno: core.u.posix.errnum)
+        default: self = .unknown; precondition(false)
+        }
+    }
+}
+
 ///
 /// The WalletManager state.
 ///
 public enum WalletManagerState: Equatable {
     case created
-    case disconnected
+    case disconnected(DisconnectReason)
     case connected
     case syncing
     case deleted
 
     internal init (core: BRCryptoWalletManagerState) {
-        switch core {
+        switch core.type {
         case CRYPTO_WALLET_MANAGER_STATE_CREATED:      self = .created
-        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(DisconnectReason(core: core.u.disconnected.reason))
         case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
         case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
         case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
