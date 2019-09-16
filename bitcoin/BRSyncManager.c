@@ -1154,6 +1154,8 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
                                                 uint64_t blockHeight) {
     BRTransaction *transaction = BRTransactionParse (txn, txnLength);
     uint8_t needRegistration = NULL != transaction && BRTransactionIsSigned (transaction);
+    uint8_t needFree = 1;
+
     if (needRegistration) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             // confirm completion is for in-progress sync
@@ -1165,25 +1167,23 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 
     if (needRegistration) {
-        if (NULL != BRWalletTransactionForHash (manager->wallet, transaction->txHash)) {
-            // Wallet already knows about this txn; so just update the block info
-            BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
-        } else {
-            // Set the transaction's block info according to what has been announced
-            transaction->timestamp = (uint32_t) timestamp;
-            transaction->blockHeight = (uint32_t) blockHeight;
-
+        if (NULL == BRWalletTransactionForHash (manager->wallet, transaction->txHash)) {
             // BRWalletRegisterTransaction doesn't reliably report if the txn was added to the wallet.
             BRWalletRegisterTransaction (manager->wallet, transaction);
-            if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) == transaction) {
+            if (transaction == BRWalletTransactionForHash (manager->wallet, transaction->txHash)) {
                 // If our transaction made it into the wallet, do not deallocate it
-                transaction = NULL;
+                needFree = 0;
             }
         }
     }
 
+    // Wallet already knows about this txn; so just update the block info.
+    if (/* isRegistered */ NULL != transaction && BRTransactionIsSigned (transaction)) {
+        BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
+    }
+
     // Free if ownership hasn't been passed
-    if (NULL != transaction) {
+   if (needFree) {
         BRTransactionFree (transaction);
     }
 }
