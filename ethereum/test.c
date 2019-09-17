@@ -35,6 +35,9 @@
 
 extern const char *tokenBRDAddress;
 
+extern BREthereumToken
+tokenLookupTest (const char *address);
+
 //
 // Ether & Token Parse
 //
@@ -260,7 +263,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 3\n");
     
     BRCoreParseStatus status;
-    BREthereumToken token = tokenLookup(tokenBRDAddress);
+    BREthereumToken token = tokenLookupTest (tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
     UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
@@ -439,7 +442,7 @@ void testTransactionCodingEther () {
 void testTransactionCodingToken () {
     printf ("     Coding Transaction\n");
 
-    BREthereumToken token = tokenLookup(tokenBRDAddress);
+    BREthereumToken token = tokenLookupTest(tokenBRDAddress);
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 

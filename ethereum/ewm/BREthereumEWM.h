@@ -455,6 +455,22 @@ ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
                                    const char *strBlockNumber,
                                    int rid);
 
+/// MARK: Token
+
+extern BREthereumToken
+ewmLookupToken (BREthereumEWM ewm,
+                BREthereumAddress address);
+
+extern BREthereumToken
+ewmCreateToken (BREthereumEWM ewm,
+                const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice);
+
 ///
 //extern void // status, error
 //ewmWalletSubmitTransferCancel(BREthereumEWM ewm,

@@ -29,6 +29,14 @@ static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad
 static const char *tokenEOSAddress = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
 static const char *tokenKNCAddress = "0xdd974d5c2e2928dea5f71b9825b8b646686bd200";
 
+static BRSetOf(BREthereumToken) tokens;
+
+extern BREthereumToken
+tokenLookupTest (const char *address) {
+    BREthereumAddress addr = addressCreate(address);
+    return BRSetGet (tokens, &addr);
+}
+
 extern void
 installTokensForTest (void) {
     static int needInstall = 1;
@@ -37,37 +45,48 @@ installTokensForTest (void) {
     
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
-    tokenInstall (tokenBRDAddress,
-                  "BRD",
-                  "BRD Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
-#if defined (BITCOIN_DEBUG)
-    tokenInstall (tokenTSTAddress,
-                  "TST",
-                  "Test Standard Token",
-                  "TeST Standard Token (TST) for TeSTing (TST)",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
-#endif
-    tokenInstall (tokenEOSAddress,
-                  "EOS",
-                  "EOS Token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
 
-    tokenInstall (tokenKNCAddress,
-                  "KNC",
-                  "KNC token",
-                  "",
-                  18,
-                  defaultGasLimit,
-                  defaultGasPrice);
+    tokens = tokenSetCreate(10);
+
+    BREthereumToken token;
+
+    token = tokenCreate (tokenBRDAddress,
+                         "BRD",
+                         "BRD Token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
+#if defined (BITCOIN_DEBUG)
+    token = tokenCreate (tokenTSTAddress,
+                         "TST",
+                         "Test Standard Token",
+                         "TeST Standard Token (TST) for TeSTing (TST)",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
+#endif
+    token = tokenCreate (tokenEOSAddress,
+                         "EOS",
+                         "EOS Token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
+    token = tokenCreate (tokenKNCAddress,
+                         "KNC",
+                         "KNC token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
 }
 
 static void
@@ -78,7 +97,10 @@ runTokenParseTests () {
     //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
     //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
 
-    BREthereumToken token = tokenLookup(tokenBRDAddress);
+    BREthereumAddress address;
+
+    address = addressCreate (tokenBRDAddress);
+    BREthereumToken token = BRSetGet (tokens, &address);
     BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
     assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
 
@@ -90,17 +112,22 @@ void runTokenLookupTests () {
     printf ("==== Token\n");
 
     BREthereumToken token;
+    BREthereumAddress address;
 
-    token = tokenLookup (tokenBRDAddress); // BRD
+    address = addressCreate (tokenBRDAddress);
+
+    token = BRSetGet (tokens, &address); // BRD
     assert (NULL != token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenLookup(tokenTSTAddress); // TST: mainnet
+    address = addressCreate (tokenTSTAddress);
+    token = BRSetGet (tokens, &address); // TST
     assert (NULL != token);
 #endif
 
 #if !defined(BITCOIN_TESTNET)
-    token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
+    address = addressCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0");
+    token = BRSetGet (tokens, &address); // EOI
     assert (NULL != token);
 #endif
 }

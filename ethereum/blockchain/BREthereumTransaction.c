@@ -637,9 +637,9 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
         char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
         char *funcAmt    = coerceString(funcAmount, 10);
 
-        BREthereumToken token = tokenLookup(target);
+        // BREthereumToken token = tokenLookup(target);
 
-        eth_log (topic, "    Token : %s", (NULL == token ? "???" : tokenGetSymbol(token)));
+        eth_log (topic, "    Token : %s", target); //  (NULL == token ? "???" : tokenGetSymbol(token)));
         eth_log (topic, "    TokFnc: %s", "erc20 transfer");
         eth_log (topic, "    TokAmt: %s", funcAmt);
         eth_log (topic, "    TokAdr: %s", funcAddr);

@@ -37,6 +37,8 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /* package */
 final class Utilities {
@@ -189,6 +191,12 @@ final class Utilities {
             case FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
             default: throw new IllegalArgumentException("Unsupported depth");
         }
+    }
+
+    /* package */
+    static UnsignedLong dateAsUnixTimestamp(Date date) {
+        long timestamp = TimeUnit.MILLISECONDS.toSeconds(date.getTime());
+        return timestamp > 0 ? UnsignedLong.valueOf(timestamp) : UnsignedLong.ZERO;
     }
 
     private static Optional<String> utf8BytesToString(byte[] message) {

@@ -308,7 +308,9 @@ eventHandlerStop (BREventHandler handler) {
 
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    return pthread_self() == handler->thread;
+    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
+    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
+    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
 }
 
 extern int

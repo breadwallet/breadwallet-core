@@ -1902,7 +1902,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         SYNC_MANAGER_SYNC_STOPPED,
                                         { .syncStopped = {
                                                 (reason ?
-                                                BRSyncStoppedReasonPosix(reason, strerror (reason)) :
+                                                BRSyncStoppedReasonPosix(reason) :
                                                 (isConnected ?
                                                  BRSyncStoppedReasonComplete() :
                                                  BRSyncStoppedReasonRequested()))
@@ -1918,7 +1918,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         SYNC_MANAGER_DISCONNECTED,
                                         { .disconnected = {
                                                 (reason ?
-                                                 BRDisconnectReasonPosix(reason, strerror (reason)) :
+                                                 BRDisconnectReasonPosix(reason) :
                                                  BRDisconnectReasonRequested())
                                             }
                                         }
