@@ -59,9 +59,9 @@ BRSyncStoppedReasonPosix(int errnum) {
 }
 
 extern const char *
-BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason) {
-    assert (reason.type == SYNC_STOPPED_REASON_POSIX);
-    return strerror (reason.u.posix.errnum);
+BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason *reason) {
+    assert (reason->type == SYNC_STOPPED_REASON_POSIX);
+    return strerror (reason->u.posix.errnum);
 }
 
 extern BRDisconnectReason
@@ -87,9 +87,9 @@ BRDisconnectReasonPosix(int errnum) {
 }
 
 extern const char *
-BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason) {
-    assert (reason.type == DISCONNECT_REASON_POSIX);
-    return strerror (reason.u.posix.errnum);
+BRDisconnectReasonPosixGetMessage(BRDisconnectReason *reason) {
+    assert (reason->type == DISCONNECT_REASON_POSIX);
+    return strerror (reason->u.posix.errnum);
 }
 
 extern const char *

@@ -62,7 +62,7 @@ extern BRSyncStoppedReason
 BRSyncStoppedReasonPosix(int errnum);
 
 extern const char *
-BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason);
+BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason *reason);
 
 typedef enum {
     DISCONNECT_REASON_REQUESTED,
@@ -89,7 +89,7 @@ extern BRDisconnectReason
 BRDisconnectReasonPosix(int errnum);
 
 extern const char *
-BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason);
+BRDisconnectReasonPosixGetMessage(BRDisconnectReason *reason);
 
 typedef enum {
     /**
