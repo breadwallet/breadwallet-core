@@ -43,6 +43,9 @@ struct BRCryptoWalletManagerRecord {
     BRCryptoAccount account;
     BRCryptoAddressScheme addressScheme;
 
+    /// An optional `peer`
+    BRCryptoPeer peer;
+    
     BRCryptoWalletManagerState state;
 
     /// The primary wallet

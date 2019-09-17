@@ -161,6 +161,11 @@ BRSyncManagerSetNetworkReachable (BRSyncManager manager,
                                   int isNetworkReachable);
 
 extern void
+BRSyncManagerSetFixedPeer (BRSyncManager manager,
+                           UInt128 address,
+                           uint16_t port);
+
+extern void
 BRSyncManagerConnect(BRSyncManager manager);
 
 extern void

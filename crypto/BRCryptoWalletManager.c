@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <pthread.h>
+#include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
@@ -99,6 +100,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->state   = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
+    cwm->peer = NULL;
 
     cwm->wallet = NULL;
     array_new (cwm->wallets, 1);
@@ -280,6 +282,7 @@ static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     cryptoAccountGive (cwm->account);
     cryptoNetworkGive (cwm->network);
+    if (NULL != cwm->peer)   cryptoPeerGive (cwm->peer);
     if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
 
     for (size_t index = 0; index < array_count(cwm->wallets); index++)
@@ -399,6 +402,19 @@ cryptoWalletManagerSetNetworkReachable (BRCryptoWalletManager cwm,
             break;
     }
 }
+
+//extern BRCryptoPeer
+//cryptoWalletManagerGetPeer (BRCryptoWalletManager cwm) {
+//    return (NULL == cwm->peer ? NULL : cryptoPeerTake (cwm->peer));
+//}
+//
+//extern void
+//cryptoWalletManagerSetPeer (BRCryptoWalletManager cwm,
+//                            BRCryptoPeer peer) {
+//    BRCryptoPeer oldPeer = cwm->peer;
+//    cwm->peer = (NULL == peer ? NULL : cryptoPeerTake(peer));
+//    if (NULL != oldPeer) cryptoPeerGive (oldPeer);
+//}
 
 extern BRCryptoWallet
 cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm) {
@@ -539,11 +555,29 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
 /// MARK: - Connect/Disconnect/Sync
 
 extern void
-cryptoWalletManagerConnect (BRCryptoWalletManager cwm) {
+cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
+                            BRCryptoPeer peer) {
     switch (cwm->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
+        case BLOCK_CHAIN_TYPE_BTC: {
+            // Assume `peer` is NULL; UINT128_ZERO will restore BRPeerManager peer discovery
+            UInt128  address = UINT128_ZERO;
+            uint16_t port    = 0;
+
+            if (NULL != peer) {
+                struct in_addr inetAddr = cryptoPeerGetInetAddr (peer);
+
+                // Okay?
+                address.u16[5] = 0xffff;
+                address.u32[3] = inetAddr.s_addr;
+
+                port = cryptoPeerGetPort (peer);
+            }
+            // Calling `SetFixedPeer` will 100% disconnect.  We could avoid calling SetFixedPeer
+            // if we kept a reference to `peer` and checked if it differs.
+            BRWalletManagerSetFixedPeer (cwm->u.btc, address, port);
             BRWalletManagerConnect (cwm->u.btc);
             break;
+        }
         case BLOCK_CHAIN_TYPE_ETH:
             ewmConnect (cwm->u.eth);
             break;
