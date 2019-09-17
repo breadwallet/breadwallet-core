@@ -10,6 +10,7 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -25,8 +26,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public interface CoreBRCryptoAccount {
 
-    static CoreBRCryptoAccount createFromPhrase(byte[] phraseUtf8, Date timestamp) {
-        long timestampAsLong = TimeUnit.MILLISECONDS.toSeconds(timestamp.getTime());
+    static CoreBRCryptoAccount createFromPhrase(byte[] phraseUtf8, UnsignedLong timestamp) {
+        long timestampAsLong = timestamp.longValue();
 
         // ensure string is null terminated
         phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
