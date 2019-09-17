@@ -1903,7 +1903,9 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         { .syncStopped = {
                                                 (reason ?
                                                 BRSyncStoppedReasonPosix(reason, strerror (reason)) :
-                                                BRSyncStoppedReasonRequested())
+                                                (isConnected ?
+                                                 BRSyncStoppedReasonComplete() :
+                                                 BRSyncStoppedReasonRequested()))
                                             }
                                         }
                                     });
