@@ -5,6 +5,9 @@
 //  Created by Ed Gamble on 8/22/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 
 import UIKit
 import BRCrypto
@@ -20,12 +23,6 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
                           AddressScheme.btcSegwit,
                           AddressScheme.ethDefault,
                           AddressScheme.genDefault]
-
-    let connectStates = [WalletManagerState.created,
-                         WalletManagerState.disconnected,
-                         WalletManagerState.connected,
-                         WalletManagerState.syncing,
-                         WalletManagerState.disconnected]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,11 +53,10 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
    }
 
     func connectStateIsSelected (_ index: Int, _ state: WalletManagerState? = nil) -> Bool {
-        let state = state ?? manager.state
-        switch index {
-        case 0: return WalletManagerState.disconnected == state
-        case 1: return WalletManagerState.connected    == state
-        case 2: return WalletManagerState.syncing      == state
+        switch state ?? manager.state {
+        case .disconnected: return index == 0
+        case .connected:    return index == 1
+        case .syncing:      return index == 2
         default: return false
         }
     }
@@ -158,8 +154,13 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
                 }
             case .syncProgress(_, let percentComplete):
                 self.syncProgressLabel.text = percentComplete.description
-            case .syncEnded(let error):
-                self.syncProgressLabel.text = error ?? ""
+            case .syncEnded(let reason):
+                switch reason {
+                case .complete: self.syncProgressLabel.text = "COMPLETE"
+                case .requested: self.syncProgressLabel.text = ""
+                case .unknown: self.syncProgressLabel.text = "<UNKNOWN>"
+                case .posix(let errnum, let message): self.syncProgressLabel.text = "\(errnum): \(message ?? "")"
+                }
             case .blockUpdated(let height):
                 self.blockHeightLabel.text = height.description
             default:

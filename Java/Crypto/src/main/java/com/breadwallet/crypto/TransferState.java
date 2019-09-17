@@ -2,7 +2,7 @@
  * TransferState
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -13,22 +13,31 @@ import android.support.annotation.Nullable;
 
 import com.google.common.base.Optional;
 
+import java.util.Objects;
+
 public final class TransferState {
 
+    // create constant values, where possible
+    private static final TransferState CREATED_STATE = new TransferState(Type.CREATED, null, null);
+    private static final TransferState SIGNED_STATE = new TransferState(Type.SIGNED, null, null);
+    private static final TransferState SUBMITTED_STATE = new TransferState(Type.SUBMITTED, null, null);
+    private static final TransferState PENDING_STATE = new TransferState(Type.PENDING, null, null);
+    private static final TransferState DELETED_STATE = new TransferState(Type.DELETED, null, null);
+
     public static TransferState CREATED() {
-        return new TransferState(Type.CREATED, null, null);
+        return CREATED_STATE;
     }
 
     public static TransferState SIGNED() {
-        return new TransferState(Type.SIGNED, null, null);
+        return SIGNED_STATE;
     }
 
     public static TransferState SUBMITTED() {
-        return new TransferState(Type.SUBMITTED, null, null);
+        return SUBMITTED_STATE;
     }
 
     public static TransferState PENDING() {
-        return new TransferState(Type.PENDING, null, null);
+        return PENDING_STATE;
     }
 
     public static TransferState INCLUDED(TransferConfirmation confirmation) {
@@ -40,7 +49,7 @@ public final class TransferState {
     }
 
     public static TransferState DELETED() {
-        return new TransferState(Type.DELETED, null, null);
+        return DELETED_STATE;
     }
 
     public enum Type { CREATED, SIGNED, SUBMITTED, PENDING, INCLUDED, FAILED, DELETED }
@@ -90,5 +99,26 @@ public final class TransferState {
             default:
                 throw new IllegalStateException("Invalid type");
         }
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof TransferState)) {
+            return false;
+        }
+
+        TransferState that = (TransferState) object;
+        return type == that.type &&
+                Objects.equals(includedConfirmation, that.includedConfirmation) &&
+                Objects.equals(failedReason, that.failedReason);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, includedConfirmation, failedReason);
     }
 }

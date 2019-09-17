@@ -5,6 +5,9 @@
 //  Created by Ed Gamble on 3/28/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -441,7 +444,9 @@ CWMEventEqual (CWMEvent *e1, CWMEvent *e2) {
 
                 switch (e1->u.m.event.type) {
                     case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
-                        success = 0 == memcmp(&e1->u.m.event.u.state, &e2->u.m.event.u.state, sizeof(e1->u.m.event.u.state));
+                        // Do we want to check iff the disconnect reason matched?
+                        success = (e1->u.m.event.u.state.oldValue.type == e2->u.m.event.u.state.oldValue.type &&
+                                   e1->u.m.event.u.state.newValue.type == e2->u.m.event.u.state.newValue.type);
                         break;
                     case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
                     case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
@@ -835,20 +840,20 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                     wallet),
                                                            // cryptoWalletManagerConnect()
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CREATED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING)),
                                                            // cryptoWalletManagerDisconnect()
                                                           CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_SYNCING,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
                                                       },
                                                       9,
                                                       (CWMEvent []) {
@@ -904,20 +909,20 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                      wallet),
                                                             // cryptoWalletManagerConnect() - first, second and third do nothing
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CREATED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING)),
                                                             // cryptoWalletManagerDisconnect()
                                                            CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_SYNCING,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
                                                        },
                                                        9,
                                                        (CWMEvent []) {
@@ -1031,20 +1036,20 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                      wallet),
                                                             // cryptoWalletManagerConnect()
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CREATED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING)),
                                                             // cryptoWalletManagerDisconnect()
                                                            CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_SYNCING,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                     CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED),
+                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                     cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
                                                        },
                                                        9,
                                                        (CWMEvent []) {
@@ -1289,20 +1294,20 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
                                                                                                     wallet),
                                                            // cryptoWalletManagerConnect()
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CREATED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING)),
                                                            // cryptoWalletManagerSetMode()
                                                           CWMEventForWalletManagerType         (CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_SYNCING,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
-                                                                                                    CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED),
+                                                                                                    cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
+                                                                                                    cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
                                                       },
                                                       9,
                                                       (CWMEvent []) {

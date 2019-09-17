@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 11/21/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -1691,7 +1691,8 @@ _BRWalletManagerSyncEvent(void * context,
         case SYNC_MANAGER_DISCONNECTED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
-                                            BITCOIN_WALLET_MANAGER_DISCONNECTED
+                                            BITCOIN_WALLET_MANAGER_DISCONNECTED,
+                                            { .disconnected = { event.u.disconnected.reason } }
                                         });
             break;
         }
@@ -1717,7 +1718,7 @@ _BRWalletManagerSyncEvent(void * context,
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
                                             BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
-                                            { .syncStopped = { event.u.syncStopped.reason }}
+                                            { .syncStopped = { event.u.syncStopped.reason } }
                                         });
             break;
         }
