@@ -22,6 +22,7 @@
 //  THE SOFTWARE.
 
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -353,9 +354,12 @@ struct BRPeerSyncManagerStruct {
     /// Mark: - Mutable Sction
 
     /**
-     * Flag for whether or not the blockchain network is reachable
+     * Flag for whether or not the blockchain network is reachable. This is an atomic
+     * int and is NOT protected by the mutable state lock as it is access by a
+     * BRPeerManager callback that is done while holding a BRPeer's lock. To avoid a
+     * deadlock, use an atomic here instead.
      */
-    int isNetworkReachable;
+    atomic_int isNetworkReachable;
 
     /**
      * The known height of the blockchain, as reported by the P2P network.
@@ -1610,25 +1614,13 @@ BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager) {
 
 static int
 BRPeerSyncManagerGetNetworkReachable(BRPeerSyncManager manager) {
-    int isNetworkReachable = 0;
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        isNetworkReachable = manager->isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-    return isNetworkReachable;
+    return atomic_load (&manager->isNetworkReachable);
 }
 
 static void
 BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
                                      int isNetworkReachable) {
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        manager->isNetworkReachable = isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
+    atomic_store (&manager->isNetworkReachable, isNetworkReachable);
 }
 
 static void
@@ -1946,15 +1938,7 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
 static int
 _BRPeerSyncManagerNetworkIsReachable (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
-
-    int isNetworkReachable = 0;
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        isNetworkReachable = manager->isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-    return isNetworkReachable;
+    return BRPeerSyncManagerGetNetworkReachable (manager);
 }
 
 static void
