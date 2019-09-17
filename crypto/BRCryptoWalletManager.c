@@ -33,6 +33,32 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 /// MARK: - Wallet Manager
 ///
 ///
+
+private_extern BRCryptoWalletManagerState
+cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type) {
+    switch (type) {
+        case CRYPTO_WALLET_MANAGER_STATE_CREATED:
+        case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:
+        case CRYPTO_WALLET_MANAGER_STATE_SYNCING:
+        case CRYPTO_WALLET_MANAGER_STATE_DELETED:
+            return (BRCryptoWalletManagerState) { type };
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+            assert (0); // if you are hitting this, use cryptoWalletManagerStateDisconnectedInit!
+            return (BRCryptoWalletManagerState) {
+                CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
+                { .disconnected = { BRDisconnectReasonUnknown() } }
+            };
+    }
+}
+
+private_extern BRCryptoWalletManagerState
+cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason) {
+    return (BRCryptoWalletManagerState) {
+        CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
+        { .disconnected = { reason } }
+    };
+}
+
 #pragma clang diagnostic push
 #pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
@@ -70,7 +96,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->client  = client;
     cwm->network = cryptoNetworkTake (network);
     cwm->account = cryptoAccountTake (account);
-    cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
+    cwm->state   = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
 

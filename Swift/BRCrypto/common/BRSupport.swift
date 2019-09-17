@@ -211,6 +211,13 @@ extension Array {
     }
 }
 
+extension Date {
+    var asUnixTimestamp: UInt64 {
+        let since1970 = self.timeIntervalSince1970
+        return UInt64 (since1970 >= 0 ? since1970 : 0)
+    }
+}
+
 public struct AccountSpecification {
     public let identifier: String
     public let network: String

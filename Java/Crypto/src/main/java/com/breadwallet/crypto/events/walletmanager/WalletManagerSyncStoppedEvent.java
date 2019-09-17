@@ -7,18 +7,18 @@
  */
 package com.breadwallet.crypto.events.walletmanager;
 
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 
 public final class WalletManagerSyncStoppedEvent implements WalletManagerEvent {
 
-    private final String error;
+    private final WalletManagerSyncStoppedReason reason;
 
-    public WalletManagerSyncStoppedEvent(String error) {
-        this.error = error;
+    public WalletManagerSyncStoppedEvent(WalletManagerSyncStoppedReason reason) {
+        this.reason = reason;
     }
 
-    public Optional<String> getError() {
-        return Optional.fromNullable(error);
+    public WalletManagerSyncStoppedReason getReason() {
+        return reason;
     }
 
     @Override

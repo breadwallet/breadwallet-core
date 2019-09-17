@@ -99,7 +99,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public int getState() {
+    public BRCryptoWalletManagerState getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetState(this);
     }
 

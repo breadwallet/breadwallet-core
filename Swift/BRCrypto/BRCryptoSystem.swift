@@ -327,7 +327,7 @@ public final class System {
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme) {
-        
+
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
                                      account: account,
@@ -474,9 +474,8 @@ public final class System {
                 let fees = blockChainModel.feeEstimates
                     // Well, quietly ignore a fee if we can't parse the amount.
                     .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                        let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
                         return Amount.create (string: fee.amount, unit: feeUnit)
-                            .map { NetworkFee (timeIntervalInMilliseconds: UInt64(timeInterval),
+                            .map { NetworkFee (timeIntervalInMilliseconds: fee.confirmationTimeInMilliseconds,
                                                pricePerCostFactor: $0) }
                 }
 
@@ -514,13 +513,26 @@ public final class System {
 
     private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
                                             remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
-        // Both `builtin` and `remote` have a non-null blockHeight -> supported.
+        // We ONLY support built-in blockchains; but the remotes have some
+        // needed values - specifically the network fees.
 
-        // Filter remotes to only contain entries for builtin blockchains
+        // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never have
+        // more than `builtin` but might have less.
         let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
 
-        // Merge builtin into supportedRemote
+        // Augment `remote` to include all `builtin`.
         return supportedRemote.unionOf(builtin) { $0.id }
+            // Keep all the `remote` data as valid BUT ensure there is a blockHeight
+            .map { (rbc) in
+                // If we have a block height, then no update is required.
+                guard nil == rbc.blockHeight else { return rbc }
+
+                // By construction we have a builtin blockchain
+                let bbc = builtin.first (where: { $0.id == rbc.id })! // ! => must have
+
+                // The builtin blockchain as a blockHeight; the remote does not -> update it.
+                return BlockChainDB.Model.updateBlockchainModelHeight (model: rbc, height: bbc.blockHeight!)
+        }
     }
 
     ///
@@ -570,11 +582,10 @@ public final class System {
                 let blockChainModelsSupported = System.supportedBlockchains
                     .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
 
+                // Get the remote block chains, some of these will be unsupported (have a nil
+                // blockHeight).  We don't filter unsupported block chains because the BDB provides
+                // valid network fee data.  We'll merge 'supported' and 'remote'
                 let blockChainModelsRemote = blockchainResult
-                    // Only supported blockchains, but we'll merge in the defaults to handle
-                    // blockchains not supported by BDB.
-                    .map { $0.filter { nil != $0.blockHeight } }
-                    // On error, return [] - we'll use defaults
                     .getWithRecovery { (ignore) in return [] }
 
                 let blockChainModels =
@@ -1007,16 +1018,17 @@ extension System {
                     walletManagerEvent = WalletManagerEvent.syncStarted
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                    let timestamp: Date? = (0 == event.u.syncContinues.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
                         ? nil
-                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.syncContinues.timestamp)))
 
                     walletManagerEvent = WalletManagerEvent.syncProgress (
                         timestamp: timestamp,
-                        percentComplete: event.u.sync.percentComplete)
+                        percentComplete: event.u.syncContinues.percentComplete)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                    walletManagerEvent = WalletManagerEvent.syncEnded(error: nil)
+                    let reason = WalletManagerSyncStoppedReason(core: event.u.syncStopped.reason)
+                    walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     manager.network.height = event.u.blockHeight.value
@@ -1192,7 +1204,7 @@ extension System {
                                                 res.resolve(
                                                     success: {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
 
                                                             if var data = model.raw {
@@ -1536,7 +1548,7 @@ extension System {
                                                 res.resolve(
                                                     success: {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
 
                                                             if var data = model.raw {
