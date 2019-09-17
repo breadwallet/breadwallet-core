@@ -24,7 +24,10 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
+import com.breadwallet.corenative.support.BRDisconnectReason;
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -220,7 +223,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
     BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
-    int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
+    BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
@@ -286,4 +289,8 @@ public interface CryptoLibrary extends Library {
 
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
+    // support/BRSyncMode.h
+    Pointer BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason);
+    Pointer BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason);
 }

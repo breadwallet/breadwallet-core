@@ -34,6 +34,64 @@ extern "C" {
 #endif
 
 typedef enum {
+    SYNC_STOPPED_REASON_COMPLETE,
+    SYNC_STOPPED_REASON_REQUESTED,
+    SYNC_STOPPED_REASON_UNKNOWN,
+    SYNC_STOPPED_REASON_POSIX
+} BRSyncStoppedReasonType;
+
+typedef struct {
+    BRSyncStoppedReasonType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRSyncStoppedReason;
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonComplete(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonRequested(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonUnknown(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonPosix(int errnum);
+
+extern const char *
+BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason *reason);
+
+typedef enum {
+    DISCONNECT_REASON_REQUESTED,
+    DISCONNECT_REASON_UNKNOWN,
+    DISCONNECT_REASON_POSIX
+} BRDisconnectReasonType;
+
+typedef struct {
+    BRDisconnectReasonType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRDisconnectReason;
+
+extern BRDisconnectReason
+BRDisconnectReasonRequested(void);
+
+extern BRDisconnectReason
+BRDisconnectReasonUnknown(void);
+
+extern BRDisconnectReason
+BRDisconnectReasonPosix(int errnum);
+
+extern const char *
+BRDisconnectReasonPosixGetMessage(BRDisconnectReason *reason);
+
+typedef enum {
     /**
      * Use the BRD backend for all Core blockchain state.  The BRD backend includes a 'submit
      * transaction' interface.

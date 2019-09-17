@@ -79,7 +79,7 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public int getState() {
+    public BRCryptoWalletManagerState getState() {
         return core.getState();
     }
 

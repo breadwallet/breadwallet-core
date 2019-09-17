@@ -327,7 +327,7 @@ public final class System {
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme) {
-        
+
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
                                      account: account,
@@ -1018,16 +1018,17 @@ extension System {
                     walletManagerEvent = WalletManagerEvent.syncStarted
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                    let timestamp: Date? = (0 == event.u.syncContinues.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
                         ? nil
-                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.syncContinues.timestamp)))
 
                     walletManagerEvent = WalletManagerEvent.syncProgress (
                         timestamp: timestamp,
-                        percentComplete: event.u.sync.percentComplete)
+                        percentComplete: event.u.syncContinues.percentComplete)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                    walletManagerEvent = WalletManagerEvent.syncEnded(error: nil)
+                    let reason = WalletManagerSyncStoppedReason(core: event.u.syncStopped.reason)
+                    walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     manager.network.height = event.u.blockHeight.value

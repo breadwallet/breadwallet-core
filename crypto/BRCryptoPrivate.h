@@ -391,6 +391,12 @@ extern "C" {
 
     /// MARK: - WalletManager
 
+    private_extern BRCryptoWalletManagerState
+    cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type);
+
+    private_extern BRCryptoWalletManagerState
+    cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason);
+
     private_extern void
     cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                                  BRCryptoWalletManagerState state);
