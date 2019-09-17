@@ -514,13 +514,26 @@ public final class System {
 
     private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
                                             remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
-        // Both `builtin` and `remote` have a non-null blockHeight -> supported.
+        // We ONLY support built-in blockchains; but the remotes have some
+        // needed values - specifically the network fees.
 
-        // Filter remotes to only contain entries for builtin blockchains
+        // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never have
+        // more than `builtin` but might have less.
         let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
 
-        // Merge builtin into supportedRemote
+        // Augment `remote` to include all `builtin`.
         return supportedRemote.unionOf(builtin) { $0.id }
+            // Keep all the `remote` data as valid BUT ensure there is a blockHeight
+            .map { (rbc) in
+                // If we have a block height, then no update is required.
+                guard nil == rbc.blockHeight else { return rbc }
+
+                // By construction we have a builtin blockchain
+                let bbc = builtin.first (where: { $0.id == rbc.id })! // ! => must have
+
+                // The builtin blockchain as a blockHeight; the remote does not -> update it.
+                return BlockChainDB.Model.updateBlockchainModelHeight (model: rbc, height: bbc.blockHeight!)
+        }
     }
 
     ///
@@ -570,11 +583,10 @@ public final class System {
                 let blockChainModelsSupported = System.supportedBlockchains
                     .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
 
+                // Get the remote block chains, some of these will be unsupported (have a nil
+                // blockHeight).  We don't filter unsupported block chains because the BDB provides
+                // valid network fee data.  We'll merge 'supported' and 'remote'
                 let blockChainModelsRemote = blockchainResult
-                    // Only supported blockchains, but we'll merge in the defaults to handle
-                    // blockchains not supported by BDB.
-                    .map { $0.filter { nil != $0.blockHeight } }
-                    // On error, return [] - we'll use defaults
                     .getWithRecovery { (ignore) in return [] }
 
                 let blockChainModels =
