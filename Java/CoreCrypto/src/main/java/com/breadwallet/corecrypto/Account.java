@@ -29,7 +29,7 @@ final class Account implements com.breadwallet.crypto.Account {
      * @param uids The unique identifier of this account
      */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, timestamp));
+        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp)));
     }
 
     /**

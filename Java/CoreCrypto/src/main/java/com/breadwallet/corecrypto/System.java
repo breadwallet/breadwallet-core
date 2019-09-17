@@ -1511,7 +1511,7 @@ final class System implements com.breadwallet.crypto.System {
 
                                 UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                 UnsignedLong timestamp =
-                                        transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
+                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
                                 Log.d(TAG,
                                         "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
                                 coreWalletManager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
@@ -1989,7 +1989,7 @@ final class System implements com.breadwallet.crypto.System {
 
                                 UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                 UnsignedLong timestamp =
-                                        transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
+                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
                                 Log.d(TAG,
                                         "BRCryptoCWMGenGetTransactionsCallback  announcing " + transaction.getId());
                                 coreWalletManager.announceGetTransactionsItemGen(callbackState, optRaw.get(), timestamp, blockHeight);
