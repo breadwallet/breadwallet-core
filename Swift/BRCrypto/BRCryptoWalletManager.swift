@@ -79,15 +79,15 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener
-        
+
         var walletsCount: size_t = 0
         let walletsPtr = cryptoWalletManagerGetWallets(core, &walletsCount);
         defer { if let ptr = walletsPtr { free (ptr) } }
-        
+
         let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
             Array(UnsafeBufferPointer (start: $0, count: walletsCount))
             } ?? []
-        
+
         return wallets
             .map { Wallet (core: $0,
                            manager: self,
@@ -282,7 +282,7 @@ extension WalletManager {
     var defaultUnit: Unit {
         return network.defaultUnitFor(currency: network.currency)!
     }
-    
+
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
@@ -448,8 +448,8 @@ public enum WalletManagerDisconnectReason: Equatable {
         case DISCONNECT_REASON_UNKNOWN:
             self = .unknown
         case DISCONNECT_REASON_POSIX:
-            var message = core.u.posix.message
-            self = .posix(errno: core.u.posix.errnum, message: String(cString: &message.0))
+            self = .posix(errno: core.u.posix.errnum,
+                          message: BRDisconnectReasonPosixGetMessage(core).map{ asUTF8String($0) })
         default: self = .unknown; precondition(false)
         }
     }
@@ -516,7 +516,7 @@ public enum WalletManagerMode: Equatable {
         default: return nil
         }
     }
-    
+
     internal init (core: BRSyncMode) {
         switch core {
         case SYNC_MODE_BRD_ONLY: self = .api_only
@@ -624,8 +624,8 @@ public enum WalletManagerSyncStoppedReason: Equatable {
         case SYNC_STOPPED_REASON_UNKNOWN:
             self = .unknown
         case SYNC_STOPPED_REASON_POSIX:
-            var message = core.u.posix.message
-            self = .posix(errno: core.u.posix.errnum, message: String(cString: &message.0))
+            self = .posix(errno: core.u.posix.errnum,
+                          message: BRSyncStoppedReasonPosixGetMessage(core).map{ asUTF8String($0) })
         default: self = .unknown; precondition(false)
         }
     }

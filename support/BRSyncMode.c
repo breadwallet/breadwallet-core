@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 //
 
+#include <assert.h>
 #include <string.h>
 
 #include "BRSyncMode.h"
@@ -50,19 +51,17 @@ BRSyncStoppedReasonUnknown(void) {
 }
 
 extern BRSyncStoppedReason
-BRSyncStoppedReasonPosix(int errnum,
-                         const char *message) {
-    BRSyncStoppedReason reason = (BRSyncStoppedReason) {
-        SYNC_STOPPED_REASON_POSIX
+BRSyncStoppedReasonPosix(int errnum) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_POSIX,
+        { .posix = { errnum } }
     };
+}
 
-    reason.u.posix.errnum = errnum;
-    memset (reason.u.posix.message, 0, sizeof(reason.u.posix.message));
-    if (message) {
-        strncpy(reason.u.posix.message, message, sizeof(reason.u.posix.message) - 1);
-    }
-
-    return reason;
+extern const char *
+BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason) {
+    assert (reason.type == SYNC_STOPPED_REASON_POSIX);
+    return strerror (reason.u.posix.errnum);
 }
 
 extern BRDisconnectReason
@@ -80,19 +79,17 @@ BRDisconnectReasonUnknown(void) {
 }
 
 extern BRDisconnectReason
-BRDisconnectReasonPosix(int errnum,
-                        const char *message) {
-    BRDisconnectReason reason = (BRDisconnectReason) {
-        DISCONNECT_REASON_POSIX
+BRDisconnectReasonPosix(int errnum) {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_POSIX,
+        { .posix = { errnum } }
     };
+}
 
-    reason.u.posix.errnum = errnum;
-    memset (reason.u.posix.message, 0, sizeof(reason.u.posix.message));
-    if (message) {
-        strncpy(reason.u.posix.message, message, sizeof(reason.u.posix.message) - 1);
-    }
-
-    return reason;
+extern const char *
+BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason) {
+    assert (reason.type == DISCONNECT_REASON_POSIX);
+    return strerror (reason.u.posix.errnum);
 }
 
 extern const char *

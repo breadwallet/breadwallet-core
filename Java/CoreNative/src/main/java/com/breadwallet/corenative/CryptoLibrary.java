@@ -26,6 +26,8 @@ import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
+import com.breadwallet.corenative.support.BRDisconnectReason;
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -287,4 +289,8 @@ public interface CryptoLibrary extends Library {
 
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
+    // support/BRSyncMode.h
+    Pointer BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason);
+    Pointer BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason);
 }

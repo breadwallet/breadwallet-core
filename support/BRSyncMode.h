@@ -45,7 +45,6 @@ typedef struct {
     union {
         struct {
             int errnum;
-            char message[128 + 1];
         } posix;
     } u;
 } BRSyncStoppedReason;
@@ -60,8 +59,10 @@ extern BRSyncStoppedReason
 BRSyncStoppedReasonUnknown(void);
 
 extern BRSyncStoppedReason
-BRSyncStoppedReasonPosix(int errnum,
-                         const char *message);
+BRSyncStoppedReasonPosix(int errnum);
+
+extern const char *
+BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason);
 
 typedef enum {
     DISCONNECT_REASON_REQUESTED,
@@ -74,7 +75,6 @@ typedef struct {
     union {
         struct {
             int errnum;
-            char message[128 + 1];
         } posix;
     } u;
 } BRDisconnectReason;
@@ -86,8 +86,10 @@ extern BRDisconnectReason
 BRDisconnectReasonUnknown(void);
 
 extern BRDisconnectReason
-BRDisconnectReasonPosix(int errnum,
-                        const char *message);
+BRDisconnectReasonPosix(int errnum);
+
+extern const char *
+BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason);
 
 typedef enum {
     /**

@@ -20,7 +20,7 @@ public final class WalletManagerDisconnectReason {
         return UNKNOWN_REASON;
     }
 
-    public static WalletManagerDisconnectReason POSIX(int errNum, String errMessage) {
+    public static WalletManagerDisconnectReason POSIX(int errNum, @Nullable String errMessage) {
         return new WalletManagerDisconnectReason(Type.POSIX, errNum, errMessage);
     }
 

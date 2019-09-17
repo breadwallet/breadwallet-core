@@ -81,7 +81,7 @@ final class Utilities {
                     case DISCONNECT_REASON_POSIX: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.POSIX(
                                     state.u.disconnected.reason.u.posix.errnum,
-                                    utf8BytesToString(state.u.disconnected.reason.u.posix.message).orNull()
+                                    state.u.disconnected.reason.getPosixMessage().orNull()
                             )
                     );
                 }
@@ -97,7 +97,7 @@ final class Utilities {
             case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
             case SYNC_STOPPED_REASON_POSIX: return WalletManagerSyncStoppedReason.POSIX(
                     reason.u.posix.errnum,
-                    utf8BytesToString(reason.u.posix.message).orNull()
+                    reason.getPosixMessage().orNull()
             );
             default: throw new IllegalArgumentException("Unsupported reason");
         }

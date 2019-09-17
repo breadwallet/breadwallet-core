@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corenative.support;
 
+import com.breadwallet.corenative.CryptoLibrary;
+import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -26,22 +28,17 @@ public class BRDisconnectReason extends Structure {
         public static class posix_struct extends Structure {
 
             public int errnum = 0;
-            public byte[] message = new byte[128 + 1];
 
             public posix_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("errnum", "message");
+                return Arrays.asList("errnum");
             }
 
-            public posix_struct(int errnum, byte[] message) {
+            public posix_struct(int errnum) {
                 super();
-                if ((message.length != this.message.length)) {
-                    throw new IllegalArgumentException("Wrong array size!");
-                }
-                this.message = message;
                 this.errnum = errnum;
             }
 
@@ -105,5 +102,15 @@ public class BRDisconnectReason extends Structure {
         if (type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative())
             u.setType(u_union.posix_struct.class);
         u.read();
+    }
+
+    public Optional<String> getPosixMessage() {
+        if (type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative())
+            return Optional.fromNullable(
+                    CryptoLibrary.INSTANCE.BRDisconnectReasonPosixGetMessage(this)
+            ).transform(
+                    a -> a.getString(0, "UTF-8")
+            );
+        return Optional.absent();
     }
 }

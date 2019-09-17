@@ -25,7 +25,7 @@ public final class WalletManagerSyncStoppedReason {
         return UNKNOWN_REASON;
     }
 
-    public static WalletManagerSyncStoppedReason POSIX(int errNum, String errMessage) {
+    public static WalletManagerSyncStoppedReason POSIX(int errNum, @Nullable String errMessage) {
         return new WalletManagerSyncStoppedReason(Type.POSIX, errNum, errMessage);
     }
 
