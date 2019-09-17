@@ -9,7 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
-
 #include "BRCryptoHash.h"
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilHex.h"

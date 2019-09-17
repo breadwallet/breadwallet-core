@@ -1,9 +1,9 @@
 //
 //  BRKeccak.h
-//  breadwallet-core Ethereum
+//  Core Ethereum
 
 //  Created by Lamont Samuels on 7/19/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  *****LICENSE DISCLAIMER*****
 //  The original code was written by Andrey Jivsov
