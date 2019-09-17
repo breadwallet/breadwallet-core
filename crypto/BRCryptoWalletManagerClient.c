@@ -5,24 +5,9 @@
 //  Created by Michael Carrara on 6/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+
 #include <math.h>  // round()
 
 #include "BRCryptoBase.h"
@@ -209,23 +194,25 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             break;
         }
 
-        case BITCOIN_WALLET_MANAGER_CONNECTED:
+        case BITCOIN_WALLET_MANAGER_CONNECTED: {
+            BRCryptoWalletManagerState state = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_CONNECTED }}
+                { .state = { cwm->state, state }}
             };
-            cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
+            cryptoWalletManagerSetState (cwm, state);
             break;
-
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+        }
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED: {
+            BRCryptoWalletManagerState state = cryptoWalletManagerStateDisconnectedInit (event.u.disconnected.reason);
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED }}
+                { .state = { cwm->state, state }}
             };
-            cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED);
+            cryptoWalletManagerSetState (cwm, state);
             break;
-
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+        }
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED
             };
@@ -233,38 +220,44 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
                                                       cryptoWalletManagerTake (cwm),
                                                       cwmEvent);
 
+            BRCryptoWalletManagerState state = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING);
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_SYNCING }}
+                { .state = { cwm->state, state }}
             };
-            cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_SYNCING);
+            cryptoWalletManagerSetState (cwm, state);
            break;
-
-        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+        }
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = {
+                { .syncContinues = {
                     event.u.syncProgress.timestamp,
-                    event.u.syncProgress.percentComplete }}
+                    event.u.syncProgress.percentComplete
+                }}
             };
             break;
-
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+        }
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+                { .syncStopped = {
+                    event.u.syncStopped.reason,
+                }}
             };
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
                                                       cwmEvent);
 
+            BRCryptoWalletManagerState state = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_CONNECTED }}
+                { .state = { cwm->state, state }}
             };
-            cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
+            cryptoWalletManagerSetState (cwm, state);
             break;
-
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+        }
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
                 { .blockHeight = { event.u.blockHeightUpdated.value }}
@@ -273,6 +266,7 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             cryptoNetworkSetHeight (network, event.u.blockHeightUpdated.value);
             cryptoNetworkGive (network);
             break;
+        }
     }
 
     if (needEvent)
@@ -750,22 +744,11 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 static BRCryptoWalletManagerState
 cwmStateFromETH (BREthereumEWMState state) {
     switch (state) {
-        case EWM_STATE_CREATED:      return CRYPTO_WALLET_MANAGER_STATE_CREATED;
-        case EWM_STATE_CONNECTED:    return CRYPTO_WALLET_MANAGER_STATE_CONNECTED;
-        case EWM_STATE_SYNCING:      return CRYPTO_WALLET_MANAGER_STATE_SYNCING;
-        case EWM_STATE_DISCONNECTED: return CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED;
-        case EWM_STATE_DELETED:      return CRYPTO_WALLET_MANAGER_STATE_DELETED;
-    }
-}
-
-static BREthereumEWMState
-cwmStateAsETH (BRCryptoWalletManagerState state) {
-    switch (state) {
-        case CRYPTO_WALLET_MANAGER_STATE_CREATED:      return EWM_STATE_CREATED;
-        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: return EWM_STATE_DISCONNECTED;
-        case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    return EWM_STATE_CONNECTED;
-        case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      return EWM_STATE_SYNCING;
-        case CRYPTO_WALLET_MANAGER_STATE_DELETED:      return EWM_STATE_DELETED;
+        case EWM_STATE_CREATED:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
+        case EWM_STATE_CONNECTED:    return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
+        case EWM_STATE_SYNCING:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING);
+        case EWM_STATE_DISCONNECTED: return cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown());
+        case EWM_STATE_DELETED:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_DELETED);
     }
 }
 
@@ -832,7 +815,8 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake(cwm),
                                                           (BRCryptoWalletManagerEvent) {
-                                                              CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED
+                                                              CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+                                                              { .syncStopped = { BRSyncStoppedReasonUnknown() } }
                                                           });
             }
 
@@ -848,7 +832,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
         case EWM_EVENT_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = {
+                { .syncContinues = {
                     event.u.syncProgress.timestamp,
                     event.u.syncProgress.percentComplete }}
             };
@@ -859,7 +843,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                 { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED }}
             };
-            cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED);
+            cryptoWalletManagerSetState (cwm, cryptoWalletManagerStateDisconnectedInit ( BRDisconnectReasonUnknown() ));
             break;
 
         case EWM_EVENT_BLOCK_HEIGHT_UPDATED: {

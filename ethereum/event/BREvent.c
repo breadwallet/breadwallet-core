@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -308,7 +308,9 @@ eventHandlerStop (BREventHandler handler) {
 
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    return pthread_self() == handler->thread;
+    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
+    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
+    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
 }
 
 extern int

@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -52,22 +52,25 @@ final class NetworkDiscovery {
 
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.complete(networks));
 
-        getBlockChains(latch, query, isMainnet, blockchainModels -> {
+        getBlockChains(latch, query, isMainnet, remoteModels -> {
             // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-            List<Blockchain> supportedBlockchains = new ArrayList<>();
+            List<Blockchain> supportedBuiltinModels = new ArrayList<>();
             for (Blockchain supportedBlockchain: System.SUPPORTED_BLOCKCHAINS) {
                 if (supportedBlockchain.isMainnet() == isMainnet && supportedBlockchain.getBlockHeight().isPresent()) {
-                    supportedBlockchains.add(supportedBlockchain);
+                    supportedBuiltinModels.add(supportedBlockchain);
                 }
             }
 
-            // filter the returned blockchainModels to only include supported blockchains
-            blockchainModels = filterBlockchains(supportedBlockchains, blockchainModels);
+            // We ONLY support built-in blockchains; but the remotes have some
+            // needed values - specifically the network fees.
 
-            // merge the supported blockchainModels into the supported blockchains (deferring to blockchainModels),
-            // to ensure that if blockchainModels does not include a support blockchain, it is still present after
-            // the merge
-            blockchainModels = mergeBlockchains(supportedBlockchains, blockchainModels);
+            // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never have
+            // more than `builtin` but might have less.
+            Collection<Blockchain> supportedRemoteModels = filterBlockchains(supportedBuiltinModels, remoteModels);
+
+            // merge the supported remote blockchains into the builtin blockchains to ensure that if the remote
+            // blockchains do not include a builtin blockchain, it is still present after the merge
+            Collection<Blockchain> blockchainModels = mergeBlockchains(supportedBuiltinModels, supportedRemoteModels);
 
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
@@ -196,7 +199,24 @@ final class NetworkDiscovery {
 
         for (Blockchain b: remotes) {
             String id = b.getId();
-            if (mergedMap.containsKey(id)) {
+            Blockchain s = mergedMap.get(id);
+            if (s != null) {
+                // Keep all the `remote` data as valid BUT ensure there is a blockHeight
+                if (!b.getBlockHeight().isPresent()) {
+                    // The builtin blockchain as a blockHeight; the remote does not -> update it.
+                    b = new Blockchain(
+                            b.getId(),
+                            b.getName(),
+                            b.getNetwork(),
+                            b.isMainnet(),
+                            b.getCurrency(),
+                            s.getBlockHeight().orNull(),
+                            b.getFeeEstimates(),
+                            b.getConfirmationsUntilFinal()
+                    );
+                }
+
+                // If we have a block height, then no update is required.
                 mergedMap.put(id, b);
             }
         }

@@ -54,6 +54,9 @@
 		3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */; };
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
+		3C5E1770232D461500A558C7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 3C5E176E232D461500A558C7 /* README.md */; };
+		3C5E1771232D461500A558C7 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 3C5E176F232D461500A558C7 /* LICENSE */; };
+		3C5E1773232D466700A558C7 /* CONTRIBUTORS in Resources */ = {isa = PBXBuildFile; fileRef = 3C5E1772232D466700A558C7 /* CONTRIBUTORS */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
 		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; };
@@ -533,6 +536,9 @@
 		3C590F5720950C740005597B /* BRWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWallet.c; sourceTree = "<group>"; };
 		3C590F5820950C750005597B /* BRBIP38Key.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP38Key.c; sourceTree = "<group>"; };
 		3C590F5920950C750005597B /* BRBIP39Mnemonic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP39Mnemonic.c; sourceTree = "<group>"; };
+		3C5E176E232D461500A558C7 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
+		3C5E176F232D461500A558C7 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
+		3C5E1772232D466700A558C7 /* CONTRIBUTORS */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CONTRIBUTORS; path = ../CONTRIBUTORS; sourceTree = "<group>"; };
 		3C5E17F3232D55B800A558C7 /* secp256k1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = secp256k1.c; path = secp256k1/src/secp256k1.c; sourceTree = "<group>"; };
 		3C5E17F5232D55D100A558C7 /* secp256k1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = secp256k1.h; path = secp256k1/include/secp256k1.h; sourceTree = "<group>"; };
 		3C5E17F6232D55F000A558C7 /* basic-config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "basic-config.h"; path = "secp256k1/src/basic-config.h"; sourceTree = "<group>"; };
@@ -1135,6 +1141,9 @@
 				3CAB60A720AF8C8500810CE4 /* CoreTests */,
 				3C6B172D2131CB5B003C313B /* CoreExplore */,
 				3CEE8EEB216FAFF7008540C8 /* CorePerf */,
+				3C5E176E232D461500A558C7 /* README.md */,
+				3C5E176F232D461500A558C7 /* LICENSE */,
+				3C5E1772232D466700A558C7 /* CONTRIBUTORS */,
 				3C590F1820950C160005597B /* Products */,
 				3CAB610A20AF938E00810CE4 /* Frameworks */,
 			);
@@ -1299,8 +1308,8 @@
 		3C97E2322241656B003FD88F /* crypto */ = {
 			isa = PBXGroup;
 			children = (
-				CEF5E0ED2315C166009EF3C0 /* BRCryptoPayment.c */,
 				CEF5E0EE2315C166009EF3C0 /* BRCryptoPayment.h */,
+				CEF5E0ED2315C166009EF3C0 /* BRCryptoPayment.c */,
 				3C97E25322416D4D003FD88F /* BRCryptoBase.h */,
 				3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */,
 				3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */,
@@ -1611,6 +1620,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C5E1773232D466700A558C7 /* CONTRIBUTORS in Resources */,
+				3C5E1771232D461500A558C7 /* LICENSE in Resources */,
+				3C5E1770232D461500A558C7 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -39,6 +39,7 @@ import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
+import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -833,8 +834,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncProgress(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        float percent = event.u.sync.percentComplete;
-        Date timestamp = 0 == event.u.sync.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.sync.timestamp));
+        float percent = event.u.syncContinues.percentComplete;
+        Date timestamp = 0 == event.u.syncContinues.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.syncContinues.timestamp));
 
         Log.d(TAG, String.format("WalletManagerSyncProgress (%s)", percent));
 
@@ -857,7 +858,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncStopped(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        Log.d(TAG, "WalletManagerSyncStopped");
+        WalletManagerSyncStoppedReason reason = Utilities.walletManagerSyncStoppedReasonFromCrypto(event.u.syncStopped.reason);
+        Log.d(TAG, String.format("WalletManagerSyncStopped: (%s)", reason));
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -866,8 +868,7 @@ final class System implements com.breadwallet.crypto.System {
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                // TODO(fix): fill in message
-                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(""));
+                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(reason));
 
             } else {
                 Log.e(TAG, "WalletManagerSyncStopped: missed wallet manager");
@@ -1511,7 +1512,7 @@ final class System implements com.breadwallet.crypto.System {
 
                                 UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                 UnsignedLong timestamp =
-                                        transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
+                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
                                 Log.d(TAG,
                                         "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
                                 coreWalletManager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
@@ -1989,7 +1990,7 @@ final class System implements com.breadwallet.crypto.System {
 
                                 UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                 UnsignedLong timestamp =
-                                        transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
+                                        transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
                                 Log.d(TAG,
                                         "BRCryptoCWMGenGetTransactionsCallback  announcing " + transaction.getId());
                                 coreWalletManager.announceGetTransactionsItemGen(callbackState, optRaw.get(), timestamp, blockHeight);
