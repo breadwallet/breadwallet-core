@@ -1238,7 +1238,9 @@ extension System {
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                        failure: { (e) in
+                            print ("SYS: BTC: SubmitTransaction: Error: \(e)")
+                            cwmAnnounceSubmitTransferFailure (cwm, sid) })
                 }
         })
     }

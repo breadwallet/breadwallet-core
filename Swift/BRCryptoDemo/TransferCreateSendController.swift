@@ -65,7 +65,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         amountSlider.maximumValue = Float (balance)
         amountSlider.value = 0.0
 
-        sourceLabel.text = wallet.source.description
         print ("APP: TCC: Want to Submit: Source: \(wallet.source)")
 
         if nil != UIPasteboard.general.string {
@@ -326,7 +325,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var amountSlider: UISlider!
     @IBOutlet var recvField: UITextField!
-    @IBOutlet var sourceLabel: UILabel!
     @IBOutlet var amountMinLabel: UILabel!
     @IBOutlet var amountMaxLabel: UILabel!
     @IBOutlet var amountLabel: UILabel!

@@ -300,6 +300,15 @@ public enum TransferSubmitError: Equatable, Error {
     }
 }
 
+extension TransferSubmitError: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .unknown: return ".unknwon"
+        case let .posix(errno, message): return ".posix(\(errno):\(message ?? ""))"
+        }
+    }
+}
+
 ///
 /// A TransferState represents the states in Transfer's 'life-cycle'
 ///
@@ -339,7 +348,7 @@ extension TransferState: CustomStringConvertible {
         case .submitted: return "Submitted"
         case .pending:   return "Pending"
         case .included:  return "Included"
-        case .failed:    return "Failed"
+        case .failed (let error): return "Failed (\(error))"
         case .deleted:   return "Deleted"
         }
     }
