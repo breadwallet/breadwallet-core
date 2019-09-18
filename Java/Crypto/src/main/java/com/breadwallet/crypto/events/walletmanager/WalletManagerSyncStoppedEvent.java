@@ -1,24 +1,24 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto.events.walletmanager;
 
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 
 public final class WalletManagerSyncStoppedEvent implements WalletManagerEvent {
 
-    private final String error;
+    private final WalletManagerSyncStoppedReason reason;
 
-    public WalletManagerSyncStoppedEvent(String error) {
-        this.error = error;
+    public WalletManagerSyncStoppedEvent(WalletManagerSyncStoppedReason reason) {
+        this.reason = reason;
     }
 
-    public Optional<String> getError() {
-        return Optional.fromNullable(error);
+    public WalletManagerSyncStoppedReason getReason() {
+        return reason;
     }
 
     @Override

@@ -1,30 +1,19 @@
 //  BRSyncManager.c
 //
 //  Created by Michael Carrara on 12/08/19.
-//  Copyright (c) 2019 breadwallet LLC.
+//  Copyright © 2019 Breadwallet AG. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
 
+#include <errno.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 
 #include "support/BRArray.h"
 #include "BRSyncManager.h"
@@ -353,9 +342,12 @@ struct BRPeerSyncManagerStruct {
     /// Mark: - Mutable Sction
 
     /**
-     * Flag for whether or not the blockchain network is reachable
+     * Flag for whether or not the blockchain network is reachable. This is an atomic
+     * int and is NOT protected by the mutable state lock as it is access by a
+     * BRPeerManager callback that is done while holding a BRPeer's lock. To avoid a
+     * deadlock, use an atomic here instead.
      */
-    int isNetworkReachable;
+    atomic_int isNetworkReachable;
 
     /**
      * The known height of the blockchain, as reported by the P2P network.
@@ -950,12 +942,11 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
         // callbacks are ordered to reflect state transitions.
 
         if (needSyncEvent) {
-            // TODO(fix): What should the error code be?
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }}
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -963,7 +954,8 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_DISCONNECTED
+                                        SYNC_MANAGER_DISCONNECTED,
+                                         { .disconnected = { BRDisconnectReasonRequested() } }
                                     });
         }
 
@@ -1007,12 +999,11 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
         // callbacks are ordered to reflect state transitions.
 
         if (needSyncEvent) {
-            // TODO(fix): What should the error code be?
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }}
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1020,7 +1011,8 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_DISCONNECTED
+                                        SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = { BRDisconnectReasonRequested() } }
                                     });
 
             manager->eventCallback (manager->eventContext,
@@ -1070,12 +1062,11 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 
         free (tx);
     } else {
-        // TODO(fix): What should the error code be?
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_TXN_SUBMITTED,
-                                    { .submitted = {transaction, -1} },
+                                    SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                    { .submitFailed = {transaction, BRTransferSubmitErrorPosix (ENOTCONN) } },
                                 });
     }
 }
@@ -1139,10 +1130,16 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
 
     manager->eventCallback (manager->eventContext,
                             BRClientSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {txn, error} },
-                            });
+                            (error ?
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                 { .submitFailed = { txn, BRTransferSubmitErrorPosix (error) } },
+                             } :
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+                                 { .submitSucceeded = { txn } },
+                             }
+                            ));
 }
 
 static void
@@ -1193,12 +1190,14 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                 int rid,
                                                 int success) {
     uint8_t needSyncEvent        = 0;
+    uint8_t needDiscEvent        = 0;
     uint8_t needClientCall       = 0;
     uint64_t begBlockNumber      = 0;
     uint64_t endBlockNumber      = 0;
     size_t addressCount          = 0;
     BRArrayOf(char *) addresses  = NULL;
     BRSyncManagerEvent syncEvent = {0};
+    BRSyncManagerEvent discEvent = {0};
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         // confirm completion is for in-progress sync
@@ -1229,18 +1228,22 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 
                     // store control flow flags
                     needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
-                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { 0 }}};
+                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonComplete() } }};
 
                     // reset sync state
                     BRClientSyncManagerScanStateWipe (&manager->scanState);
 
                 }
             } else {
+                // transition to the disconnected state
+                manager->isConnected = 0;
+
                 // store control flow flags
                 needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
+                needDiscEvent = 1;
 
-                // TODO(fix): What should the error code be?
-                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }}};
+                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonUnknown() } }};
+                discEvent = (BRSyncManagerEvent) {SYNC_MANAGER_DISCONNECTED, { .disconnected = { BRDisconnectReasonUnknown() } }};
 
                 // reset sync state on failure
                 BRClientSyncManagerScanStateWipe (&manager->scanState);
@@ -1254,6 +1257,12 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     syncEvent);
+        }
+
+        if (needDiscEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    discEvent);
         }
 
         pthread_mutex_unlock (&manager->lock);
@@ -1614,25 +1623,13 @@ BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager) {
 
 static int
 BRPeerSyncManagerGetNetworkReachable(BRPeerSyncManager manager) {
-    int isNetworkReachable = 0;
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        isNetworkReachable = manager->isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-    return isNetworkReachable;
+    return atomic_load (&manager->isNetworkReachable);
 }
 
 static void
 BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
                                      int isNetworkReachable) {
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        manager->isNetworkReachable = isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
+    atomic_store (&manager->isNetworkReachable, isNetworkReachable);
 }
 
 static void
@@ -1684,33 +1681,69 @@ BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
 
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
-    BRSyncPercentComplete progressComplete  = AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, 0));
-    BRSyncTimestamp       progressTimestamp = AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager));
+    // This callback occurs periodically.
+    //
+    // It provides an opportunity to check if we the `BRPeerManager` is in the disconnected state as
+    // it has been observed that the `syncStopped` callback is not always called by the BRPeerManager`
+    // when this happens. This is a fallback in case that callback has not occurred. Typically, we will
+    // notify of a disconnect due to a `syncStopped` callback.
+    //
+    // The behaviour of this function is defined as:
+    //   - If we were connected and are now disconnected, signal that we are now disconnected.
+    //   - If we were in a (full scan) syncing state and are now disconnected, signal the termination of that
+    //     sync
 
-    uint8_t needSyncEvent = progressComplete > 0.0 && progressComplete < 100.0;
-    if (needSyncEvent) {
-        if (0 == pthread_mutex_lock (&manager->lock)) {
-            needSyncEvent &= manager->isConnected && manager->isFullScan;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        uint8_t needDisconnectionEvent = manager->isConnected && BRPeerStatusDisconnected == BRPeerManagerConnectStatus (manager->peerManager);
+        uint8_t needSyncStoppedEvent = manager->isFullScan && needDisconnectionEvent;
 
-            // Send event while holding the state lock so that we
-            // don't broadcast a progress updated after a disconnected
-            // event, for example.
+        uint8_t needSyncProgressEvent = manager->isConnected && manager->isFullScan;
+        BRSyncPercentComplete progressComplete = needSyncProgressEvent ? AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, 0)) : AS_SYNC_TIMESTAMP (0);
+        BRSyncTimestamp progressTimestamp = needSyncProgressEvent ? AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager)) : AS_SYNC_PERCENT_COMPLETE (0);
+        needSyncProgressEvent &= progressComplete > 0.0 && progressComplete < 100.0;
 
-            if (needSyncEvent) {
-                manager->eventCallback (manager->eventContext,
-                                        BRPeerSyncManagerAsSyncManager (manager),
-                                        (BRSyncManagerEvent) {
-                                            SYNC_MANAGER_SYNC_PROGRESS,
-                                            { .syncProgress = {
-                                                progressTimestamp,
-                                                progressComplete }}
-                                        });
-            }
+        manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
+        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
 
-            pthread_mutex_unlock (&manager->lock);
-        } else {
-            assert (0);
+        _peer_log ("tickTock: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+                    needSyncStoppedEvent, needDisconnectionEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a progress updated after a disconnected
+        // event, for example.
+
+        if (needSyncProgressEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_PROGRESS,
+                                        { .syncProgress = {
+                                            progressTimestamp,
+                                            progressComplete }}
+                                    });
         }
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { BRSyncStoppedReasonUnknown() } }
+                                    });
+        }
+
+        if (needDisconnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = { BRDisconnectReasonUnknown() } }
+                                    });
+        }
+
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
     }
 }
 
@@ -1796,7 +1829,7 @@ _BRPeerSyncManagerSyncStarted (void *info) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { -1 }},
+                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1853,7 +1886,14 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { reason }},
+                                        { .syncStopped = {
+                                                (reason ?
+                                                BRSyncStoppedReasonPosix(reason) :
+                                                (isConnected ?
+                                                 BRSyncStoppedReasonComplete() :
+                                                 BRSyncStoppedReasonRequested()))
+                                            }
+                                        }
                                     });
         }
 
@@ -1862,6 +1902,12 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
+                                        { .disconnected = {
+                                                (reason ?
+                                                 BRDisconnectReasonPosix(reason) :
+                                                 BRDisconnectReasonRequested())
+                                            }
+                                        }
                                     });
         }
         pthread_mutex_unlock (&manager->lock);
@@ -1876,36 +1922,20 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
 
     // This callback occurs under a number of scenarios.
     //
-    // One of those scenarios is when a peer has disconnected. Thus, it provides an opportunity
-    // to check if we the `BRPeerManager` is in the disconnected state as it has been observed
-    // that the `syncStopped` callback is not always called by the BRPeerManager` when this happens.
-    //
-    // Another scenario is when a block has been related by the P2P network. Thus, it provides an
+    // One of those scenario is when a block has been relayed by the P2P network. Thus, it provides an
     // opportunity to get the current block height and update accordingly.
     //
     // The behaviour of this function is defined as:
-    //   - If we were connected and are now disconnected, signal that we are now disconnected.
-    //   - If we were in a (full scan) syncing state and are now disconnected, signal the termination of that
-    //     sync
     //   - If the block height has changed, signal the new value
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        uint8_t isConnected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
         uint64_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
 
-        uint8_t needSyncStoppedEvent = !isConnected && manager->isConnected && manager->isFullScan;
-        uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
         uint8_t needBlockHeightEvent = blockHeight > manager->networkBlockHeight;
-
-        manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
-        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
 
         // Never move the block height "backwards"; always maintain our knowledge
         // of the maximum height observed
         manager->networkBlockHeight = MAX (blockHeight, manager->networkBlockHeight);
-
-        _peer_log ("txStatusUpdate: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
-                   needSyncStoppedEvent, needDisconnectionEvent);
 
         // Send event while holding the state lock so that we
         // don't broadcast a events out of order.
@@ -1916,22 +1946,6 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_BLOCK_HEIGHT_UPDATED,
                                         { .blockHeightUpdated = { blockHeight }}
-                                    });
-        }
-
-        if (needSyncStoppedEvent) {
-            manager->eventCallback (manager->eventContext,
-                                    BRPeerSyncManagerAsSyncManager (manager),
-                                    (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_SYNC_STOPPED,
-                                    });
-        }
-
-        if (needDisconnectionEvent) {
-            manager->eventCallback (manager->eventContext,
-                                    BRPeerSyncManagerAsSyncManager (manager),
-                                    (BRSyncManagerEvent) {
-                                        SYNC_MANAGER_DISCONNECTED,
                                     });
         }
 
@@ -1950,15 +1964,7 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
 static int
 _BRPeerSyncManagerNetworkIsReachable (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
-
-    int isNetworkReachable = 0;
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        isNetworkReachable = manager->isNetworkReachable;
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-    return isNetworkReachable;
+    return BRPeerSyncManagerGetNetworkReachable (manager);
 }
 
 static void
@@ -1974,10 +1980,19 @@ _BRPeerSyncManagerTxPublished (void *info,
 
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
-                            });
+                            (error ?
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                 { .submitFailed = {
+                                     transaction, BRTransferSubmitErrorPosix (error) }
+                                 },
+                             } :
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+                                 { .submitSucceeded = { transaction }
+                                 },
+                             }
+                            ));
 }
 
 /// MARK: - Misc. Helper Implementations

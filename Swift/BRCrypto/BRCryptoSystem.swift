@@ -1,5 +1,5 @@
 //
-//  BRSystem.swift
+//  BRSystemSystem.swift
 //  BRCrypto
 //
 //  Created by Ed Gamble on 3/27/19.
@@ -55,26 +55,26 @@ public final class System {
 
     static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
-        (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
+        (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 595000,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 0,
+        (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 600000,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 0,
+        (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
 //        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
 //         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
 
         // Testnet
-        (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 0,
+        (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 0,
+        (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 1325000,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 0,
+        (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
 //        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
@@ -327,7 +327,7 @@ public final class System {
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme) {
-        
+
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
                                      account: account,
@@ -1018,16 +1018,17 @@ extension System {
                     walletManagerEvent = WalletManagerEvent.syncStarted
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                    let timestamp: Date? = (0 == event.u.syncContinues.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
                         ? nil
-                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.syncContinues.timestamp)))
 
                     walletManagerEvent = WalletManagerEvent.syncProgress (
                         timestamp: timestamp,
-                        percentComplete: event.u.sync.percentComplete)
+                        percentComplete: event.u.syncContinues.percentComplete)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                    walletManagerEvent = WalletManagerEvent.syncEnded(error: nil)
+                    let reason = WalletManagerSyncStoppedReason(core: event.u.syncStopped.reason)
+                    walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     manager.network.height = event.u.blockHeight.value

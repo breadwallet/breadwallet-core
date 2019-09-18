@@ -5,23 +5,8 @@
 //  Created by Ed Gamble on 3/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <pthread.h>
 
@@ -48,6 +33,32 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 /// MARK: - Wallet Manager
 ///
 ///
+
+private_extern BRCryptoWalletManagerState
+cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type) {
+    switch (type) {
+        case CRYPTO_WALLET_MANAGER_STATE_CREATED:
+        case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:
+        case CRYPTO_WALLET_MANAGER_STATE_SYNCING:
+        case CRYPTO_WALLET_MANAGER_STATE_DELETED:
+            return (BRCryptoWalletManagerState) { type };
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+            assert (0); // if you are hitting this, use cryptoWalletManagerStateDisconnectedInit!
+            return (BRCryptoWalletManagerState) {
+                CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
+                { .disconnected = { BRDisconnectReasonUnknown() } }
+            };
+    }
+}
+
+private_extern BRCryptoWalletManagerState
+cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason) {
+    return (BRCryptoWalletManagerState) {
+        CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
+        { .disconnected = { reason } }
+    };
+}
+
 #pragma clang diagnostic push
 #pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
@@ -85,7 +96,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->client  = client;
     cwm->network = cryptoNetworkTake (network);
     cwm->account = cryptoAccountTake (account);
-    cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
+    cwm->state   = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
 

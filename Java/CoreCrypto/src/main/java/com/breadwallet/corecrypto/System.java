@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -39,13 +39,12 @@ import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
+import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
-import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
-import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
@@ -111,9 +110,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_MAINNET;
-import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_TESTNET;
-
 /* package */
 final class System implements com.breadwallet.crypto.System {
 
@@ -121,148 +117,6 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final Map<Pointer, WeakReference<System>> SYSTEMS = new ConcurrentHashMap<>();
     private static final AtomicInteger SYSTEM_IDS = new AtomicInteger(0);
-
-    /// We define default blockchains but these are wholly insufficient given that the
-    /// specfication includes `blockHeight` (which can never be correct).
-
-    /* package */
-    static List<Blockchain> SUPPORTED_BLOCKCHAINS = ImmutableList.of(
-            // Mainnet
-            new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "bitcoin-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
-            new Blockchain("bitcoincash-mainnet", "Bitcoin Cash", "mainnet", true, "bitcoincash-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
-            new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "ethereum-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))), UnsignedInteger.valueOf(6)),
-
-            // Testnet
-            new Blockchain("bitcoin-testnet",      "Bitcoin Testnet",      "testnet", false, "bitcoin-testnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
-            new Blockchain("bitcoincash-testnet", "Bitcoin Cash Testnet", "testnet", false, "bitcoincash-testnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
-            new Blockchain("ethereum-ropsten",     "Ethereum Ropsten",  "testnet", false, "ethereum-ropsten:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))), UnsignedInteger.valueOf(6))
-    );
-
-    /* package */
-    static final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> DEFAULT_CURRENCIES = ImmutableList.of(
-            // Mainnet
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoin-mainnet:__native__", "Bitcoin", "btc", "native", "bitcoin-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoincash-mainnet:__native__", "Bitcoin Cash", "bch", "native", "bitcoincash-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:__native__", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI, CurrencyDenomination.ETH_ETHER)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", "BRD Token", "BRD", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
-
-            // Testnet
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoin-testnet:__native__", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BTC_BITCOIN_TESTNET)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoincash-testnet:__native__", "Bitcoin Cash Testnet", "bch", "native", "bitcoincash-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN_TESTNET)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:__native__", "Ethereum Testnet", "eth", "native", "ethereum-ropsten", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI, CurrencyDenomination.ETH_ETHER)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:0x7108ca7c4718efa810457f228305c9c71390931a", "BRD Token Testnet", "BRD", "erc20", "ethereum-ropsten", ADDRESS_BRD_TESTNET, true,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD))
-    );
-
-    ///
-    /// Address Scheme
-    ///
-
-    private static final ImmutableMultimap<String, AddressScheme> SUPPORTED_ADDRESS_SCHEMES;
-
-    static {
-        ImmutableMultimap.Builder<String, AddressScheme> builder = new ImmutableMultimap.Builder<>();
-        builder.put("bitcoin-mainnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoin-mainnet", AddressScheme.BTC_LEGACY);
-        builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
-        builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
-
-        builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoin-testnet", AddressScheme.BTC_LEGACY);
-        builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
-        builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
-        SUPPORTED_ADDRESS_SCHEMES = builder.build();
-    }
-
-    private static final ImmutableMap<String, AddressScheme> DEFAULT_ADDRESS_SCHEMES;
-
-    static {
-        ImmutableMap.Builder<String, AddressScheme> builder = new ImmutableMap.Builder<>();
-        builder.put("bitcoin-mainnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
-        builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
-
-        builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
-        builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
-        DEFAULT_ADDRESS_SCHEMES = builder.build();
-    }
-
-    ///
-    /// Wallet Manager Modes
-    ///
-    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
-    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
-    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
-    /// BCH is not at the moment)
-    ///
-    /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
-    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
-    /// selecting another mode if available.
-    ///
-    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
-    /// distribution in the wild might be out of date with the current BDB support.  That can mean
-    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
-    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
-    /// destructive.
-    ///
-
-    private static final ImmutableMultimap<String, WalletManagerMode> SUPPORTED_MODES;
-
-    static {
-        ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
-        builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-mainnet", WalletManagerMode.API_ONLY);
-        builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
-        builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
-        builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
-
-        builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
-        builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
-        builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
-        builder.put("ethereum-ropsten", WalletManagerMode.P2P_ONLY);
-        SUPPORTED_MODES = builder.build();
-    }
-
-    private static final ImmutableMap<String, WalletManagerMode> DEFAULT_MODES;
-
-    static {
-        ImmutableMap.Builder<String, WalletManagerMode> builder = new ImmutableMap.Builder<>();
-        builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
-
-        builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
-        DEFAULT_MODES = builder.build();
-    }
 
     //
     // Keep a static reference to the callbacks so that they are never GC'ed
@@ -547,12 +401,12 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public AddressScheme getDefaultAddressScheme(com.breadwallet.crypto.Network network) {
-        return DEFAULT_ADDRESS_SCHEMES.getOrDefault(network.getUids(), AddressScheme.GEN_DEFAULT);
+        return Blockchains.DEFAULT_ADDRESS_SCHEMES.getOrDefault(network.getUids(), AddressScheme.GEN_DEFAULT);
     }
 
     @Override
     public List<AddressScheme> getSupportedAddressSchemes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<AddressScheme> supported = SUPPORTED_ADDRESS_SCHEMES.get(network.getUids());
+        ImmutableCollection<AddressScheme> supported = Blockchains.SUPPORTED_ADDRESS_SCHEMES.get(network.getUids());
         return supported.isEmpty() ? Collections.singletonList(AddressScheme.GEN_DEFAULT) : supported.asList();
     }
 
@@ -563,12 +417,12 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public WalletManagerMode getDefaultWalletManagerMode(com.breadwallet.crypto.Network network) {
-        return DEFAULT_MODES.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
+        return Blockchains.DEFAULT_MODES.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
     }
 
     @Override
     public List<WalletManagerMode> getSupportedWalletManagerModes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<WalletManagerMode> supported = SUPPORTED_MODES.get(network.getUids());
+        ImmutableCollection<WalletManagerMode> supported = Blockchains.SUPPORTED_MODES.get(network.getUids());
         return supported.isEmpty() ? Collections.singletonList(WalletManagerMode.API_ONLY) : supported.asList();
     }
 
@@ -833,8 +687,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncProgress(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        float percent = event.u.sync.percentComplete;
-        Date timestamp = 0 == event.u.sync.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.sync.timestamp));
+        float percent = event.u.syncContinues.percentComplete;
+        Date timestamp = 0 == event.u.syncContinues.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.syncContinues.timestamp));
 
         Log.d(TAG, String.format("WalletManagerSyncProgress (%s)", percent));
 
@@ -857,7 +711,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncStopped(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        Log.d(TAG, "WalletManagerSyncStopped");
+        WalletManagerSyncStoppedReason reason = Utilities.walletManagerSyncStoppedReasonFromCrypto(event.u.syncStopped.reason);
+        Log.d(TAG, String.format("WalletManagerSyncStopped: (%s)", reason));
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -866,8 +721,7 @@ final class System implements com.breadwallet.crypto.System {
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                // TODO(fix): fill in message
-                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(""));
+                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(reason));
 
             } else {
                 Log.e(TAG, "WalletManagerSyncStopped: missed wallet manager");

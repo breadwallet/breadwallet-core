@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
@@ -124,7 +131,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public boolean isActive() {
         WalletManagerState state = getState();
-        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
+        WalletManagerState.Type type = state.getType();
+        return type == WalletManagerState.Type.CREATED || type == WalletManagerState.Type.SYNCING;
     }
 
     @Override

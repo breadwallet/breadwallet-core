@@ -5,23 +5,8 @@
 //  Created by Ed Gamble on 3/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRCryptoTransfer.h"
 #include "BRCryptoBase.h"
@@ -33,11 +18,6 @@
 #include "ethereum/util/BRUtil.h"
 #include "ethereum/BREthereum.h"
 #include "ethereum/ewm/BREthereumTransfer.h"
-
-extern char *
-cryptoTransferStateGetErrorMessage (BRCryptoTransferState state) {
-    return strdup (state.u.errorred.message);
-}
 
 /**
  *
@@ -708,6 +688,52 @@ cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
 
     if (NULL != blockHeight) *blockHeight = tx->blockHeight;
     if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateInit (BRCryptoTransferStateType type) {
+    switch (type) {
+        case CRYPTO_TRANSFER_STATE_CREATED:
+        case CRYPTO_TRANSFER_STATE_DELETED:
+        case CRYPTO_TRANSFER_STATE_SIGNED:
+        case CRYPTO_TRANSFER_STATE_SUBMITTED: {
+            return (BRCryptoTransferState) {
+                type
+            };
+        }
+        case CRYPTO_TRANSFER_STATE_INCLUDED:
+            assert (0); // if you are hitting this, use cryptoTransferStateIncludedInit!
+            return (BRCryptoTransferState) {
+                CRYPTO_TRANSFER_STATE_INCLUDED,
+                { .included = { 0, 0, 0, NULL }}
+            };
+        case CRYPTO_TRANSFER_STATE_ERRORED: {
+            assert (0); // if you are hitting this, use cryptoTransferStateErroredInit!
+            return (BRCryptoTransferState) {
+                CRYPTO_TRANSFER_STATE_ERRORED,
+                { .errored = { BRTransferSubmitErrorUnknown() }}
+            };
+        }
+    }
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateIncludedInit (uint64_t blockNumber,
+                                 uint64_t transactionIndex,
+                                 uint64_t timestamp,
+                                 BRCryptoAmount fee) {
+    return (BRCryptoTransferState) {
+        CRYPTO_TRANSFER_STATE_INCLUDED,
+        { .included = { blockNumber, transactionIndex, timestamp, fee }}
+    };
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateErroredInit (BRTransferSubmitError error) {
+    return (BRCryptoTransferState) {
+        CRYPTO_TRANSFER_STATE_ERRORED,
+        { .errored = { error }}
+    };
 }
 
 extern const char *
