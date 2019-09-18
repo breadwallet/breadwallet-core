@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -22,7 +23,7 @@ public class BRCryptoTransferState extends Structure {
 	public static class u_union extends Union {
 
 		public included_struct included;
-		public errorred_struct errorred;
+		public errored_struct errored;
 
 		public static class included_struct extends Structure {
 
@@ -59,35 +60,32 @@ public class BRCryptoTransferState extends Structure {
 			}
 		}
 
-		public static class errorred_struct extends Structure {
+		public static class errored_struct extends Structure {
 
-			public byte[] message = new byte[128 + 1];
+			public BRTransferSubmitError error;
 
-			public errorred_struct() {
+			public errored_struct() {
 				super();
 			}
 
 			protected List<String> getFieldOrder() {
-				return Arrays.asList("message");
+				return Arrays.asList("error");
 			}
 
-			public errorred_struct(byte[] message) {
+			public errored_struct(BRTransferSubmitError error) {
 				super();
-				if ((message.length != this.message.length)) {
-					throw new IllegalArgumentException("Wrong array size!");
-				}
-				this.message = message;
+				this.error = error;
 			}
 
-			public errorred_struct(Pointer peer) {
+			public errored_struct(Pointer peer) {
 				super(peer);
 			}
 
-			public static class ByReference extends errorred_struct implements Structure.ByReference {
+			public static class ByReference extends errored_struct implements Structure.ByReference {
 
 			}
 
-			public static class ByValue extends errorred_struct implements Structure.ByValue {
+			public static class ByValue extends errored_struct implements Structure.ByValue {
 
 			}
 		}
@@ -102,10 +100,10 @@ public class BRCryptoTransferState extends Structure {
 			setType(included_struct.class);
 		}
 
-		public u_union(errorred_struct confirmation) {
+		public u_union(errored_struct confirmation) {
 			super();
-			this.errorred = confirmation;
-			setType(errorred_struct.class);
+			this.errored = confirmation;
+			setType(errored_struct.class);
 		}
 
 		public u_union(Pointer peer) {
@@ -147,18 +145,18 @@ public class BRCryptoTransferState extends Structure {
 				u.setType(u_union.included_struct.class);
 				u.read();
 				break;
-			case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORRED:
-				u.setType(u_union.errorred_struct.class);
+			case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
+				u.setType(u_union.errored_struct.class);
 				u.read();
 				break;
 		}
 	}
 
 	public static class ByReference extends BRCryptoTransferState implements Structure.ByReference {
-		
+
 	}
 
 	public static class ByValue extends BRCryptoTransferState implements Structure.ByValue {
-		
+
 	}
 }

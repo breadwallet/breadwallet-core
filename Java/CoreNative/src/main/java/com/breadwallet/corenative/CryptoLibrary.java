@@ -28,6 +28,7 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
+import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -291,6 +292,7 @@ public interface CryptoLibrary extends Library {
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 
     // support/BRSyncMode.h
-    Pointer BRSyncStoppedReasonPosixGetMessage(BRSyncStoppedReason reason);
-    Pointer BRDisconnectReasonPosixGetMessage(BRDisconnectReason reason);
+    Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
+    Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
+    Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 }

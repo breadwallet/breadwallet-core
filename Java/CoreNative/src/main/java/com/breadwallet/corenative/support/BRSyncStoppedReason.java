@@ -105,13 +105,11 @@ public class BRSyncStoppedReason extends Structure {
         u.read();
     }
 
-    public Optional<String> getPosixMessage() {
-        if (type == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX.toNative())
-            return Optional.fromNullable(
-                    CryptoLibrary.INSTANCE.BRSyncStoppedReasonPosixGetMessage(this)
-            ).transform(
-                    a -> a.getString(0, "UTF-8")
-            );
-        return Optional.absent();
+    public Optional<String> getMessage() {
+        return Optional.fromNullable(
+                CryptoLibrary.INSTANCE.BRSyncStoppedReasonGetMessage(this)
+        ).transform(
+                a -> a.getString(0, "UTF-8")
+        );
     }
 }

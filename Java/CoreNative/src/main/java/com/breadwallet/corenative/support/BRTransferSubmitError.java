@@ -1,5 +1,5 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 9/18/19.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -16,7 +16,7 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRDisconnectReason extends Structure {
+public class BRTransferSubmitError extends Structure {
 
     public int type;
     public u_union u;
@@ -78,7 +78,7 @@ public class BRDisconnectReason extends Structure {
         }
     }
 
-    public BRDisconnectReason() {
+    public BRTransferSubmitError() {
         super();
     }
 
@@ -86,27 +86,27 @@ public class BRDisconnectReason extends Structure {
         return Arrays.asList("type", "u");
     }
 
-    public BRDisconnectReason(int type, u_union u) {
+    public BRTransferSubmitError(int type, u_union u) {
         super();
         this.type = type;
         this.u = u;
     }
 
-    public BRDisconnectReason(Pointer peer) {
+    public BRTransferSubmitError(Pointer peer) {
         super(peer);
     }
 
     @Override
     public void read() {
         super.read();
-        if (type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative())
+        if (type == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX.toNative())
             u.setType(u_union.posix_struct.class);
         u.read();
     }
 
     public Optional<String> getMessage() {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.BRDisconnectReasonGetMessage(this)
+                CryptoLibrary.INSTANCE.BRTransferSubmitErrorGetMessage(this)
         ).transform(
                 a -> a.getString(0, "UTF-8")
         );

@@ -7,5 +7,5 @@
  */
 package com.breadwallet.crypto.errors;
 
-public class WalletSweeperNoTransfersFoundError extends WalletSweeperError {
+public final class WalletSweeperNoTransfersFoundError extends WalletSweeperError {
 }

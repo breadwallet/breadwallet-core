@@ -450,7 +450,7 @@ public enum WalletManagerDisconnectReason: Equatable {
         case DISCONNECT_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRDisconnectReasonPosixGetMessage(&c).map{ asUTF8String($0) })
+                          message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0) })
         default: self = .unknown; precondition(false)
         }
     }
@@ -461,7 +461,7 @@ public enum WalletManagerDisconnectReason: Equatable {
 ///
 public enum WalletManagerState: Equatable {
     case created
-    case disconnected(WalletManagerDisconnectReason)
+    case disconnected(reason: WalletManagerDisconnectReason)
     case connected
     case syncing
     case deleted
@@ -469,7 +469,7 @@ public enum WalletManagerState: Equatable {
     internal init (core: BRCryptoWalletManagerState) {
         switch core.type {
         case CRYPTO_WALLET_MANAGER_STATE_CREATED:      self = .created
-        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(WalletManagerDisconnectReason(core: core.u.disconnected.reason))
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(reason: WalletManagerDisconnectReason(core: core.u.disconnected.reason))
         case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
         case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
         case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
@@ -627,7 +627,7 @@ public enum WalletManagerSyncStoppedReason: Equatable {
         case SYNC_STOPPED_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRSyncStoppedReasonPosixGetMessage(&c).map{ asUTF8String($0) })
+                          message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0) })
         default: self = .unknown; precondition(false)
         }
     }
