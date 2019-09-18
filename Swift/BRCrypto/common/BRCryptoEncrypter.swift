@@ -11,7 +11,6 @@
 
 import Foundation
 import BRCryptoC
-import BRCore
 
 public protocol Encrypter {
     func encrypt (data: Data) -> Data
