@@ -20,6 +20,7 @@ import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.breadwallet.corenative.support.BRSyncStoppedReasonType;
+import com.breadwallet.corenative.support.BRTransferSubmitErrorType;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -33,10 +34,11 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceUnavailableError;
+import com.breadwallet.crypto.errors.TransferSubmitPosixError;
+import com.breadwallet.crypto.errors.TransferSubmitUnknownError;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -83,9 +85,10 @@ final class Utilities {
                     case DISCONNECT_REASON_POSIX: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.POSIX(
                                     state.u.disconnected.reason.u.posix.errnum,
-                                    state.u.disconnected.reason.getPosixMessage().orNull()
+                                    state.u.disconnected.reason.getMessage().orNull()
                             )
                     );
+                    default: throw new IllegalArgumentException("Unsupported reason");
                 }
             default: throw new IllegalArgumentException("Unsupported state");
         }
@@ -99,7 +102,7 @@ final class Utilities {
             case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
             case SYNC_STOPPED_REASON_POSIX: return WalletManagerSyncStoppedReason.POSIX(
                     reason.u.posix.errnum,
-                    reason.getPosixMessage().orNull()
+                    reason.getMessage().orNull()
             );
             default: throw new IllegalArgumentException("Unsupported reason");
         }
@@ -140,15 +143,27 @@ final class Utilities {
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORRED:
-                return TransferState.FAILED(utf8BytesToString(state.u.errorred.message).orNull());
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
-                return TransferState.INCLUDED(new TransferConfirmation(
-                        UnsignedLong.fromLongBits(state.u.included.blockNumber),
-                        UnsignedLong.fromLongBits(state.u.included.transactionIndex),
-                        UnsignedLong.fromLongBits(state.u.included.timestamp),
-                        Optional.fromNullable(state.u.included.fee).transform(Amount::takeAndCreate)
-                ));
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
+                switch (BRTransferSubmitErrorType.fromNative(state.u.errored.error.type)) {
+                    case TRANSFER_SUBMIT_ERROR_UNKNOWN: return TransferState.FAILED(
+                            new TransferSubmitUnknownError()
+                    );
+                    case TRANSFER_SUBMIT_ERROR_POSIX: return TransferState.FAILED(
+                            new TransferSubmitPosixError(
+                                    state.u.errored.error.u.posix.errnum,
+                                    state.u.errored.error.getMessage().orNull()
+                            )
+                    );
+                    default: throw new IllegalArgumentException("Unsupported error");
+                }
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
+                    new TransferConfirmation(
+                            UnsignedLong.fromLongBits(state.u.included.blockNumber),
+                            UnsignedLong.fromLongBits(state.u.included.transactionIndex),
+                            UnsignedLong.fromLongBits(state.u.included.timestamp),
+                            Optional.fromNullable(state.u.included.fee).transform(Amount::takeAndCreate)
+                    )
+            );
             default: throw new IllegalArgumentException("Unsupported state");
         }
     }
@@ -197,14 +212,5 @@ final class Utilities {
     static UnsignedLong dateAsUnixTimestamp(Date date) {
         long timestamp = TimeUnit.MILLISECONDS.toSeconds(date.getTime());
         return timestamp > 0 ? UnsignedLong.valueOf(timestamp) : UnsignedLong.ZERO;
-    }
-
-    private static Optional<String> utf8BytesToString(byte[] message) {
-        int end = 0;
-        int len = message.length;
-        while ((end < len) && (message[end] != 0)) {
-            end++;
-        }
-        return end == 0 ? Optional.absent() : Optional.of(new String(message, 0, end, StandardCharsets.UTF_8));
     }
 }

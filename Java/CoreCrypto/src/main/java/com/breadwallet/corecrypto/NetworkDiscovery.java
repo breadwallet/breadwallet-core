@@ -55,7 +55,7 @@ final class NetworkDiscovery {
         getBlockChains(latch, query, isMainnet, remoteModels -> {
             // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
             List<Blockchain> supportedBuiltinModels = new ArrayList<>();
-            for (Blockchain supportedBlockchain: System.SUPPORTED_BLOCKCHAINS) {
+            for (Blockchain supportedBlockchain: Blockchains.SUPPORTED_BLOCKCHAINS) {
                 if (supportedBlockchain.isMainnet() == isMainnet && supportedBlockchain.getBlockHeight().isPresent()) {
                     supportedBuiltinModels.add(supportedBlockchain);
                 }
@@ -86,7 +86,7 @@ final class NetworkDiscovery {
                 }
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
-                for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency: System.DEFAULT_CURRENCIES) {
+                for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency: Blockchains.DEFAULT_CURRENCIES) {
                     if (currency.getBlockchainId().equals(blockchainModelId)) {
                         defaultCurrencies.add(currency);
                     }

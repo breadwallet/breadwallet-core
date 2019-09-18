@@ -9,6 +9,7 @@ package com.breadwallet.corenative.support;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.base.Optional;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -104,13 +105,16 @@ public class BRDisconnectReason extends Structure {
         u.read();
     }
 
-    public Optional<String> getPosixMessage() {
-        if (type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative())
+    public Optional<String> getMessage() {
+        Pointer ptr = CryptoLibrary.INSTANCE.BRDisconnectReasonGetMessage(this);
+        try {
             return Optional.fromNullable(
-                    CryptoLibrary.INSTANCE.BRDisconnectReasonPosixGetMessage(this)
+                    ptr
             ).transform(
                     a -> a.getString(0, "UTF-8")
             );
-        return Optional.absent();
+        } finally {
+            if (ptr != null) Native.free(Pointer.nativeValue(ptr));
+        }
     }
 }

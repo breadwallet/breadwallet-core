@@ -963,7 +963,6 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
         // callbacks are ordered to reflect state transitions.
 
         if (needSyncEvent) {
-            // TODO(fix): What should the error code be?
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
@@ -1021,7 +1020,6 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
         // callbacks are ordered to reflect state transitions.
 
         if (needSyncEvent) {
-            // TODO(fix): What should the error code be?
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
@@ -1088,8 +1086,8 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_TXN_SUBMITTED,
-                                    { .submitted = {transaction, ENOTCONN} },
+                                    SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                    { .submitFailed = {transaction, BRTransferSubmitErrorPosix (ENOTCONN) } },
                                 });
     }
 }
@@ -1153,10 +1151,16 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
 
     manager->eventCallback (manager->eventContext,
                             BRClientSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {txn, error} },
-                            });
+                            (error ?
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                 { .submitFailed = { txn, BRTransferSubmitErrorPosix (error) } },
+                             } :
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+                                 { .submitSucceeded = { txn } },
+                             }
+                            ));
 }
 
 static void
@@ -2000,10 +2004,19 @@ _BRPeerSyncManagerTxPublished (void *info,
 
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
-                            });
+                            (error ?
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_FAILED,
+                                 { .submitFailed = {
+                                     transaction, BRTransferSubmitErrorPosix (error) }
+                                 },
+                             } :
+                             (BRSyncManagerEvent) {
+                                 SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+                                 { .submitSucceeded = { transaction }
+                                 },
+                             }
+                            ));
 }
 
 /// MARK: - Misc. Helper Implementations

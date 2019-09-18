@@ -10,7 +10,7 @@
 //
 
 import Foundation // for Data
-import BRCore
+import BRCryptoC
 
 public protocol HasherX {
     func hash (data: Data) -> Data

@@ -283,6 +283,23 @@ public class TransferHash: Hashable, CustomStringConvertible {
     }
 }
 
+public enum TransferSubmitError: Equatable, Error {
+    case unknown
+    case posix(errno: Int32, message: String?)
+
+    internal init (core: BRTransferSubmitError) {
+        switch core.type {
+        case TRANSFER_SUBMIT_ERROR_UNKNOWN:
+            self = .unknown
+        case TRANSFER_SUBMIT_ERROR_POSIX:
+            var c = core
+            self = .posix(errno: core.u.posix.errnum,
+                          message: BRTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
+        default: self = .unknown; precondition(false)
+        }
+    }
+}
+
 ///
 /// A TransferState represents the states in Transfer's 'life-cycle'
 ///
@@ -292,7 +309,7 @@ public enum TransferState {
     case submitted
     case pending
     case included (confirmation: TransferConfirmation)
-    case failed (reason:String)
+    case failed (error: TransferSubmitError)
     case deleted
 
     internal init (core: BRCryptoTransferState) {
@@ -305,7 +322,7 @@ public enum TransferState {
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
                                                 fee: core.u.included.fee.map { Amount (core: $0, take: true) }))
-        case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: asUTF8String(cryptoTransferStateGetErrorMessage (core)))
+        case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; precondition(false)
         }

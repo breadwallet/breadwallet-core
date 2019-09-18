@@ -20,7 +20,6 @@
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
 #include "BRWallet.h"
-#include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
 
 #ifdef __cplusplus
 extern "C" {
@@ -152,10 +151,12 @@ BRTransactionEventTypeString (BRTransactionEventType t);
 ///
 /// Wallet Event
 ///
+
 typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
-    BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+    BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED,
+    BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED,
     BITCOIN_WALLET_FEE_PER_KB_UPDATED,
     BITCOIN_WALLET_FEE_ESTIMATED,
     BITCOIN_WALLET_DELETED,
@@ -170,8 +171,12 @@ typedef struct {
 
         struct {
             BRTransaction *transaction;
-            int error; // 0 on success
-        } submitted;
+        } submitSucceeded;
+
+        struct {
+            BRTransaction *transaction;
+            BRTransferSubmitError error;
+        } submitFailed;
 
         struct {
             uint64_t value;

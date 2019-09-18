@@ -32,7 +32,7 @@ public final class WalletManagerDisconnectReason {
     private final Integer posixErrnum;
 
     @Nullable
-    private final String posixMessage;
+    private final String message;
 
     private WalletManagerDisconnectReason(Type type) {
         this(type, null, null);
@@ -40,10 +40,10 @@ public final class WalletManagerDisconnectReason {
 
     private WalletManagerDisconnectReason(Type type,
                                           @Nullable Integer posixErrnum,
-                                          @Nullable String posixMessage) {
+                                          @Nullable String message) {
         this.type = type;
         this.posixErrnum = posixErrnum;
-        this.posixMessage = posixMessage;
+        this.message = message;
     }
 
     public Type getType() {
@@ -54,8 +54,8 @@ public final class WalletManagerDisconnectReason {
         return Optional.fromNullable(posixErrnum);
     }
 
-    public Optional<String> getPosixMessage() {
-        return Optional.fromNullable(posixMessage);
+    public Optional<String> getMessage() {
+        return Optional.fromNullable(message);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class WalletManagerDisconnectReason {
             case UNKNOWN:
                 return "Unknown";
             case POSIX:
-                return String.format("Posix (%d: %s)", posixErrnum, posixMessage);
+                return String.format("Posix (%d: %s)", posixErrnum, message);
             default:
                 return super.toString();
         }

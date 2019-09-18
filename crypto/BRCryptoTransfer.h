@@ -29,7 +29,7 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_SIGNED,
         CRYPTO_TRANSFER_STATE_SUBMITTED,
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        CRYPTO_TRANSFER_STATE_ERRORRED,
+        CRYPTO_TRANSFER_STATE_ERRORED,
         CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferStateType;
 
@@ -44,13 +44,22 @@ extern "C" {
             } included;
 
             struct {
-                char message[128 + 1];
-            } errorred;
+                BRTransferSubmitError error;
+            } errored;
         } u;
     } BRCryptoTransferState;
 
-    extern char *
-    cryptoTransferStateGetErrorMessage (BRCryptoTransferState state);
+    extern BRCryptoTransferState
+    cryptoTransferStateInit (BRCryptoTransferStateType type);
+
+    extern BRCryptoTransferState
+    cryptoTransferStateIncludedInit (uint64_t blockNumber,
+                                     uint64_t transactionIndex,
+                                     uint64_t timestamp,
+                                     BRCryptoAmount fee);
+
+    extern BRCryptoTransferState
+    cryptoTransferStateErroredInit (BRTransferSubmitError error);
 
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,

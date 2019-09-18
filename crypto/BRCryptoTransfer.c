@@ -19,11 +19,6 @@
 #include "ethereum/BREthereum.h"
 #include "ethereum/ewm/BREthereumTransfer.h"
 
-extern char *
-cryptoTransferStateGetErrorMessage (BRCryptoTransferState state) {
-    return strdup (state.u.errorred.message);
-}
-
 /**
  *
  */
@@ -693,6 +688,52 @@ cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
 
     if (NULL != blockHeight) *blockHeight = tx->blockHeight;
     if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateInit (BRCryptoTransferStateType type) {
+    switch (type) {
+        case CRYPTO_TRANSFER_STATE_CREATED:
+        case CRYPTO_TRANSFER_STATE_DELETED:
+        case CRYPTO_TRANSFER_STATE_SIGNED:
+        case CRYPTO_TRANSFER_STATE_SUBMITTED: {
+            return (BRCryptoTransferState) {
+                type
+            };
+        }
+        case CRYPTO_TRANSFER_STATE_INCLUDED:
+            assert (0); // if you are hitting this, use cryptoTransferStateIncludedInit!
+            return (BRCryptoTransferState) {
+                CRYPTO_TRANSFER_STATE_INCLUDED,
+                { .included = { 0, 0, 0, NULL }}
+            };
+        case CRYPTO_TRANSFER_STATE_ERRORED: {
+            assert (0); // if you are hitting this, use cryptoTransferStateErroredInit!
+            return (BRCryptoTransferState) {
+                CRYPTO_TRANSFER_STATE_ERRORED,
+                { .errored = { BRTransferSubmitErrorUnknown() }}
+            };
+        }
+    }
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateIncludedInit (uint64_t blockNumber,
+                                 uint64_t transactionIndex,
+                                 uint64_t timestamp,
+                                 BRCryptoAmount fee) {
+    return (BRCryptoTransferState) {
+        CRYPTO_TRANSFER_STATE_INCLUDED,
+        { .included = { blockNumber, transactionIndex, timestamp, fee }}
+    };
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateErroredInit (BRTransferSubmitError error) {
+    return (BRCryptoTransferState) {
+        CRYPTO_TRANSFER_STATE_ERRORED,
+        { .errored = { error }}
+    };
 }
 
 extern const char *

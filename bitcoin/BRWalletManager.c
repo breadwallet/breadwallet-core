@@ -1739,12 +1739,22 @@ _BRWalletManagerSyncEvent(void * context,
             break;
         }
 
-        case SYNC_MANAGER_TXN_SUBMITTED: {
+        case SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED: {
             bwmSignalWalletEvent(bwm,
                                  bwm->wallet,
                                  (BRWalletEvent) {
-                                     BITCOIN_WALLET_TRANSACTION_SUBMITTED,
-                                     { .submitted = { event.u.submitted.transaction, event.u.submitted.error }}
+                                     BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED,
+                                     { .submitSucceeded = { event.u.submitSucceeded.transaction }}
+                                 });
+            break;
+        }
+
+        case SYNC_MANAGER_TXN_SUBMIT_FAILED: {
+            bwmSignalWalletEvent(bwm,
+                                 bwm->wallet,
+                                 (BRWalletEvent) {
+                                     BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED,
+                                     { .submitFailed = { event.u.submitFailed.transaction, event.u.submitFailed.error }}
                                  });
             break;
         }
@@ -2199,8 +2209,10 @@ BRWalletEventTypeString (BRWalletEventType t) {
         return "BITCOIN_WALLET_CREATED";
         case BITCOIN_WALLET_BALANCE_UPDATED:
         return "BITCOIN_WALLET_BALANCE_UPDATED";
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-        return "BITCOIN_WALLET_TRANSACTION_SUBMITTED";
+        case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+        return "BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED";
+        case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
+        return "BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED";
         case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
         return "BITCOIN_WALLET_FEE_PER_KB_UPDATED";
         case BITCOIN_WALLET_FEE_ESTIMATED:
@@ -2218,7 +2230,8 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
         case BITCOIN_WALLET_CREATED:
             switch (t2) {
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
@@ -2233,7 +2246,8 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
         case BITCOIN_WALLET_BALANCE_UPDATED:
             switch (t2) {
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
@@ -2245,10 +2259,27 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
                 break;
             }
         break;
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+        case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
             switch (t2) {
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
@@ -2263,7 +2294,8 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
         case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
             switch (t2) {
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
@@ -2278,7 +2310,8 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
         case BITCOIN_WALLET_FEE_ESTIMATED:
             switch (t2) {
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
@@ -2294,7 +2327,8 @@ BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
             switch (t2) {
                 case BITCOIN_WALLET_CREATED:
                 case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED:
                 case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
                 case BITCOIN_WALLET_FEE_ESTIMATED:
                 case BITCOIN_WALLET_DELETED:
