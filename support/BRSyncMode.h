@@ -55,6 +55,11 @@ BRTransferSubmitErrorUnknown(void);
 extern BRTransferSubmitError
 BRTransferSubmitErrorPosix(int errnum);
 
+/**
+ * Return a descriptive message as to why the error occurred.
+ *
+ *@return the detailed reason as a string or NULL
+ */
 extern char *
 BRTransferSubmitErrorGetMessage(BRTransferSubmitError *e);
 
@@ -84,7 +89,12 @@ BRDisconnectReasonUnknown(void);
 extern BRDisconnectReason
 BRDisconnectReasonPosix(int errnum);
 
-extern const char *
+/**
+ * Return a descriptive message as to why the disconnect occurred.
+ *
+ *@return the detailed reason as a string or NULL
+ */
+extern char *
 BRDisconnectReasonGetMessage(BRDisconnectReason *reason);
 
 /// MARK: Sync Stopped Reason
@@ -117,7 +127,12 @@ BRSyncStoppedReasonUnknown(void);
 extern BRSyncStoppedReason
 BRSyncStoppedReasonPosix(int errnum);
 
-extern const char *
+/**
+ * Return a descriptive message as to why the sync stopped.
+ *
+ *@return the detailed reason as a string or NULL
+ */
+extern char *
 BRSyncStoppedReasonGetMessage(BRSyncStoppedReason *reason);
 
 /// MARK: Sync Mode

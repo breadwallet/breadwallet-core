@@ -634,7 +634,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
                 assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
 
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount
+                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (btcTransaction->blockHeight,
                                                                                   0,
                                                                                   btcTransaction->timestamp,
@@ -682,7 +682,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
                 cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
 
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount
+                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
                 newState = cryptoTransferStateIncludedInit (event.u.updated.blockHeight,
                                                             0,
                                                             event.u.updated.timestamp,
@@ -1220,7 +1220,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                                                   feeBasisGetGasPrice(ethFeeBasis));
                 cryptoTransferSetConfirmedFeeBasis(transfer, feeBasisConfirmed);
 
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount
+                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
                 newState = cryptoTransferStateIncludedInit (blockNumber,
                                                             blockTransactionIndex,
                                                             blockTimestamp,

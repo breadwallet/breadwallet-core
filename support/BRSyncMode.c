@@ -91,7 +91,7 @@ BRDisconnectReasonPosix(int errnum) {
     };
 }
 
-extern const char *
+extern char *
 BRDisconnectReasonGetMessage(BRDisconnectReason *reason) {
     char *message = NULL;
 
@@ -141,7 +141,7 @@ BRSyncStoppedReasonPosix(int errnum) {
     };
 }
 
-extern const char *
+extern char *
 BRSyncStoppedReasonGetMessage(BRSyncStoppedReason *reason) {
     char *message = NULL;
 
