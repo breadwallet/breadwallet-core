@@ -1,13 +1,14 @@
 #
-# secp256k1 'install
+# secp256k1 - update
 #
-cd ./vendor
-git clone https://github.com/bitcoin-core/secp256k1.git secp256k1
-cd secp256k1
-git checkout e34ceb3
-rm -rf .git
-cd ..
-# If needed:
-#   Xcode: header path with '../vendor'
-#   BRKey: #include path with '../vendor/
+cd ./vendor/secp256k1
+git fetch origin
+git checkout <commit>
+cd ../..
+git add --all
+git commit -m 'Update secp256k1 to <commit>'
 
+#
+# sqlite - update
+#
+# ...
