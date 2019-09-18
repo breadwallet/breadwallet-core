@@ -450,7 +450,7 @@ public enum WalletManagerDisconnectReason: Equatable {
         case DISCONNECT_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0) })
+                          message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0, true) })
         default: self = .unknown; precondition(false)
         }
     }
@@ -627,7 +627,7 @@ public enum WalletManagerSyncStoppedReason: Equatable {
         case SYNC_STOPPED_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0) })
+                          message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0, true) })
         default: self = .unknown; precondition(false)
         }
     }
