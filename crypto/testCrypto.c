@@ -111,7 +111,7 @@ static void *
 _CWMAbuseConnectThread (void *context) {
     CWMAbuseThreadState *state = (CWMAbuseThreadState *) context;
     while (!state->kill) {
-        cryptoWalletManagerConnect (state->manager);
+        cryptoWalletManagerConnect (state->manager, NULL);
     }
     return NULL;
 }
@@ -824,7 +824,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
        BRCryptoWallet wallet = cryptoWalletManagerGetWallet (manager);
 
        // connect, disconnect
-       cryptoWalletManagerConnect (manager);
+       cryptoWalletManagerConnect (manager, NULL);
        sleep(1);
        cryptoWalletManagerDisconnect (manager);
        sleep(1);
@@ -889,11 +889,11 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         BRCryptoWallet wallet = cryptoWalletManagerGetWallet (manager);
 
         // repeated connect attempts
-        cryptoWalletManagerConnect (manager);
+        cryptoWalletManagerConnect (manager, NULL);
         sleep(1);
-        cryptoWalletManagerConnect (manager);
+        cryptoWalletManagerConnect (manager, NULL);
         sleep(1);
-        cryptoWalletManagerConnect (manager);
+        cryptoWalletManagerConnect (manager, NULL);
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
@@ -1020,7 +1020,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         // sync, connect, disconnect
         cryptoWalletManagerSync (manager);
         sleep(1);
-        cryptoWalletManagerConnect (manager);
+        cryptoWalletManagerConnect (manager, NULL);
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
@@ -1272,7 +1272,7 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
        BRCryptoWallet wallet = cryptoWalletManagerGetWallet (manager);
 
         // swap modes while connected
-        cryptoWalletManagerConnect (manager);
+        cryptoWalletManagerConnect (manager, NULL);
         sleep(1);
 
         cryptoWalletManagerSetMode (manager, secondaryMode);
