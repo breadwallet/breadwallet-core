@@ -76,6 +76,27 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                        take: false)
     }()
 
+    ///
+    /// Ensure that a wallet for currency exists.  If the wallet already exists, it is returned.
+    /// If the wallet needs to be created then `nil` is returned and a series of events will
+    //// occur - notably WalletEvent.created and WalletManagerEvent.walletAdded if the wallet is
+    /// created
+    ///
+    /// - Note: There is a precondition on `currency` being one in the managers' network
+    ///
+    /// - Parameter currency:
+    /// - Returns: The wallet for currency if it already exists, othersise `nil`
+    ///
+    public func requireWalletFor (currency: Currency) -> Wallet? {
+        precondition (network.hasCurrency(currency))
+        return cryptoWalletManagerRequireWalletForCurrency (core, currency.core)
+            .map { Wallet (core: $0,
+                           manager: self,
+                           callbackCoordinator: callbackCoordinator,
+                           take: false)
+        }
+    }
+
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener

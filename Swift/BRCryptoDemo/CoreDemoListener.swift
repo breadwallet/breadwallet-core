@@ -23,8 +23,13 @@ class CoreDemoListener: SystemListener {
     private let currencyCodesNeeded: [String]
     private let isMainnet: Bool
 
-    public init (currencyCodesNeeded: [String], isMainnet: Bool) {
+    private let currencyTokensNeeded: [String]
+
+    public init (currencyCodesNeeded: [String],
+                 currencyTokensNeeded: [String],
+                 isMainnet: Bool) {
         self.currencyCodesNeeded = currencyCodesNeeded
+        self.currencyTokensNeeded = currencyTokensNeeded;
         self.isMainnet = isMainnet
     }
 
@@ -108,6 +113,12 @@ class CoreDemoListener: SystemListener {
         case .managerAdded (let manager):
             //TODO: Don't connect here. connect on touch...
             manager.connect()
+            currencyTokensNeeded
+                .forEach {
+                    if let currency = manager.network.currencyBy(code: $0) {
+                        let _ = manager.requireWalletFor(currency: currency)
+                    }
+            }
 
         case .discoveredNetworks (let networks):
             let allCurrencies = networks.flatMap { $0.currencies }

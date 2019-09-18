@@ -8,6 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
 #include <pthread.h>
 
 #include "BRCryptoBase.h"
@@ -24,7 +25,7 @@ static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
 static void
-cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm);
+cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 
@@ -189,10 +190,9 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // ... and finally start the EWM event handling (with CWM fully in place).
             ewmStart (cwm->u.eth);
 
-            // This will generate EWM wallet events... as EWM is started, the CWM callback of
-            // cwmWalletEventAsETH() will runs, create the CWM wallet and then signal both
-            // CRYPTO_WALLET_EVENT_CREATED and CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED.
-            cryptoWalletManagerInstallWalletsForCurrencies(cwm);
+            // This will install ERC20 Tokens for the CWM Currencies.  Corresponding Wallets are
+            // not created for these currencies.
+            cryptoWalletManagerInstallETHTokensForCurrencies(cwm);
 
             // We finish here with possibly EWM events in the EWM handler queue and/or with
             // CWM events in the CWM handler queue.
@@ -436,6 +436,32 @@ cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
     return wallet;
 }
 
+extern BRCryptoWallet
+cryptoWalletManagerRequireWalletForCurrency (BRCryptoWalletManager cwm,
+                                             BRCryptoCurrency currency) {
+    BRCryptoWallet wallet = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
+    if (NULL == wallet) {
+        switch (cwm->type) {
+            case BLOCK_CHAIN_TYPE_BTC:
+                assert (0); // Only BTC currency; has `primaryWallet
+                break;
+
+            case BLOCK_CHAIN_TYPE_ETH: {
+                const char *issuer = cryptoCurrencyGetIssuer (currency);
+                BREthereumAddress ethAddress = addressCreate (issuer);
+                BREthereumToken ethToken = ewmLookupToken (cwm->u.eth, ethAddress);
+                assert (NULL != ethToken);
+                ewmGetWalletHoldingToken (cwm->u.eth, ethToken);
+                break;
+            }
+            case BLOCK_CHAIN_TYPE_GEN:
+                assert (0);
+                break;
+        }
+    }
+    return wallet;
+}
+
 extern BRCryptoBoolean
 cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
@@ -478,7 +504,7 @@ cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
 }
 
 static void
-cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
+cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
     BRCryptoNetwork  network    = cryptoNetworkTake (cwm->network);
     BRCryptoCurrency currency   = cryptoNetworkGetCurrency(network);
     BRCryptoUnit     unitForFee = cryptoNetworkGetUnitAsBase (network, currency);
@@ -514,13 +540,6 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
                                                                 cryptoUnitGetBaseDecimalOffset(unitDefault),
                                                                 ethGasLimit,
                                                                 ethGasPrice);
-
-                        if (NULL != token) {
-                            // The following generates an EWM event of WALLET_EVENT_CREATED.  Which flows
-                            // to CWM and is handled in cwmWalletEventAsETH where a BRCrytoWallet is
-                            // created and then signalled on up.
-                            ewmGetWalletHoldingToken (cwm->u.eth, token);
-                        }
                     }
                     break;
                 }

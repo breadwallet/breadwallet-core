@@ -107,10 +107,13 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
+        var requiredTokenCurrencies = ["ZLA", "ADT"]
+
         print ("APP: Currencies        : \(currencies)")
 
         // Create the listener
         let listener = CoreDemoListener (currencyCodesNeeded: currencies,
+                                         currencyTokensNeeded: requiredTokenCurrencies,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
