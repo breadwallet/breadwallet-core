@@ -8,8 +8,10 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRCryptoPeer.h"
 #include <arpa/inet.h>
+#include "support/BRInt.h"
+#include "BRCryptoPeer.h"
+
 
 /** Forward Declarations */
 static void
@@ -21,7 +23,8 @@ struct BRCryptoPeerRecord {
     uint16_t port;
     char *publicKey;
 
-    struct in_addr inetAddr;
+    // Address parsed as AF_INET or AF_INET6
+    UInt128 addressAsInt;
 
     BRCryptoRef ref;
 };
@@ -37,8 +40,19 @@ cryptoPeerCreate (BRCryptoNetwork network,
     if (NULL == address || 0 == strlen (address)) return NULL;
 
     // Require `address` to parse as a INET address
+    UInt128 addressAsInt = UINT128_ZERO;
+
     struct in_addr addr;
-    if (-1 == ascii2addr (AF_INET, address, &addr)) return NULL;
+    struct in6_addr addr6;
+
+    if (1 == inet_pton (AF_INET6, address, &addr6)) {
+        addressAsInt = *((UInt128*) &addr6.s6_addr);
+    }
+    else if (1 == inet_pton (AF_INET, address, &addr)) {
+        addressAsInt.u16[5] = 0xffff;
+        addressAsInt.u32[3] = addr.s_addr;
+    }
+    else return NULL;
 
     BRCryptoPeer peer = calloc (1, sizeof (struct BRCryptoPeerRecord));
 
@@ -46,7 +60,7 @@ cryptoPeerCreate (BRCryptoNetwork network,
     peer->address   = strdup (address);
     peer->port      = port;
     peer->publicKey = (NULL == publicKey ? NULL : strdup(publicKey));
-    peer->inetAddr  = addr;
+    peer->addressAsInt = addressAsInt;
     peer->ref       = CRYPTO_REF_ASSIGN (cryptoPeerRelease);
 
     return peer;
@@ -67,9 +81,9 @@ cryptoPeerRelease (BRCryptoPeer peer) {
     free (peer);
 }
 
-private_extern struct in_addr
-cryptoPeerGetInetAddr (BRCryptoPeer peer) {
-    return peer->inetAddr;
+extern UInt128
+cryptoPeerGetAddrAsInt (BRCryptoPeer peer) {
+    return peer->addressAsInt;
 }
 
 extern BRCryptoNetwork

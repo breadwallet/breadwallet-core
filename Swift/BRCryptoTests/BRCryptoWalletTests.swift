@@ -168,7 +168,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
-                                                             newState: WalletManagerState.disconnected (WalletManagerDisconnectReason.requested)))
+                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested)))
             ]))
 
         // It seems `balanceUpdated` may occur before `transferAdded`

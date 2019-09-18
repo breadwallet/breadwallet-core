@@ -35,7 +35,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
     var btcPeerSpec = (address: "103.99.168.100", port: UInt16(8333))
     var btcPeer: NetworkPeer? = nil
-    var btcPeerUse = true
+    var btcPeerUse = false
 
     var clearPersistentData: Bool = true
 

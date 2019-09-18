@@ -562,14 +562,10 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             uint16_t port    = 0;
 
             if (NULL != peer) {
-                struct in_addr inetAddr = cryptoPeerGetInetAddr (peer);
-
-                // Okay?
-                address.u16[5] = 0xffff;
-                address.u32[3] = inetAddr.s_addr;
-
+                address = cryptoPeerGetAddrAsInt(peer);
                 port = cryptoPeerGetPort (peer);
             }
+            
             // Calling `SetFixedPeer` will 100% disconnect.  We could avoid calling SetFixedPeer
             // if we kept a reference to `peer` and checked if it differs.
             BRWalletManagerSetFixedPeer (cwm->u.btc, address, port);

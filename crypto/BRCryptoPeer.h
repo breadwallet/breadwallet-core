@@ -31,8 +31,8 @@ extern "C" {
     cryptoPeerCreateFromSerialization (BRCryptoNetwork network,
                                        uint8_t *bytes, size_t bytesCount);
 
-    private_extern struct in_addr
-    cryptoPeerGetInetAddr (BRCryptoPeer peer);
+    extern UInt128
+    cryptoPeerGetAddrAsInt (BRCryptoPeer peer);
 
     extern BRCryptoNetwork
     cryptoPeerGetNetwork (BRCryptoPeer peer);
