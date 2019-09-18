@@ -100,7 +100,6 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->state   = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
-    cwm->peer = NULL;
 
     cwm->wallet = NULL;
     array_new (cwm->wallets, 1);
@@ -282,7 +281,6 @@ static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     cryptoAccountGive (cwm->account);
     cryptoNetworkGive (cwm->network);
-    if (NULL != cwm->peer)   cryptoPeerGive (cwm->peer);
     if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
 
     for (size_t index = 0; index < array_count(cwm->wallets); index++)
