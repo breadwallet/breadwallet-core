@@ -70,7 +70,8 @@ typedef enum {
     SYNC_MANAGER_SYNC_PROGRESS,
     SYNC_MANAGER_SYNC_STOPPED,
 
-    SYNC_MANAGER_TXN_SUBMITTED,
+    SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+    SYNC_MANAGER_TXN_SUBMIT_FAILED,
 
     SYNC_MANAGER_TXNS_UPDATED,
     SYNC_MANAGER_BLOCK_HEIGHT_UPDATED
@@ -102,8 +103,11 @@ typedef struct {
         } blockHeightUpdated;
         struct {
             BRTransaction *transaction;
-            int error;
-        } submitted;
+        } submitSucceeded;
+        struct {
+            BRTransaction *transaction;
+            BRTransferSubmitError error;
+        } submitFailed;
     } u;
 } BRSyncManagerEvent;
 

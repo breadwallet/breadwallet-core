@@ -7,5 +7,5 @@
  */
 package com.breadwallet.crypto.errors;
 
-public class WalletSweeperInvalidSourceWalletError extends WalletSweeperError {
+public final class WalletSweeperInvalidSourceWalletError extends WalletSweeperError {
 }

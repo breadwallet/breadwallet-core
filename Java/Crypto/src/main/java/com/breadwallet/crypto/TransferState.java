@@ -11,6 +11,7 @@ package com.breadwallet.crypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.crypto.errors.TransferSubmitError;
 import com.google.common.base.Optional;
 
 import java.util.Objects;
@@ -44,8 +45,8 @@ public final class TransferState {
         return new TransferState(Type.INCLUDED, confirmation, null);
     }
 
-    public static TransferState FAILED(String reason) {
-        return new TransferState(Type.FAILED, null, reason);
+    public static TransferState FAILED(TransferSubmitError error) {
+        return new TransferState(Type.FAILED, null, error);
     }
 
     public static TransferState DELETED() {
@@ -59,12 +60,12 @@ public final class TransferState {
     @Nullable
     private final TransferConfirmation includedConfirmation;
     @Nullable
-    private final String failedReason;
+    private final TransferSubmitError failedError;
 
-    private TransferState(Type type, @Nullable TransferConfirmation includedConfirmation, @Nullable String failedReason) {
+    private TransferState(Type type, @Nullable TransferConfirmation includedConfirmation, @Nullable TransferSubmitError failedError) {
         this.type = type;
         this.includedConfirmation = includedConfirmation;
-        this.failedReason = failedReason;
+        this.failedError = failedError;
     }
 
     public Type getType() {
@@ -75,8 +76,8 @@ public final class TransferState {
         return Optional.fromNullable(includedConfirmation);
     }
 
-    public Optional<String> getFailedReason() {
-        return Optional.fromNullable(failedReason);
+    public Optional<TransferSubmitError> getFailedError() {
+        return Optional.fromNullable(failedError);
     }
 
     @Override
@@ -114,11 +115,11 @@ public final class TransferState {
         TransferState that = (TransferState) object;
         return type == that.type &&
                 Objects.equals(includedConfirmation, that.includedConfirmation) &&
-                Objects.equals(failedReason, that.failedReason);
+                Objects.equals(failedError, that.failedError);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, includedConfirmation, failedReason);
+        return Objects.hash(type, includedConfirmation, failedError);
     }
 }

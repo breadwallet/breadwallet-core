@@ -7,5 +7,5 @@
  */
 package com.breadwallet.crypto.errors;
 
-public class FeeEstimationServiceUnavailableError extends FeeEstimationError {
+public final class FeeEstimationServiceUnavailableError extends FeeEstimationError {
 }
