@@ -314,8 +314,7 @@ include_directories(src/main/cpp/core/support)
 include_directories(src/main/cpp/core/bitcoin)
 include_directories(src/main/cpp/core/bcash)
 include_directories(src/main/cpp/core/ethereum/)
-include_directories(src/main/cpp/core/secp256k1/)
-include_directories(src/main/cpp/core/vendor/sqlite3/)
+include_directories(src/main/cpp/core/vendor/secp256k1/)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

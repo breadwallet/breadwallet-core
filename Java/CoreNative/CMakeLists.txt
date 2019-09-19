@@ -361,7 +361,7 @@ target_include_directories (crypto
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bitcoin
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bcash
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/ethereum
-                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/secp256k1
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/secp256k1
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/crypto)
 
 find_library (log-lib
