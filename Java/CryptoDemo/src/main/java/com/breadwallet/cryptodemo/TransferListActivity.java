@@ -13,6 +13,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -56,8 +57,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 public class TransferListActivity extends AppCompatActivity {
 
@@ -223,7 +222,7 @@ public class TransferListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_connect:
-                wallet.getWalletManager().connect();
+                wallet.getWalletManager().connect(null);
                 return true;
             case R.id.action_sync:
                 new AlertDialog.Builder(this)

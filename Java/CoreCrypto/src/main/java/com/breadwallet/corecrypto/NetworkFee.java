@@ -31,9 +31,14 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     /* package */
     static NetworkFee from(com.breadwallet.crypto.NetworkFee fee) {
+        if (fee == null) {
+            return null;
+        }
+
         if (fee instanceof NetworkFee) {
             return (NetworkFee) fee;
         }
+
         throw new IllegalArgumentException("Unsupported network fee instance");
     }
 

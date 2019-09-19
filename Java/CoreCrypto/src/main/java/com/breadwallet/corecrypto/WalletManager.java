@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
@@ -95,8 +97,9 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     @Override
-    public void connect() {
-        core.connect();
+    public void connect(@Nullable com.breadwallet.crypto.NetworkPeer peer) {
+        checkState(null == peer || network.equals(peer.getNetwork()));
+        core.connect(peer == null ? null : NetworkPeer.from(peer).getBRCryptoPeer());
     }
 
     @Override

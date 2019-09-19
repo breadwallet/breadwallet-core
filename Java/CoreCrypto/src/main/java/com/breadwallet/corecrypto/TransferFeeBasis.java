@@ -23,9 +23,14 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     /* package */
     static TransferFeeBasis from(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+        if (feeBasis == null) {
+            return null;
+        }
+
         if (feeBasis instanceof TransferFeeBasis) {
             return (TransferFeeBasis) feeBasis;
         }
+
         throw new IllegalArgumentException("Unsupported fee basis instance");
     }
 

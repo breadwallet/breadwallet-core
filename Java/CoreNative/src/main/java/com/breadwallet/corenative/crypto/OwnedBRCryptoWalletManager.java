@@ -94,8 +94,8 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void connect() {
-        core.connect();
+    public void connect(BRCryptoPeer peer) {
+        core.connect(peer);
     }
 
     @Override

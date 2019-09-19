@@ -58,7 +58,7 @@ public class CoreSystemListener implements SystemListener {
             @Override
             public Void visit(SystemManagerAddedEvent event) {
                 WalletManager manager = event.getWalletManager();
-                manager.connect();
+                manager.connect(null);
                 return null;
             }
 

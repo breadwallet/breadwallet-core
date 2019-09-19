@@ -78,9 +78,14 @@ final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
     static Account from(com.breadwallet.crypto.Account account) {
+        if (account == null) {
+            return null;
+        }
+
         if (account instanceof Account) {
             return (Account) account;
         }
+
         throw new IllegalArgumentException("Unsupported account instance");
     }
 

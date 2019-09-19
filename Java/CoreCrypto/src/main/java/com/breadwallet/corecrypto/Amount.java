@@ -58,9 +58,14 @@ final class Amount implements com.breadwallet.crypto.Amount {
 
     /* package */
     static Amount from(com.breadwallet.crypto.Amount amount) {
+        if (amount == null) {
+            return null;
+        }
+
         if (amount instanceof Amount) {
             return (Amount) amount;
         }
+
         throw new IllegalArgumentException("Unsupported amount instance");
     }
 
