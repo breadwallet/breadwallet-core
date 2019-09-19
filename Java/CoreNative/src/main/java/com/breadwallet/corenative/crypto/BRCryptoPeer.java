@@ -45,6 +45,10 @@ public class BRCryptoPeer extends PointerType {
         return UnsignedInteger.fromIntBits(CryptoLibrary.INSTANCE.cryptoPeerGetPort(this));
     }
 
+    public boolean isIdentical(BRCryptoPeer core) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoPeerIsIdentical(this, core);
+    }
+
     public static class OwnedBRCryptoPeer extends BRCryptoPeer {
 
         public OwnedBRCryptoPeer(Pointer address) {

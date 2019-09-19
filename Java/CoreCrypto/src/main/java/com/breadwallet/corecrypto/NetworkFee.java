@@ -69,6 +69,8 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     @Override
     public int hashCode() {
+        // TODO(fix): objects that are equal to each other must return the same hashCode; this implementation doesn;t
+        //            meet that requirement
         return Objects.hash(core);
     }
 

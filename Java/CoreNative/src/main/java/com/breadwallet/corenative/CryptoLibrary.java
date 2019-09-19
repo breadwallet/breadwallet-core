@@ -155,6 +155,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
     Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
     short cryptoPeerGetPort(BRCryptoPeer peer);
+    int cryptoPeerIsIdentical(BRCryptoPeer p1, BRCryptoPeer p2);
     void cryptoPeerGive(BRCryptoPeer peer);
 
     long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);

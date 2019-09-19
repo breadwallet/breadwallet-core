@@ -48,28 +48,39 @@ final class NetworkPeer implements com.breadwallet.crypto.NetworkPeer {
 
     private final BRCryptoPeer core;
 
+    private final Network network;
+    private final String address;
+    private final int port;
+
+    @Nullable
+    private final String publicKey;
+
     private NetworkPeer(BRCryptoPeer core) {
         this.core = core;
+        this.network = Network.create(core.getNetwork());
+        this.address = core.getAddress();
+        this.port = core.getPort().shortValue();
+        this.publicKey = core.getPublicKey().orNull();
     }
 
     @Override
     public Network getNetwork() {
-        return Network.create(core.getNetwork());
+        return network;
     }
 
     @Override
     public String getAddress() {
-        return core.getAddress();
+        return address;
     }
 
     @Override
     public int getPort() {
-        return core.getPort().shortValue();
+        return port;
     }
 
     @Override
     public Optional<String> getPublicKey() {
-        return core.getPublicKey();
+        return Optional.fromNullable(publicKey);
     }
 
     @Override
@@ -83,12 +94,12 @@ final class NetworkPeer implements com.breadwallet.crypto.NetworkPeer {
         }
 
         NetworkPeer that = (NetworkPeer) object;
-        return core.equals(that.core);
+        return core.isIdentical(that.core);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(core);
+        return Objects.hash(network, address, port, publicKey);
     }
 
     /* package */
