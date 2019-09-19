@@ -112,3 +112,8 @@ cryptoPeerSerialize (BRCryptoPeer peer, size_t *bytesCount) {
     *bytesCount = 0;
     return NULL;
 }
+
+extern BRCryptoBoolean
+cryptoPeerIsIdentical (BRCryptoPeer p1, BRCryptoPeer p2) {
+    return AS_CRYPTO_BOOLEAN (p1 == p2);
+}

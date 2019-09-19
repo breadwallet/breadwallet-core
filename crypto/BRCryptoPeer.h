@@ -48,7 +48,10 @@ extern "C" {
 
     extern uint8_t *
     cryptoPeerSerialize (BRCryptoPeer peer, size_t *bytesCount);
-    
+
+    extern BRCryptoBoolean
+    cryptoPeerIsIdentical (BRCryptoPeer p1, BRCryptoPeer p2);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoPeer, cryptoPeer);
 
 #ifdef __cplusplus

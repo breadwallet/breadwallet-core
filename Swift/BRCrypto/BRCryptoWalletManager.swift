@@ -137,7 +137,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     /// Connect to the network and begin managing wallets.
     ///
     /// - Parameter peer: An optional NetworkPeer to use on the P2P network.  It is unusual to
-    ///     provide a peer as P2P networks will dynamically descover suitable peers.
+    ///     provide a peer as P2P networks will dynamically discover suitable peers.
     ///
     /// - Note: If peer is provided, there is a precondition on the networks matching.
     ///

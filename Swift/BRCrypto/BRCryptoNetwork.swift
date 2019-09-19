@@ -365,6 +365,6 @@ public final class NetworkPeer: Equatable {
 //    }
 
     public static func == (lhs: NetworkPeer, rhs: NetworkPeer) -> Bool {
-        return lhs.core == rhs.core
+        return CRYPTO_TRUE == cryptoPeerIsIdentical (lhs.core, rhs.core)
     }
 }
