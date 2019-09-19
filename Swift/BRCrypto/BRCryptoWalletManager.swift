@@ -269,7 +269,8 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         currencies
             .forEach {
                 if network.hasCurrency ($0) {
-                    cryptoWalletManagerRegisterWallet (core, $0.core) }
+                    let _ = registerWalletFor(currency: $0)
+                }
         }
     }
 
