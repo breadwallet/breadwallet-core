@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,6 +63,7 @@ public class CoreCryptoApplication extends Application {
     private System system;
     private DispatchingSystemListener systemListener;
     private ConnectivityBroadcastReceiver connectivityReceiver;
+    private ScheduledExecutorService executor;
     private boolean isMainnet;
     private BlockchainDb blockchainDb;
     private byte[] paperKey;
@@ -98,6 +100,12 @@ public class CoreCryptoApplication extends Application {
         checkState(null != instance && instance.runOnce.get());
 
         return instance.paperKey;
+    }
+
+    public static ScheduledExecutorService getExecutorService() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.executor;
     }
 
     private static void deleteRecursively (File file) {
@@ -150,8 +158,9 @@ public class CoreCryptoApplication extends Application {
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
+            executor = Executors.newSingleThreadScheduledExecutor();
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
-            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account,
+            system = System.create(executor, systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
@@ -163,7 +172,7 @@ public class CoreCryptoApplication extends Application {
     private void resetSystemImpl() {
         system.stop();
         system = System.create(
-                Executors.newSingleThreadScheduledExecutor(),
+                executor,
                 systemListener,
                 system.getAccount(),
                 isMainnet,
