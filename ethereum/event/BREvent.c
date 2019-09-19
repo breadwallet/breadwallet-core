@@ -168,6 +168,14 @@ eventHandlerAlarmCallback (BREventHandler handler,
     eventHandlerSignalEventOOB (handler, (BREvent*) &event);
 }
 
+static int
+eventHandlerTimeToQuit (BREventHandler handler) {
+    pthread_mutex_lock (handler->lockToUse);
+    int timeToQuit = handler->threadQuit;
+    pthread_mutex_unlock (handler->lockToUse);
+    return timeToQuit;
+
+}
 
 typedef void* (*ThreadRoutine) (void*);
 
@@ -181,17 +189,19 @@ eventHandlerThread (BREventHandler handler) {
 #endif
 
     pthread_mutex_lock (handler->lockToUse);
-
     handler->threadQuit = 0;
+    pthread_mutex_unlock (handler->lockToUse);
 
-    while (!handler->threadQuit) {
+    while (!eventHandlerTimeToQuit(handler)) {
         // Check for a queued event
-        switch (eventQueueDequeue(handler->queue, handler->scratch)) {
+        switch (eventQueueDequeue (handler->queue, handler->scratch, &handler->cond)) {
             case EVENT_STATUS_SUCCESS: {
                 // If we have one, dispatch
+                pthread_mutex_lock (handler->lockToUse);
                 BREventType *type = handler->scratch->type;
                 type->eventDispatcher (handler, handler->scratch);
-                break;
+                pthread_mutex_unlock (handler->lockToUse);
+               break;
             }
 
             case EVENT_STATUS_NOT_STARTED:
@@ -199,16 +209,10 @@ eventHandlerThread (BREventHandler handler) {
             case EVENT_STATUS_NULL_EVENT:
                 // impossible?
                 // fall through
-
             case EVENT_STATUS_NONE_PENDING:
-                // ... otherwise wait for an event ...
-                pthread_cond_wait(&handler->cond, handler->lockToUse);
                 break;
         }
     }
-
-    // Requires as `cond_wait` takes its mutex when signalled.
-    pthread_mutex_unlock (handler->lockToUse);
 
     return NULL;
 }
@@ -321,16 +325,14 @@ eventHandlerIsRunning (BREventHandler handler) {
 extern BREventStatus
 eventHandlerSignalEvent (BREventHandler handler,
                          BREvent *event) {
-    eventQueueEnqueueTail(handler->queue, event);
-    pthread_cond_signal(&handler->cond);
+    eventQueueEnqueueTail(handler->queue, event, &handler->cond);
     return EVENT_STATUS_SUCCESS;
 }
 
 extern BREventStatus
 eventHandlerSignalEventOOB (BREventHandler handler,
                             BREvent *event) {
-    eventQueueEnqueueHead(handler->queue, event);
-    pthread_cond_signal(&handler->cond);
+    eventQueueEnqueueHead(handler->queue, event, &handler->cond);
     return EVENT_STATUS_SUCCESS;
 }
 

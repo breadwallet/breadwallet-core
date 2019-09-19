@@ -99,6 +99,7 @@ eventQueueDestroy (BREventQueue queue) {
 static void
 eventQueueEnqueue (BREventQueue queue,
                    const BREvent *event,
+                   pthread_cond_t *var,
                    int tail) {
     pthread_mutex_lock(&queue->lock);
 
@@ -129,53 +130,73 @@ eventQueueEnqueue (BREventQueue queue,
         queue->pending = this;
     }
 
+    if (NULL != var) pthread_cond_signal (var);
     pthread_mutex_unlock(&queue->lock);
 }
 
 extern void
 eventQueueEnqueueTail (BREventQueue queue,
-                       const BREvent *event) {
-    eventQueueEnqueue (queue, event, 1);
+                       const BREvent *event,
+                       pthread_cond_t *var) {
+    eventQueueEnqueue (queue, event, var, 1);
 }
 
 extern void
 eventQueueEnqueueHead (BREventQueue queue,
-                       const BREvent *event) {
-    eventQueueEnqueue (queue, event, 0);
+                       const BREvent *event,
+                       pthread_cond_t *var) {
+    eventQueueEnqueue (queue, event, var, 0);
+}
+
+static int
+_eventQueueDequeue (BREventQueue queue,
+                    BREvent *event) {
+    // Get the next pending event
+    BREvent *this = queue->pending;
+
+    // if there is one, process it
+    if (NULL == this) return 0;
+
+    // Remove `this` from the pending list.
+    queue->pending = this->next;
+
+    // Fill in the provided event;
+    this->next = NULL;
+    memcpy (event, this, queue->size);
+
+    // Return `this` to the available list.
+    this->next = queue->available;
+    queue->available = this;
+
+    return 1;
 }
 
 extern BREventStatus
 eventQueueDequeue (BREventQueue queue,
-                   BREvent *event) {
-    BREventStatus status = EVENT_STATUS_SUCCESS;
-    
-    if (NULL == event)
+                   BREvent *event,
+                   pthread_cond_t *var) {
+   if (NULL == event)
         return EVENT_STATUS_NULL_EVENT;
-    
-    pthread_mutex_lock(&queue->lock);
-    
-    // Get the next pending event
-    BREvent *this = queue->pending;
-    
-    // there is none, just return
-    if (NULL == this)
-        status = EVENT_STATUS_NONE_PENDING;
-    
-    // otherwise process it.
-    else {
-        // Remove `this` from the pending list.
-        queue->pending = this->next;
-        
-        // Fill in the provided event;
-        this->next = NULL;
-        memcpy (event, this, queue->size);
-        
-        // Return `this` to the available list.
-        this->next = queue->available;
-        queue->available = this;
+
+    BREventStatus status = EVENT_STATUS_NONE_PENDING;
+
+    pthread_mutex_lock (&queue->lock);
+
+    if (_eventQueueDequeue (queue, event))
+        status = EVENT_STATUS_SUCCESS;
+
+    // if not, and we have a `var` wait on it
+    else if (NULL != var) {
+        do {
+            pthread_cond_wait (var, &queue->lock);
+        } while (!_eventQueueDequeue (queue, event));
+        status = EVENT_STATUS_SUCCESS;
     }
+
+    // otherwise
+    else status = EVENT_STATUS_NONE_PENDING;
+
     pthread_mutex_unlock(&queue->lock);
-    
     return status;
 }
 
