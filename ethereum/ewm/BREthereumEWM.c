@@ -2671,12 +2671,9 @@ ewmPeriodicDispatcher (BREventHandler handler,
     if (ewm->state != EWM_STATE_CONNECTED) return;
     if (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode) return;
 
+    // Get this always and early.
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
-
-    // For all the known wallets, get their balance.
-    for (int i = 0; i < array_count(ewm->wallets); i++)
-        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
 
     // Handle a BRD Sync:
 
@@ -2710,7 +2707,23 @@ ewmPeriodicDispatcher (BREventHandler handler,
                 { .changed = { EWM_STATE_CONNECTED, EWM_STATE_SYNCING }}
             });
 
-        // 3a) We'll query all transactions for this ewm's account.  That will give us a shot at
+        // 3a) For all the registered (aka 'known') wallets, get each balance.
+        for (int i = 0; i < array_count(ewm->wallets); i++)
+            ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
+
+        // If this is not an 'ongoing' sync, then arbitrarily report progress - half way
+        // between transactions and logs
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_SYNC_PROGRESS,
+                SUCCESS,
+                { .syncProgress = {
+                    NO_SYNC_TIMESTAMP, // We do not have a timestamp
+                    AS_SYNC_PERCENT_COMPLETE(33.33) }}
+            });
+
+
+        // 3b) We'll query all transactions for this ewm's account.  That will give us a shot at
         // getting the nonce for the account's address correct.  We'll save all the transactions and
         // then process them into wallet as wallets exist.
         ewmUpdateTransactions(ewm);
@@ -2727,10 +2740,10 @@ ewmPeriodicDispatcher (BREventHandler handler,
                 SUCCESS,
                 { .syncProgress = {
                     NO_SYNC_TIMESTAMP, // We do not have a timestamp
-                    AS_SYNC_PERCENT_COMPLETE(50) }}
+                    AS_SYNC_PERCENT_COMPLETE(66.67) }}
             });
 
-        // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into
+        // 3c) Similarly, we'll query all logs for this ewm's account.  We'll process these into
         // (token) transactions and associate with their wallet.
         ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
 

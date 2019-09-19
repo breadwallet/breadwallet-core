@@ -191,6 +191,12 @@ eventHandlerThread (BREventHandler handler) {
                 // If we have one, dispatch
                 BREventType *type = handler->scratch->type;
                 type->eventDispatcher (handler, handler->scratch);
+
+                // Allow another thread to acquire lockToUse.  This avoids a case whereby
+                // we have N events queued up, with M more arriving before the queue is empty
+                // which prevents *any other thread* from acquiring the lock.
+                pthread_mutex_unlock (handler->lockToUse);
+                pthread_mutex_lock (handler->lockToUse);
                 break;
             }
 
@@ -322,6 +328,13 @@ extern BREventStatus
 eventHandlerSignalEvent (BREventHandler handler,
                          BREvent *event) {
     eventQueueEnqueueTail(handler->queue, event);
+    // This call needs to block on lockToUse to avoid missing events.  That means that during
+    // the entire execution of the eventDispatcher any thread attempting to signal would block.
+    // (Notably a recursive call?).  Had hoped to avoid this 'signal' function having to block.
+    //
+    // Is it possible to use the handler->queue->lock?  Essentially handler->queue having an
+    // event 
+    //
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;
 }
@@ -330,6 +343,7 @@ extern BREventStatus
 eventHandlerSignalEventOOB (BREventHandler handler,
                             BREvent *event) {
     eventQueueEnqueueHead(handler->queue, event);
+    // This call needs to block on lockToUse to avoid missing events.
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;
 }
