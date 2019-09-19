@@ -32,17 +32,33 @@ eventQueueDestroy (BREventQueue queue);
 
 extern void
 eventQueueEnqueueTail (BREventQueue queue,
-                       const BREvent *event,
-                       pthread_cond_t *var);
+                       const BREvent *event);
+
 extern void
 eventQueueEnqueueHead (BREventQueue queue,
-                       const BREvent *event,
-                       pthread_cond_t *var);
-
+                       const BREvent *event);
 extern BREventStatus
 eventQueueDequeue (BREventQueue queue,
-                   BREvent *event,
-                   pthread_cond_t *var);
+                   BREvent *event);
+
+extern void
+eventQueueEnqueueTailSignal (BREventQueue queue,
+                             const BREvent *event);
+
+extern void
+eventQueueEnqueueHeadSignal (BREventQueue queue,
+                             const BREvent *event);
+
+
+extern BREventStatus
+eventQueueDequeueWait (BREventQueue queue,
+                       BREvent *event);
+
+extern void
+eventQueueDequeueWaitAbort (BREventQueue queue);
+
+extern void
+eventQueueDequeueWaitAbortReset (BREventQueue queue);
 
 extern int
 eventQueueHasPending (BREventQueue queue);

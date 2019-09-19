@@ -25,6 +25,12 @@ struct BREventQueueRecord {
     // If not provided with a lock, use this one.
     pthread_mutex_t lock;
 
+    // A 'cond var'
+    pthread_cond_t cond;
+
+    // An 'abort wait' flag
+    int abort;
+
     // The size of each event
     size_t size;
 };
@@ -35,12 +41,21 @@ eventQueueCreate (size_t size) {
 
     queue->pending = NULL;
     queue->available = NULL;
-    queue->size = size;
+    queue->abort = 0;
+    queue->size  = size;
 
     for (int i = 0; i < EVENT_QUEUE_DEFAULT_INITIAL_CAPACITY; i++) {
         BREvent *event = calloc (1, queue->size);
         event->next = queue->available;
         queue->available = event;
+    }
+
+    // Create the PTHREAD CONDition variable
+    {
+        pthread_condattr_t attr;
+        pthread_condattr_init(&attr);
+        pthread_cond_init(&queue->cond, &attr);
+        pthread_condattr_destroy(&attr);
     }
 
     {
@@ -82,6 +97,7 @@ eventQueueClear (BREventQueue queue) {
     queue->pending = NULL;
     queue->available = NULL;
 
+    pthread_cond_destroy(&queue->cond);
     pthread_mutex_unlock(&queue->lock);
 }
 
@@ -99,8 +115,8 @@ eventQueueDestroy (BREventQueue queue) {
 static void
 eventQueueEnqueue (BREventQueue queue,
                    const BREvent *event,
-                   pthread_cond_t *var,
-                   int tail) {
+                   int tail,
+                   int signal) {
     pthread_mutex_lock(&queue->lock);
 
     // Get the next available event
@@ -130,22 +146,31 @@ eventQueueEnqueue (BREventQueue queue,
         queue->pending = this;
     }
 
-    if (NULL != var) pthread_cond_signal (var);
+    if (signal) pthread_cond_signal (&queue->cond);
     pthread_mutex_unlock(&queue->lock);
 }
 
 extern void
 eventQueueEnqueueTail (BREventQueue queue,
-                       const BREvent *event,
-                       pthread_cond_t *var) {
-    eventQueueEnqueue (queue, event, var, 1);
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 1, 0);
 }
 
 extern void
 eventQueueEnqueueHead (BREventQueue queue,
-                       const BREvent *event,
-                       pthread_cond_t *var) {
-    eventQueueEnqueue (queue, event, var, 0);
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 0, 0);
+}
+extern void
+eventQueueEnqueueTailSignal (BREventQueue queue,
+                             const BREvent *event) {
+    eventQueueEnqueue (queue, event, 1, 1);
+}
+
+extern void
+eventQueueEnqueueHeadSignal (BREventQueue queue,
+                             const BREvent *event) {
+    eventQueueEnqueue (queue, event, 0, 1);
 }
 
 static int
@@ -173,31 +198,51 @@ _eventQueueDequeue (BREventQueue queue,
 
 extern BREventStatus
 eventQueueDequeue (BREventQueue queue,
-                   BREvent *event,
-                   pthread_cond_t *var) {
+                   BREvent *event) {
    if (NULL == event)
         return EVENT_STATUS_NULL_EVENT;
 
-    BREventStatus status = EVENT_STATUS_NONE_PENDING;
+    pthread_mutex_lock (&queue->lock);
+    BREventStatus status = (_eventQueueDequeue (queue, event)
+                            ? EVENT_STATUS_SUCCESS
+                            : EVENT_STATUS_NONE_PENDING);
+    pthread_mutex_unlock(&queue->lock);
+
+    return status;
+}
+
+extern BREventStatus
+eventQueueDequeueWait (BREventQueue queue,
+                       BREvent *event) {
+    if (NULL == event)
+        return EVENT_STATUS_NULL_EVENT;
+
+    BREventStatus status = EVENT_STATUS_SUCCESS;
 
     pthread_mutex_lock (&queue->lock);
-
-    if (_eventQueueDequeue (queue, event))
-        status = EVENT_STATUS_SUCCESS;
-
-    // if not, and we have a `var` wait on it
-    else if (NULL != var) {
-        do {
-            pthread_cond_wait (var, &queue->lock);
-        } while (!_eventQueueDequeue (queue, event));
-        status = EVENT_STATUS_SUCCESS;
-    }
-
-    // otherwise
-    else status = EVENT_STATUS_NONE_PENDING;
-
+    while (!queue->abort && !_eventQueueDequeue (queue, event))
+        if (0 != pthread_cond_wait (&queue->cond, &queue->lock))
+            return EVENT_STATUS_WAIT_ERROR;
+    if (queue->abort) status = EVENT_STATUS_WAIT_ABORT;
     pthread_mutex_unlock(&queue->lock);
+
     return status;
+}
+
+extern void
+eventQueueDequeueWaitAbort (BREventQueue queue) {
+    pthread_mutex_lock (&queue->lock);
+    queue->abort = 1;
+    pthread_cond_signal (&queue->cond);
+    pthread_mutex_unlock (&queue->lock);
+}
+
+extern void
+eventQueueDequeueWaitAbortReset (BREventQueue queue) {
+    pthread_mutex_lock (&queue->lock);
+    queue->abort = 0;
+    pthread_cond_signal (&queue->cond);
+    pthread_mutex_unlock (&queue->lock);
 }
 
 extern int
