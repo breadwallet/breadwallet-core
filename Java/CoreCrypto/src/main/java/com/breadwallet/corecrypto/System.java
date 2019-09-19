@@ -44,7 +44,6 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
@@ -99,8 +98,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -246,7 +247,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void configure(List<Currency> appCurrencies) {
+    public void configure(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies) {
         NetworkDiscovery.discoverNetworks(query, isMainnet, appCurrencies, new NetworkDiscovery.Callback() {
             @Override
             public void discovered(Network network) {
@@ -264,14 +265,25 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode, AddressScheme scheme) {
+    public void createWalletManager(com.breadwallet.crypto.Network network,
+                                    WalletManagerMode mode,
+                                    AddressScheme scheme,
+                                    Set<com.breadwallet.crypto.Currency> currencies) {
+        Network cryptoNetwork = Network.from(network);
+
+        Set<Currency> cryptoCurrencies = new HashSet<>(currencies.size());
+        for (com.breadwallet.crypto.Currency c: currencies) {
+            cryptoCurrencies.add(Currency.from(c));
+        }
+
         WalletManager walletManager = WalletManager.create(
                 cwmListener,
                 cwmClient,
                 account,
-                Network.from(network),
+                cryptoNetwork,
                 mode,
                 scheme,
+                cryptoCurrencies,
                 path,
                 this,
                 callbackCoordinator);

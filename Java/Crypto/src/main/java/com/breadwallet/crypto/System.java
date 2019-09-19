@@ -10,10 +10,10 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
@@ -22,9 +22,22 @@ public interface System {
         return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
-    void configure(List<Currency> appCurrencies);
+    void configure(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies);
 
-    void createWalletManager(Network network, WalletManagerMode mode, AddressScheme addressScheme);
+    /**
+     * Create a wallet manager for `network` using `mode.
+     *
+     * @param network the wallet manager's network
+     * @param mode the wallet manager mode to use
+     * @param addressScheme the address scheme to use
+     * @param currencies the currencies to 'register'.  A wallet will be created for each one.  It
+     *                   is safe to pass currencies not in `network` as they will be filtered (but bad form
+     *                   to do so).
+     */
+    void createWalletManager(Network network,
+                             WalletManagerMode mode,
+                             AddressScheme addressScheme,
+                             Set<Currency> currencies);
 
     void stop();
 

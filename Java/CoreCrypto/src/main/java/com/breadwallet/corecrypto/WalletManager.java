@@ -23,6 +23,7 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -36,19 +37,28 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 Network network,
                                 WalletManagerMode mode,
                                 AddressScheme addressScheme,
+                                Set<Currency> currencies,
                                 String path,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
+        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
+                listener,
+                client,
+                account.getCoreBRCryptoAccount(),
+                network.getCoreBRCryptoNetwork(),
+                Utilities.walletManagerModeToCrypto(mode),
+                Utilities.addressSchemeToCrypto(addressScheme),
+                path
+        );
+
+        for (Currency currency: currencies) {
+            if (network.hasCurrency(currency)) {
+                core.registerWallet(currency.getCoreBRCryptoCurrency());
+            }
+        }
+
         return new WalletManager(
-                CoreBRCryptoWalletManager.create(
-                        listener,
-                        client,
-                        account.getCoreBRCryptoAccount(),
-                        network.getCoreBRCryptoNetwork(),
-                        Utilities.walletManagerModeToCrypto(mode),
-                        Utilities.addressSchemeToCrypto(addressScheme),
-                        path
-                ),
+                core,
                 system,
                 callbackCoordinator
         );
@@ -164,6 +174,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
 
         return wallets;
+    }
+
+    @Override
+    public Optional<Wallet> registerWalletFor(com.breadwallet.crypto.Currency currency) {
+        checkState(network.hasCurrency(currency));
+        return core
+                .registerWallet(Currency.from(currency).getCoreBRCryptoCurrency())
+                .transform(w -> Wallet.create(w, this, callbackCoordinator));
     }
 
     @Override

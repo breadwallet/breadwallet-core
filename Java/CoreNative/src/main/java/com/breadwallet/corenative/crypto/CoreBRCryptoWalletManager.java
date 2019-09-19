@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -36,6 +37,8 @@ public interface CoreBRCryptoWalletManager {
     List<CoreBRCryptoWallet> getWallets();
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
+
+    Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency);
 
     void setNetworkReachable(boolean isNetworkReachable);
 
