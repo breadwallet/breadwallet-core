@@ -98,7 +98,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
-        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
+        let currencies: [String] = [
+            "btc",
+            "eth",
+//            "bch",
+//            "xrp"
+        ]
 
         if mainnet {
 
@@ -107,13 +112,15 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
-        var requiredTokenCurrencies = ["ZLA", "ADT"]
+        let registerCurrencyCodes = [
+            "ZLA",
+            "ADT"]
 
         print ("APP: Currencies        : \(currencies)")
 
         // Create the listener
-        let listener = CoreDemoListener (currencyCodesNeeded: currencies,
-                                         currencyTokensNeeded: requiredTokenCurrencies,
+        let listener = CoreDemoListener (networkCurrencyCodes: currencies,
+                                         registerCurrencyCodes: registerCurrencyCodes,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB

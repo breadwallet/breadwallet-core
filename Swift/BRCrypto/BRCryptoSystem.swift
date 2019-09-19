@@ -322,11 +322,16 @@ public final class System {
     ///
     /// - Parameters:
     ///   - network: the wallet manager's network
-    ///   - mode: the mode to use
+    ///   - mode: the wallet manager mode to use
+    ///   - addressScheme: the address scheme to use
+    ///   - currencies: the currencies to 'register'.  A wallet will be created for each one.  It
+    ///       is safe to pass currencies not in `network` as they will be filtered (but bad form
+    ///       to do so).
     ///
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
-                                     addressScheme: AddressScheme) {
+                                     addressScheme: AddressScheme,
+                                     currencies: Set<Currency>) {
 
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
@@ -334,6 +339,7 @@ public final class System {
                                      network: network,
                                      mode: mode,
                                      addressScheme: addressScheme,
+                                     currencies: currencies,
                                      storagePath: path,
                                      listener: cryptoListener,
                                      client: cryptoClient)

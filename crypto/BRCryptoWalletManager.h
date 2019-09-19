@@ -194,8 +194,8 @@ extern "C" {
                                              BRCryptoCurrency currency);
 
     extern BRCryptoWallet
-    cryptoWalletManagerRequireWalletForCurrency (BRCryptoWalletManager cwm,
-                                                 BRCryptoCurrency currency);
+    cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
+                                       BRCryptoCurrency currency);
 
     extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm);

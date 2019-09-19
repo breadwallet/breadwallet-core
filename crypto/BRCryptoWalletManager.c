@@ -437,8 +437,8 @@ cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
 }
 
 extern BRCryptoWallet
-cryptoWalletManagerRequireWalletForCurrency (BRCryptoWalletManager cwm,
-                                             BRCryptoCurrency currency) {
+cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
+                                   BRCryptoCurrency currency) {
     BRCryptoWallet wallet = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
     if (NULL == wallet) {
         switch (cwm->type) {
