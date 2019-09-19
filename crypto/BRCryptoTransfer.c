@@ -8,6 +8,8 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <pthread.h>
+
 #include "BRCryptoTransfer.h"
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
@@ -33,6 +35,8 @@ static void
 cryptoTransferRelease (BRCryptoTransfer transfer);
 
 struct BRCryptoTransferRecord {
+    pthread_mutex_t lock;
+
     BRCryptoBlockChainType type;
     union {
         struct {
@@ -89,6 +93,15 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->feeBasisConfirmed = NULL;
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+
+        pthread_mutex_init(&transfer->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
 
     return transfer;
 }
@@ -245,8 +258,12 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
     cryptoUnitGive (transfer->unit);
     cryptoUnitGive (transfer->unitForFee);
+    cryptoTransferStateRelease (&transfer->state);
     if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
     if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
+
+    pthread_mutex_destroy (&transfer->lock);
+
     memset (transfer, 0, sizeof(*transfer));
     free (transfer);
 }
@@ -443,13 +460,24 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 
 extern BRCryptoTransferState
 cryptoTransferGetState (BRCryptoTransfer transfer) {
-    return transfer->state;
+    pthread_mutex_lock (&transfer->lock);
+    BRCryptoTransferState state = cryptoTransferStateCopy (&transfer->state);
+    pthread_mutex_unlock (&transfer->lock);
+
+    return state;
 }
 
 private_extern void
 cryptoTransferSetState (BRCryptoTransfer transfer,
                         BRCryptoTransferState state) {
-    transfer->state = state;
+    BRCryptoTransferState newState = cryptoTransferStateCopy (&state);
+
+    pthread_mutex_lock (&transfer->lock);
+    BRCryptoTransferState oldState = transfer->state;
+    transfer->state = newState;
+    pthread_mutex_unlock (&transfer->lock);
+
+    cryptoTransferStateRelease (&oldState);
 }
 
 extern BRCryptoTransferDirection
@@ -724,7 +752,7 @@ cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                  BRCryptoAmount fee) {
     return (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        { .included = { blockNumber, transactionIndex, timestamp, fee }}
+        { .included = { blockNumber, transactionIndex, timestamp, cryptoAmountTake (fee) }}
     };
 }
 
@@ -734,6 +762,48 @@ cryptoTransferStateErroredInit (BRTransferSubmitError error) {
         CRYPTO_TRANSFER_STATE_ERRORED,
         { .errored = { error }}
     };
+}
+
+extern BRCryptoTransferState
+cryptoTransferStateCopy (BRCryptoTransferState *state) {
+    BRCryptoTransferState newState = *state;
+    switch (state->type) {
+        case CRYPTO_TRANSFER_STATE_INCLUDED: {
+            if (NULL != newState.u.included.fee) {
+                cryptoAmountTake (newState.u.included.fee);
+            }
+            break;
+        }
+        case CRYPTO_TRANSFER_STATE_ERRORED:
+        case CRYPTO_TRANSFER_STATE_CREATED:
+        case CRYPTO_TRANSFER_STATE_DELETED:
+        case CRYPTO_TRANSFER_STATE_SIGNED:
+        case CRYPTO_TRANSFER_STATE_SUBMITTED:
+        default: {
+            break;
+        }
+    }
+    return newState;
+}
+
+extern void
+cryptoTransferStateRelease (BRCryptoTransferState *state) {
+    switch (state->type) {
+        case CRYPTO_TRANSFER_STATE_INCLUDED: {
+            if (NULL != state->u.included.fee) {
+                cryptoAmountGive (state->u.included.fee);
+            }
+            break;
+        }
+        case CRYPTO_TRANSFER_STATE_ERRORED:
+        case CRYPTO_TRANSFER_STATE_CREATED:
+        case CRYPTO_TRANSFER_STATE_DELETED:
+        case CRYPTO_TRANSFER_STATE_SIGNED:
+        case CRYPTO_TRANSFER_STATE_SUBMITTED:
+        default: {
+            break;
+        }
+    }
 }
 
 extern const char *
