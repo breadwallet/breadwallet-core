@@ -355,7 +355,11 @@ public final class NetworkPeer: Equatable {
 
         self.init (core: core, take: false)
     }
-    
+
+    deinit {
+        cryptoPeerGive (core)
+    }
+
 //    internal convenience init? (network: BRCryptoNetwork, serialization: Data) {
 //        var bytes = [UInt8](serialization)
 //        guard let core = cryptoPeerCreateFromSerialization (network, &bytes, bytes.count)
