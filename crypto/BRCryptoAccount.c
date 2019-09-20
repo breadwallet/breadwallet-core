@@ -353,6 +353,21 @@ cryptoAccountGetTimestamp (BRCryptoAccount account) {
     return account->timestamp;
 }
 
+extern char *
+cryptoAccountGetFileSystemIdentifier (BRCryptoAccount account) {
+    // Seriailize the master public key
+    size_t   mpkSize  = BRBIP32SerializeMasterPubKey (NULL, 0, account->btc);
+    uint8_t *mpkBytes = malloc (mpkSize);
+    BRBIP32SerializeMasterPubKey ((char*) mpkBytes, mpkSize, account->btc);
+
+    // Double SHA the serialization
+    UInt256 hash;
+    BRSHA256_2(&hash, mpkBytes, mpkSize);
+
+    // Take the first 32 characters.
+    return strndup(u256hex(hash), 32);
+}
+
 private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account) {
     return account->eth;

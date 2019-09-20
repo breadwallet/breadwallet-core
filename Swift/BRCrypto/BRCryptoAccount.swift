@@ -43,6 +43,10 @@ public final class Account {
         self.uids = uids
     }
 
+    internal var fileSystemIdentifier: String {
+        return asUTF8String (cryptoAccountGetFileSystemIdentifier(core), true);
+    }
+
     deinit {
         cryptoAccountGive (core)
     }
