@@ -34,6 +34,7 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
+import com.breadwallet.corenative.support.BRConstants;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
@@ -1348,9 +1349,14 @@ final class System implements com.breadwallet.crypto.System {
             int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
             String[] addresses = addrs.getStringArray(0, addressesCount, "UTF-8");
 
-            optSystem.get().query.getTransactions(coreWalletManager.getNetwork().getUids(), Arrays.asList(addresses), begBlockNumberUnsigned,
-                    endBlockNumberUnsigned, true,
-                    false, new CompletionHandler<List<Transaction>, QueryError>() {
+            optSystem.get().query.getTransactions(
+                    coreWalletManager.getNetwork().getUids(),
+                    Arrays.asList(addresses),
+                    begBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : begBlockNumberUnsigned,
+                    endBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : endBlockNumberUnsigned,
+                    true,
+                    false,
+                    new CompletionHandler<List<Transaction>, QueryError>() {
                         @Override
                         public void handleData(List<Transaction> transactions) {
                             Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback received transactions");
@@ -1826,9 +1832,14 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getTransactions(coreWalletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
-                    endBlockNumberUnsigned, true,
-                    false, new CompletionHandler<List<Transaction>, QueryError>() {
+            optSystem.get().query.getTransactions(
+                    coreWalletManager.getNetwork().getUids(),
+                    Collections.singletonList(address),
+                    begBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : begBlockNumberUnsigned,
+                    endBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : endBlockNumberUnsigned,
+                    true,
+                    false,
+                    new CompletionHandler<List<Transaction>, QueryError>() {
                         @Override
                         public void handleData(List<Transaction> transactions) {
                             Log.d(TAG, "BRCryptoCWMGenGetTransactionsCallback  received transactions");

@@ -212,9 +212,11 @@ public class BlockchainDb {
 
     // Transactions
 
-    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber,
-                                UnsignedLong endBlockNumber,
-                                boolean includeRaw, boolean includeProof,
+    public void getTransactions(String id, List<String> addresses,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
+                                boolean includeRaw,
+                                boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
                 handler);

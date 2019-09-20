@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -40,11 +42,24 @@ public class TransactionApi {
         this.executorService = executorService;
     }
 
-    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
-                                boolean includeRaw, boolean includeProof,
+    public void getTransactions(String id,
+                                List<String> addresses,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
+                                boolean includeRaw,
+                                boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
-        executorService.submit(() -> getTransactionsOnExecutor(id, addresses, beginBlockNumber, endBlockNumber,
-                includeRaw, includeProof, handler));
+        executorService.submit(
+                () -> getTransactionsOnExecutor(
+                        id,
+                        addresses,
+                        beginBlockNumber,
+                        endBlockNumber,
+                        includeRaw,
+                        includeProof,
+                        handler
+                )
+        );
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
@@ -63,8 +78,12 @@ public class TransactionApi {
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
 
-    private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,
-                                           UnsignedLong endBlockNumber, boolean includeRaw, boolean includeProof,
+    private void getTransactionsOnExecutor(String id,
+                                           List<String> addresses,
+                                           @Nullable UnsignedLong beginBlockNumber,
+                                           @Nullable UnsignedLong endBlockNumber,
+                                           boolean includeRaw,
+                                           boolean includeProof,
                                            CompletionHandler<List<Transaction>, QueryError> handler) {
         final QueryError[] error = {null};
         List<Transaction> allTransactions = new ArrayList<>();
@@ -75,12 +94,15 @@ public class TransactionApi {
             List<String> chunkedAddresses = chunkedAddressesList.get(i);
 
             ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+
             paramsBuilder.put("blockchain_id", id);
             paramsBuilder.put("include_proof", String.valueOf(includeProof));
             paramsBuilder.put("include_raw", String.valueOf(includeRaw));
-            paramsBuilder.put("start_height", beginBlockNumber.toString());
-            paramsBuilder.put("end_height", endBlockNumber.toString());
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
+
+            if (beginBlockNumber != null) paramsBuilder.put("start_height", beginBlockNumber.toString());
+            if (endBlockNumber != null) paramsBuilder.put("end_height", endBlockNumber.toString());
+
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             final String[] nextUrl = {null};
