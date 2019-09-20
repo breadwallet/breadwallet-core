@@ -78,7 +78,7 @@ public class CoreSystemListener implements SystemListener {
                 }
 
                 if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-                    WalletManagerMode wmMode = system.supportsWalletManagerModes(network, mode) ?
+                    WalletManagerMode wmMode = system.supportsWalletManagerMode(network, mode) ?
                             mode : system.getDefaultWalletManagerMode(network);
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);

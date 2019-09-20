@@ -85,9 +85,6 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletDeletedEve
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
@@ -110,6 +107,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /* package */
 final class System implements com.breadwallet.crypto.System {
@@ -269,25 +268,28 @@ final class System implements com.breadwallet.crypto.System {
                                     WalletManagerMode mode,
                                     AddressScheme scheme,
                                     Set<com.breadwallet.crypto.Currency> currencies) {
-        Network cryptoNetwork = Network.from(network);
-
-        Set<Currency> cryptoCurrencies = new HashSet<>(currencies.size());
-        for (com.breadwallet.crypto.Currency c: currencies) {
-            cryptoCurrencies.add(Currency.from(c));
-        }
+        checkState(supportsWalletManagerMode(network, mode));
+        checkState(supportsAddressScheme(network, scheme));
 
         WalletManager walletManager = WalletManager.create(
                 cwmListener,
                 cwmClient,
                 account,
-                cryptoNetwork,
+                Network.from(network),
                 mode,
                 scheme,
-                cryptoCurrencies,
                 path,
                 this,
                 callbackCoordinator);
+
+        for (com.breadwallet.crypto.Currency currency: currencies) {
+            if (network.hasCurrency(currency)) {
+                walletManager.registerWalletFor(currency);
+            }
+        }
+
         walletManager.setNetworkReachable(isNetworkReachable);
+
         addWalletManager(walletManager);
         announceSystemEvent(new SystemManagerAddedEvent(walletManager));
     }
@@ -439,7 +441,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public boolean supportsWalletManagerModes(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
+    public boolean supportsWalletManagerMode(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
         return getSupportedWalletManagerModes(network).contains(mode);
     }
 

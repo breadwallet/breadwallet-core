@@ -37,28 +37,19 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 Network network,
                                 WalletManagerMode mode,
                                 AddressScheme addressScheme,
-                                Set<Currency> currencies,
                                 String path,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
-                listener,
-                client,
-                account.getCoreBRCryptoAccount(),
-                network.getCoreBRCryptoNetwork(),
-                Utilities.walletManagerModeToCrypto(mode),
-                Utilities.addressSchemeToCrypto(addressScheme),
-                path
-        );
-
-        for (Currency currency: currencies) {
-            if (network.hasCurrency(currency)) {
-                core.registerWallet(currency.getCoreBRCryptoCurrency());
-            }
-        }
-
         return new WalletManager(
-                core,
+                CoreBRCryptoWalletManager.create(
+                        listener,
+                        client,
+                        account.getCoreBRCryptoAccount(),
+                        network.getCoreBRCryptoNetwork(),
+                        Utilities.walletManagerModeToCrypto(mode),
+                        Utilities.addressSchemeToCrypto(addressScheme),
+                        path
+                ),
                 system,
                 callbackCoordinator
         );

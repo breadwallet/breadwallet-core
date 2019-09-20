@@ -27,12 +27,16 @@ public interface System {
     /**
      * Create a wallet manager for `network` using `mode.
      *
+     * Note: There are two preconditions - "network" must support "mode" and "addressScheme".
+     *       Thus a fatal error arises if, for example, the network is BTC and the scheme is ETH.
+     *
      * @param network the wallet manager's network
      * @param mode the wallet manager mode to use
      * @param addressScheme the address scheme to use
-     * @param currencies the currencies to 'register'.  A wallet will be created for each one.  It
-     *                   is safe to pass currencies not in `network` as they will be filtered (but bad form
-     *                   to do so).
+     * @param currencies the currencies to register.  A wallet will be created for each one.  It
+     *                   is safe to pass currencies not in "network" as they will be filtered (but bad form
+     *                   to do so). The "primaryWallet", for the network's currency, is always created; if
+     *                   the primaryWallet's currency is in `currencies` then it is effectively ignored.
      */
     void createWalletManager(Network network,
                              WalletManagerMode mode,
@@ -73,5 +77,5 @@ public interface System {
 
     List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
 
-    boolean supportsWalletManagerModes(Network network, WalletManagerMode mode);
+    boolean supportsWalletManagerMode(Network network, WalletManagerMode mode);
 }
