@@ -47,11 +47,6 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     /* package */
-    static Amount takeAndCreate(BRCryptoAmount core) {
-        return new Amount(CoreBRCryptoAmount.takeAndCreateOwned(core));
-    }
-
-    /* package */
     static Amount create(CoreBRCryptoAmount core) {
         return new Amount(core);
     }
