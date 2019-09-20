@@ -2219,12 +2219,6 @@ ewmHandleTransaction (BREthereumEWM ewm,
                       OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHash hash = transactionGetHash(transaction);
 
-    BREthereumHashString hashString;
-    hashFillString(hash, hashString);
-    eth_log ("EWM", "Transaction: \"%s\", Change: %s, Status: %d", hashString,
-             BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
-             transactionGetStatus(transaction).type);
-
     // Find the wallet
     BREthereumWallet wallet = ewmGetWallet(ewm);
     assert (NULL != wallet);
@@ -2284,8 +2278,15 @@ ewmHandleTransaction (BREthereumEWM ewm,
         transferSetBasisForTransaction (transfer, transaction); // transaction ownership given
     }
 
-    if (needStatusEvent)
+    if (needStatusEvent) {
+        BREthereumHashString hashString;
+        hashFillString(hash, hashString);
+        eth_log ("EWM", "Transaction: \"%s\", Change: %s, Status: %d", hashString,
+                 BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
+                 transactionGetStatus(transaction).type);
+
         ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
+    }
 
     ewmHandleTransactionOriginatingLog (ewm, type, transaction);
 }
@@ -2302,18 +2303,7 @@ ewmHandleLog (BREthereumEWM ewm,
     // Assert that we always have an identifier for `log`.
     BREthereumBoolean extractedIdentifier = logExtractIdentifier (log, &transactionHash, &logIndex);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (extractedIdentifier));
-
-    BREthereumHashString logHashString;
-    hashFillString(logHash, logHashString);
-
-    BREthereumHashString transactionHashString;
-    hashFillString(transactionHash, transactionHashString);
-
-    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s, Status: %d",
-             logHashString, transactionHashString, logIndex,
-             BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
-             logGetStatus(log).type);
-
+    
     BREthereumToken token = ewmLookupToken (ewm, logGetAddress(log));
     if (NULL == token) { logRelease(log); return;}
 
@@ -2363,8 +2353,20 @@ ewmHandleLog (BREthereumEWM ewm,
         transferSetBasisForLog (transfer, log);  // log ownership given
     }
 
-    if (needStatusEvent)
+    if (needStatusEvent) {
+        BREthereumHashString logHashString;
+        hashFillString(logHash, logHashString);
+
+        BREthereumHashString transactionHashString;
+        hashFillString(transactionHash, transactionHashString);
+
+        eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s, Status: %d",
+                 logHashString, transactionHashString, logIndex,
+                 BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
+                 logGetStatus(log).type);
+
         ewmReportTransferStatusAsEvent (ewm, wallet, transfer);
+    }
 }
 
 extern void
