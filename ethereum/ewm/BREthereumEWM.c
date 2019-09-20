@@ -619,18 +619,8 @@ ewmCreate (BREthereumNetwork network,
 
     // Create a default ETH wallet; other wallets will be created 'on demand'.  This will signal
     // a WALLET_EVENT_CREATED event.
-    ewm->walletHoldingEther = walletCreate(ewm->account,
-                                           ewm->network);
-    ewmInsertWallet(ewm, ewm->walletHoldingEther);
-
-    // Create a wallet for each TOK.  This will signal a WALLET_EVENT_CREATED event.
-    FOR_SET(BREthereumToken, token, tokens) {
-        // Add token
-        BREthereumWallet wallet = walletCreateHoldingToken (ewm->account,
-                                                            ewm->network,
-                                                            token);
-        ewmInsertWallet (ewm, wallet);
-    }
+    ewm->walletHoldingEther = walletCreate (ewm->account, ewm->network);
+    ewmInsertWallet (ewm, ewm->walletHoldingEther);
 
     // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
     BREthereumBCSListener listener = ewmCreateBCSListener (ewm);
