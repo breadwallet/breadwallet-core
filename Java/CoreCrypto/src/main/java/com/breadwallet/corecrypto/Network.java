@@ -7,7 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.BRCryptoBlockChainType;
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.google.common.base.Optional;
@@ -88,9 +89,14 @@ final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
     static Network from(com.breadwallet.crypto.Network network) {
+        if (network == null) {
+            return null;
+        }
+
         if (network instanceof Network) {
             return (Network) network;
         }
+
         throw new IllegalArgumentException("Unsupported network instance");
     }
 
@@ -155,6 +161,11 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public UnsignedInteger getConfirmationsUntilFinal() {
         return core.getConfirmationsUntilFinal();
+    }
+
+    @Override
+    public Optional<NetworkPeer> createPeer(String address, UnsignedInteger port, @Nullable String publicKey) {
+        return NetworkPeer.create(this, address, port, publicKey);
     }
 
     @Override

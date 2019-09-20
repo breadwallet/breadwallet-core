@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
+import UIKit
 import Foundation
 import BRCrypto
 
@@ -20,20 +21,14 @@ class CoreDemoListener: SystemListener {
     private var walletListeners: [WalletListener] = []
     private var transferListeners: [TransferListener] = []
 
-    private let currencyCodesNeeded: [String]
+    private let currencyCodesToMode: [String: WalletManagerMode]
     private let isMainnet: Bool
 
-    public init (currencyCodesNeeded: [String], isMainnet: Bool) {
-        self.currencyCodesNeeded = currencyCodesNeeded
+    public init (currencyCodesToMode: [String: WalletManagerMode], isMainnet: Bool) {
+        self.currencyCodesToMode = currencyCodesToMode
         self.isMainnet = isMainnet
     }
 
-    private let currencyCodeToModeMap: [String : WalletManagerMode] = [
-        Currency.codeAsBTC : WalletManagerMode.api_only,
-        Currency.codeAsBCH : WalletManagerMode.p2p_only,
-        Currency.codeAsETH : WalletManagerMode.api_only
-        ]
-    
     func add(managerListener: WalletManagerListener) {
         CoreDemoListener.eventQueue.async {
             if !self.managerListeners.contains (where: { $0 === managerListener }) {
@@ -94,10 +89,11 @@ class CoreDemoListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            if isMainnet == network.isMainnet &&
-                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
-                let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
-                    ? WalletManagerMode.api_only
+            if isMainnet == network.isMainnet,
+                let currencyMode = currencyCodesToMode [network.currency.code] {
+                // Get a valid mode, ideally from `currencyMode`
+                let mode = system.supportsMode (network: network, currencyMode)
+                    ? currencyMode
                     : system.defaultMode(network: network)
                 let scheme = system.defaultAddressScheme(network: network)
 
@@ -107,7 +103,7 @@ class CoreDemoListener: SystemListener {
             }
         case .managerAdded (let manager):
             //TODO: Don't connect here. connect on touch...
-            manager.connect()
+            manager.connect (using: UIApplication.peer (network: manager.network))
 
         case .discoveredNetworks (let networks):
             let allCurrencies = networks.flatMap { $0.currencies }

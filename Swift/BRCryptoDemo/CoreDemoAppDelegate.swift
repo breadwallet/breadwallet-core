@@ -33,6 +33,10 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var mainnet = true
     var accountSpecification: AccountSpecification!
 
+    var btcPeerSpec = (address: "103.99.168.100", port: UInt16(8333))
+    var btcPeer: NetworkPeer? = nil
+    var btcPeerUse = false
+
     var clearPersistentData: Bool = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
@@ -98,7 +102,11 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
-        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
+        let currencyCodesToMode: [String:WalletManagerMode] = [
+            "btc" : .p2p_only,
+            "eth" : .api_only,
+//            "bch" : .p2p_only,
+            ]
 
         if mainnet {
 
@@ -107,10 +115,10 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
-        print ("APP: Currencies        : \(currencies)")
+        print ("APP: Currencies        : \(currencyCodesToMode)")
 
         // Create the listener
-        let listener = CoreDemoListener (currencyCodesNeeded: currencies,
+        let listener = CoreDemoListener (currencyCodesToMode: currencyCodesToMode,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
@@ -216,6 +224,20 @@ extension UIApplication {
         // Assign and then configure the new system
         app.system = system
         app.system.configure(withCurrencyModels: [])
+    }
+
+    static func peer (network: Network) -> NetworkPeer? {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return nil }
+        guard Currency.codeAsBTC == network.currency.code else { return nil }
+        guard app.btcPeerUse else { return nil }
+
+        if nil == app.btcPeer {
+            app.btcPeer = network.createPeer (address: app.btcPeerSpec.address,
+                                              port: app.btcPeerSpec.port,
+                                              publicKey: nil)
+        }
+
+        return app.btcPeer
     }
 }
 

@@ -64,7 +64,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         return network.height
     }
 
-   /// The primaryWallet - holds the network's currency - this is typically the wallet where
+    /// The primaryWallet - holds the network's currency - this is typically the wallet where
     /// fees are applied which may or may not differ from the specific wallet used for a
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
@@ -133,12 +133,17 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         }
     }
 
-    /// The default WalletFactory for creating wallets.
-    //    var walletFactory: WalletFactory { get set }
-
-    /// Connect to network and begin managing wallets for account
-    public func connect () {
-        cryptoWalletManagerConnect (core)
+    ///
+    /// Connect to the network and begin managing wallets.
+    ///
+    /// - Parameter peer: An optional NetworkPeer to use on the P2P network.  It is unusual to
+    ///     provide a peer as P2P networks will dynamically discover suitable peers.
+    ///
+    /// - Note: If peer is provided, there is a precondition on the networks matching.
+    ///
+    public func connect (using peer: NetworkPeer? = nil) {
+        precondition (peer == nil || peer!.network == network)
+        cryptoWalletManagerConnect (core, peer?.core)
     }
 
     /// Disconnect from the network.

@@ -31,9 +31,14 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     /* package */
     static NetworkFee from(com.breadwallet.crypto.NetworkFee fee) {
+        if (fee == null) {
+            return null;
+        }
+
         if (fee instanceof NetworkFee) {
             return (NetworkFee) fee;
         }
+
         throw new IllegalArgumentException("Unsupported network fee instance");
     }
 
@@ -64,6 +69,8 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     @Override
     public int hashCode() {
+        // TODO(fix): objects that are equal to each other must return the same hashCode; this implementation doesn;t
+        //            meet that requirement
         return Objects.hash(core);
     }
 

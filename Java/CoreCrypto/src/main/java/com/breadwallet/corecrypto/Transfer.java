@@ -26,9 +26,14 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
     static Transfer from(com.breadwallet.crypto.Transfer transfer) {
+        if (transfer == null) {
+            return null;
+        }
+
         if (transfer instanceof Transfer) {
             return (Transfer) transfer;
         }
+
         throw new IllegalArgumentException("Unsupported transfer instance");
     }
 
