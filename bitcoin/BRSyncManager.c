@@ -1174,8 +1174,10 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
         }
     }
 
-    // Wallet already knows about this txn; so just update the block info.
-    if (/* isRegistered */ NULL != transaction && BRTransactionIsSigned (transaction)) {
+    // Check if the wallet knows about transaction.  This is an important check.  If the wallet
+    // does not know about the tranaction then the subsequent BRWalletUpdateTransactions will
+    // free the transaction (with BRTransactionFree()).
+    if (BRWalletContainsTransaction (manager->wallet, transaction)) {
         BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
     }
 

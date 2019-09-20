@@ -41,7 +41,7 @@ extern "C" {
  */
 typedef uint64_t BRBlockHeight;
 
-// Inclusive bloch chain height bounds
+// Inclusive block chain height bounds
 #define BLOCK_HEIGHT_MINIMUM       (0)
 #define BLOCK_HEIGHT_MAXIMUM       (UINT64_MAX - 5)  // Leave room for special values
 
@@ -49,7 +49,7 @@ typedef uint64_t BRBlockHeight;
  * Check if `height` is between the MINIMUM and MAXIMUM values.
  */
 #define BLOCK_HEIGHT_IS_IN_RANGE(height) \
-AS_CRYPTO_BOOLEAN (BLOCK_HEIGHT_MINIMUM <= (height) && (height) <= BLOCK_HEIGHT_MAXIMUM)
+  (BLOCK_HEIGHT_MINIMUM <= (height) && (height) <= BLOCK_HEIGHT_MAXIMUM)
 
 // Special values
 #define BLOCK_HEIGHT_UNBOUND       (UINT64_MAX)
