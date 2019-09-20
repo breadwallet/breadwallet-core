@@ -97,7 +97,6 @@ eventQueueClear (BREventQueue queue) {
     queue->pending = NULL;
     queue->available = NULL;
 
-    pthread_cond_destroy(&queue->cond);
     pthread_mutex_unlock(&queue->lock);
 }
 
@@ -106,6 +105,7 @@ eventQueueDestroy (BREventQueue queue) {
     // Clear the pending and available queues.
     eventQueueClear (queue);
 
+    pthread_cond_destroy(&queue->cond);
     pthread_mutex_destroy(&queue->lock);
 
     memset (queue, 0, sizeof (struct BREventQueueRecord));
@@ -221,8 +221,10 @@ eventQueueDequeueWait (BREventQueue queue,
 
     pthread_mutex_lock (&queue->lock);
     while (!queue->abort && !_eventQueueDequeue (queue, event))
-        if (0 != pthread_cond_wait (&queue->cond, &queue->lock))
-            return EVENT_STATUS_WAIT_ERROR;
+        if (0 != pthread_cond_wait (&queue->cond, &queue->lock)) {
+            status = EVENT_STATUS_WAIT_ERROR;
+            break; /* from while */
+        }
     if (queue->abort) status = EVENT_STATUS_WAIT_ABORT;
     pthread_mutex_unlock(&queue->lock);
 

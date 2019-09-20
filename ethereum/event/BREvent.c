@@ -147,9 +147,9 @@ typedef void* (*ThreadRoutine) (void*);
 static void *
 eventHandlerThread (BREventHandler handler) {
 #if defined (__ANDROID__)
-    pthread_setname_np(handler->thread, handler->name);
+    pthread_setname_np (pthread_self(), handler->name);
 #else
-    pthread_setname_np(handler->name);
+    pthread_setname_np (handler->name);
 #endif
 
     int timeToQuit = 0;
@@ -157,26 +157,26 @@ eventHandlerThread (BREventHandler handler) {
     while (!timeToQuit) {
         // Check for a queued event
         switch (eventQueueDequeueWait (handler->queue, handler->scratch)) {
-            case EVENT_STATUS_SUCCESS: {
-                // If we have one, dispatch
+            case EVENT_STATUS_SUCCESS:
+                // We got an event, dispatch
                 if (handler->lockOnDispatch) pthread_mutex_lock (handler->lockOnDispatch);
-                BREventType *type = handler->scratch->type;
-                type->eventDispatcher (handler, handler->scratch);
+                handler->scratch->type->eventDispatcher (handler, handler->scratch);
                 if (handler->lockOnDispatch) pthread_mutex_unlock (handler->lockOnDispatch);
-               break;
-            }
+                break;
 
             case EVENT_STATUS_WAIT_ABORT:
                 timeToQuit = 1;
                 break;
 
+            case EVENT_STATUS_WAIT_ERROR:
+                // Just try again.
+                break;
+
             case EVENT_STATUS_NOT_STARTED:
             case EVENT_STATUS_UNKNOWN_TYPE:
             case EVENT_STATUS_NULL_EVENT:
-            case EVENT_STATUS_WAIT_ERROR:
-                // impossible?
-                // fall through
             case EVENT_STATUS_NONE_PENDING:
+                assert (0);
                 break;
         }
     }
