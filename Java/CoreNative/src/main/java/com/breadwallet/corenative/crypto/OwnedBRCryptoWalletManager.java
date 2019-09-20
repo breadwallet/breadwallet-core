@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -56,6 +57,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public boolean containsWallet(CoreBRCryptoWallet wallet) {
         return core.containsWallet(wallet);
+    }
+
+    @Override
+    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+        return core.registerWallet(currency);
     }
 
     @Override

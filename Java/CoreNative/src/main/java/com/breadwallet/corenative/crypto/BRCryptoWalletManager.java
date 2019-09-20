@@ -11,6 +11,7 @@ import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
@@ -73,6 +74,15 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public boolean containsWallet(CoreBRCryptoWallet wallet) {
         return  BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletManagerHasWallet(this, wallet.asBRCryptoWallet());
+    }
+
+    @Override
+    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+        return Optional.fromNullable(
+                CryptoLibrary.INSTANCE.cryptoWalletManagerRegisterWallet(this, currency.asBRCryptoCurrency())
+        ).transform(
+                OwnedBRCryptoWallet::new
+        );
     }
 
     @Override

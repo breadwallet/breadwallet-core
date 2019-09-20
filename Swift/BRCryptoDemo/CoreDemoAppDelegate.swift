@@ -103,11 +103,10 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
         let currencyCodesToMode: [String:WalletManagerMode] = [
-            "btc" : .p2p_only,
+            "btc" : .api_only,
             "eth" : .api_only,
 //            "bch" : .p2p_only,
             ]
-
         if mainnet {
 
         }
@@ -115,10 +114,15 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
-        print ("APP: Currencies        : \(currencyCodesToMode)")
+        let registerCurrencyCodes = [
+            "ZLA",
+            "ADT"]
+
+        print ("APP: CurrenciesToMode  : \(currencyCodesToMode)")
 
         // Create the listener
-        let listener = CoreDemoListener (currencyCodesToMode: currencyCodesToMode,
+        let listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                         registerCurrencyCodes: registerCurrencyCodes,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB

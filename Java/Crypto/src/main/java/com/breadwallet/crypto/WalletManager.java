@@ -13,6 +13,7 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.errors.WalletSweeperError;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
 
 import java.util.List;
 
@@ -41,6 +42,18 @@ public interface WalletManager {
     Wallet getPrimaryWallet();
 
     List<? extends Wallet> getWallets();
+
+    /**
+     * Ensure that a wallet for currency exists.  If the wallet already exists, it is returned.
+     * If the wallet needs to be created then `nil` is returned and a series of events will
+     * occur - notably WalletEvent.created and WalletManagerEvent.walletAdded if the wallet is
+     * created
+     *
+     * Note: There is a precondition on `currency` being one in the managers' network
+     *
+     * @return The wallet for currency if it already exists, otherwise "absent"
+     */
+    Optional<? extends Wallet> registerWalletFor(Currency currency);
 
     WalletManagerMode getMode();
 

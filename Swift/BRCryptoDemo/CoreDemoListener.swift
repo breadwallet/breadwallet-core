@@ -21,11 +21,16 @@ class CoreDemoListener: SystemListener {
     private var walletListeners: [WalletListener] = []
     private var transferListeners: [TransferListener] = []
 
-    private let currencyCodesToMode: [String: WalletManagerMode]
+    private let networkCurrencyCodesToMode: [String:WalletManagerMode]
+    private let registerCurrencyCodes: [String]
+
     private let isMainnet: Bool
 
-    public init (currencyCodesToMode: [String: WalletManagerMode], isMainnet: Bool) {
-        self.currencyCodesToMode = currencyCodesToMode
+    public init (networkCurrencyCodesToMode: [String:WalletManagerMode],
+                 registerCurrencyCodes: [String],
+                 isMainnet: Bool) {
+        self.networkCurrencyCodesToMode = networkCurrencyCodesToMode
+        self.registerCurrencyCodes = registerCurrencyCodes;
         self.isMainnet = isMainnet
     }
 
@@ -90,20 +95,30 @@ class CoreDemoListener: SystemListener {
             // testnet won't happen in a deployed App.
 
             if isMainnet == network.isMainnet,
-                let currencyMode = currencyCodesToMode [network.currency.code] {
-                // Get a valid mode, ideally from `currencyMode`
-                let mode = system.supportsMode (network: network, currencyMode)
-                    ? currencyMode
-                    : system.defaultMode(network: network)
-                let scheme = system.defaultAddressScheme(network: network)
+                network.currencies.contains(where: { nil != networkCurrencyCodesToMode[$0.code] }),
+                let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
+                     // Get a valid mode, ideally from `currencyMode`
 
-                let _ = system.createWalletManager (network: network,
-                                                    mode: mode,
-                                                    addressScheme: scheme)
-            }
+                    let mode = system.supportsMode (network: network, currencyMode)
+                        ? currencyMode
+                        : system.defaultMode(network: network)
+
+                    let scheme = system.defaultAddressScheme(network: network)
+
+                    let currencies = network.currencies
+                        .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
+
+                    let _ = system.createWalletManager (network: network,
+                                                        mode: mode,
+                                                        addressScheme: scheme,
+                                                        currencies: currencies)
+                }
+
         case .managerAdded (let manager):
             //TODO: Don't connect here. connect on touch...
-            manager.connect (using: UIApplication.peer (network: manager.network))
+            DispatchQueue.main.async {
+                manager.connect (using: UIApplication.peer (network: manager.network))
+            }
 
         case .discoveredNetworks (let networks):
             let allCurrencies = networks.flatMap { $0.currencies }

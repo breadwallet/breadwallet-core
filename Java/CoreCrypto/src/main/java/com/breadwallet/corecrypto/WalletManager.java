@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -167,6 +168,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
 
         return wallets;
+    }
+
+    @Override
+    public Optional<Wallet> registerWalletFor(com.breadwallet.crypto.Currency currency) {
+        checkState(network.hasCurrency(currency));
+        return core
+                .registerWallet(Currency.from(currency).getCoreBRCryptoCurrency())
+                .transform(w -> Wallet.create(w, this, callbackCoordinator));
     }
 
     @Override

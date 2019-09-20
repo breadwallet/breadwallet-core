@@ -33,6 +33,7 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CoreSystemListener implements SystemListener {
@@ -77,11 +78,11 @@ public class CoreSystemListener implements SystemListener {
                 }
 
                 if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-                    WalletManagerMode wmMode = system.supportsWalletManagerModes(network, mode) ?
+                    WalletManagerMode wmMode = system.supportsWalletManagerMode(network, mode) ?
                             mode : system.getDefaultWalletManagerMode(network);
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);
-                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme);
+                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme, Collections.emptySet());
                 }
                 return null;
             }
