@@ -146,8 +146,8 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
         bdb.getTransactions(
                 network.getUids(),
                 Collections.singletonList(address),
-                null,
-                null,
+                UnsignedLong.ZERO,
+                network.getHeight(),
                 true,
                 false,
                 new CompletionHandler<List<Transaction>, QueryError>() {
