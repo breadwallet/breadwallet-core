@@ -1281,9 +1281,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                       (const char **) addresses,
                                                       addressCount,
                                                       begBlockNumber,
-                                                      (BRClientSyncManagerScanStateIsFullScan (&manager->scanState)
-                                                       ? endBlockNumber
-                                                       : BLOCK_HEIGHT_UNBOUND),  // on 'incrementalSync'
+                                                      endBlockNumber,
                                                       rid);
     }
 
@@ -1357,9 +1355,7 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
                                                       (const char **) addresses,
                                                       addressCount,
                                                       begBlockNumber,
-                                                      (BRClientSyncManagerScanStateIsFullScan (&manager->scanState)
-                                                       ? endBlockNumber
-                                                       : BLOCK_HEIGHT_UNBOUND),  // on 'incrementalSync'
+                                                      endBlockNumber,
                                                       rid);
     }
 
@@ -1467,7 +1463,9 @@ BRClientSyncManagerScanStateGetStartBlockNumber(BRClientSyncManagerScanState sca
 
 static uint64_t
 BRClientSyncManagerScanStateGetEndBlockNumber(BRClientSyncManagerScanState scanState) {
-    return scanState->endBlockNumber;
+    return (scanState->isFullScan ?
+            scanState->endBlockNumber : // on 'full sync'
+            BLOCK_HEIGHT_UNBOUND); // on 'incremental sync'
 }
 
 static uint64_t
