@@ -318,7 +318,14 @@ public final class System {
     }
 
     ///
-    /// Create a wallet manager for `network` using `mode.
+    /// Create a wallet manager for `network` using `mode`, `addressScheme`, and `currencies.  A
+    /// wallet will be 'registered' for each of:
+    ///    a) the network's currency - this is the primaryWallet
+    ///    b) for each of `currences` that are in `network`.
+    /// These wallets are announced using WalletEvent.created and WalletManagerEvent.walledAdded.
+    ///
+    /// The created wallet manager is announed using WalletManagerEvent.created and
+    /// SystemEvent.managerAdded.
     ///
     /// - Parameters:
     ///   - network: the wallet manager's network
@@ -326,12 +333,18 @@ public final class System {
     ///   - addressScheme: the address scheme to use
     ///   - currencies: the currencies to 'register'.  A wallet will be created for each one.  It
     ///       is safe to pass currencies not in `network` as they will be filtered (but bad form
-    ///       to do so).
+    ///       to do so).  The 'primaryWallet', for the network's currency, is always created; if
+    ///       the primaryWallet's currency is in `currencies` then it is effectively ignored.
+    ///
+    /// - Note: There are two preconditions - `network` must support `mode` and `addressScheme`.
+    ///     Thus a fatal error arises if, for example, the network is BTC and the scheme is ETH.
     ///
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme,
                                      currencies: Set<Currency>) {
+        precondition (supportsMode(network: network, mode))
+        precondition (supportsAddressScheme(network: network, addressScheme))
 
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
