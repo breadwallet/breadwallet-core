@@ -629,15 +629,24 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
 
 extern BRCryptoFeeBasis
 cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer) {
-    return (NULL == transfer->feeBasisConfirmed ? NULL : cryptoFeeBasisTake (transfer->feeBasisConfirmed));
+    pthread_mutex_lock (&transfer->lock);
+    BRCryptoFeeBasis feeBasisConfirmed = (NULL == transfer->feeBasisConfirmed ? NULL : cryptoFeeBasisTake (transfer->feeBasisConfirmed));
+    pthread_mutex_unlock (&transfer->lock);
+
+    return feeBasisConfirmed;
 }
 
 private_extern void
 cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
                                     BRCryptoFeeBasis feeBasisConfirmed) {
-    BRCryptoFeeBasis takenFeeBasisConfirmed = (NULL == feeBasisConfirmed ? NULL : cryptoFeeBasisTake(feeBasisConfirmed));
-    if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
-    transfer->feeBasisConfirmed = takenFeeBasisConfirmed;
+    feeBasisConfirmed = (NULL == feeBasisConfirmed ? NULL : cryptoFeeBasisTake(feeBasisConfirmed));
+
+    pthread_mutex_lock (&transfer->lock);
+    BRCryptoFeeBasis oldFeeBasisConfirmed = transfer->feeBasisConfirmed;
+    transfer->feeBasisConfirmed = feeBasisConfirmed;
+    pthread_mutex_unlock (&transfer->lock);
+
+    if (NULL != oldFeeBasisConfirmed) cryptoFeeBasisGive (oldFeeBasisConfirmed);
 }
 
 private_extern BRTransaction *
