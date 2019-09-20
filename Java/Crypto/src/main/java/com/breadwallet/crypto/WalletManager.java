@@ -9,6 +9,8 @@
  */
 package com.breadwallet.crypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.errors.WalletSweeperError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
@@ -19,7 +21,7 @@ public interface WalletManager {
 
     void createSweeper(Wallet wallet, Key key, CompletionHandler<WalletSweeper, WalletSweeperError> completion);
 
-    void connect();
+    void connect(@Nullable NetworkPeer peer);
 
     void disconnect();
 

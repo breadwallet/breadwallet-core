@@ -124,8 +124,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void connect() {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this);
+    public void connect(BRCryptoPeer peer) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this, peer);
     }
 
     @Override

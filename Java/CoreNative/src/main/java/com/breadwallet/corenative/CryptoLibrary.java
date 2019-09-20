@@ -19,6 +19,7 @@ import com.breadwallet.corenative.crypto.BRCryptoHash;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoPeer;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
@@ -149,6 +150,14 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
+    BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
+    BRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
+    Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
+    Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
+    short cryptoPeerGetPort(BRCryptoPeer peer);
+    int cryptoPeerIsIdentical(BRCryptoPeer p1, BRCryptoPeer p2);
+    void cryptoPeerGive(BRCryptoPeer peer);
+
     long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
@@ -233,7 +242,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
     BRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
-    void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerConnect(BRCryptoWalletManager cwm, BRCryptoPeer peer);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSyncToDepth(BRCryptoWalletManager cwm, int depth);

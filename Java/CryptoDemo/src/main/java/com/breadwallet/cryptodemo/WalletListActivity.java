@@ -24,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Amount;
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
@@ -37,6 +38,7 @@ import com.breadwallet.crypto.events.wallet.WalletEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class WalletListActivity extends AppCompatActivity implements DefaultSystemListener {
 
@@ -67,8 +69,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         super.onResume();
 
         CoreCryptoApplication.getDispatchingSystemListener().addSystemListener(this);
-
-        walletsAdapter.set(new ArrayList<>(CoreCryptoApplication.getSystem().getWallets()));
+        walletsAdapter.set(WalletViewModel.create(CoreCryptoApplication.getSystem().getWallets()));
     }
 
     @Override
@@ -89,7 +90,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         switch (item.getItemId()) {
             case R.id.action_connect:
                 for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
-                    wm.connect();
+                    wm.connect(null);
                 }
                 return true;
             case R.id.action_sync:
@@ -112,32 +113,42 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
-        runOnUiThread(() -> {
-            event.accept(new DefaultWalletEventVisitor<Void>() {
-                @Override
-                public Void visit(WalletBalanceUpdatedEvent event) {
-                    walletsAdapter.changed(wallet);
-                    return null;
-                }
+        event.accept(new DefaultWalletEventVisitor<Void>() {
+            @Override
+            public Void visit(WalletBalanceUpdatedEvent event) {
+                WalletViewModel vm = WalletViewModel.create(wallet);
+                runOnUiThread(() -> {
+                    walletsAdapter.changed(vm);
+                });
+                return null;
+            }
 
-                @Override
-                public Void visit(WalletChangedEvent event) {
-                    walletsAdapter.changed(wallet);
-                    return null;
-                }
+            @Override
+            public Void visit(WalletChangedEvent event) {
+                WalletViewModel vm = WalletViewModel.create(wallet);
+                runOnUiThread(() -> {
+                    walletsAdapter.changed(vm);
+                });
+                return null;
+            }
 
-                @Override
-                public Void visit(WalletCreatedEvent event) {
-                    walletsAdapter.add(wallet);
-                    return null;
-                }
+            @Override
+            public Void visit(WalletCreatedEvent event) {
+                WalletViewModel vm = WalletViewModel.create(wallet);
+                runOnUiThread(() -> {
+                    walletsAdapter.add(vm);
+                });
+                return null;
+            }
 
-                @Override
-                public Void visit(WalletDeletedEvent event) {
-                    walletsAdapter.remove(wallet);
-                    return null;
-                }
-            });
+            @Override
+            public Void visit(WalletDeletedEvent event) {
+                WalletViewModel vm = WalletViewModel.create(wallet);
+                runOnUiThread(() -> {
+                    walletsAdapter.remove(vm);
+                });
+                return null;
+            }
         });
     }
 
@@ -145,28 +156,100 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         void onItemClick(T item);
     }
 
+    private static class WalletViewModel implements Comparable<WalletViewModel > {
+
+        private static List<WalletViewModel> create(List<? extends Wallet> wallets) {
+            List<WalletViewModel> vms = new ArrayList<>(wallets.size());
+            for (Wallet t: wallets) {
+                vms.add(create(t));
+            }
+            return vms;
+        }
+
+        private static WalletViewModel create(Wallet wallet) {
+            return new WalletViewModel(wallet);
+        }
+
+        private final Wallet wallet;
+        private final Amount balance;
+        private final String name;
+        private final Network network;
+
+        private WalletViewModel(Wallet wallet) {
+            this.wallet = wallet;
+            this.balance = wallet.getBalance();
+            this.name = wallet.getName();
+            this.network = wallet.getWalletManager().getNetwork();
+        }
+
+        private Amount getBalance() {
+            return balance;
+        }
+
+        private String getName() {
+            return name;
+        }
+
+        private Network getNetwork() {
+            return network;
+        }
+
+        private Wallet getWallet() {
+            return wallet;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+
+            if (!(object instanceof WalletViewModel)) {
+                return false;
+            }
+
+            WalletViewModel that = (WalletViewModel) object;
+            return balance.equals(that.balance) &&
+                    name.equals(that.name) &&
+                    network.equals(that.network);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(balance, name, network);
+        }
+
+        @Override
+        public int compareTo(WalletViewModel vm2) {
+            Wallet w1 = this.getWallet();
+            Wallet w2 = vm2.getWallet();
+
+            int managerCompare = w1.getWalletManager().getName().compareTo(w2.getWalletManager().getName());
+            return managerCompare != 0 ? managerCompare : w1.getName().compareTo(w2.getName());
+        }
+    }
+
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
         private final OnItemClickListener<Wallet> listener;
-        private final SortedList<Wallet> wallets;
+        private final SortedList<WalletViewModel> wallets;
 
         Adapter(OnItemClickListener<Wallet> listener) {
             this.listener = listener;
-            this.wallets = new SortedList<>(Wallet.class, new SortedListAdapterCallback<Wallet>(this) {
+            this.wallets = new SortedList<>(WalletViewModel.class, new SortedListAdapterCallback<WalletViewModel>(this) {
                 @Override
-                public int compare(Wallet w1, Wallet w2) {
-                    int managerCompare = w1.getWalletManager().getName().compareTo(w2.getWalletManager().getName());
-                    return managerCompare != 0 ? managerCompare : w1.getName().compareTo(w2.getName());
+                public int compare(WalletViewModel w1, WalletViewModel w2) {
+                    return w1.compareTo(w2);
                 }
 
                 @Override
-                public boolean areContentsTheSame(Wallet w1, Wallet w2) {
-                    return false;
-                }
-
-                @Override
-                public boolean areItemsTheSame(Wallet w1, Wallet w2) {
+                public boolean areContentsTheSame(WalletViewModel w1, WalletViewModel w2) {
                     return w1.equals(w2);
+                }
+
+                @Override
+                public boolean areItemsTheSame(WalletViewModel w1, WalletViewModel w2) {
+                    return w1.getWallet().equals(w2.getWallet());
                 }
             });
         }
@@ -180,14 +263,13 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder vh, int i) {
-            Wallet wallet = wallets.get(i);
+            WalletViewModel wallet = wallets.get(i);
             Amount balance = wallet.getBalance();
 
-            String currencyText = String.format("%s (%s)", wallet.getName(), wallet.getWalletManager().getNetwork());
+            String currencyText = String.format("%s (%s)", wallet.getName(), wallet.getNetwork());
             String balanceText = balance.toStringAsUnit(balance.getUnit(), null).or("---");
 
-
-            vh.itemView.setOnClickListener(v -> listener.onItemClick(wallets.get(i)));
+            vh.itemView.setOnClickListener(v -> listener.onItemClick(wallet.getWallet()));
             vh.currencyView.setText(currencyText);
             vh.symbolView.setText(balanceText);
         }
@@ -197,19 +279,19 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             return wallets.size();
         }
 
-        private void set(List<Wallet> newWallets) {
+        private void set(List<WalletViewModel> newWallets) {
             wallets.replaceAll(newWallets);
         }
 
-        private void add(Wallet wallet) {
+        private void add(WalletViewModel wallet) {
             wallets.add(wallet);
         }
 
-        private void remove(Wallet wallet) {
+        private void remove(WalletViewModel wallet) {
             wallets.remove(wallet);
         }
 
-        private void changed(Wallet wallet) {
+        private void changed(WalletViewModel wallet) {
             int index = wallets.indexOf(wallet);
             if (index != -1) {
                 wallets.updateItemAt(index, wallet);

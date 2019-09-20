@@ -54,7 +54,7 @@ public interface CoreBRCryptoWalletManager {
 
     void setAddressScheme(int scheme);
 
-    void connect();
+    void connect(BRCryptoPeer peer);
 
     void disconnect();
 

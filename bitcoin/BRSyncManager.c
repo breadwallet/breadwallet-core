@@ -405,6 +405,11 @@ BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
                                      int isNetworkReachable);
 
 static void
+BRPeerSyncManagerSetFixedPeer (BRPeerSyncManager manager,
+                               UInt128 address,
+                               uint16_t port);
+
+static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager);
 
 static void
@@ -586,6 +591,22 @@ BRSyncManagerSetNetworkReachable (BRSyncManager manager,
         break;
         case SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerSetNetworkReachable (BRSyncManagerAsPeerSyncManager (manager), isNetworkReachable);
+        break;
+        default:
+        assert (0);
+        break;
+    }
+}
+
+extern void
+BRSyncManagerSetFixedPeer (BRSyncManager manager,
+                           UInt128 address,
+                           uint16_t port) {
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        BRPeerSyncManagerSetFixedPeer (BRSyncManagerAsPeerSyncManager(manager), address, port);
         break;
         default:
         assert (0);
@@ -1626,6 +1647,13 @@ static void
 BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
                                      int isNetworkReachable) {
     atomic_store (&manager->isNetworkReachable, isNetworkReachable);
+}
+
+static void
+BRPeerSyncManagerSetFixedPeer (BRPeerSyncManager manager,
+                               UInt128 address,
+                               uint16_t port) {
+    BRPeerManagerSetFixedPeer (manager->peerManager, address, port);
 }
 
 static void

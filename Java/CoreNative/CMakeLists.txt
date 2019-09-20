@@ -334,6 +334,8 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoStatus.h
                 src/main/cpp/core/crypto/BRCryptoPayment.c
                 src/main/cpp/core/crypto/BRCryptoPayment.h
+                src/main/cpp/core/crypto/BRCryptoPeer.c
+                src/main/cpp/core/crypto/BRCryptoPeer.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
                 src/main/cpp/core/crypto/BRCryptoTransfer.c
                 src/main/cpp/core/crypto/BRCryptoTransfer.h
@@ -361,7 +363,7 @@ target_include_directories (crypto
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bitcoin
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bcash
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/ethereum
-                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/secp256k1
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/secp256k1
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/crypto)
 
 find_library (log-lib

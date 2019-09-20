@@ -34,9 +34,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     /* package */
     static Wallet from(com.breadwallet.crypto.Wallet wallet) {
+        if (wallet == null) {
+            return null;
+        }
+
         if (wallet instanceof Wallet) {
             return (Wallet) wallet;
         }
+
         throw new IllegalArgumentException("Unsupported wallet instance");
     }
 

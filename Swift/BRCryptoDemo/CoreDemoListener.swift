@@ -9,36 +9,31 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
+import UIKit
 import Foundation
 import BRCrypto
 
 class CoreDemoListener: SystemListener {
     
     static let eventQueue: DispatchQueue = DispatchQueue.global()
-
-    private let isMainnet: Bool
-
+    
     private var managerListeners: [WalletManagerListener] = []
     private var walletListeners: [WalletListener] = []
     private var transferListeners: [TransferListener] = []
 
-    private let networkCurrencyCodes: [String]
+    private let networkCurrencyCodesToMode: [String:WalletManagerMode]
     private let registerCurrencyCodes: [String]
 
-    public init (networkCurrencyCodes: [String],
+    private let isMainnet: Bool
+
+    public init (networkCurrencyCodesToMode: [String:WalletManagerMode],
                  registerCurrencyCodes: [String],
                  isMainnet: Bool) {
-        self.networkCurrencyCodes = networkCurrencyCodes
+        self.networkCurrencyCodesToMode = networkCurrencyCodesToMode
         self.registerCurrencyCodes = registerCurrencyCodes;
         self.isMainnet = isMainnet
     }
 
-    private let currencyCodeToModeMap: [String : WalletManagerMode] = [
-        Currency.codeAsBTC : WalletManagerMode.api_only,
-        Currency.codeAsBCH : WalletManagerMode.p2p_only,
-        Currency.codeAsETH : WalletManagerMode.api_only
-        ]
-    
     func add(managerListener: WalletManagerListener) {
         CoreDemoListener.eventQueue.async {
             if !self.managerListeners.contains (where: { $0 === managerListener }) {
@@ -99,28 +94,31 @@ class CoreDemoListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            if isMainnet == network.isMainnet && network.currencies
-                .contains (where: { (c) in networkCurrencyCodes.contains { c.code == $0 }}) {
+            if isMainnet == network.isMainnet,
+                network.currencies.contains(where: { nil != networkCurrencyCodesToMode[$0.code] }),
+                let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
+                     // Get a valid mode, ideally from `currencyMode`
 
-                let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
-                    ? WalletManagerMode.api_only
-                    : system.defaultMode(network: network)
+                    let mode = system.supportsMode (network: network, currencyMode)
+                        ? currencyMode
+                        : system.defaultMode(network: network)
 
-                let scheme = system.defaultAddressScheme(network: network)
+                    let scheme = system.defaultAddressScheme(network: network)
 
-                let currencies = network.currencies
-                    .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
+                    let currencies = network.currencies
+                        .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
 
-                let _ = system.createWalletManager (network: network,
-                                                    mode: mode,
-                                                    addressScheme: scheme,
-                                                    currencies: currencies)
-            }
+                    let _ = system.createWalletManager (network: network,
+                                                        mode: mode,
+                                                        addressScheme: scheme,
+                                                        currencies: currencies)
+                }
 
         case .managerAdded (let manager):
             //TODO: Don't connect here. connect on touch...
-            manager.connect()
-
+            DispatchQueue.main.async {
+                manager.connect (using: UIApplication.peer (network: manager.network))
+            }
 
         case .discoveredNetworks (let networks):
             let allCurrencies = networks.flatMap { $0.currencies }

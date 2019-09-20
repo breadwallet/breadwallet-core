@@ -1103,6 +1103,13 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
 }
 
 extern void
+BRWalletManagerSetFixedPeer (BRWalletManager manager,
+                             UInt128 address,
+                             uint16_t port) {
+    BRSyncManagerSetFixedPeer (manager->syncManager, address, port);
+}
+
+extern void
 BRWalletManagerScan (BRWalletManager manager) {
     BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
 }

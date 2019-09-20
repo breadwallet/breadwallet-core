@@ -14,6 +14,7 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"
+#include "BRCryptoPeer.h"
 #include "BRCryptoAccount.h"
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
@@ -198,7 +199,8 @@ extern "C" {
                                        BRCryptoCurrency currency);
 
     extern void
-    cryptoWalletManagerConnect (BRCryptoWalletManager cwm);
+    cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
+                                BRCryptoPeer peer);
 
     extern void
     cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm);

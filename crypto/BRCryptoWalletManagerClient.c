@@ -387,6 +387,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
             cryptoTransferSetState (transfer, newState);
+
             cwm->listener.transferEventCallback (cwm->listener.context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
@@ -416,6 +417,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoTransferState newState = cryptoTransferStateErroredInit (event.u.submitFailed.error);
             cryptoTransferSetState (transfer, newState);
+
             cwm->listener.transferEventCallback (cwm->listener.context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
@@ -626,20 +628,21 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // ... update state to reflect included if the timestamp and block height are already set
             if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
 
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
+
                 // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
                 // the feeBasisConfirmed is identical to feeBasisEstimated
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
                 cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
+                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
 
-                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-                assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
-
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (btcTransaction->blockHeight,
                                                                                   0,
                                                                                   btcTransaction->timestamp,
-                                                                                  cryptoFeeBasisGetFee (feeBasisConfirmed));
+                                                                                  fee);
 
+                cryptoAmountGive (fee);
                 cryptoFeeBasisGive (feeBasisConfirmed);
 
                 cryptoTransferSetState (transfer, newState);
@@ -667,30 +670,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             assert (NULL != transfer);
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-            BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_CREATED);
 
-            int changed = 0;
             if (CRYPTO_TRANSFER_STATE_INCLUDED == oldState.type &&
                 (0 == event.u.updated.timestamp || TX_UNCONFIRMED == event.u.updated.blockHeight)) {
-                // newState already initialized to CRYPTO_TRANSFER_STATE_CREATED
-                changed = 1;
-            } else if (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type &&
-                       0 != event.u.updated.timestamp && TX_UNCONFIRMED != event.u.updated.blockHeight) {
-                changed = 1;
-                // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
-                // the feeBasisConfirmed is identical to feeBasisEstimated
-                BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
-                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
+                // The transfer is not included so set it to the submitted state at this point
+                BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
 
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
-                newState = cryptoTransferStateIncludedInit (event.u.updated.blockHeight,
-                                                            0,
-                                                            event.u.updated.timestamp,
-                                                            cryptoFeeBasisGetFee (feeBasisConfirmed));
-                cryptoFeeBasisGive(feeBasisConfirmed);
-            }
-
-            if (changed) {
                 cryptoTransferSetState (transfer, newState);
 
                 cwm->listener.transferEventCallback (cwm->listener.context,
@@ -701,6 +686,36 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
+
+            } else if (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type &&
+                       0 != event.u.updated.timestamp && TX_UNCONFIRMED != event.u.updated.blockHeight) {
+                // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
+                // the feeBasisConfirmed is identical to feeBasisEstimated
+                BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
+                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
+                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
+
+                BRCryptoTransferState newState = cryptoTransferStateIncludedInit (event.u.updated.blockHeight,
+                                                                                  0,
+                                                                                  event.u.updated.timestamp,
+                                                                                  fee);
+
+                cryptoAmountGive (fee);
+                cryptoFeeBasisGive(feeBasisConfirmed);
+
+                cryptoTransferSetState (transfer, newState);
+
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            } else {
+                // no change to the state was required; just release the old state and carry on
+                cryptoTransferStateRelease (&oldState);
             }
 
             cryptoTransferGive (transfer);
@@ -1124,143 +1139,159 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                           BREthereumTransfer tid,
                           BREthereumTransferEvent event) {
     BRCryptoWalletManager cwm = context;
-    BRCryptoWallet wallet     = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
 
+    BRCryptoWallet wallet     = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
     // TODO: Wallet may be NULL for a sync-discovered transfer w/o a currency.
     if (NULL == wallet) return;
 
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsETH (wallet, tid);   // taken
 
-    assert (NULL != transfer || TRANSFER_EVENT_CREATED == event.type);
-
-    // We'll transition from `oldState` to `newState`; get some placeholder values in place.
-    BRCryptoTransferState oldState = { CRYPTO_TRANSFER_STATE_CREATED };
-    BRCryptoTransferState newState = { CRYPTO_TRANSFER_STATE_CREATED };
-    if (NULL != transfer) oldState = cryptoTransferGetState (transfer);
-
     switch (event.type) {
         case TRANSFER_EVENT_CREATED: {
             assert (NULL == transfer);
+            if (NULL == transfer) {
+                BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
+                BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
 
-            BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
-            BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+                transfer = cryptoTransferCreateAsETH (unit,
+                                                      unitForFee,
+                                                      cwm->u.eth,
+                                                      tid,
+                                                      NULL); // taken
 
-            // if (NULL != transfer) cryptoTransferGive (transfer);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CREATED
+                                                     });
 
-            transfer = cryptoTransferCreateAsETH (unit,
-                                                  unitForFee,
-                                                  cwm->u.eth,
-                                                  tid,
-                                                  NULL); // taken
+                cryptoWalletAddTransfer (wallet, transfer);
 
-            cwm->listener.transferEventCallback (cwm->listener.context,
-                                                 cryptoWalletManagerTake (cwm),
-                                                 cryptoWalletTake (wallet),
-                                                 cryptoTransferTake (transfer),
-                                                 (BRCryptoTransferEvent) {
-                                                     CRYPTO_TRANSFER_EVENT_CREATED
-                                                 });
+                cwm->listener.walletEventCallback (cwm->listener.context,
+                                                   cryptoWalletManagerTake (cwm),
+                                                   cryptoWalletTake (wallet),
+                                                   (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+                                                       { .transfer = { cryptoTransferTake (transfer) }}
+                                                   });
 
-            cryptoWalletAddTransfer (wallet, transfer);
-
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               wallet,
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
-                                                   { .transfer = { transfer }}
-                                               });
-
-            cryptoUnitGive (unitForFee);
-            cryptoUnitGive (unit);
+                cryptoUnitGive (unitForFee);
+                cryptoUnitGive (unit);
+            }
             break;
         }
 
-        case TRANSFER_EVENT_SIGNED:
+        case TRANSFER_EVENT_SIGNED: {
+            assert (NULL != transfer);
             if (NULL != transfer) {
-                newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SIGNED);
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SIGNED);
 
                 cryptoTransferSetState (transfer, newState);
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
             }
             break;
+        }
 
-        case TRANSFER_EVENT_SUBMITTED:
+        case TRANSFER_EVENT_SUBMITTED: {
+            assert (NULL != transfer);
             if (NULL != transfer) {
-                newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
+
                 cryptoTransferSetState (transfer, newState);
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
             }
             break;
+        }
 
-        case TRANSFER_EVENT_INCLUDED:
+        case TRANSFER_EVENT_INCLUDED: {
+            assert (NULL != transfer);
             if (NULL != transfer ){
                 uint64_t blockNumber, blockTransactionIndex, blockTimestamp;
                 BREthereumGas gasUsed;
 
-                ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
 
                 BREthereumFeeBasis ethFeeBasis = transferGetFeeBasis (tid);
-                BRCryptoFeeBasis   feeBasisConfirmed = cryptoFeeBasisCreateAsETH (cryptoTransferGetUnitForFee(transfer),
-                                                                                  feeBasisGetGasLimit(ethFeeBasis),
-                                                                                  feeBasisGetGasPrice(ethFeeBasis));
+
+                BRCryptoUnit unit = cryptoTransferGetUnitForFee(transfer);
+                BRCryptoFeeBasis feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit,
+                                                                                feeBasisGetGasLimit(ethFeeBasis),
+                                                                                feeBasisGetGasPrice(ethFeeBasis));
+                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
+
                 cryptoTransferSetConfirmedFeeBasis(transfer, feeBasisConfirmed);
 
-                // TODO(fix): BRCryptoTransferState leaks BRCryptoAmount; see CORE-484
-                newState = cryptoTransferStateIncludedInit (blockNumber,
-                                                            blockTransactionIndex,
-                                                            blockTimestamp,
-                                                            cryptoFeeBasisGetFee (feeBasisConfirmed));
+                ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
+                BRCryptoTransferState newState = cryptoTransferStateIncludedInit (blockNumber,
+                                                                                  blockTransactionIndex,
+                                                                                  blockTimestamp,
+                                                                                  fee);
+
+                cryptoAmountGive (fee);
                 cryptoFeeBasisGive (feeBasisConfirmed);
+                cryptoUnitGive (unit);
 
                 cryptoTransferSetState (transfer, newState);
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
             }
             break;
+        }
 
-        case TRANSFER_EVENT_ERRORED:
+        case TRANSFER_EVENT_ERRORED: {
+            assert (NULL != transfer);
             if (NULL != transfer) {
-                newState = cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown ());
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                BRCryptoTransferState newState = cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown ());
 
                 cryptoTransferSetState (transfer, newState);
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
             }
             break;
+        }
 
-        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED:
-            if (NULL != transfer) {
-            }
+        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: {
+            assert (NULL != transfer);
             break;
+        }
 
-        case TRANSFER_EVENT_DELETED:
+        case TRANSFER_EVENT_DELETED: {
+            assert (NULL != transfer);
             if (NULL != transfer) {
                 cryptoWalletRemTransfer (wallet, transfer);
 
@@ -1274,9 +1305,11 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                    });
 
                 // State changed
-                newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_DELETED);
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_DELETED);
 
                 cryptoTransferSetState (transfer, newState);
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
@@ -1286,19 +1319,25 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                          { .state = { oldState, newState }}
                                                      });
 
-                cryptoTransferSetState (transfer, newState);
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_DELETED
                                                      });
             }
             break;
+        }
     }
 
-    // TODO: crypto{Wallet,Transfer}Give()
+    if (NULL != transfer) {
+        cryptoTransferGive (transfer);
+    }
+
+    if (NULL != wallet) {
+        cryptoWalletGive (wallet);
+    }
 }
 
 static void

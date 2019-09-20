@@ -32,9 +32,14 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
     static Unit from(com.breadwallet.crypto.Unit unit) {
+        if (unit == null) {
+            return null;
+        }
+
         if (unit instanceof Unit) {
             return (Unit) unit;
         }
+
         throw new IllegalArgumentException("Unsupported unit instance");
     }
 

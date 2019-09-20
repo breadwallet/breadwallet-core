@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
+//import Foundation // Data
 
 ///
 /// A Blockchain Network.  Networks are created based from a cross-product of block chain and
@@ -46,6 +47,24 @@ public final class Network: CustomStringConvertible {
     public var confirmationsUntilFinal: UInt32 {
         return cryptoNetworkGetConfirmationsUntilFinal (core);
     }
+
+    ///
+    /// Create a Network Peer for use in P2P modes when a WalletManager connects.
+    ///
+    /// - Parameters:
+    ///   - address: An numeric-dot-notation IP address
+    ///   - port: A port number
+    ///   - publicKey: An optional public key
+    ///
+    /// - Returns: A NetworkPeer if the address correctly parses; otherwise `nil`
+    ///
+    public func createPeer (address: String, port: UInt16, publicKey: String?) -> NetworkPeer? {
+        return NetworkPeer (network: core, address: address, port: port, publicKey: publicKey)
+    }
+
+//    public func createPeer (serialization: Data) -> NetworkPeer? {
+//        return NetworkPeer (network: core, serialization: serialization)
+//    }
 
     /// The native currency.
     public let currency: Currency
@@ -290,5 +309,66 @@ public final class NetworkFee: Equatable {
     // Equatable using the Core representation
     public static func == (lhs: NetworkFee, rhs: NetworkFee) -> Bool {
         return CRYPTO_TRUE == cryptoNetworkFeeEqual (lhs.core, rhs.core)
+    }
+}
+
+///
+/// A NetworkPeer is a Peer on a Network.  This is optionally used in Peer-to-Peer modes to
+/// specfify one or more peers to connect to for network synchronization.  Normally the P2P
+/// protocoly dynamically discovers peers and thus NetworkPeer is not commonly used.
+///
+public final class NetworkPeer: Equatable {
+    // The Core representation
+    internal let core: BRCryptoPeer
+
+    /// The network
+    public let network: Network
+
+    /// The address
+    public let address: String
+
+    /// The port
+    public let port: UInt16
+
+    /// The public key
+    public let publicKey: String?
+
+//    /// The serialization to allow reconstructing this peer
+//    public var serialization: Data {
+//        var bytesCount: Int = 0
+//        let bytes = cryptoPeerSerialize(core, &bytesCount)
+//        return Data (bytes: bytes!, count: bytesCount)
+//    }
+
+    internal init (core: BRCryptoPeer, take: Bool) {
+        self.core = (take ? cryptoPeerTake (core) : core)
+        self.network = Network (core: cryptoPeerGetNetwork (core), take: false)
+        self.address = asUTF8String (cryptoPeerGetAddress (core))
+        self.port    = cryptoPeerGetPort (core)
+        self.publicKey = cryptoPeerGetPublicKey (core)
+            .map { asUTF8String ($0) }
+    }
+
+    internal convenience init? (network: BRCryptoNetwork, address: String, port: UInt16, publicKey: String?) {
+        guard let core = cryptoPeerCreate (network, address, port, publicKey)
+            else { return nil }
+
+        self.init (core: core, take: false)
+    }
+
+    deinit {
+        cryptoPeerGive (core)
+    }
+
+//    internal convenience init? (network: BRCryptoNetwork, serialization: Data) {
+//        var bytes = [UInt8](serialization)
+//        guard let core = cryptoPeerCreateFromSerialization (network, &bytes, bytes.count)
+//            else { return nil }
+//
+//        self.init (core: core, take: false)
+//    }
+
+    public static func == (lhs: NetworkPeer, rhs: NetworkPeer) -> Bool {
+        return CRYPTO_TRUE == cryptoPeerIsIdentical (lhs.core, rhs.core)
     }
 }
