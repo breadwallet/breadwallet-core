@@ -32,6 +32,17 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     public Date getTimestamp() {
         return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
     }
+
+    @Override
+    public String getFilesystemIdentifier() {
+        Pointer ptr = CryptoLibrary.INSTANCE.cryptoAccountGetFileSystemIdentifier(this);
+        try {
+            return ptr.getString(0, "UTF-8");
+        } finally {
+            Native.free(Pointer.nativeValue(ptr));
+        }
+    }
+
     @Override
     public byte[] serialize() {
         SizeTByReference bytesCount = new SizeTByReference();
