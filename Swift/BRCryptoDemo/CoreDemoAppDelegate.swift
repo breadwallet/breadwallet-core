@@ -31,7 +31,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var listener: CoreDemoListener!
     var system: System!
     var mainnet = true
+
     var accountSpecification: AccountSpecification!
+    var account: Account!
+    var storagePath: String!
+
+    var query: BlockChainDB!
 
     var btcPeerSpec = (address: "103.99.168.100", port: UInt16(8333))
     var btcPeer: NetworkPeer? = nil
@@ -69,9 +74,11 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
 
-        guard let account = Account.createFrom (phrase: accountSpecification.paperKey,
-                                                timestamp: accountSpecification.timestamp,
-                                                uids: walletId) else {
+        account = Account.createFrom (phrase: accountSpecification.paperKey,
+                                      timestamp: accountSpecification.timestamp,
+                                      uids: walletId)
+        guard nil != account
+            else {
             precondition(false, "No account")
             return false
         }
@@ -79,7 +86,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         mainnet = (accountSpecification.network == "mainnet")
 
         // Ensure the storage path
-        let storagePath = FileManager.default
+        storagePath = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
@@ -100,7 +107,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         
         print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
-        print ("APP: StoragePath       : \(storagePath)");
+        print ("APP: StoragePath       : \(storagePath?.description ?? "<none>")");
         print ("APP: Mainnet           : \(mainnet)")
         let currencyCodesToMode: [String:WalletManagerMode] = [
             "btc" : .api_only,
@@ -121,15 +128,14 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: CurrenciesToMode  : \(currencyCodesToMode)")
 
         // Create the listener
-        let listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
+        listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
                                          registerCurrencyCodes: registerCurrencyCodes,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
-        let query = BlockChainDB.createForTest ()
+        query = BlockChainDB.createForTest ()
 
         // Create the system
-        self.listener = listener
         self.system = System (listener: listener,
                               account: account,
                               onMainnet: mainnet,
@@ -214,11 +220,11 @@ extension UIApplication {
         print ("APP: Resetting")
 
         // Create a new system
-        let system = System (listener: app.system.listener!,
-                             account: app.system.account,
-                             onMainnet: app.system.onMainnet,
-                             path: app.system.path,
-                             query: app.system.query)
+        let system = System (listener: app.listener!,
+                             account: app.account,
+                             onMainnet: app.mainnet,
+                             path: app.storagePath,
+                             query: app.query)
 
         // Stop the existing system
         app.system.stop()
@@ -227,6 +233,8 @@ extension UIApplication {
         
         // Assign and then configure the new system
         app.system = system
+
+        // Passing `[]`... it is a demo app...
         app.system.configure(withCurrencyModels: [])
     }
 
