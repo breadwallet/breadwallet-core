@@ -326,6 +326,8 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoFeeBasis.h
                 src/main/cpp/core/crypto/BRCryptoHash.c
                 src/main/cpp/core/crypto/BRCryptoHash.h
+                src/main/cpp/core/crypto/BRCryptoHasher.c
+                src/main/cpp/core/crypto/BRCryptoHasher.h
                 src/main/cpp/core/crypto/BRCryptoKey.c
                 src/main/cpp/core/crypto/BRCryptoKey.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
