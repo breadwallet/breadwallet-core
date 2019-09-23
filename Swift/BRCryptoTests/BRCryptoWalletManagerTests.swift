@@ -361,7 +361,8 @@ class MigrateSystemListener: SystemListener {
                 // Wallet Manager
                 let _ = system.createWalletManager (network: network,
                                                     mode: system.defaultMode(network: network),
-                                                    addressScheme: system.defaultAddressScheme(network: network))
+                                                    addressScheme: system.defaultAddressScheme(network: network),
+                                                    currencies: Set<Currency>())
             }
 
         case .managerAdded(let manager):
