@@ -2011,7 +2011,6 @@ bwmPeriodicDispatcher (BREventHandler handler,
     BRWalletManager bwm = (BRWalletManager) event->context;
 
     assert (eventHandlerIsCurrentThread (bwm->handler));
-    pthread_mutex_lock (&bwm->lock);
     if (0 == bwm->sleepWakeupsForSyncTickTock % BWM_SYNC_AFTER_WAKEUPS) {
         // If BWM_SYNC_AFTER_WAKEUPS have occurred, then 'tick tock'.
         BRSyncManagerTickTock (bwm->syncManager);
@@ -2023,7 +2022,6 @@ bwmPeriodicDispatcher (BREventHandler handler,
 
     bwm->sleepWakeupsForSyncTickTock += 1;
     bwm->sleepWakeupsForSyncTickTock %= BWM_SYNC_AFTER_WAKEUPS;
-    pthread_mutex_unlock (&bwm->lock);
 }
 
 extern BRFileService
