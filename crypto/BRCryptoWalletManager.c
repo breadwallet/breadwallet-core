@@ -546,14 +546,14 @@ cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
                         // Argubably EWM should create a wallet for the token.  But, it doesn't.
                         // So we'll call `ewmGetWalletHoldingToken()` to get a wallet.
 
-                        BREthereumToken token = ewmCreateToken (cwm->u.eth,
-                                                                address,
-                                                                cryptoCurrencyGetCode (c),
-                                                                cryptoCurrencyGetName(c),
-                                                                cryptoCurrencyGetUids(c), // description
-                                                                cryptoUnitGetBaseDecimalOffset(unitDefault),
-                                                                ethGasLimit,
-                                                                ethGasPrice);
+                        ewmCreateToken (cwm->u.eth,
+                                        address,
+                                        cryptoCurrencyGetCode (c),
+                                        cryptoCurrencyGetName(c),
+                                        cryptoCurrencyGetUids(c), // description
+                                        cryptoUnitGetBaseDecimalOffset(unitDefault),
+                                        ethGasLimit,
+                                        ethGasPrice);
                     }
                     break;
                 }
@@ -720,7 +720,8 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoTransferAsGEN (transfer),
                                      seed);
 
-            seed = UINT512_ZERO;
+            seed = UINT512_ZERO; (void) &seed;
+
             break;
         }
     }

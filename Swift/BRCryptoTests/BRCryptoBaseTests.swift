@@ -177,7 +177,8 @@ class CryptoTestSystemListener: SystemListener {
                 let scheme = system.defaultAddressScheme(network: network)
                 let _ = system.createWalletManager (network: network,
                                                     mode: mode,
-                                                    addressScheme: scheme)
+                                                    addressScheme: scheme,
+                                                    currencies: Set<Currency>())
             }
             networkExpectation.fulfill()
 
