@@ -286,6 +286,11 @@ extern void
 BRWalletManagerDisconnect (BRWalletManager manager);
 
 extern void
+BRWalletManagerSetFixedPeer (BRWalletManager manager,
+                             UInt128 address,
+                             uint16_t port);
+
+extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 extern void

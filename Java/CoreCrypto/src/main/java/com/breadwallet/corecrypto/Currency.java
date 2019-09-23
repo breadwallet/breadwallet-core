@@ -29,9 +29,14 @@ final class Currency implements com.breadwallet.crypto.Currency {
 
     /* package */
     static Currency from(com.breadwallet.crypto.Currency currency) {
+        if (currency == null) {
+            return null;
+        }
+
         if (currency instanceof Currency) {
             return (Currency) currency;
         }
+
         throw new IllegalArgumentException("Unsupported currency instance");
     }
 

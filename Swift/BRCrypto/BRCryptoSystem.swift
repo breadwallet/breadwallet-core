@@ -318,15 +318,33 @@ public final class System {
     }
 
     ///
-    /// Create a wallet manager for `network` using `mode.
+    /// Create a wallet manager for `network` using `mode`, `addressScheme`, and `currencies.  A
+    /// wallet will be 'registered' for each of:
+    ///    a) the network's currency - this is the primaryWallet
+    ///    b) for each of `currences` that are in `network`.
+    /// These wallets are announced using WalletEvent.created and WalletManagerEvent.walledAdded.
+    ///
+    /// The created wallet manager is announed using WalletManagerEvent.created and
+    /// SystemEvent.managerAdded.
     ///
     /// - Parameters:
     ///   - network: the wallet manager's network
-    ///   - mode: the mode to use
+    ///   - mode: the wallet manager mode to use
+    ///   - addressScheme: the address scheme to use
+    ///   - currencies: the currencies to 'register'.  A wallet will be created for each one.  It
+    ///       is safe to pass currencies not in `network` as they will be filtered (but bad form
+    ///       to do so).  The 'primaryWallet', for the network's currency, is always created; if
+    ///       the primaryWallet's currency is in `currencies` then it is effectively ignored.
+    ///
+    /// - Note: There are two preconditions - `network` must support `mode` and `addressScheme`.
+    ///     Thus a fatal error arises if, for example, the network is BTC and the scheme is ETH.
     ///
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
-                                     addressScheme: AddressScheme) {
+                                     addressScheme: AddressScheme,
+                                     currencies: Set<Currency>) {
+        precondition (supportsMode(network: network, mode))
+        precondition (supportsAddressScheme(network: network, addressScheme))
 
         let manager = WalletManager (system: self,
                                      callbackCoordinator: callbackCoordinator,
@@ -334,6 +352,7 @@ public final class System {
                                      network: network,
                                      mode: mode,
                                      addressScheme: addressScheme,
+                                     currencies: currencies,
                                      storagePath: path,
                                      listener: cryptoListener,
                                      client: cryptoClient)
@@ -374,7 +393,7 @@ public final class System {
         self.listener  = listener
         self.account   = account
         self.onMainnet = onMainnet
-        self.path  = path
+        self.path  = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
         self.query = query
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)

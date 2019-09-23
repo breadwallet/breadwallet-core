@@ -171,9 +171,10 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
              // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
              EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
 
-             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.requested), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected))
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected(reason: WalletManagerDisconnectReason.requested)))
             ]))
         
         XCTAssertTrue (

@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
@@ -23,6 +25,7 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -95,8 +98,9 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     @Override
-    public void connect() {
-        core.connect();
+    public void connect(@Nullable com.breadwallet.crypto.NetworkPeer peer) {
+        checkState(null == peer || network.equals(peer.getNetwork()));
+        core.connect(peer == null ? null : NetworkPeer.from(peer).getBRCryptoPeer());
     }
 
     @Override
@@ -164,6 +168,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
 
         return wallets;
+    }
+
+    @Override
+    public Optional<Wallet> registerWalletFor(com.breadwallet.crypto.Currency currency) {
+        checkState(network.hasCurrency(currency));
+        return core
+                .registerWallet(Currency.from(currency).getCoreBRCryptoCurrency())
+                .transform(w -> Wallet.create(w, this, callbackCoordinator));
     }
 
     @Override

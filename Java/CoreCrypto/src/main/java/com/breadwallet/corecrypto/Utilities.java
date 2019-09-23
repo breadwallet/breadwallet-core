@@ -15,6 +15,7 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
+import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
@@ -161,7 +162,9 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
-                            Optional.fromNullable(state.u.included.fee).transform(Amount::takeAndCreate)
+                            Optional.fromNullable(state.u.included.fee)
+                                    .transform(CoreBRCryptoAmount::createOwned)
+                                    .transform(Amount::create)
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");

@@ -78,9 +78,14 @@ final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
     static Account from(com.breadwallet.crypto.Account account) {
+        if (account == null) {
+            return null;
+        }
+
         if (account instanceof Account) {
             return (Account) account;
         }
+
         throw new IllegalArgumentException("Unsupported account instance");
     }
 
@@ -103,6 +108,11 @@ final class Account implements com.breadwallet.crypto.Account {
     @Override
     public boolean validate(byte[] serialization) {
         return core.validate(serialization);
+    }
+
+    /* package */
+    String getFilesystemIdentifier() {
+        return core.getFilesystemIdentifier();
     }
 
     /* package */

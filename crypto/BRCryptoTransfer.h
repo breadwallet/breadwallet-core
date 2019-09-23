@@ -61,6 +61,12 @@ extern "C" {
     extern BRCryptoTransferState
     cryptoTransferStateErroredInit (BRTransferSubmitError error);
 
+    extern BRCryptoTransferState
+    cryptoTransferStateCopy (BRCryptoTransferState *state);
+
+    extern void
+    cryptoTransferStateRelease (BRCryptoTransferState *state);
+
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
         CRYPTO_TRANSFER_EVENT_CHANGED,

@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -60,11 +61,14 @@ public class CoreCryptoApplication extends Application {
     private static CoreCryptoApplication instance;
 
     private System system;
+    private Account account;
     private DispatchingSystemListener systemListener;
     private ConnectivityBroadcastReceiver connectivityReceiver;
+    private ScheduledExecutorService executor;
     private boolean isMainnet;
     private BlockchainDb blockchainDb;
     private byte[] paperKey;
+    private File storageFile;
 
     private AtomicBoolean runOnce = new AtomicBoolean(false);
 
@@ -100,6 +104,12 @@ public class CoreCryptoApplication extends Application {
         return instance.paperKey;
     }
 
+    public static ScheduledExecutorService getExecutorService() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.executor;
+    }
+
     private static void deleteRecursively (File file) {
         if (file.isDirectory()) {
             for (File child : file.listFiles()) {
@@ -130,7 +140,7 @@ public class CoreCryptoApplication extends Application {
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
-            File storageFile = new File(getFilesDir(), "core");
+            storageFile = new File(getFilesDir(), "core");
             if (wipe) {
                 if (storageFile.exists()) deleteRecursively(storageFile);
                 checkState(storageFile.mkdirs());
@@ -148,10 +158,11 @@ public class CoreCryptoApplication extends Application {
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
-            Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
+            account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
+            executor = Executors.newSingleThreadScheduledExecutor();
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
-            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account,
+            system = System.create(executor, systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
@@ -163,11 +174,11 @@ public class CoreCryptoApplication extends Application {
     private void resetSystemImpl() {
         system.stop();
         system = System.create(
-                Executors.newSingleThreadScheduledExecutor(),
+                executor,
                 systemListener,
-                system.getAccount(),
+                account,
                 isMainnet,
-                system.getPath(),
+                storageFile.getAbsolutePath(),
                 blockchainDb);
         system.configure(Collections.emptyList());
     }

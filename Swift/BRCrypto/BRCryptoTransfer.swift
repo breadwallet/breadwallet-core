@@ -321,7 +321,7 @@ public enum TransferState {
             confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
-                                                fee: core.u.included.fee.map { Amount (core: $0, take: true) }))
+                                                fee: core.u.included.fee.map { Amount (core: $0, take: false) }))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; precondition(false)
