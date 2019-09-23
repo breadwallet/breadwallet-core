@@ -6,6 +6,7 @@ module BRCryptoC [system] [extern_c] {
     header "../../crypto/BRCryptoNetwork.h"
     header "../../crypto/BRCryptoPeer.h"
     header "../../crypto/BRCryptoAccount.h"
+    header "../../crypto/BRCryptoCoder.h"
     header "../../crypto/BRCryptoKey.h"
     header "../../crypto/BRCryptoHasher.h"
     header "../../crypto/BRCryptoAddress.h"

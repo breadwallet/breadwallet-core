@@ -54,7 +54,7 @@ public enum CoreHasher: HasherX {
     public func hash (data source: Data) -> Data {
         return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
             let sourceAddr = sourceBytes.baseAddress
-            let sourceCount = source.count
+            let sourceCount = sourceBytes.count
 
             let hasher = cryptoHasherCreate(coreType)!
             defer { cryptoHasherGive (hasher) }

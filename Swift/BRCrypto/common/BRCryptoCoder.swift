@@ -22,40 +22,30 @@ public enum CoreCoder: Coder {
     case base58
     case base58check
 
+    internal var coreType: BRCryptoCoderType {
+        switch self {
+        case .hex: return CRYPTO_CODER_HEX
+        case .base58: return CRYPTO_CODER_BASE58
+        case .base58check: return CRYPTO_CODER_BASE58CHECK
+        }
+    }
+
     public func encode (data source: Data) -> String {
-        let sourceCount = source.count
         return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> String in
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let sourceCount = sourceBytes.count
 
-            var target: Data!
+            let coder = cryptoCoderCreate(coreType)!
+            defer { cryptoCoderGive (coder) }
+
             var result: String!
-            switch self {
-            case .hex:
-                let targetCount = 2 * sourceCount + 1
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-                    encodeHex (targetAddr, targetCount, sourceAddr, sourceCount)
-                    result = String (cString: targetAddr!)
-                }
 
-            case .base58:
-                let targetCount = BRBase58Encode(nil, 0, sourceAddr, sourceCount)
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-                    BRBase58Encode (targetAddr, targetCount, sourceAddr, sourceCount)
-                    result = String (cString: targetAddr!)
-               }
-
-            case .base58check:
-                let targetCount = BRBase58CheckEncode (nil, 0, sourceAddr, sourceCount)
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-                    BRBase58CheckEncode (targetAddr, targetCount, sourceAddr, sourceCount)
-                    result = String (cString: targetAddr!)
-               }
+            let targetCount = cryptoCoderEncodeLength(coder, sourceAddr, sourceCount)
+            var target = Data (count: targetCount)
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+                cryptoCoderEncode (coder, targetAddr, targetCount, sourceAddr, sourceCount)
+                result = String (cString: targetAddr!)
             }
 
             return result
@@ -63,36 +53,22 @@ public enum CoreCoder: Coder {
     }
 
     public func decode (string source: String) -> Data? {
-        let sourceCount: Int = source.count
         return source.withCString { (sourceAddr: UnsafePointer<Int8>) -> Data? in
-            var target: Data!
-            switch self {
-            case .hex:
-                let targetCount = sourceCount / 2
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    decodeHex (targetAddr, targetCount, sourceAddr, sourceCount)
-                }
+            let sourceCount: Int = source.count
 
-            case .base58:
-                let targetCount = BRBase58Decode(nil, 0, sourceAddr)
-                if 0 == targetCount { return nil }
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRBase58Decode (targetAddr, targetCount, sourceAddr)
-                }
+            let coder = cryptoCoderCreate(coreType)!
+            defer { cryptoCoderGive (coder) }
 
-            case .base58check:
-                let targetCount = BRBase58CheckDecode (nil, 0, sourceAddr)
-                if 0 == targetCount { return nil }
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRBase58CheckDecode (targetAddr, targetCount, sourceAddr)
-                }
+            let targetCount = cryptoCoderDecodeLength(coder, sourceAddr, sourceCount)
+            guard targetCount != 0 else { return nil }
+
+            var target = Data (count: targetCount)
+
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                cryptoCoderDecode (coder, targetAddr, targetCount, sourceAddr, sourceCount)
             }
+
             return target
         }
     }

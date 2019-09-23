@@ -288,6 +288,8 @@
 		CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */ = {isa = PBXBuildFile; fileRef = CE0DBEB823032F1A00FC72BD /* BRSyncManager.c */; };
 		CE5E43C0233902A4001E9238 /* BRCryptoHasher.c in Sources */ = {isa = PBXBuildFile; fileRef = CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */; };
 		CE5E43C1233902A4001E9238 /* BRCryptoHasher.c in Sources */ = {isa = PBXBuildFile; fileRef = CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */; };
+		CE5E43C423390FBB001E9238 /* BRCryptoCoder.c in Sources */ = {isa = PBXBuildFile; fileRef = CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */; };
+		CE5E43C523390FBB001E9238 /* BRCryptoCoder.c in Sources */ = {isa = PBXBuildFile; fileRef = CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */; };
 		CE6040C222BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
 		CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
 		CEE6CDE92305DDC8006724EB /* testBwm.c in Sources */ = {isa = PBXBuildFile; fileRef = CEE6CDE82305DDA6006724EB /* testBwm.c */; };
@@ -718,6 +720,8 @@
 		CE0DBEB823032F1A00FC72BD /* BRSyncManager.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRSyncManager.c; sourceTree = "<group>"; };
 		CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoHasher.c; sourceTree = "<group>"; };
 		CE5E43BF233902A4001E9238 /* BRCryptoHasher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoHasher.h; sourceTree = "<group>"; };
+		CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCoder.c; sourceTree = "<group>"; };
+		CE5E43C323390FBB001E9238 /* BRCryptoCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCoder.h; sourceTree = "<group>"; };
 		CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWalletManagerEvent.c; sourceTree = "<group>"; };
 		CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRWalletManagerPrivate.h; sourceTree = "<group>"; };
 		CEA3F92D22CB8282006A330E /* BRBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBase.h; sourceTree = "<group>"; };
@@ -1330,6 +1334,8 @@
 				3C97E24422416AB1003FD88F /* BRCryptoAmount.c */,
 				3C97E254224170B9003FD88F /* BRCryptoAccount.h */,
 				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
+				CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */,
+				CE5E43C323390FBB001E9238 /* BRCryptoCoder.h */,
 				3C1D1F2322F0F1740028B20C /* BRCryptoKey.h */,
 				3C1D1F2422F0F1740028B20C /* BRCryptoKey.c */,
 				CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */,
@@ -1851,6 +1857,7 @@
 				3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */,
 				3C9B8DEE22BD52940060C3A9 /* BRGenericHandlers.c in Sources */,
 				3C6B17402131CE12003C313B /* BREthereumNetwork.c in Sources */,
+				CE5E43C523390FBB001E9238 /* BRCryptoCoder.c in Sources */,
 				3C97E2362241658E003FD88F /* BRCryptoCurrency.c in Sources */,
 				3C6B17412131CE12003C313B /* BREthereumTransactionReceipt.c in Sources */,
 				3C0D297A216FD0DB003838E9 /* BREthereumMessageDIS.c in Sources */,
@@ -1974,6 +1981,7 @@
 				3CAB60BE20AF8D1A00810CE4 /* BREthereumAmount.c in Sources */,
 				3CAB60C020AF8D1A00810CE4 /* BREthereumAccount.c in Sources */,
 				3C3DC5BB21DFCA7C004188BD /* BRFileService.c in Sources */,
+				CE5E43C423390FBB001E9238 /* BRCryptoCoder.c in Sources */,
 				3CAB60C120AF8D1A00810CE4 /* BREthereumWallet.c in Sources */,
 				3C7BE5AA230EFD36005FD4CD /* BRCryptoWallet.c in Sources */,
 				3C386DCF20C6F5E40065E355 /* BREthereumBCS.c in Sources */,
