@@ -113,6 +113,31 @@ class SummaryViewController: UITableViewController, WalletListener {
         self.present (alert, animated: true) {}
     }
     
+    @IBAction func doAddWallet(_ sender: Any) {
+        let system = UIApplication.sharedSystem
+        let currencies = system.managers
+            .flatMap { $0.network.currencies }
+            // Remove any currency already in `wallets`
+            .filter { (c) in !wallets.contains { c == $0.currency } }
+
+        let alert = UIAlertController (title: "Add Wallet",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        currencies.forEach { (c) in
+            // The manager for (c)`
+            if let manager = system.managers.first (where: { $0.network.hasCurrency(c) }) {
+                alert.addAction (UIAlertAction (title: "\(c.code) (\(manager.name))", style: .default) { (action) in
+                    let _ = manager.registerWalletFor(currency: c)
+                    alert.dismiss(animated: true) {}
+                })
+            }
+        }
+
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+        self.present (alert, animated: true) {}
+        
+    }
     // MARK: - Table View
 
     override func numberOfSections(in tableView: UITableView) -> Int {
