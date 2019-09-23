@@ -98,6 +98,9 @@ extern "C" {
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);
 
+    extern char *
+    cryptoAccountGetFileSystemIdentifier (BRCryptoAccount);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
 #ifdef __cplusplus

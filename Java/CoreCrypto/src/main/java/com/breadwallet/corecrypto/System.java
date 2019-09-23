@@ -90,6 +90,7 @@ import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -163,6 +164,9 @@ final class System implements com.breadwallet.crypto.System {
                          BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
+        Account cryptoAccount = Account.from(account);
+        path = path + (path.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
+
         BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
                 CWM_LISTENER_WALLET_MANAGER_CALLBACK,
                 CWM_LISTENER_WALLET_CALLBACK,
@@ -175,7 +179,7 @@ final class System implements com.breadwallet.crypto.System {
 
         System system = new System(executor,
                 listener,
-                account,
+                cryptoAccount,
                 isMainnet,
                 path,
                 query,
@@ -210,11 +214,11 @@ final class System implements com.breadwallet.crypto.System {
     private final Lock walletManagersWriteLock;
     private final List<WalletManager> walletManagers;
 
-    boolean isNetworkReachable;
+    private boolean isNetworkReachable;
 
     private System(ScheduledExecutorService executor,
                    SystemListener listener,
-                   com.breadwallet.crypto.Account account,
+                   Account account,
                    boolean isMainnet,
                    String path,
                    BlockchainDb query,
@@ -223,7 +227,7 @@ final class System implements com.breadwallet.crypto.System {
         this.executor = executor;
         this.listener = listener;
         this.callbackCoordinator = new SystemCallbackCoordinator(executor);
-        this.account = Account.from(account);
+        this.account = account;
         this.isMainnet = isMainnet;
         this.path = path;
         this.query = query;

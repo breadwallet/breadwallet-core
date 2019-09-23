@@ -36,6 +36,11 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
+    public String getFilesystemIdentifier() {
+        return core.getFilesystemIdentifier();
+    }
+
+    @Override
     public byte[] serialize() {
         return core.serialize();
     }

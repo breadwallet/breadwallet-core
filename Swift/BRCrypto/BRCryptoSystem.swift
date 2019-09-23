@@ -393,7 +393,7 @@ public final class System {
         self.listener  = listener
         self.account   = account
         self.onMainnet = onMainnet
-        self.path  = path
+        self.path  = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
         self.query = query
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)

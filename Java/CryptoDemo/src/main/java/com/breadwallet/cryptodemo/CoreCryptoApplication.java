@@ -61,12 +61,14 @@ public class CoreCryptoApplication extends Application {
     private static CoreCryptoApplication instance;
 
     private System system;
+    private Account account;
     private DispatchingSystemListener systemListener;
     private ConnectivityBroadcastReceiver connectivityReceiver;
     private ScheduledExecutorService executor;
     private boolean isMainnet;
     private BlockchainDb blockchainDb;
     private byte[] paperKey;
+    private File storageFile;
 
     private AtomicBoolean runOnce = new AtomicBoolean(false);
 
@@ -138,7 +140,7 @@ public class CoreCryptoApplication extends Application {
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
-            File storageFile = new File(getFilesDir(), "core");
+            storageFile = new File(getFilesDir(), "core");
             if (wipe) {
                 if (storageFile.exists()) deleteRecursively(storageFile);
                 checkState(storageFile.mkdirs());
@@ -156,7 +158,7 @@ public class CoreCryptoApplication extends Application {
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
-            Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
+            account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             executor = Executors.newSingleThreadScheduledExecutor();
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
@@ -174,9 +176,9 @@ public class CoreCryptoApplication extends Application {
         system = System.create(
                 executor,
                 systemListener,
-                system.getAccount(),
+                account,
                 isMainnet,
-                system.getPath(),
+                storageFile.getAbsolutePath(),
                 blockchainDb);
         system.configure(Collections.emptyList());
     }

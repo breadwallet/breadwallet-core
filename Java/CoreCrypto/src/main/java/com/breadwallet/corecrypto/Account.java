@@ -111,6 +111,11 @@ final class Account implements com.breadwallet.crypto.Account {
     }
 
     /* package */
+    String getFilesystemIdentifier() {
+        return core.getFilesystemIdentifier();
+    }
+
+    /* package */
     CoreBRCryptoAccount getCoreBRCryptoAccount() {
         return core;
     }

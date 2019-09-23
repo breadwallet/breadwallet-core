@@ -90,6 +90,8 @@ public interface CoreBRCryptoAccount {
 
     Date getTimestamp();
 
+    String getFilesystemIdentifier();
+
     byte[] serialize();
 
     boolean validate(byte[] serialization);
