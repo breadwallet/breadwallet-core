@@ -5,6 +5,9 @@
 //  Created by Ed Gamble on 8/12/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 
 import XCTest
 @testable import BRCrypto
@@ -60,7 +63,7 @@ class BRSupportTests: XCTestCase {
     func testAsComparableInvert () {
         XCTAssertFalse (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) >  AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
         XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) <= AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
-        XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) == AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
+        XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) == AsComparableInvert (value: AsComparable (item: p3, value: p3.age)))
     }
 
     func testAsHashable () {

@@ -1,9 +1,9 @@
 //
-//  BRCrypto.swift
+//  BRCryptoWalletManager.swift
 //  BRCrypto
 //
 //  Created by Ed Gamble on 3/27/19.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -64,7 +64,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         return network.height
     }
 
-   /// The primaryWallet - holds the network's currency - this is typically the wallet where
+    /// The primaryWallet - holds the network's currency - this is typically the wallet where
     /// fees are applied which may or may not differ from the specific wallet used for a
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
@@ -76,18 +76,48 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                        take: false)
     }()
 
+    ///
+    /// Ensure that a wallet for currency exists.  If the wallet already exists, it is returned.
+    /// If the wallet needs to be created then `nil` is returned and a series of events will
+    //// occur - notably WalletEvent.created and WalletManagerEvent.walletAdded if the wallet is
+    /// created
+    ///
+    /// - Note: There is a precondition on `currency` being one in the managers' network
+    ///
+    /// - Parameter currency:
+    /// - Returns: The wallet for currency if it already exists, othersise `nil`
+    ///
+    public func registerWalletFor (currency: Currency) -> Wallet? {
+        precondition (network.hasCurrency(currency))
+        return cryptoWalletManagerRegisterWallet (core, currency.core)
+            .map { Wallet (core: $0,
+                           manager: self,
+                           callbackCoordinator: callbackCoordinator,
+                           take: false)
+        }
+    }
+
+//    public func unregisterWalletFor (currency: Currency) {
+//        wallets
+//            .first { $0.currency == currency }
+//            .map { unregisterWallet($0) }
+//    }
+//
+//    public func unregisterWallet (_ wallet: Wallet) {
+//    }
+
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener
-        
+
         var walletsCount: size_t = 0
         let walletsPtr = cryptoWalletManagerGetWallets(core, &walletsCount);
         defer { if let ptr = walletsPtr { free (ptr) } }
-        
+
         let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
             Array(UnsafeBufferPointer (start: $0, count: walletsCount))
             } ?? []
-        
+
         return wallets
             .map { Wallet (core: $0,
                            manager: self,
@@ -133,12 +163,17 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         }
     }
 
-    /// The default WalletFactory for creating wallets.
-    //    var walletFactory: WalletFactory { get set }
-
-    /// Connect to network and begin managing wallets for account
-    public func connect () {
-        cryptoWalletManagerConnect (core)
+    ///
+    /// Connect to the network and begin managing wallets.
+    ///
+    /// - Parameter peer: An optional NetworkPeer to use on the P2P network.  It is unusual to
+    ///     provide a peer as P2P networks will dynamically discover suitable peers.
+    ///
+    /// - Note: If peer is provided, there is a precondition on the networks matching.
+    ///
+    public func connect (using peer: NetworkPeer? = nil) {
+        precondition (peer == nil || peer!.network == network)
+        cryptoWalletManagerConnect (core, peer?.core)
     }
 
     /// Disconnect from the network.
@@ -148,6 +183,10 @@ public final class WalletManager: Equatable, CustomStringConvertible {
 
     public func sync () {
         cryptoWalletManagerSync (core)
+    }
+
+    public func syncToDepth (depth: WalletManagerSyncDepth) {
+        cryptoWalletManagerSyncToDepth (core, depth.core)
     }
 
     internal func sign (transfer: Transfer, paperKey: String) -> Bool {
@@ -177,6 +216,11 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                          transfer.core)
     }
 
+    internal func setNetworkReachable (_ isNetworkReachable: Bool) {
+        cryptoWalletManagerSetNetworkReachable (core,
+                                                isNetworkReachable ? CRYPTO_TRUE : CRYPTO_FALSE)
+    }
+
     public func createSweeper (wallet: Wallet,
                                key: Key,
                                completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
@@ -204,15 +248,17 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         self.addressScheme     = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
-    public convenience init (system: System,
-                             callbackCoordinator: SystemCallbackCoordinator,
-                             account: Account,
-                             network: Network,
-                             mode: WalletManagerMode,
-                             addressScheme: AddressScheme,
-                             storagePath: String,
-                             listener: BRCryptoCWMListener,
-                             client: BRCryptoCWMClient) {
+
+    internal convenience init (system: System,
+                               callbackCoordinator: SystemCallbackCoordinator,
+                               account: Account,
+                               network: Network,
+                               mode: WalletManagerMode,
+                               addressScheme: AddressScheme,
+                               currencies: Set<Currency>,
+                               storagePath: String,
+                               listener: BRCryptoCWMListener,
+                               client: BRCryptoCWMClient) {
         self.init (core: cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
@@ -223,6 +269,14 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                    system: system,
                    callbackCoordinator: callbackCoordinator,
                    take: false)
+
+        // Register a wallet for each currency.
+        currencies
+            .forEach {
+                if network.hasCurrency ($0) {
+                    let _ = registerWalletFor(currency: $0)
+                }
+        }
     }
 
     deinit {
@@ -273,7 +327,7 @@ extension WalletManager {
     var defaultUnit: Unit {
         return network.defaultUnitFor(currency: network.currency)!
     }
-    
+
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
@@ -427,20 +481,40 @@ public final class WalletSweeper {
     }
 }
 
+public enum WalletManagerDisconnectReason: Equatable {
+    case requested
+    case unknown
+    case posix(errno: Int32, message: String?)
+
+    internal init (core: BRDisconnectReason) {
+        switch core.type {
+        case DISCONNECT_REASON_REQUESTED:
+            self = .requested
+        case DISCONNECT_REASON_UNKNOWN:
+            self = .unknown
+        case DISCONNECT_REASON_POSIX:
+            var c = core
+            self = .posix(errno: core.u.posix.errnum,
+                          message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0, true) })
+        default: self = .unknown; precondition(false)
+        }
+    }
+}
+
 ///
 /// The WalletManager state.
 ///
 public enum WalletManagerState: Equatable {
     case created
-    case disconnected
+    case disconnected(reason: WalletManagerDisconnectReason)
     case connected
     case syncing
     case deleted
 
     internal init (core: BRCryptoWalletManagerState) {
-        switch core {
+        switch core.type {
         case CRYPTO_WALLET_MANAGER_STATE_CREATED:      self = .created
-        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected(reason: WalletManagerDisconnectReason(core: core.u.disconnected.reason))
         case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
         case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
         case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
@@ -488,7 +562,7 @@ public enum WalletManagerMode: Equatable {
         default: return nil
         }
     }
-    
+
     internal init (core: BRSyncMode) {
         switch core {
         case SYNC_MODE_BRD_ONLY: self = .api_only
@@ -512,6 +586,99 @@ public enum WalletManagerMode: Equatable {
 }
 
 ///
+/// The WalletManager's sync depth determines the range that a sync is performed on.
+///
+/// - fromLastConfirmedSend: Sync from the block height of the last confirmed send transaction.
+///
+/// - fromLastTrustedBlock: Sync from the block height of the last trusted block; this is
+///      dependent on the blockchain and mode as to how it determines trust.
+///
+/// - fromCreation: Sync from the block height of the point in time when the account was created.
+///
+public enum WalletManagerSyncDepth: Equatable {
+    case fromLastConfirmedSend
+    case fromLastTrustedBlock
+    case fromCreation
+
+    /// Allow WalletMangerMode to be saved
+    public var serialization: UInt8 {
+        switch self {
+        case .fromLastConfirmedSend: return 0xa0
+        case .fromLastTrustedBlock:  return 0xb0
+        case .fromCreation:          return 0xc0
+        }
+    }
+
+    /// Initialize WalletMangerMode from serialization
+    public init? (serialization: UInt8) {
+        switch serialization {
+        case 0xa0: self = .fromLastConfirmedSend
+        case 0xb0: self = .fromLastTrustedBlock
+        case 0xc0: self = .fromCreation
+        default: return nil
+        }
+    }
+
+    internal init (core: BRSyncDepth) {
+        switch core {
+        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: self = .fromLastConfirmedSend
+        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: self = .fromLastTrustedBlock
+        case SYNC_DEPTH_FROM_CREATION: self = .fromCreation
+        default: self = .fromCreation; precondition (false)
+        }
+    }
+
+    internal var core: BRSyncDepth {
+        switch self {
+        case .fromLastConfirmedSend: return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND
+        case .fromLastTrustedBlock: return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK
+        case .fromCreation: return SYNC_DEPTH_FROM_CREATION
+        }
+    }
+
+    public var shallower: WalletManagerSyncDepth? {
+        switch self {
+        case .fromCreation: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromLastConfirmedSend
+        default: return nil
+        }
+    }
+
+    public var deeper: WalletManagerSyncDepth? {
+        switch self {
+        case .fromLastConfirmedSend: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromCreation
+        default: return nil
+        }
+    }
+
+    // Equatable: [Swift-generated]
+}
+
+public enum WalletManagerSyncStoppedReason: Equatable {
+    case complete
+    case requested
+    case unknown
+    case posix(errno: Int32, message: String?)
+
+    internal init (core: BRSyncStoppedReason) {
+        switch core.type {
+        case SYNC_STOPPED_REASON_COMPLETE:
+            self = .complete
+        case SYNC_STOPPED_REASON_REQUESTED:
+            self = .requested
+        case SYNC_STOPPED_REASON_UNKNOWN:
+            self = .unknown
+        case SYNC_STOPPED_REASON_POSIX:
+            var c = core
+            self = .posix(errno: core.u.posix.errnum,
+                          message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0, true) })
+        default: self = .unknown; precondition(false)
+        }
+    }
+}
+
+///
 /// A WalletManager Event represents a asynchronous announcment of a managera's state change.
 ///
 public enum WalletManagerEvent {
@@ -525,7 +692,7 @@ public enum WalletManagerEvent {
 
     case syncStarted
     case syncProgress (timestamp: Date?, percentComplete: Float)
-    case syncEnded (error: String?)
+    case syncEnded (reason: WalletManagerSyncStoppedReason)
 
     /// An event capturing a change in the block height of the network associated with a
     /// WalletManager. Developers should listen for this event when making use of

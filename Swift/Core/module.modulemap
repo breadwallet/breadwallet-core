@@ -4,6 +4,7 @@ module BRCryptoC [system] [extern_c] {
     header "../../crypto/BRCryptoUnit.h"
     header "../../crypto/BRCryptoAmount.h"
     header "../../crypto/BRCryptoNetwork.h"
+    header "../../crypto/BRCryptoPeer.h"
     header "../../crypto/BRCryptoAccount.h"
     header "../../crypto/BRCryptoKey.h"
     header "../../crypto/BRCryptoAddress.h"
@@ -16,41 +17,13 @@ module BRCryptoC [system] [extern_c] {
     header "../../generic/BRGeneric.h"
 
     header "../../crypto/BRCryptoPrivate.h"
-    export *
-}
 
-module BRCore [system] [extern_c] {
-    textual header "../../secp256k1/src/basic-config.h"
-    textual header "../../secp256k1/src/secp256k1.c"
-    header "../../support/BRInt.h"
-    header "../../support/BRArray.h"
-    header "../../support/BRSet.h"
+    // BRCrypto{Hasher,Coder,Encrypter,Signer} when in Swift->C
     header "../../support/BRCrypto.h"
     header "../../support/BRBase58.h"
-    header "../../support/BRAddress.h"
-    header "../../support/BRBech32.h"
-    header "../../support/BRBIP32Sequence.h"
-    header "../../support/BRBIP39Mnemonic.h"
-    header "../../support/BRKey.h"
+    header "../../ethereum/util/BRUtilHex.h"
     header "../../support/BRKeyECIES.h"
-    header "../../support/BRSyncMode.h"
-    header "../../bitcoin/BRBIP38Key.h"
-    header "../../bitcoin/BRBloomFilter.h"
-    header "../../bitcoin/BRChainParams.h"
-    header "../../bitcoin/BRMerkleBlock.h"
-    header "../../bitcoin/BRPaymentProtocol.h"
-    header "../../bitcoin/BRPeer.h"
-    header "../../bitcoin/BRPeerManager.h"
-    header "../../bitcoin/BRTransaction.h"
-    header "../../bitcoin/BRWallet.h"
-    header "../../bitcoin/BRWalletManager.h"
-    header "../../bcash/BRBCashParams.h"
-    header "../../bcash/BRBCashAddr.h"
-    export *
+    header "../../support/BRKey.h"
 
-    explicit module Ethereum {
-        header "../../ethereum/BREthereum.h"
-        header "../../ethereum/contract/BREthereumToken.h"
-        export *
-    }
+    export *
 }

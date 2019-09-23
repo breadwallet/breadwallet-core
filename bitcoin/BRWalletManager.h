@@ -3,25 +3,11 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 11/21/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2019 Breadwallet AG. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
 
 #ifndef BRWalletManager_h
 #define BRWalletManager_h
@@ -34,7 +20,6 @@
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
 #include "BRWallet.h"
-#include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
 
 #ifdef __cplusplus
 extern "C" {
@@ -166,10 +151,12 @@ BRTransactionEventTypeString (BRTransactionEventType t);
 ///
 /// Wallet Event
 ///
+
 typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
-    BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+    BITCOIN_WALLET_TRANSACTION_SUBMIT_SUCCEEDED,
+    BITCOIN_WALLET_TRANSACTION_SUBMIT_FAILED,
     BITCOIN_WALLET_FEE_PER_KB_UPDATED,
     BITCOIN_WALLET_FEE_ESTIMATED,
     BITCOIN_WALLET_DELETED,
@@ -184,8 +171,12 @@ typedef struct {
 
         struct {
             BRTransaction *transaction;
-            int error; // 0 on success
-        } submitted;
+        } submitSucceeded;
+
+        struct {
+            BRTransaction *transaction;
+            BRTransferSubmitError error;
+        } submitFailed;
 
         struct {
             uint64_t value;
@@ -232,8 +223,11 @@ typedef struct {
             BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            int error;
+            BRSyncStoppedReason reason;
         } syncStopped;
+        struct {
+            BRDisconnectReason reason;
+        } disconnected;
         struct {
             uint64_t value;
         } blockHeightUpdated;
@@ -273,7 +267,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
                     const char *storagePath,
-                    uint64_t blockHeight);
+                    uint64_t blockHeight,
+                    uint64_t confirmationsUntilFinal);
 
 extern void
 BRWalletManagerFree (BRWalletManager manager);
@@ -291,13 +286,25 @@ extern void
 BRWalletManagerDisconnect (BRWalletManager manager);
 
 extern void
+BRWalletManagerSetFixedPeer (BRWalletManager manager,
+                             UInt128 address,
+                             uint16_t port);
+
+extern void
 BRWalletManagerScan (BRWalletManager manager);
+
+extern void
+BRWalletManagerScanToDepth (BRWalletManager manager, BRSyncDepth depth);
 
 extern void
 BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
 
 extern BRSyncMode
 BRWalletManagerGetMode (BRWalletManager manager);
+
+extern void
+BRWalletManagerSetNetworkReachable (BRWalletManager manager,
+                                    int isNetworkReachable);
 
 //
 // These should not be needed if the events are sufficient

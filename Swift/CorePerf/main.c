@@ -3,7 +3,7 @@
 //  CorePerf
 //
 //  Created by Ed Gamble on 10/11/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -54,7 +54,7 @@ runSyncMany (BREthereumNetwork newtork,
 
         clients[i] = runEWM_createClient();
 
-        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath);
+        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath, 0, 6);
         ewms[i] = ewm;
 
         char *address = ewmGetAccountPrimaryAddress(ewm);

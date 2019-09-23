@@ -1,9 +1,9 @@
 //
 //  BREthereumNetwork
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/13/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -101,7 +101,7 @@ networkGetEnodesLocal (BREthereumNetwork network, int parity) {
 // Mainnet
 //
 static struct BREthereumNetworkRecord ethereumMainnetRecord = {
-    "Mainnet",
+    "mainnet",
     1,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT,
@@ -165,7 +165,7 @@ MainnetChainConfig = &ChainConfig{
 // Testnet
 //
 static struct BREthereumNetworkRecord ethereumTestnetRecord = {
-    "Testnet",
+    "testnet", // aka "ropsten"
     3,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT,
@@ -204,7 +204,7 @@ TestnetChainConfig = &ChainConfig{
 // Rinkeby
 //
 static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
-    "Rinkeby",
+    "rinkeby",
     4,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT,

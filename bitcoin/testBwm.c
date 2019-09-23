@@ -4,23 +4,9 @@
 //  Created by Michael Carrara on 8/18/19.
 //  Copyright (c) 2019 breadwallet LLC
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
 
 #include <inttypes.h>
 #include <pthread.h>
@@ -117,7 +103,7 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
     BRSyncMode mode = SYNC_MODE_P2P_ONLY;
 
-    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0);
+    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0, 6);
 
     BRWalletManagerStart (manager);
 
@@ -583,7 +569,7 @@ BRRunTestWalletManagerSyncBwmSetup (BRSyncMode mode,
     } else {
         params = isMainnet ? BRBCashParams : BRBCashTestNetParams;
     }
-    return BRWalletManagerNew (client, mpk, params, earliestKeyTime, mode, storagePath, blockHeight);
+    return BRWalletManagerNew (client, mpk, params, earliestKeyTime, mode, storagePath, blockHeight, 6);
 }
 
 static int

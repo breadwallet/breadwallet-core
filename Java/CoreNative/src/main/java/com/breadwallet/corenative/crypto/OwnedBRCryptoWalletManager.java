@@ -1,13 +1,15 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.BRSyncDepth;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -58,6 +60,16 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+        return core.registerWallet(currency);
+    }
+
+    @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        core.setNetworkReachable(isNetworkReachable);
+    }
+
+    @Override
     public int getMode() {
         return core.getMode();
     }
@@ -73,7 +85,7 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public int getState() {
+    public BRCryptoWalletManagerState getState() {
         return core.getState();
     }
 
@@ -88,8 +100,8 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void connect() {
-        core.connect();
+    public void connect(BRCryptoPeer peer) {
+        core.connect(peer);
     }
 
     @Override
@@ -100,6 +112,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public void sync() {
         core.sync();
+    }
+
+    @Override
+    public void syncToDepth(BRSyncDepth depth) {
+        core.syncToDepth(depth);
     }
 
     @Override

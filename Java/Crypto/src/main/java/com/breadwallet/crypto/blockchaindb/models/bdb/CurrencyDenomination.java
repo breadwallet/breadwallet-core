@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -25,56 +25,6 @@ public class CurrencyDenomination {
             "btc", "₿",
             "eth", "Ξ"
     );
-
-
-    public static CurrencyDenomination SATOSHI = new CurrencyDenomination(
-            "Satoshi", "sat", UnsignedInteger.valueOf(0), lookupSymbol("sat"));
-
-
-    public static CurrencyDenomination BTC_BITCOIN = new CurrencyDenomination(
-            "Bitcoin", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
-
-    public static CurrencyDenomination BTC_BITCOIN_TESTNET = new CurrencyDenomination(
-            "Bitcoin Testnet", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
-
-
-    public static CurrencyDenomination BCH_BITCOIN = new CurrencyDenomination(
-            "Bitcoin Cash", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
-
-    public static CurrencyDenomination BCH_BITCOIN_TESTNET = new CurrencyDenomination(
-            "Bitcoin Cash Testnet", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
-
-
-    public static CurrencyDenomination ETH_WEI = new CurrencyDenomination(
-            "Wei", "wei", UnsignedInteger.valueOf(0), lookupSymbol("wei"));
-
-    public static CurrencyDenomination ETH_GWEI = new CurrencyDenomination(
-            "Gwei", "gwei", UnsignedInteger.valueOf(9), lookupSymbol("gwei"));
-
-    public static CurrencyDenomination ETH_ETHER = new CurrencyDenomination(
-            "Ether", "eth", UnsignedInteger.valueOf(18), lookupSymbol("eth"));
-
-
-    public static CurrencyDenomination BRD_INT = new CurrencyDenomination(
-            "BRD Token INT", "BRDI", UnsignedInteger.valueOf(0), lookupSymbol("brdi"));
-
-    public static CurrencyDenomination BRD_BRD = new CurrencyDenomination(
-            "BRD Token", "BRD", UnsignedInteger.valueOf(18), lookupSymbol("brd"));
-
-
-    public static CurrencyDenomination EOS_INT = new CurrencyDenomination(
-            "EOS_INTEGER", "EOSI", UnsignedInteger.valueOf(0), lookupSymbol("eosi"));
-
-    public static CurrencyDenomination EOS_EOS = new CurrencyDenomination(
-            "EOS", "EOS", UnsignedInteger.valueOf(18), lookupSymbol("eos"));
-
-
-    public static CurrencyDenomination XRP_DROP = new CurrencyDenomination(
-            "drop", "drop", UnsignedInteger.valueOf(0), lookupSymbol("drop"));
-
-    public static CurrencyDenomination XRP_XRP = new CurrencyDenomination(
-            "xrp", "xrp", UnsignedInteger.valueOf(6), lookupSymbol("xrp"));
-
 
     public static Optional<CurrencyDenomination> asDenomination(JSONObject json) {
         try {

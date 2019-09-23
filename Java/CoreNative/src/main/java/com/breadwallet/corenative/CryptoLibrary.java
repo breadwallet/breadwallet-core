@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -19,12 +19,17 @@ import com.breadwallet.corenative.crypto.BRCryptoHash;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoPeer;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
+import com.breadwallet.corenative.support.BRDisconnectReason;
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
+import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -47,6 +52,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
     BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
+    Pointer cryptoAccountGetFileSystemIdentifier(BRCryptoAccount account);
     Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
     int cryptoAccountValidateSerialization(BRCryptoAccount account, byte[] serialization, SizeT count);
     int cryptoAccountValidateWordsList(SizeT count);
@@ -145,6 +151,14 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
+    BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
+    BRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
+    Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
+    Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
+    short cryptoPeerGetPort(BRCryptoPeer peer);
+    int cryptoPeerIsIdentical(BRCryptoPeer p1, BRCryptoPeer p2);
+    void cryptoPeerGive(BRCryptoPeer peer);
+
     long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
@@ -220,16 +234,19 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
     BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
-    int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
+    BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSetNetworkReachable(BRCryptoWalletManager manager, int isNetworkReachable);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-    void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
+    BRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
+    void cryptoWalletManagerConnect(BRCryptoWalletManager cwm, BRCryptoPeer peer);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSyncToDepth(BRCryptoWalletManager cwm, int depth);
     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, ByteBuffer paperKey);
     void cryptoWalletManagerSubmitForKey(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, BRCryptoKey key);
     void cwmAnnounceGetBlockNumberSuccessAsInteger(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,long blockNumber);
@@ -284,4 +301,9 @@ public interface CryptoLibrary extends Library {
 
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
+    // support/BRSyncMode.h
+    Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
+    Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
+    Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 }

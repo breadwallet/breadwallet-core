@@ -3,7 +3,7 @@
 //  CoreXDemo
 //
 //  Created by Ed Gamble on 11/8/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -31,7 +31,18 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var listener: CoreDemoListener!
     var system: System!
     var mainnet = true
+
     var accountSpecification: AccountSpecification!
+    var account: Account!
+    var storagePath: String!
+
+    var query: BlockChainDB!
+
+    var btcPeerSpec = (address: "103.99.168.100", port: UInt16(8333))
+    var btcPeer: NetworkPeer? = nil
+    var btcPeerUse = false
+
+    var clearPersistentData: Bool = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -63,9 +74,11 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
 
-        guard let account = Account.createFrom (phrase: accountSpecification.paperKey,
-                                                timestamp: accountSpecification.timestamp,
-                                                uids: walletId) else {
+        account = Account.createFrom (phrase: accountSpecification.paperKey,
+                                      timestamp: accountSpecification.timestamp,
+                                      uids: walletId)
+        guard nil != account
+            else {
             precondition(false, "No account")
             return false
         }
@@ -73,29 +86,34 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         mainnet = (accountSpecification.network == "mainnet")
 
         // Ensure the storage path
-        let storagePath = FileManager.default
+        storagePath = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
-        do {
-            if FileManager.default.fileExists(atPath: storagePath) {
-                try FileManager.default.removeItem(atPath: storagePath)
+        if clearPersistentData {
+            do {
+                if FileManager.default.fileExists(atPath: storagePath) {
+                    try FileManager.default.removeItem(atPath: storagePath)
+                }
+
+                try FileManager.default.createDirectory (atPath: storagePath,
+                                                         withIntermediateDirectories: true,
+                                                         attributes: nil)
             }
-
-            try FileManager.default.createDirectory (atPath: storagePath,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
+            catch let error as NSError {
+                print("Error: \(error.localizedDescription)")
+            }
         }
-        catch let error as NSError {
-            print("Error: \(error.localizedDescription)")
-        }
-
+        
         print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
-        print ("APP: StoragePath       : \(storagePath)");
+        print ("APP: StoragePath       : \(storagePath?.description ?? "<none>")");
         print ("APP: Mainnet           : \(mainnet)")
-        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
-
+        let currencyCodesToMode: [String:WalletManagerMode] = [
+            "btc" : .api_only,
+            "eth" : .api_only,
+//            "bch" : .p2p_only,
+            ]
         if mainnet {
 
         }
@@ -103,17 +121,21 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
-        print ("APP: Currencies        : \(currencies)")
+        let registerCurrencyCodes = [
+            "ZLA",
+            "ADT"]
+
+        print ("APP: CurrenciesToMode  : \(currencyCodesToMode)")
 
         // Create the listener
-        let listener = CoreDemoListener (currencyCodesNeeded: currencies,
+        listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                         registerCurrencyCodes: registerCurrencyCodes,
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
-        let query = BlockChainDB.createForTest ()
+        query = BlockChainDB.createForTest ()
 
         // Create the system
-        self.listener = listener
         self.system = System (listener: listener,
                               account: account,
                               onMainnet: mainnet,
@@ -125,20 +147,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        var networksNeeded: [String] = []
-
-        #if TESTNET
-        networksNeeded += ["bitcoin-testnet,ripple-testnet"] // ...
-        #endif
-
-        #if MAINNET
-        networksNeeded += ["bitcoin-mainnet"] // ...
-        #endif
-
-        print ("APP: Networks          : \(networksNeeded)")
-        self.system.start (networksNeeded: networksNeeded) //, */"ethereum-mainnet"])
-
-        self.system.configure()
+        self.system.configure(withCurrencyModels: [])
 
         return true
     }
@@ -211,11 +220,11 @@ extension UIApplication {
         print ("APP: Resetting")
 
         // Create a new system
-        let system = System (listener: app.system.listener!,
-                             account: app.system.account,
-                             onMainnet: app.system.onMainnet,
-                             path: app.system.path,
-                             query: app.system.query)
+        let system = System (listener: app.listener!,
+                             account: app.account,
+                             onMainnet: app.mainnet,
+                             path: app.storagePath,
+                             query: app.query)
 
         // Stop the existing system
         app.system.stop()
@@ -224,7 +233,23 @@ extension UIApplication {
         
         // Assign and then configure the new system
         app.system = system
-        app.system.configure()
+
+        // Passing `[]`... it is a demo app...
+        app.system.configure(withCurrencyModels: [])
+    }
+
+    static func peer (network: Network) -> NetworkPeer? {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return nil }
+        guard Currency.codeAsBTC == network.currency.code else { return nil }
+        guard app.btcPeerUse else { return nil }
+
+        if nil == app.btcPeer {
+            app.btcPeer = network.createPeer (address: app.btcPeerSpec.address,
+                                              port: app.btcPeerSpec.port,
+                                              publicKey: nil)
+        }
+
+        return app.btcPeer
     }
 }
 

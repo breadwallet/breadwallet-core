@@ -5,6 +5,9 @@
 //  Created by Ed Gamble on 4/15/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 
 import XCTest
 @testable import BRCrypto
@@ -134,6 +137,8 @@ class BRBlockChainDBTest: XCTestCase {
         let blockchainId = "bitcoin-testnet"
         db.getTransactions (blockchainId: blockchainId,
                             addresses: [],
+                            begBlockNumber: 0,
+                            endBlockNumber: 1,
                             includeRaw: true) {
                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                 guard case let .success (transactions) = res
@@ -152,6 +157,8 @@ class BRBlockChainDBTest: XCTestCase {
 
         db.getTransactions (blockchainId: blockchainId,
                             addresses: ["abc", "def"],
+                            begBlockNumber: 0,
+                            endBlockNumber: 1500000,
                             includeRaw: true) {
                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                 guard case let .success (transactions) = res

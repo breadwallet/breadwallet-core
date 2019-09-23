@@ -1,25 +1,11 @@
 //  BRSyncManager.h
 //
 //  Created by Michael Carrara on 12/08/19.
-//  Copyright (c) 2019 breadwallet LLC.
+//  Copyright © 2019 Breadwallet AG. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
 
 #ifndef BRSyncManager_h
 #define BRSyncManager_h
@@ -84,7 +70,8 @@ typedef enum {
     SYNC_MANAGER_SYNC_PROGRESS,
     SYNC_MANAGER_SYNC_STOPPED,
 
-    SYNC_MANAGER_TXN_SUBMITTED,
+    SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
+    SYNC_MANAGER_TXN_SUBMIT_FAILED,
 
     SYNC_MANAGER_TXNS_UPDATED,
     SYNC_MANAGER_BLOCK_HEIGHT_UPDATED
@@ -106,15 +93,21 @@ typedef struct {
             BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            int reason;
+            BRSyncStoppedReason reason;
         } syncStopped;
+        struct {
+            BRDisconnectReason reason;
+        } disconnected;
         struct {
             uint64_t value;
         } blockHeightUpdated;
         struct {
             BRTransaction *transaction;
-            int error;
-        } submitted;
+        } submitSucceeded;
+        struct {
+            BRTransaction *transaction;
+            BRTransferSubmitError error;
+        } submitFailed;
     } u;
 } BRSyncManagerEvent;
 
@@ -148,6 +141,8 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,
                         uint64_t blockHeight,
+                        uint64_t confirmationUntilFinal,
+                        int isNetworkReachable,
                         OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
@@ -159,6 +154,21 @@ BRSyncManagerFree(BRSyncManager manager);
 extern uint64_t
 BRSyncManagerGetBlockHeight (BRSyncManager manager);
 
+extern uint64_t
+BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager);
+
+extern int
+BRSyncManagerGetNetworkReachable (BRSyncManager manager);
+
+extern void
+BRSyncManagerSetNetworkReachable (BRSyncManager manager,
+                                  int isNetworkReachable);
+
+extern void
+BRSyncManagerSetFixedPeer (BRSyncManager manager,
+                           UInt128 address,
+                           uint16_t port);
+
 extern void
 BRSyncManagerConnect(BRSyncManager manager);
 
@@ -166,7 +176,9 @@ extern void
 BRSyncManagerDisconnect(BRSyncManager manager);
 
 extern void
-BRSyncManagerScan(BRSyncManager manager);
+BRSyncManagerScanToDepth(BRSyncManager manager,
+                         BRSyncDepth depth,
+                         OwnershipKept BRTransaction *lastConfirmedSend);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
@@ -177,7 +189,7 @@ BRSyncManagerTickTock(BRSyncManager manager);
 
 extern void
 BRSyncManagerP2PFullScanReport(BRSyncManager manager);
-    
+
 extern void
 BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                     int rid,

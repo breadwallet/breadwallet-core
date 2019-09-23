@@ -5,23 +5,8 @@
 //  Created by Ed Gamble on 3/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BRCryptoBase_h
 #define BRCryptoBase_h
@@ -70,22 +55,28 @@ extern "C" {
         void (*free) (void *);
     } BRCryptoRef;
 
+#if !defined (CRYPTO_REF_DEBUG)
+#define CRYPTO_REF_DEBUG 0
+#endif
+
 #define DECLARE_CRYPTO_GIVE_TAKE(type, preface) \
   extern type preface##Take (type obj);  \
   extern void preface##Give (type obj)
 
 #define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface) \
   extern type              \
-  preface##Take (type obj) {        \
+  preface##Take (type obj) {   \
     atomic_fetch_add (&obj->ref.count, 1); \
     return obj;            \
   }                        \
   extern void              \
-  preface##Give (type obj) {        \
+  preface##Give (type obj) {  \
     unsigned int __count = atomic_fetch_sub (&obj->ref.count, 1); \
     assert (0 != __count); \
-    if (1 == __count)  \
-      obj->ref.free (obj); \
+    if (1 == __count) {    \
+        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); } \
+        obj->ref.free (obj);  \
+    }                      \
   }
 
 #define CRYPTO_AS_FREE(release)     ((void (*) (void *)) release)

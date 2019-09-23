@@ -33,6 +33,110 @@
 extern "C" {
 #endif
 
+/// MARK: Transfer Submission Result
+
+typedef enum {
+    TRANSFER_SUBMIT_ERROR_UNKNOWN,
+    TRANSFER_SUBMIT_ERROR_POSIX,
+} BRTransferSubmitErrorType;
+
+typedef struct {
+    BRTransferSubmitErrorType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRTransferSubmitError;
+
+extern BRTransferSubmitError
+BRTransferSubmitErrorUnknown(void);
+
+extern BRTransferSubmitError
+BRTransferSubmitErrorPosix(int errnum);
+
+/**
+ * Return a descriptive message as to why the error occurred.
+ *
+ *@return the detailed reason as a string or NULL
+ */
+extern char *
+BRTransferSubmitErrorGetMessage(BRTransferSubmitError *e);
+
+/// MARK: Disconnect Reason
+
+typedef enum {
+    DISCONNECT_REASON_REQUESTED,
+    DISCONNECT_REASON_UNKNOWN,
+    DISCONNECT_REASON_POSIX
+} BRDisconnectReasonType;
+
+typedef struct {
+    BRDisconnectReasonType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRDisconnectReason;
+
+extern BRDisconnectReason
+BRDisconnectReasonRequested(void);
+
+extern BRDisconnectReason
+BRDisconnectReasonUnknown(void);
+
+extern BRDisconnectReason
+BRDisconnectReasonPosix(int errnum);
+
+/**
+ * Return a descriptive message as to why the disconnect occurred.
+ *
+ *@return the detailed reason as a string or NULL
+ */
+extern char *
+BRDisconnectReasonGetMessage(BRDisconnectReason *reason);
+
+/// MARK: Sync Stopped Reason
+
+typedef enum {
+    SYNC_STOPPED_REASON_COMPLETE,
+    SYNC_STOPPED_REASON_REQUESTED,
+    SYNC_STOPPED_REASON_UNKNOWN,
+    SYNC_STOPPED_REASON_POSIX
+} BRSyncStoppedReasonType;
+
+typedef struct {
+    BRSyncStoppedReasonType type;
+    union {
+        struct {
+            int errnum;
+        } posix;
+    } u;
+} BRSyncStoppedReason;
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonComplete(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonRequested(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonUnknown(void);
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonPosix(int errnum);
+
+/**
+ * Return a descriptive message as to why the sync stopped.
+ *
+ *@return the detailed reason as a string or NULL
+ */
+extern char *
+BRSyncStoppedReasonGetMessage(BRSyncStoppedReason *reason);
+
+/// MARK: Sync Mode
+
 typedef enum {
     /**
      * Use the BRD backend for all Core blockchain state.  The BRD backend includes a 'submit
@@ -61,6 +165,26 @@ typedef enum {
 
 extern const char *
 BRSyncModeString (BRSyncMode m);
+
+/// MARK: Sync Depth
+
+typedef enum {
+    /**
+     * Sync from the block height of the last confirmed send transaction.
+     */
+    SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND,
+
+    /**
+     * Sync from the block height of the last trusted block; this is dependent on the
+     * blockchain and mode as to how it determines trust.
+     */
+    SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK,
+
+    /**
+     * Sync from the block height of the point in time when the account was created.
+     */
+    SYNC_DEPTH_FROM_CREATION
+} BRSyncDepth;
 
 /// The Percent Complete (0...100.0) derived from the last block processed relative to the
 /// full block range in a sync.

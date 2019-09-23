@@ -24,7 +24,143 @@
 //  THE SOFTWARE.
 //
 
+#include <assert.h>
+#include <string.h>
+
 #include "BRSyncMode.h"
+
+/// MARK: Transaction Submission Error
+
+// TODO(fix): This should be moved to a more appropriate file (BRTransfer.c/h?)
+
+extern BRTransferSubmitError
+BRTransferSubmitErrorUnknown(void) {
+    return (BRTransferSubmitError) {
+        TRANSFER_SUBMIT_ERROR_UNKNOWN
+    };
+}
+
+extern BRTransferSubmitError
+BRTransferSubmitErrorPosix(int errnum) {
+    return (BRTransferSubmitError) {
+        TRANSFER_SUBMIT_ERROR_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+BRTransferSubmitErrorGetMessage (BRTransferSubmitError *e) {
+    char *message = NULL;
+
+    switch (e->type) {
+        case TRANSFER_SUBMIT_ERROR_POSIX: {
+            if (NULL != (message = strerror (e->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Disconnect Reason
+
+extern BRDisconnectReason
+BRDisconnectReasonRequested(void) {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_REQUESTED
+    };
+}
+
+extern BRDisconnectReason
+BRDisconnectReasonUnknown(void) {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_UNKNOWN
+    };
+}
+
+extern BRDisconnectReason
+BRDisconnectReasonPosix(int errnum) {
+    return (BRDisconnectReason) {
+        DISCONNECT_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+BRDisconnectReasonGetMessage(BRDisconnectReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case DISCONNECT_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Stopped Reason
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonComplete(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_COMPLETE
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonRequested(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_REQUESTED
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonUnknown(void) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_UNKNOWN
+    };
+}
+
+extern BRSyncStoppedReason
+BRSyncStoppedReasonPosix(int errnum) {
+    return (BRSyncStoppedReason) {
+        SYNC_STOPPED_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+BRSyncStoppedReasonGetMessage(BRSyncStoppedReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case SYNC_STOPPED_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Mode
 
 extern const char *
 BRSyncModeString (BRSyncMode m) {

@@ -1,9 +1,9 @@
 //
 //  BREthereumEWM
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/5/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -30,7 +30,8 @@ ewmCreate (BREthereumNetwork network,
            BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
-           uint64_t blockHeight);
+           uint64_t blockHeight,
+           uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
@@ -39,7 +40,8 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
-                       uint64_t blockHeight);
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
@@ -48,7 +50,8 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
-                        uint64_t blockHeight);
+                        uint64_t blockHeight,
+                        uint64_t confirmationsUntilFinal);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);
@@ -112,6 +115,11 @@ ewmIsConnected (BREthereumEWM ewm);
 extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm,
          BREthereumBoolean pendExistingTransfers);
+
+extern BREthereumBoolean
+ewmSyncToDepth (BREthereumEWM ewm,
+                BREthereumBoolean pendExistingTransfers,
+                BRSyncDepth depth);
 
 extern void
 ewmLock (BREthereumEWM ewm);
@@ -446,6 +454,22 @@ extern BREthereumStatus
 ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
                                    const char *strBlockNumber,
                                    int rid);
+
+/// MARK: Token
+
+extern BREthereumToken
+ewmLookupToken (BREthereumEWM ewm,
+                BREthereumAddress address);
+
+extern BREthereumToken
+ewmCreateToken (BREthereumEWM ewm,
+                const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice);
 
 ///
 //extern void // status, error

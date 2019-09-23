@@ -121,13 +121,16 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
             [EventMatcher (event: WalletManagerEvent.created),
              EventMatcher (event: WalletManagerEvent.walletAdded(wallet: wallet)),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+
              EventMatcher (event: WalletManagerEvent.syncStarted),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
+             // We might not see `syncProgress`
+             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
-             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested))),
              ]))
     }
 
@@ -146,7 +149,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         let walletBRDExpectation = XCTestExpectation (description: "BRD Wallet")
         listener.managerHandlers += [
             { (system: System, manager:WalletManager, event: WalletManagerEvent) in
-                if case let .walletAdded(wallet) = event, "brd" == wallet.name {
+                if case let .walletAdded(wallet) = event, "BRD" == wallet.name {
                     walletBRD = wallet
                     walletBRDExpectation.fulfill()
                 }
@@ -180,10 +183,10 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
             ]))
 
         XCTAssertTrue (listener.checkManagerEvents(
-            [WalletManagerEvent.created,
-             WalletManagerEvent.walletAdded(wallet: walletETH),
-             WalletManagerEvent.walletAdded(wallet: walletBRD)],
-            strict: true))
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH), strict: true, scan: false),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD), strict: true, scan: true)
+            ]))
 
         XCTAssertTrue (listener.checkWalletEvents(
             [WalletEvent.created,
@@ -207,16 +210,22 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertTrue (listener.checkManagerEvents (
             [EventMatcher (event: WalletManagerEvent.created),
              EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH)),
-             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD), strict: true, scan: true),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected),
+                           strict: true, scan: true),
              // wallet changed?
-             EventMatcher (event: WalletManagerEvent.syncStarted, strict: true, scan:true),
+             EventMatcher (event: WalletManagerEvent.syncStarted, strict: true, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
+             // We might not see `syncProgress`
+             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
-             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
+
+             // Can have another sync started here... so scan
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested)),
+                           strict: true, scan: true),
             ]))
     }
 
@@ -277,9 +286,9 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                                     path: migratePath,
                                     query: migrateQuery)
 
-        // transfers annonced on `configure`
+        // transfers announced on `configure`
         migrateListener.transferCount = transferBlobs.count
-        migrateSystem.configure()
+        migrateSystem.configure(withCurrencyModels: [])
         wait (for: [migrateListener.migratedManagerExpectation], timeout: 30)
         wait (for: [migrateListener.transferExpectation], timeout: 30)
         XCTAssertFalse (migrateListener.migratedFailed)
@@ -306,7 +315,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                                     query: muckedQuery)
 
         // transfers annonced on `configure`
-        muckedSystem.configure()
+        muckedSystem.configure(withCurrencyModels: [])
         wait (for: [muckedListener.migratedManagerExpectation], timeout: 30)
         XCTAssertTrue (muckedListener.migratedFailed)
     }
@@ -327,7 +336,9 @@ class MigrateSystemListener: SystemListener {
 
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
-        case .created: break
+        case .created:
+            break
+
         case .networkAdded(let network):
             // Network of interest
             if system.onMainnet == network.isMainnet
@@ -350,7 +361,8 @@ class MigrateSystemListener: SystemListener {
                 // Wallet Manager
                 let _ = system.createWalletManager (network: network,
                                                     mode: system.defaultMode(network: network),
-                                                    addressScheme: system.defaultAddressScheme(network: network))
+                                                    addressScheme: system.defaultAddressScheme(network: network),
+                                                    currencies: Set<Currency>())
             }
 
         case .managerAdded(let manager):
@@ -358,6 +370,9 @@ class MigrateSystemListener: SystemListener {
                 migratedManager = manager
                 migratedManagerExpectation.fulfill()
             }
+
+        case .discoveredNetworks:
+            break
         }
     }
 
@@ -379,6 +394,11 @@ class MigrateSystemListener: SystemListener {
             if 1 <= transferCount { transferCount -= 1 }
         }
         else if case .created = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+        // TODO: We sometimes see a TransferEvent.created with TransferState.included - Racy?
+        else if case .created = event, case .included = transfer.state {
             if 1 == transferCount { transferExpectation.fulfill()}
             if 1 <= transferCount { transferCount -= 1 }
         }

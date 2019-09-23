@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
@@ -16,9 +23,14 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     /* package */
     static TransferFeeBasis from(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+        if (feeBasis == null) {
+            return null;
+        }
+
         if (feeBasis instanceof TransferFeeBasis) {
             return (TransferFeeBasis) feeBasis;
         }
+
         throw new IllegalArgumentException("Unsupported fee basis instance");
     }
 
@@ -81,6 +93,8 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     @Override
     public int hashCode() {
+        // TODO(fix): objects that are equal to each other must return the same hashCode; this implementation doesn;t
+        //            meet that requirement
         return Objects.hash(core);
     }
 

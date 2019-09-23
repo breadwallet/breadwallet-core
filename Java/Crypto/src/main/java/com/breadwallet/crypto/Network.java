@@ -2,12 +2,14 @@
  * Network
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
+
+import android.support.annotation.Nullable;
 
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
@@ -51,6 +53,16 @@ public interface Network {
     UnsignedLong getHeight();
 
     UnsignedInteger getConfirmationsUntilFinal();
+
+    /**
+     * Create a Network Peer for use in P2P modes when a WalletManager connects.
+     *
+     * @param address An numeric-dot-notation IP address
+     * @param port A port number
+     * @param publicKey An optional public key
+     * @return A NetworkPeer if the address correctly parses; otherwise `absent`
+     */
+    Optional<? extends NetworkPeer> createPeer(String address, UnsignedInteger port, @Nullable String publicKey);
 
     boolean equals(Object o);
 

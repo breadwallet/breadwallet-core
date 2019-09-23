@@ -262,28 +262,23 @@ public class BlockChainDB {
             else { return nil }
 
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
-                    blockHeight: (id.hasPrefix ("ripple")
-                        ? min (25000, blockHeight)
-                        : blockHeight),
+                    blockHeight: (-1 == blockHeight ? nil : UInt64 (blockHeight)),
                     feeEstimates: feeEstimates,
                     confirmationsUntilFinal: confirmationsUntilFinal)
         }
 
-        /// We define default blockchains but these are wholly insufficient given that the
-        /// specfication includes `blockHeight` (which can never be correct).
-        static public let defaultBlockchains: [Blockchain] = [
-            // Mainnet
-            (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
-            (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
-            (id: "ripple-mainnet",   name: "Ripple",   network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000, feeEstimates: []),
+        static internal func updateBlockchainModelHeight (model: Model.Blockchain, height: UInt64) -> Model.Blockchain {
+            guard nil == model.blockHeight else { return model }
 
-            // Testnet
-            (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
-            (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
-            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
-        ]
+            return (id: model.id,
+                    name: model.name,
+                    network: model.network,
+                    isMainnet: model.isMainnet,
+                    currency: model.currency,
+                    blockHeight: height,
+                    feeEstimates: model.feeEstimates,
+                    confirmationsUntilFinal: model.confirmationsUntilFinal)
+        }
 
         /// Currency & CurrencyDenomination
 
@@ -784,8 +779,8 @@ public class BlockChainDB {
 
     public func getTransactions (blockchainId: String,
                                  addresses: [String],
-                                 begBlockNumber: UInt64 = 0,
-                                 endBlockNumber: UInt64 = 0,
+                                 begBlockNumber: UInt64,
+                                 endBlockNumber: UInt64,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
@@ -923,7 +918,7 @@ public class BlockChainDB {
                         .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asBlock) }
                         .recover { error = $0; return [] }.get()
 
-                    if let moreURL = more, nil == error {
+                    if let _ = more, nil == error {
                         moreResults = true
                         begBlockNumber = results.reduce(0) {
                             max ($0, $1.height)
@@ -1106,7 +1101,7 @@ public class BlockChainDB {
                                  completion: @escaping (Result<String,QueryError>) -> Void) {
         let json: JSON.Dict = [ "id" : ridIncr ]
 
-        var queryDict = [
+        let queryDict = [
             "module"    : "account",
             "action"    : "tokenbalance",
             "address"   : address,
@@ -1175,7 +1170,7 @@ public class BlockChainDB {
             "account" : address,
             "id"      : ridIncr ]
 
-        var queryDict = [
+        let queryDict = [
             "module"    : "account",
             "action"    : "txlist",
             "address"   : address,

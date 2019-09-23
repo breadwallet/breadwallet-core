@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -87,6 +87,11 @@ struct BREthereumEWMRecord {
     BREthereumWallet  walletHoldingEther;
 
     /**
+     * ERC20 Tokens
+     */
+    BRSetOf(BREthereumToken) tokens;
+
+    /**
      * The BCS Interface
      */
     BREthereumBCS bcs;
@@ -100,6 +105,11 @@ struct BREthereumEWMRecord {
      * with zero if the network's block height is unknown.
      */
     uint64_t blockHeight;
+
+    /**
+     * The number of blocks required to be mined before until a transfer can be considered final
+     */
+    uint64_t confirmationsUntilFinal;
 
     /**
      * An identiifer for a LES/BRD Request
@@ -330,29 +340,35 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 amount,
-                                int rid);
+                          BREthereumWallet wallet,
+                          UInt256 amount,
+                          int rid);
 
 extern void
 ewmSignalAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 amount,
-                                int rid);
+                          BREthereumWallet wallet,
+                          UInt256 amount,
+                          int rid);
+
+extern void
+ewmHandleUpdateWalletBalances (BREthereumEWM ewm);
+
+extern void
+ewmSignalUpdateWalletBalances (BREthereumEWM ewm);
 
 /// MARK: - GasPrice
 
 extern void
 ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 value,
-                                 int rid);
+                           BREthereumWallet wallet,
+                           UInt256 value,
+                           int rid);
 
 extern void
 ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 value,
-                                 int rid);
+                           BREthereumWallet wallet,
+                           UInt256 value,
+                           int rid);
 
 /// MARK: - Submit Transaction
 
@@ -521,7 +537,6 @@ ewmSignalAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
                               uint64_t nonce,
                               int rid);
-
 
 ///
 // Save Sync (and other) State

@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
@@ -24,9 +31,14 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     /* package */
     static NetworkFee from(com.breadwallet.crypto.NetworkFee fee) {
+        if (fee == null) {
+            return null;
+        }
+
         if (fee instanceof NetworkFee) {
             return (NetworkFee) fee;
         }
+
         throw new IllegalArgumentException("Unsupported network fee instance");
     }
 
@@ -57,6 +69,8 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     @Override
     public int hashCode() {
+        // TODO(fix): objects that are equal to each other must return the same hashCode; this implementation doesn;t
+        //            meet that requirement
         return Objects.hash(core);
     }
 

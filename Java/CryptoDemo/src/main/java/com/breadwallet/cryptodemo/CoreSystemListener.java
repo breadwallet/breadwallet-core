@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.cryptodemo;
 
 import android.support.annotation.Nullable;
@@ -13,26 +20,21 @@ import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.DefaultSystemEventVisitor;
+import com.breadwallet.crypto.events.system.SystemDiscoveredNetworksEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
 import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
-import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
-import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 public class CoreSystemListener implements SystemListener {
 
@@ -42,7 +44,8 @@ public class CoreSystemListener implements SystemListener {
     private final boolean isMainnet;
     private final List<String> currencyCodesNeeded;
 
-    public CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
+    /* package */
+    CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
         this.mode = mode;
         this.isMainnet = isMainnet;
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
@@ -56,7 +59,7 @@ public class CoreSystemListener implements SystemListener {
             @Override
             public Void visit(SystemManagerAddedEvent event) {
                 WalletManager manager = event.getWalletManager();
-                manager.connect();
+                manager.connect(null);
                 return null;
             }
 
@@ -75,11 +78,23 @@ public class CoreSystemListener implements SystemListener {
                 }
 
                 if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-                    WalletManagerMode wmMode = system.supportsWalletManagerModes(network, mode) ?
+                    WalletManagerMode wmMode = system.supportsWalletManagerMode(network, mode) ?
                             mode : system.getDefaultWalletManagerMode(network);
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);
-                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme);
+                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme, Collections.emptySet());
+                }
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public Void visit(SystemDiscoveredNetworksEvent event) {
+                Log.d(TAG, String.format("Currencies (Discovered): %s", event));
+                for (Network network: event.getNetworks()) {
+                    for (Currency currency: network.getCurrencies()) {
+                        Log.d(TAG, String.format("    Currency: %s for %s", currency.getCode(), network.getName()));
+                    }
                 }
                 return null;
             }

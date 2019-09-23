@@ -1,4 +1,15 @@
 //
+//  CoreTests-Bridging-Header.h
+//  BRCore
+//
+//  Created by Ed Gamble on 3/19/19.
+//  Copyright © 2019 breadwallet. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+
+
+//
 //  Use this file to import your target's public headers that you would like to expose to Swift.
 //
 #include "ethereum/BREthereum.h"

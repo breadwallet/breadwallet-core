@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -32,6 +32,17 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     public Date getTimestamp() {
         return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
     }
+
+    @Override
+    public String getFilesystemIdentifier() {
+        Pointer ptr = CryptoLibrary.INSTANCE.cryptoAccountGetFileSystemIdentifier(this);
+        try {
+            return ptr.getString(0, "UTF-8");
+        } finally {
+            Native.free(Pointer.nativeValue(ptr));
+        }
+    }
+
     @Override
     public byte[] serialize() {
         SizeTByReference bytesCount = new SizeTByReference();

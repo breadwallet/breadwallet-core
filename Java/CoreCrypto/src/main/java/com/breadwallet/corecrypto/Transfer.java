@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -26,9 +26,14 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
     static Transfer from(com.breadwallet.crypto.Transfer transfer) {
+        if (transfer == null) {
+            return null;
+        }
+
         if (transfer instanceof Transfer) {
             return (Transfer) transfer;
         }
+
         throw new IllegalArgumentException("Unsupported transfer instance");
     }
 
@@ -43,7 +48,6 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     private final Supplier<Amount> amountSupplier;
     private final Supplier<Amount> directedSupplier;
     private final Supplier<TransferDirection> directionSupplier;
-    private final Supplier<Optional<TransferHash>> hashSupplier;
 
     private Transfer(CoreBRCryptoTransfer core, Wallet wallet) {
         this.core = core;
@@ -58,7 +62,6 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
         this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount()));
         this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected()));
         this.directionSupplier = Suppliers.memoize(() -> Utilities.transferDirectionFromCrypto(core.getDirection()));
-        this.hashSupplier = Suppliers.memoize(() -> core.getHash().transform(TransferHash::create));
     }
 
     @Override
@@ -109,7 +112,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Optional<TransferHash> getHash() {
-        return hashSupplier.get();
+        return core.getHash().transform(TransferHash::create);
     }
 
     @Override

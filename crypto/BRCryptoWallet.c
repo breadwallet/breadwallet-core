@@ -5,23 +5,8 @@
 //  Created by Ed Gamble on 3/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <pthread.h>
 
@@ -153,7 +138,6 @@ cryptoWalletCreateAsGEN (BRCryptoUnit unit,
 
 static void
 cryptoWalletRelease (BRCryptoWallet wallet) {
-    printf ("Wallet: Release\n");
     cryptoUnitGive (wallet->unit);
     cryptoUnitGive(wallet->unitForFee);
 
@@ -379,7 +363,8 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             BRWallet *wid = wallet->u.btc.wid;
 
             assert (0); // TODO: Generic Size not 1000
-            feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit, BRWalletFeePerKb (wid), 1000);
+            feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit, (uint32_t) BRWalletFeePerKb (wid), 1000);
+            break;
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = wallet->u.eth.ewm;
@@ -389,6 +374,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             BREthereumGasPrice gasPrice = ewmWalletGetDefaultGasPrice (ewm, wid);
 
             feeBasis =  cryptoFeeBasisCreateAsETH (feeUnit, gas, gasPrice);
+            break;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
             BRGenericWalletManager gwm = wallet->u.gen.gwm;
@@ -396,6 +382,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
 
             BRGenericFeeBasis bid = gwmWalletGetDefaultFeeBasis (gwm, wid);
             feeBasis =  cryptoFeeBasisCreateAsGEN (feeUnit, gwm, bid);
+            break;
         }
     }
 

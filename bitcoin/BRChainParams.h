@@ -2,7 +2,7 @@
 //  BRChainParams.h
 //
 //  Created by Aaron Voisine on 1/10/18.
-//  Copyright (c) 2019 breadwallet LLC
+//  Copyright (c) 2018-2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,8 @@ static inline int BRChainParamsIsBitcoin (const BRChainParams *params) {
 }
 
 extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp);
+
+extern const BRCheckPoint *BRChainParamsGetCheckpointBeforeBlockNumber (const BRChainParams *params, uint32_t blockNumber);
 
 #ifdef __cplusplus
 }

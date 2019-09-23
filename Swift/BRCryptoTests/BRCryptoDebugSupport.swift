@@ -5,6 +5,9 @@
 //  Created by Ed Gamble on 8/15/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 
 @testable import BRCrypto
 
@@ -150,19 +153,19 @@ struct EventMatcher<ME: MatchableEvent> {
 }
 
 extension Array where Element:MatchableEvent {
-    private func match (selfIndex: Int, _ matchers: [EventMatcher<Element>], matchIndex: Int) -> Bool {
-        if matchIndex >= matchers.count { return true  } // No matchers left -> success
+    private func match (selfIndex: Int, _ matchers: [EventMatcher<Element>], matchIndex: Int, matchRequired: Bool) -> Bool {
+        if matchIndex >= matchers.count { return !matchRequired  } // No matchers left -> success
         else if selfIndex >= self.count { return false } // Matchers but no elements -> failure
         else if let index = matchers[matchIndex].match (self, from: selfIndex) {
             // Got a match -> next matcher, next index
-            return match (selfIndex: 1 + index, matchers, matchIndex: 1 + matchIndex)
+            return match (selfIndex: 1 + index, matchers, matchIndex: 1 + matchIndex, matchRequired: false)
         }
         else { return false}
     }
 
     // Return true if every `matcher` has a match in self
     func match (_ matchers: [EventMatcher<Element>]) -> Bool {
-        return match (selfIndex: 0, matchers, matchIndex: 0)
+        return match (selfIndex: 0, matchers, matchIndex: 0, matchRequired: !matchers.isEmpty)
     }
 }
 

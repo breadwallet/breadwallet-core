@@ -1,7 +1,7 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -47,20 +47,20 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     /* package */
-    static Amount takeAndCreate(BRCryptoAmount core) {
-        return new Amount(CoreBRCryptoAmount.takeAndCreateOwned(core));
-    }
-
-    /* package */
     static Amount create(CoreBRCryptoAmount core) {
         return new Amount(core);
     }
 
     /* package */
     static Amount from(com.breadwallet.crypto.Amount amount) {
+        if (amount == null) {
+            return null;
+        }
+
         if (amount instanceof Amount) {
             return (Amount) amount;
         }
+
         throw new IllegalArgumentException("Unsupported amount instance");
     }
 

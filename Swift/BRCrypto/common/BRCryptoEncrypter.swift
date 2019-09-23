@@ -1,14 +1,16 @@
 //
-//  BREncryptor.swift
+//  BRCryptoEncryptor.swift
 //  BRCrypto
 //
 //  Created by Ed Gamble on 7/18/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 
 import Foundation
 import BRCryptoC
-import BRCore
 
 public protocol Encrypter {
     func encrypt (data: Data) -> Data

@@ -5,23 +5,8 @@
 //  Created by Ed Gamble on 3/19/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BRCryptoWalletManager_h
 #define BRCryptoWalletManager_h
@@ -29,6 +14,7 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"
+#include "BRCryptoPeer.h"
 #include "BRCryptoAccount.h"
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
@@ -49,7 +35,18 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
         CRYPTO_WALLET_MANAGER_STATE_SYNCING,
         CRYPTO_WALLET_MANAGER_STATE_DELETED
+    } BRCryptoWalletManagerStateType;
+
+    typedef struct {
+        BRCryptoWalletManagerStateType type;
+        union {
+            struct {
+                BRDisconnectReason reason;
+            } disconnected;
+        } u;
     } BRCryptoWalletManagerState;
+
+    extern const BRCryptoWalletManagerState CRYPTO_WALLET_MANAGER_STATE_CREATED_INIT;
 
     typedef enum {
         CRYPTO_WALLET_MANAGER_EVENT_CREATED,
@@ -87,7 +84,11 @@ extern "C" {
             struct {
                 BRSyncTimestamp timestamp;
                 BRSyncPercentComplete percentComplete;
-            } sync;
+            } syncContinues;
+
+            struct {
+                BRSyncStoppedReason reason;
+            } syncStopped;
 
             struct {
                 uint64_t value;
@@ -126,6 +127,8 @@ extern "C" {
         BRCryptoCWMListenerTransferEvent transferEventCallback;
     } BRCryptoCWMListener;
 
+    /// MARK: Wallet Manager
+
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                BRCryptoCWMClient client,
@@ -160,6 +163,10 @@ extern "C" {
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);
 
+    extern void
+    cryptoWalletManagerSetNetworkReachable (BRCryptoWalletManager cwm,
+                                            BRCryptoBoolean isNetworkReachable);
+
     extern BRCryptoBoolean
     cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
                                   BRCryptoWallet wallet);
@@ -187,14 +194,23 @@ extern "C" {
     cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
                                              BRCryptoCurrency currency);
 
+    extern BRCryptoWallet
+    cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
+                                       BRCryptoCurrency currency);
+
     extern void
-    cryptoWalletManagerConnect (BRCryptoWalletManager cwm);
+    cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
+                                BRCryptoPeer peer);
 
     extern void
     cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm);
 
     extern void
     cryptoWalletManagerSync (BRCryptoWalletManager cwm);
+
+    extern void
+    cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
+                                    BRSyncDepth depth);
 
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,
@@ -222,7 +238,7 @@ extern "C" {
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
     /// MARK: Wallet Migrator
-    
+
     typedef struct BRCryptoWalletMigratorRecord *BRCryptoWalletMigrator;
 
     typedef enum {

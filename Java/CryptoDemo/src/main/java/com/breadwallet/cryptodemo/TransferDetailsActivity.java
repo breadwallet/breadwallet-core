@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.cryptodemo;
 
 import android.app.Activity;
@@ -5,6 +12,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -30,8 +38,6 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
-
-import javax.annotation.Nullable;
 
 public class TransferDetailsActivity extends AppCompatActivity {
 

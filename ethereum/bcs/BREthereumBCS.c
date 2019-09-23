@@ -3,7 +3,7 @@
 //  Core
 //
 //  Created by Ed Gamble on 5/24/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -265,10 +265,11 @@ bcsCreate (BREthereumNetwork network,
         chainHeader = blockCheckpointCreatePartialBlockHeader(checkpoint);
     }
 
+#if defined (LES_DISABLE_DISCOVERY)
+    BREthereumBoolean discoverNodes = ETHEREUM_BOOLEAN_FALSE;
+#else
     // There is no need to discover nodes if we are in BRD_ONLY mode.
     BREthereumBoolean discoverNodes = AS_ETHEREUM_BOOLEAN (mode != SYNC_MODE_BRD_ONLY);
-#if defined (LES_DISABLE_DISCOVERY)
-    discoverNodes = ETHEREUM_BOOLEAN_FALSE;
 #endif
 
     BREthereumBoolean handleSync = AS_ETHEREUM_BOOLEAN (SYNC_MODE_P2P_ONLY == mode ||

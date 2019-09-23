@@ -12,6 +12,101 @@
 #include "BRBase.h"
 #include "BRWalletManager.h"
 #include "BRWalletManagerPrivate.h"
+#include "BRTransaction.h"
+
+//
+// Wallet Callbacks
+//
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    BRTransaction *ownedTransaction;
+    BRTransaction *refedTransaction;
+} BRWalletManagerWalletTxAddedEvent;
+
+static void
+bwmSignalTxAddedDispatcher (BREventHandler ignore,
+                            BRWalletManagerWalletTxAddedEvent *event) {
+    bwmHandleTxAdded(event->manager, event->ownedTransaction, event->refedTransaction);
+}
+
+static void
+bwmSignalTxAddedDestroyer (BRWalletManagerWalletTxAddedEvent *event) {
+    BRTransactionFree (event->ownedTransaction);
+}
+
+static BREventType bwmSignalTxAddedEventType = {
+    "BTC: Wallet TX Added Event",
+    sizeof (BRWalletManagerWalletTxAddedEvent),
+    (BREventDispatcher) bwmSignalTxAddedDispatcher,
+    (BREventDestroyer) bwmSignalTxAddedDestroyer
+};
+
+extern void
+bwmSignalTxAdded (BRWalletManager manager,
+                  OwnershipGiven BRTransaction *ownedTransaction,
+                  OwnershipKept BRTransaction *refedTransaction) {
+    BRWalletManagerWalletTxAddedEvent message =
+    { { NULL, &bwmSignalTxAddedEventType}, manager, ownedTransaction, refedTransaction};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    UInt256 hash;
+    uint32_t blockHeight;
+    uint32_t timestamp;
+} BRWalletManagerWalletTxUpdatedEvent;
+
+static void
+bwmSignalTxUpdatedDispatcher (BREventHandler ignore,
+                              BRWalletManagerWalletTxUpdatedEvent *event) {
+    bwmHandleTxUpdated(event->manager, event->hash, event->blockHeight, event->timestamp);
+}
+
+static BREventType bwmSignalTxUpdatedEventType = {
+    "BTC: Wallet TX Updated Event",
+    sizeof (BRWalletManagerWalletTxUpdatedEvent),
+    (BREventDispatcher) bwmSignalTxUpdatedDispatcher
+};
+
+extern void
+bwmSignalTxUpdated (BRWalletManager manager,
+                    UInt256 hash,
+                    uint32_t blockHeight,
+                    uint32_t timestamp) {
+    BRWalletManagerWalletTxUpdatedEvent message =
+    { { NULL, &bwmSignalTxUpdatedEventType}, manager, hash, blockHeight, timestamp};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    UInt256 hash;
+} BRWalletManagerWalletTxDeletedEvent;
+
+static void
+bwmSignalTxDeletedDispatcher (BREventHandler ignore,
+                              BRWalletManagerWalletTxDeletedEvent *event) {
+    bwmHandleTxDeleted(event->manager, event->hash);
+}
+
+static BREventType bwmSignalTxDeletedEventType = {
+    "BTC: Wallet TX Deleted Event",
+    sizeof (BRWalletManagerWalletTxDeletedEvent),
+    (BREventDispatcher) bwmSignalTxDeletedDispatcher
+};
+
+extern void
+bwmSignalTxDeleted (BRWalletManager manager,
+                    UInt256 hash) {
+    BRWalletManagerWalletTxDeletedEvent message =
+    { { NULL, &bwmSignalTxDeletedEventType}, manager, hash};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
 
 //
 // WalletManager Event
@@ -263,6 +358,10 @@ bwmSignalAnnounceSubmit (BRWalletManager manager,
 // All Event Types
 //
 const BREventType *bwmEventTypes[] = {
+    &bwmSignalTxAddedEventType,
+    &bwmSignalTxUpdatedEventType,
+    &bwmSignalTxDeletedEventType,
+
     &bwmWalletManagerEventType,
     &bwmWalletEventType,
     &bwmTransactionEventType,

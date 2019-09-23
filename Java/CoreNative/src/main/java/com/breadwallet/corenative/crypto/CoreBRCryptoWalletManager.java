@@ -1,13 +1,15 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.BRSyncDepth;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -36,23 +38,29 @@ public interface CoreBRCryptoWalletManager {
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 
+    Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency);
+
+    void setNetworkReachable(boolean isNetworkReachable);
+
     int getMode();
 
     void setMode(int mode);
 
     String getPath();
 
-    int getState();
+    BRCryptoWalletManagerState getState();
 
     int getAddressScheme();
 
     void setAddressScheme(int scheme);
 
-    void connect();
+    void connect(BRCryptoPeer peer);
 
     void disconnect();
 
     void sync();
+
+    void syncToDepth(BRSyncDepth depth);
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
 

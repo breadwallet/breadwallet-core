@@ -1,15 +1,17 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
- *
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Copyright (c) 2019 Breadwinner AG.  All right reserved.
+*
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
@@ -75,6 +77,23 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+        return Optional.fromNullable(
+                CryptoLibrary.INSTANCE.cryptoWalletManagerRegisterWallet(this, currency.asBRCryptoCurrency())
+        ).transform(
+                OwnedBRCryptoWallet::new
+        );
+    }
+
+    @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetNetworkReachable(
+                this,
+                isNetworkReachable ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE
+        );
+    }
+
+    @Override
     public int getMode() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
     }
@@ -90,7 +109,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public int getState() {
+    public BRCryptoWalletManagerState getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetState(this);
     }
 
@@ -105,8 +124,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void connect() {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this);
+    public void connect(BRCryptoPeer peer) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this, peer);
     }
 
     @Override
@@ -117,6 +136,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public void sync() {
         CryptoLibrary.INSTANCE.cryptoWalletManagerSync(this);
+    }
+
+    @Override
+    public void syncToDepth(BRSyncDepth depth) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toNative());
     }
 
     @Override

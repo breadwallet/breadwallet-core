@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -33,13 +33,32 @@ eventQueueDestroy (BREventQueue queue);
 extern void
 eventQueueEnqueueTail (BREventQueue queue,
                        const BREvent *event);
+
 extern void
 eventQueueEnqueueHead (BREventQueue queue,
                        const BREvent *event);
-
 extern BREventStatus
 eventQueueDequeue (BREventQueue queue,
                    BREvent *event);
+
+extern void
+eventQueueEnqueueTailSignal (BREventQueue queue,
+                             const BREvent *event);
+
+extern void
+eventQueueEnqueueHeadSignal (BREventQueue queue,
+                             const BREvent *event);
+
+
+extern BREventStatus
+eventQueueDequeueWait (BREventQueue queue,
+                       BREvent *event);
+
+extern void
+eventQueueDequeueWaitAbort (BREventQueue queue);
+
+extern void
+eventQueueDequeueWaitAbortReset (BREventQueue queue);
 
 extern int
 eventQueueHasPending (BREventQueue queue);

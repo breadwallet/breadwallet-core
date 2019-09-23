@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -445,7 +445,7 @@ ewmClientWalletEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientWalletEventType = {
-    "EMW: Client Wallet Event",
+    "EWM: Client Wallet Event",
     sizeof (BREthereumEWMClientWalletEvent),
     (BREventDispatcher) ewmClientWalletEventDispatcher
 };
@@ -482,7 +482,7 @@ ewmClientBlockEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientBlockEventType = {
-    "EMW: Client Block Event",
+    "EWM: Client Block Event",
     sizeof (BREthereumEWMClientBlockEvent),
     (BREventDispatcher) ewmClientBlockEventDispatcher
 };
@@ -521,7 +521,7 @@ ewmClientTransactionEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientTransactionEventType = {
-    "EMW: Client Transaction Event",
+    "EWM: Client Transaction Event",
     sizeof (BREthereumEWMClientTransactionEvent),
     (BREventDispatcher) ewmClientTransactionEventDispatcher
 };
@@ -556,7 +556,7 @@ ewmClientPeerEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientPeerEventType = {
-    "EMW: Client Peer Event",
+    "EWM: Client Peer Event",
     sizeof (BREthereumEWMClientPeerEvent),
     (BREventDispatcher) ewmClientPeerEventDispatcher
 };
@@ -588,7 +588,7 @@ ewmClientEWMEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientEWMEventType = {
-    "EMW: Client EWM Event",
+    "EWM: Client EWM Event",
     sizeof (BREthereumEWMClientEWMEvent),
     (BREventDispatcher) ewmClientEWMEventDispatcher
 };
@@ -695,6 +695,33 @@ ewmSignalAnnounceBalance (BREthereumEWM ewm,
                           int rid) {
     BREthereumEWMClientAnnounceBalanceEvent message =
     { { NULL, &ewmClientAnnounceBalanceEventType}, ewm, wallet, value, rid};
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
+}
+
+//
+// Update Wallet Balances
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumEWM ewm;
+} BREthereumEWMClientUpdateWalletBalancesEvent;
+
+static void
+ewmHandleUpdateWalletBalancesDispatcher (BREventHandler ignore,
+                                         BREthereumEWMClientUpdateWalletBalancesEvent *event) {
+    ewmHandleUpdateWalletBalances (event->ewm);
+}
+
+static BREventType ewmClientUpdateWalletBalancesEventType = {
+    "EWM: Client Update Wallet Balances Event",
+    sizeof (BREthereumEWMClientUpdateWalletBalancesEvent),
+    (BREventDispatcher) ewmHandleUpdateWalletBalancesDispatcher
+};
+
+extern void
+ewmSignalUpdateWalletBalances (BREthereumEWM ewm) {
+    BREthereumEWMClientUpdateWalletBalancesEvent message =
+    { { NULL, &ewmClientUpdateWalletBalancesEventType}, ewm };
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
@@ -978,6 +1005,7 @@ const BREventType *ewmEventTypes[] = {
     &ewmClientAnnounceBlockNumberEventType,
     &ewmClientAnnounceNonceEventType,
     &ewmClientAnnounceBalanceEventType,
+    &ewmClientUpdateWalletBalancesEventType,
     &ewmClientAnnounceGasPriceEventType,
     &ewmClientAnnounceSubmitTransferEventType,
     &ewmClientAnnounceTransactionEventType,
