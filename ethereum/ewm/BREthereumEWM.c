@@ -2139,6 +2139,33 @@ ewmHandleSaveLog (BREthereumEWM ewm,
 }
 
 extern void
+ewmHandleSaveWallet (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumClientChangeType type) {
+    BREthereumWalletState state = walletStateCreate (wallet);
+
+    BREthereumHash hash = walletStateGetHash(state);
+    BREthereumHashString filename;
+    hashFillString(hash, filename);
+
+    eth_log ("EWM", "Wallet: Save: %s: %s",
+             CLIENT_CHANGE_TYPE_NAME (type),
+             filename);
+
+    switch (type) {
+        case CLIENT_CHANGE_REM:
+            fileServiceRemove (ewm->fs, ewmFileServiceTypeWallets,
+                               fileServiceGetIdentifier (ewm->fs, ewmFileServiceTypeWallets, state));
+            break;
+
+        case CLIENT_CHANGE_ADD:
+        case CLIENT_CHANGE_UPD:
+            fileServiceSave (ewm->fs, ewmFileServiceTypeWallets, state);
+            break;
+    }
+}
+
+extern void
 ewmHandleSync (BREthereumEWM ewm,
                BREthereumBCSCallbackSyncType type,
                uint64_t blockNumberStart,

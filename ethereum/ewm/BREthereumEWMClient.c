@@ -888,11 +888,20 @@ ewmAnnounceTokenComplete (BREthereumEWM ewm,
 //
 // Client
 //
+static int
+ewmNeedWalletSave (BREthereumEWM ewm,
+                   BREthereumWallet wid,
+                   BREthereumWalletEvent event) {
+    return (WALLET_EVENT_BALANCE_UPDATED == event.type); // CREATED?
+}
 
 extern void
 ewmHandleWalletEvent(BREthereumEWM ewm,
                      BREthereumWallet wid,
                      BREthereumWalletEvent event) {
+    if (ewmNeedWalletSave (ewm, wid, event))
+        ewmHandleSaveWallet (ewm, wid, CLIENT_CHANGE_UPD);
+
     ewm->client.funcWalletEvent (ewm->client.context,
                                  ewm,
                                  wid,

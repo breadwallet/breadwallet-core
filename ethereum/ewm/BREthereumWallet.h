@@ -272,6 +272,27 @@ private_extern int
 walletHasTransfer (BREthereumWallet wallet,
                    BREthereumTransfer transaction);
 
+/// MARK: - Persisted Wallet State;
+
+typedef struct BREthereumWalletStateRecord *BREthereumWalletState;
+
+extern BREthereumWalletState
+walletStateCreate (const BREthereumWallet wallet);
+
+extern void
+walletStateRelease (BREthereumWalletState state);
+
+extern BRRlpItem
+walletStateEncode (const BREthereumWalletState walletState,
+                   BRRlpCoder coder);
+
+extern BREthereumWalletState
+walletStateDecode (BRRlpItem item,
+                   BRRlpCoder coder);
+
+extern BREthereumHash
+walletStateGetHash (const BREthereumWalletState walletState);
+
 #ifdef __cplusplus
 }
 #endif

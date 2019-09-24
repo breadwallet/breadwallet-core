@@ -304,6 +304,11 @@ ewmHandleSaveLog (BREthereumEWM ewm,
                   BREthereumLog log,
                   BREthereumClientChangeType type);
 
+extern void
+ewmHandleSaveWallet (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumClientChangeType type);
+
 //
 // Signal/Handle Sync (BCS Callback)
 //
@@ -619,6 +624,7 @@ extern const char *ewmFileServiceTypeLogs;
 extern const char *ewmFileServiceTypeBlocks;
 extern const char *ewmFileServiceTypeNodes;
 extern const char *ewmFileServiceTypeTokens;
+extern const char *ewmFileServiceTypeWallets;
 
 extern size_t ewmFileServiceSpecificationsCount;
 extern BRFileServiceTypeSpecification *ewmFileServiceSpecifications;

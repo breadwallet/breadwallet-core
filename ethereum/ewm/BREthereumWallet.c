@@ -604,6 +604,77 @@ walletTransferErrored (BREthereumWallet wallet,
                          transactionStatusCreateErrored(reason));
 }
 #endif // 0
+
+/// MARK: - Wallet State
+
+struct BREthereumWalletStateRecord {
+    // This is a token address or, if Ether, FAKE_ETHER_ADDRESS_INIT
+    BREthereumAddress address;
+
+    // We need to be able to RLP encode/deocde this in a context where we do not know about tokens.
+    UInt256 amount;
+};
+
+#define FAKE_ETHER_ADDRESS_INIT   ((const BREthereumAddress) { \
+  0xff, 0xff, 0xff, 0xff,   \
+  0xff, 0xff, 0xff, 0xff,   \
+  0xff, 0xff, 0xff, 0xff,   \
+  0xff, 0xff, 0xff, 0xff,   \
+  0xff, 0xff, 0xff, 0xff \
+})
+
+extern BREthereumWalletState
+walletStateCreate (const BREthereumWallet wallet) {
+    BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
+
+    BREthereumAmount balance = walletGetBalance(wallet);
+    BREthereumToken  token   = walletGetToken (wallet);
+
+    if (NULL == token) {
+        state->address = FAKE_ETHER_ADDRESS_INIT;
+        state->amount  = etherGetValue (amountGetEther(balance), WEI);
+    }
+    else {
+        state->address = tokenGetAddressRaw(token);
+        state->amount  = amountGetTokenQuantity(balance).valueAsInteger;
+    }
+
+    return state;
+}
+
+extern void
+walletStateRelease (BREthereumWalletState state) {
+    free (state);
+}
+
+extern BRRlpItem
+walletStateEncode (const BREthereumWalletState state,
+                   BRRlpCoder coder) {
+    return rlpEncodeList (coder, 2,
+                          addressRlpEncode (state->address, coder),
+                          rlpEncodeUInt256 (coder, state->amount, 0));
+}
+
+extern BREthereumWalletState
+walletStateDecode (BRRlpItem item,
+                   BRRlpCoder coder) {
+    BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
+
+     size_t itemsCount = 0;
+     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+     assert (2 == itemsCount);
+
+    state->address = addressRlpDecode (items[0], coder);
+    state->amount  = rlpDecodeUInt256 (coder, items[1], 0);
+
+     return state;
+}
+
+extern BREthereumHash
+walletStateGetHash (const BREthereumWalletState state) {
+    return addressGetHash (state->address);
+}
+
 /*
  * https://medium.com/blockchain-musings/how-to-create-raw-transfers-in-ethereum-part-1-1df91abdba7c
  *

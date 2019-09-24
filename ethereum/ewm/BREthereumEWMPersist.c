@@ -269,8 +269,60 @@ fileServiceTypeTokenV1Reader (BRFileServiceContext context,
     return token;
 }
 
+/// MARK: - Wallet File Service
 
-#define fileServiceSpecificationsCount      (5)
+#define fileServiceTypeWallets "wallets"
+
+enum {
+    EWM_WALLET_VERSION_1
+};
+
+static UInt256
+fileServiceTypeWalletV1Identifier (BRFileServiceContext context,
+                                   BRFileService fs,
+                                   const void *entity) {
+    BREthereumWalletState *state = (BREthereumWalletState*) entity;
+    BREthereumHash hash = walletStateGetHash (state);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeWalletV1Writer (BRFileServiceContext context,
+                               BRFileService fs,
+                               const void* entity,
+                               uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    BREthereumWalletState *state = (BREthereumWalletState*) entity;
+
+    BRRlpItem item = walletStateEncode (state, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeWalletV1Reader (BRFileServiceContext context,
+                               BRFileService fs,
+                               uint8_t *bytes,
+                               uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumWalletState state = walletStateDecode(item, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return state;
+}
+
+
+#define fileServiceSpecificationsCount      (6)
 static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
     {
         fileServiceTypeTransactions,
@@ -340,6 +392,20 @@ static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
                 fileServiceTypeTokenV1Writer
             }
         }
+    },
+
+    {
+        fileServiceTypeWallets,
+        EWM_WALLET_VERSION_1,
+        1,
+        {
+            {
+                EWM_TOKEN_VERSION_1,
+                fileServiceTypeWalletV1Identifier,
+                fileServiceTypeWalletV1Reader,
+                fileServiceTypeWalletV1Writer
+            }
+        }
     }
 };
 
@@ -348,6 +414,7 @@ const char *ewmFileServiceTypeLogs         = fileServiceTypeLogs;
 const char *ewmFileServiceTypeBlocks       = fileServiceTypeBlocks;
 const char *ewmFileServiceTypeNodes        = fileServiceTypeNodes;
 const char *ewmFileServiceTypeTokens       = fileServiceTypeTokens;
+const char *ewmFileServiceTypeWallets      = fileServiceTypeWallets;
 
 size_t ewmFileServiceSpecificationsCount = fileServiceSpecificationsCount;
 BRFileServiceTypeSpecification *ewmFileServiceSpecifications = fileServiceSpecifications;
