@@ -135,7 +135,6 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         // Create the BlockChainDB
         query = BlockChainDB.createForTest ()
-        // query = BlockChainDB(bdbBaseURL: "http://localhost:8080") // If running a local BDB
 
         // Create the system
         self.system = System (listener: listener,
