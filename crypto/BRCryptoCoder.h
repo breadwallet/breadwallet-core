@@ -42,15 +42,13 @@ extern "C" {
 
     extern size_t
     cryptoCoderDecodeLength (BRCryptoCoder coder,
-                             const char *src,
-                             size_t srcLen);
+                             const char *src);
 
     extern BRCryptoBoolean
     cryptoCoderDecode (BRCryptoCoder coder,
                        uint8_t *dst,
                        size_t dstLen,
-                       const char *src,
-                       size_t srcLen);
+                       const char *src);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoCoder, cryptoCoder);
 
