@@ -105,6 +105,16 @@ initialTokensLoad (BREthereumEWM ewm) {
     return tokens;
 }
 
+static BRSetOf(BREthereumWalletState)
+initialWalletsLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumWalletState) states = walletStateSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (NULL != states && 1 != fileServiceLoad (ewm->fs, states, ewmFileServiceTypeWallets, 1)) {
+        BRSetFreeAll (states, (void (*) (void*)) walletStateRelease);
+        return NULL;
+    }
+    return states;
+}
+
 
 /**
  *
@@ -181,19 +191,21 @@ ewmCreateInitialSets (BREthereumEWM ewm,
                       BRSetOf(BREthereumLog) *logs,
                       BRSetOf(BREthereumNodeConfig) *nodes,
                       BRSetOf(BREthereumBlock) *blocks,
-                      BRSetOf(BRethereumToken) *tokens) {
+                      BRSetOf(BREthereumToken) *tokens,
+                      BRSetOf(BREthereumWalletState) *states) {
 
     *transactions = initialTransactionsLoad(ewm);
     *logs = initialLogsLoad(ewm);
     *nodes = initialNodesLoad(ewm);
     *blocks = initialBlocksLoad(ewm);
     *tokens = initialTokensLoad(ewm);
+    *states = initialWalletsLoad(ewm);
 
     // If any are NULL, then we have an error and a full sync is required.  The sync will be
     // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
     // before the `accountTimestamp, which will be well in the past and we'll sync up to the
     // head of the blockchain).
-    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks || NULL == *tokens) {
+    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks || NULL == *tokens || NULL == *states) {
         // If the set exists, clear it out completely and then create another one.  Note, since
         // we have `BRSetFreeAll()` we'll use that even though it frees the set and then we
         // create one again, minimally wastefully.
@@ -211,6 +223,9 @@ ewmCreateInitialSets (BREthereumEWM ewm,
 
         if (NULL != *tokens) { BRSetFreeAll (*tokens, (void (*) (void*)) tokenRelease); }
         *tokens = tokenSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
+
+        if (NULL != *states) { BRSetFreeAll (*states, (void (*) (void*)) walletStateRelease); }
+        *states = walletStateSetCreate(EWM_INITIAL_SET_SIZE_DEFAULT);
     }
 
     // If we have no blocks; then add a checkpoint
@@ -288,8 +303,10 @@ ewmCreate (BREthereumNetwork network,
     BRSetOf(BREthereumNodeConfig) nodes;
     BRSetOf(BREthereumBlock) blocks;
     BRSetOf(BREthereumToken) tokens;
+    BRSetOf(BREthereumWalletState) walletStates;
 
-    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
+    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp,
+                          &transactions, &logs, &nodes, &blocks, &tokens, &walletStates);
 
     // Save the recovered tokens
     ewm->tokens = tokens;
@@ -322,6 +339,31 @@ ewmCreate (BREthereumNetwork network,
 
     BRAssertDefineRecovery ((BRAssertRecoveryInfo) ewm,
                             (BRAssertRecoveryHandler) ewmAssertRecovery);
+
+    // Having restored the WalletState. restore that Wallet (balance).
+    FOR_SET (BREthereumWalletState, state, walletStates) {
+        BREthereumAddress address = walletStateGetAddress (state);
+
+        // If the WalletState address is EMPTY_ADDRESS_INIT, then the state is for ETHER
+        BREthereumBoolean addressIsForEther = addressEqual (EMPTY_ADDRESS_INIT, address);
+
+        // See if we have a token.
+        BREthereumToken token = (ETHEREUM_BOOLEAN_IS_TRUE (addressIsForEther)
+                                 ? NULL
+                                 : ewmLookupToken (ewm, address));
+
+        // If we don't have a token and the address is not for ether, then ignore the state
+        // This would occur if we have a state for a token that is no longer supported.
+        if (NULL == token && ETHEREUM_BOOLEAN_IS_FALSE(addressIsForEther)) continue;
+
+         // Get the balance
+        BREthereumAmount balance = (NULL == token
+                                    ? amountCreateEther (etherCreate (walletStateGetAmount (state)))
+                                    : amountCreateToken (createTokenQuantity (token, walletStateGetAmount (state))));
+
+        // Finally, update the balance; this will create TOK wallets as required.
+        ewmHandleBalance (ewm, balance);
+    }
 
     // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
     // will be callbacks made to the EWM client.  Because we've defined `handlerForMain`
@@ -367,16 +409,12 @@ ewmCreate (BREthereumNetwork network,
             // how to get an ERC20 balance (execute a (free) transaction for 'balance'??); this
             // later case applies for `bcsCreate()` below in P2P modes.
             //
-            // But, on startup we have the transactions and the logs and DO NOT persistently store
-            // the per-wallet balance.  Thus, to get the balance we need an API hit (or a P2P hit).
-            // We might not have network...  So, get the balance assigned from existing transfers.
+            // In addition, because we DO NOT handle 'internal transactions' the sum of transfers
+            // cannot reliably produce the account balance.
             //
-            // Note: at this point transfers are not in wallets - we've just signalled adding the
-            // transactions and logs.  If we are going to update the balance (and it won't be
-            // N^2 as each transfer is added), then we need to signal a wallet balance update.
-            //
-            // One.Event.to.Update.Them.All
-            ewmSignalUpdateWalletBalances(ewm);
+            // So, we have all the logs and transactions and we won't modify the wallet balances
+            // that have been restored from persistent state.
+
 #if 0
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
@@ -447,8 +485,9 @@ ewmCreate (BREthereumNetwork network,
         }
     }
 
-    // mark as 'sync in progress' - we can't sent transactions until we have the nonce.
+    BRSetFreeAll (walletStates, (void (*) (void*)) walletStateRelease);
 
+    // mark as 'sync in progress' - we can't sent transactions until we have the nonce.
     return ewm;
 
 }
@@ -951,6 +990,7 @@ ewmUpdateMode (BREthereumEWM ewm,
         BRSetOf(BREthereumBlock) blocks;
         BRSetOf(BREthereumTransaction) transactions;
         BRSetOf(BREthereumLog) logs;
+        BRSetOf(BREthereumWalletState) states;
 
         // We have BCS in all modes but in BRD_ONLY mode it is never started.
 
@@ -1004,7 +1044,8 @@ ewmUpdateMode (BREthereumEWM ewm,
 
             case SYNC_MODE_P2P_WITH_BRD_SYNC:
             case SYNC_MODE_P2P_ONLY:
-                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
+                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp,
+                                      &transactions, &logs, &nodes, &blocks, &tokens, &states);
 
                 ewm->bcs = bcsCreate (ewm->network,
                                       primaryAddress,
@@ -1014,6 +1055,8 @@ ewmUpdateMode (BREthereumEWM ewm,
                                       blocks,
                                       transactions,
                                       logs);
+
+                BRSetFreeAll (states, (void (*) (void*)) walletStateRelease);
                 break;
          }
 

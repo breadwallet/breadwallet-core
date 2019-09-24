@@ -282,6 +282,15 @@ walletStateCreate (const BREthereumWallet wallet);
 extern void
 walletStateRelease (BREthereumWalletState state);
 
+/**
+ * If WalletState holds Ether, then the address will be EMPTY_ADDRESS_INIT
+ */
+extern BREthereumAddress
+walletStateGetAddress (const BREthereumWalletState walletState);
+
+extern UInt256
+walletStateGetAmount (const BREthereumWalletState walletState);
+
 extern BRRlpItem
 walletStateEncode (const BREthereumWalletState walletState,
                    BRRlpCoder coder);
@@ -292,6 +301,9 @@ walletStateDecode (BRRlpItem item,
 
 extern BREthereumHash
 walletStateGetHash (const BREthereumWalletState walletState);
+
+extern BRSetOf(BREthereumWalletState)
+walletStateSetCreate (size_t capacity);
 
 #ifdef __cplusplus
 }

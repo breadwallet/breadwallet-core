@@ -281,7 +281,7 @@ static UInt256
 fileServiceTypeWalletV1Identifier (BRFileServiceContext context,
                                    BRFileService fs,
                                    const void *entity) {
-    BREthereumWalletState *state = (BREthereumWalletState*) entity;
+    BREthereumWalletState state = (BREthereumWalletState) entity;
     BREthereumHash hash = walletStateGetHash (state);
 
     UInt256 result;
@@ -295,7 +295,7 @@ fileServiceTypeWalletV1Writer (BRFileServiceContext context,
                                const void* entity,
                                uint32_t *bytesCount) {
     BREthereumEWM ewm = context;
-    BREthereumWalletState *state = (BREthereumWalletState*) entity;
+    BREthereumWalletState state = (BREthereumWalletState) entity;
 
     BRRlpItem item = walletStateEncode (state, ewm->coder);
     BRRlpData data = rlpGetData (ewm->coder, item);

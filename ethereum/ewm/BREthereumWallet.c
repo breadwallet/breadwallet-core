@@ -647,6 +647,18 @@ walletStateRelease (BREthereumWalletState state) {
     free (state);
 }
 
+extern BREthereumAddress
+walletStateGetAddress (const BREthereumWalletState walletState) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
+            ? EMPTY_ADDRESS_INIT
+            : walletState->address);
+}
+
+extern UInt256
+walletStateGetAmount (const BREthereumWalletState walletState) {
+    return walletState->amount;
+}
+
 extern BRRlpItem
 walletStateEncode (const BREthereumWalletState state,
                    BRRlpCoder coder) {
@@ -673,6 +685,23 @@ walletStateDecode (BRRlpItem item,
 extern BREthereumHash
 walletStateGetHash (const BREthereumWalletState state) {
     return addressGetHash (state->address);
+}
+
+static inline size_t
+walletStateHashValue (const void *t)
+{
+    return addressHashValue(((BREthereumWalletState) t)->address);
+}
+
+static inline int
+walletStateHashEqual (const void *t1, const void *t2) {
+    return t1 == t2 || addressHashEqual (((BREthereumWalletState) t1)->address,
+                                         ((BREthereumWalletState) t2)->address);
+}
+
+extern BRSetOf(BREthereumWalletState)
+walletStateSetCreate (size_t capacity) {
+    return BRSetNew (walletStateHashValue, walletStateHashEqual, capacity);
 }
 
 /*
