@@ -237,6 +237,9 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertEqual (a, r)
         XCTAssertEqual (d, CoreCoder.hex.decode(string: r))
 
+        s = "#&$@*^(*#!^"
+        XCTAssertNil (CoreCoder.hex.decode(string: s))
+
         // base58
         s = "#&$@*^(*#!^"
         XCTAssertNil (CoreCoder.base58.decode(string: s))
@@ -258,6 +261,9 @@ class BRCryptoCommonTests: XCTestCase {
         d = Data([0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
         s = CoreCoder.base58check.encode(data: d)
         XCTAssertEqual (d, CoreCoder.base58check.decode(string: s))
+
+        s = "#&$@*^(*#!^"
+        XCTAssertNil (CoreCoder.base58check.decode(string: s))
     }
 
     func testEncryptor () {

@@ -42,54 +42,50 @@ public protocol Signer {
     func recover (data32: Data, signature: Data) -> Key?
 }
 
-public enum CoreSigner: Signer {
-    // Does not support 'recovery'
-    case basicDER
-    case basicJOSE
+public final class CoreSigner: Signer {
+
+    /// Does not support 'recovery'
+    public static var basicDER: CoreSigner {
+        return CoreSigner (core: cryptoSignerCreate (CRYPTO_SIGNER_BASIC_DER)!)
+    }
+
+    /// Does not support 'recovery'
+    public static var basicJOSE: CoreSigner {
+        return CoreSigner (core: cryptoSignerCreate (CRYPTO_SIGNER_BASIC_JOSE)!)
+    }
 
     /// Does support 'recovery'
-    case compact
+    public static var compact: CoreSigner {
+        return CoreSigner (core: cryptoSignerCreate (CRYPTO_SIGNER_COMPACT)!)
+    }
+
+    // The Core representation
+    internal let core: BRCryptoSigner
+
+    deinit { cryptoSignerGive (core) }
+
+    internal init (core: BRCryptoSigner) {
+        self.core = core
+    }
 
     public func sign (data32 digest: Data, using privateKey: Key) -> Data {
         // Copy the key - prep to pass to Core C functions
         let key = privateKey.core
 
-        // Confirm `data32 digest` is 32 bytes
-        let sourceCount = digest.count
-        precondition (32 == sourceCount)
-
         return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Data in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-            let digestUInt256 = digestAsUInt256 (digestAddr!)
+            let digestCount = digestBytes.count
 
-            var target: Data!
-            switch self {
-            case .basicDER:
-                let targetCount = BRKeySign (cryptoKeyGetCore(key), nil, 0, digestUInt256)
-                assert(targetCount > 0)
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRKeySign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
-                }
-                
-            case .basicJOSE:
-                let targetCount = BRKeySignJOSE (cryptoKeyGetCore(key), nil, 0, digestUInt256)
-                assert(targetCount > 0)
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRKeySignJOSE (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
-                }
+            // Confirm `data32 digest` is 32 bytes
+            precondition (32 == digestCount)
 
-            case .compact:
-                let targetCount = BRKeyCompactSign (cryptoKeyGetCore(key), nil, 0, digestUInt256)
-                assert(targetCount > 0)
-                target = Data (count: targetCount)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRKeyCompactSign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
-                }
+            let targetCount = cryptoSignerSignLength(self.core, key, digestAddr, digestCount)
+            precondition (targetCount != 0)
+
+            var target = Data (count: targetCount)
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                cryptoSignerSign(self.core, key, targetAddr, targetCount, digestAddr, digestCount)
             }
 
             return target
@@ -97,39 +93,20 @@ public enum CoreSigner: Signer {
     }
 
     public func recover (data32 digest: Data, signature: Data) -> Key? {
-        let sourceCount = digest.count
-        precondition (32 == sourceCount)
-
         return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Key? in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-            let digestUInt256 = digestAsUInt256 (digestAddr!) // : UInt256 = createUInt256(0)
+            let digestCount = digestBytes.count
 
-            switch self {
-            case .basicDER, .basicJOSE:
-                return nil
+            // Confirm `data32 digest` is 32 bytes
+            precondition (32 == digestCount)
 
-            case .compact:
-                let signatureCount = signature.count
-                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> Key? in
-                    var key = BRKey.self.init()
-                    let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
-                    return success
-                        ? Key (core: cryptoKeyCreateFromKey(&key))
-                        : nil
-                }
+            let signatureCount = signature.count
+            return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> Key? in
+                let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+
+                return cryptoSignerRecover (self.core, digestAddr, digestCount, signatureAddr, signatureCount)
+                    .map { Key (core: $0) }
             }
-        }
-    }
-
-    private func digestAsUInt256 (_ dataAddr: UnsafePointer<UInt8>) -> UInt256 {
-        var digest: UInt256 = UInt256.self.init()
-        return UnsafeMutablePointer(mutating: &digest)
-            .withMemoryRebound(to: UInt8.self, capacity: 32) { (digestBytes: UnsafeMutablePointer<UInt8>) -> UInt256 in
-                for index in 0..<32 {
-                    digestBytes[index] = dataAddr[index]
-                }
-                return digest
         }
     }
 }
