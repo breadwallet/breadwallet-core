@@ -113,6 +113,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             "btc" : .api_only,
             "eth" : .api_only,
 //            "bch" : .p2p_only,
+            "xrp" : .api_only
             ]
         if mainnet {
 
@@ -134,6 +135,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         // Create the BlockChainDB
         query = BlockChainDB.createForTest ()
+        // query = BlockChainDB(bdbBaseURL: "http://localhost:8080") // If running a local BDB
 
         // Create the system
         self.system = System (listener: listener,
