@@ -3101,11 +3101,11 @@ ewmCreateToken (BREthereumEWM ewm,
     // `ewmHandleAnnounceToken()`) and one in `cryptoWalletManagerInstall...()` (on some App
     // listener thread).  Such a description, used here, is troubling in and of itself.
 
-    BREthereumAddress addr  = addressCreate(address);
-    BREthereumToken   token = ewmLookupToken (ewm, addr);
+    BREthereumAddress addr = addressCreate(address);
 
-    // Lock over BRSetAdd() and tokenUpdate()
+    // Lock over BRSetGet(), BRSetAdd() and tokenUpdate()
     pthread_mutex_lock (&ewm->lock);
+    BREthereumToken token = (BREthereumToken) BRSetGet (ewm->tokens, &addr);
     if (NULL == token) {
         token = tokenCreate (address,
                              symbol,
