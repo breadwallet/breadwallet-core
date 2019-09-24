@@ -17,161 +17,80 @@ public protocol Encrypter {
     func decrypt (data: Data) -> Data
 }
 
-public enum CoreEncrypter: Encrypter {
-    case aes_ecb (key:Data) // count = 16, 24,or 32
-    case chacha20_poly1305 (key:Key, nonce12:Data, ad:Data)
-    case pigeon (privKey:Key, pubKey:Key, nonce12:Data)
+public final class CoreEncrypter: Encrypter {
+    public static func aes_ecb(key: Data) -> CoreEncrypter {
+        return key.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) -> CoreEncrypter in
+            let keyAddr = keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let core = cryptoCipherCreateForAESECB(keyAddr, keyBytes.count)!
+            return CoreEncrypter (core: core)
+        }
+    }
 
-    public func encrypt (data source: Data) -> Data {
-        var target: Data!
-        switch self {
-        case let .aes_ecb (key):
-            let keyCount = key.count
-            key.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) -> Void in
-                let keyAddr  = keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                target = Data (source)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRAESECBEncrypt(targetAddr, keyAddr, keyCount)
-                }
-            }
-
-        case let .chacha20_poly1305 (key, nonce12, ad):
-            let sourceCount = source.count
-             source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
-                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                var secret = key.secret
-                UnsafeMutablePointer (mutating: &secret)
-                    .withMemoryRebound(to: UInt8.self, capacity: 32) { (secretBytes: UnsafeMutablePointer<UInt8>) -> Void in
-                    nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
-                        ad.withUnsafeBytes { (adBytes: UnsafeRawBufferPointer) -> Void in
-                            let adCount = ad.count
-                            let adAddr  = adBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                            let targetCount =
-                                BRChacha20Poly1305AEADEncrypt (nil, 0,
-                                                               secretBytes,
-                                                               nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                                               sourceAddr, sourceCount,
-                                                               adAddr, adCount)
-
-                            target = Data (count: targetCount)
-                            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                BRChacha20Poly1305AEADEncrypt (targetAddr, targetCount,
-                                                               secretBytes,
-                                                               nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                                               sourceAddr, sourceCount,
-                                                               adAddr, adCount)
-                            }
-                        }
-                    }
-                }
-                secret = UInt256() // Zero
-            }
-
-        case let .pigeon (privKey, pubKey, nonce12):
-            let sourceCount = source.count
-            source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
-                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
-                    let targetCount =
-                        BRKeyPigeonEncrypt (nil, nil, 0, nil,
-                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                            sourceAddr, sourceCount)
-
-                    target = Data (count: targetCount)
-                    target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                        let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                        BRKeyPigeonEncrypt (cryptoKeyGetCore(privKey.core),
-                                            targetAddr, targetCount,
-                                            cryptoKeyGetCore(pubKey.core),
-                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                            sourceAddr, sourceCount)
-                    }
-                }
+    public static func chacha20_poly1305(key: Key, nonce12: Data, ad: Data) -> CoreEncrypter {
+        return nonce12.withUnsafeBytes { (nonce12Bytes: UnsafeRawBufferPointer) -> CoreEncrypter in
+            let nonce12Addr  = nonce12Bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            return ad.withUnsafeBytes { (adBytes: UnsafeRawBufferPointer) -> CoreEncrypter in
+                let adAddr  = adBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                let core = cryptoCipherCreateForChacha20Poly1305(key.core,
+                                                                 nonce12Addr, nonce12Bytes.count,
+                                                                 adAddr, adBytes.count)!
+                return CoreEncrypter (core: core)
             }
         }
-        return target
+    }
+
+    public static func pigeon(privKey: Key, pubKey: Key, nonce12: Data) -> CoreEncrypter {
+        return nonce12.withUnsafeBytes { (nonce12Bytes: UnsafeRawBufferPointer) -> CoreEncrypter in
+            let nonce12Addr  = nonce12Bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let core = cryptoCipherCreateForPigeon(privKey.core,
+                                                   pubKey.core,
+                                                   nonce12Addr, nonce12Bytes.count)!
+            return CoreEncrypter (core: core)
+        }
+    }
+
+    // The Core representation
+    internal let core: BRCryptoCipher
+
+    deinit { cryptoCipherGive (core) }
+
+    internal init (core: BRCryptoCipher) {
+        self.core = core
+    }
+
+    public func encrypt (data source: Data) -> Data {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
+            let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let sourceCount = sourceBytes.count
+
+            let targetCount = cryptoCipherEncryptLength(self.core, sourceAddr, sourceCount)
+            precondition (targetCount != 0)
+
+            var target = Data (count: targetCount)
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                cryptoCipherEncrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+            }
+
+            return target
+        }
     }
 
     public func decrypt (data source: Data) -> Data {
-        var target: Data!
-        switch self {
-        case let .aes_ecb (key):
-            let keyCount = key.count
-            key.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) -> Void in
-                let keyAddr  = keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
+            let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+            let sourceCount = sourceBytes.count
 
-                target = Data (source)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRAESECBDecrypt(targetAddr, keyAddr, keyCount)
-                }
+            let targetCount = cryptoCipherDecryptLength(self.core, sourceAddr, sourceCount)
+            precondition (targetCount != 0)
+
+            var target = Data (count: targetCount)
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                cryptoCipherDecrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
-        case let .chacha20_poly1305 (key, nonce12, ad):
-            let sourceCount = source.count
-            source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
-                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                var secret = key.secret
-                UnsafeMutablePointer (mutating: &secret)
-                    .withMemoryRebound(to: UInt8.self, capacity: 32) { (secretBytes: UnsafeMutablePointer<UInt8>) -> Void in
-                    nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
-                        ad.withUnsafeBytes { (adBytes: UnsafeRawBufferPointer) -> Void in
-                            let adCount = ad.count
-                            let adAddr  = adBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                            let targetCount =
-                                BRChacha20Poly1305AEADDecrypt (nil, 0,
-                                                               secretBytes,
-                                                               nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                                               sourceAddr, sourceCount,
-                                                               adAddr, adCount)
-
-                            target = Data (count: targetCount)
-                            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                BRChacha20Poly1305AEADDecrypt (targetAddr, targetCount,
-                                                               secretBytes,
-                                                               nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                                               sourceAddr, sourceCount,
-                                                               adAddr, adCount)
-                            }
-                        }
-                    }
-                }
-                secret = UInt256() // Zero
-            }
-
-        case let .pigeon (privKey, pubKey, nonce12):
-            let sourceCount = source.count
-            source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
-                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
-                    let targetCount =
-                        BRKeyPigeonDecrypt (nil, nil, 0, nil,
-                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                            sourceAddr, sourceCount)
-
-                    target = Data (count: targetCount)
-                    target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                        let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                        BRKeyPigeonDecrypt (cryptoKeyGetCore(privKey.core),
-                                            targetAddr, targetCount,
-                                            cryptoKeyGetCore(pubKey.core),
-                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                                            sourceAddr, sourceCount)
-                    }
-                }
-            }
+            return target
         }
-
-        return target
-
     }
 }

@@ -17,17 +17,27 @@ public protocol Coder {
     func decode (string: String) -> Data?
 }
 
-public enum CoreCoder: Coder {
-    case hex
-    case base58
-    case base58check
+public final class CoreCoder: Coder {
 
-    internal var coreType: BRCryptoCoderType {
-        switch self {
-        case .hex: return CRYPTO_CODER_HEX
-        case .base58: return CRYPTO_CODER_BASE58
-        case .base58check: return CRYPTO_CODER_BASE58CHECK
-        }
+    public static var hex: CoreCoder {
+        return CoreCoder (core: cryptoCoderCreate (CRYPTO_CODER_HEX)!)
+    }
+
+    public static var base58: CoreCoder {
+        return CoreCoder (core: cryptoCoderCreate (CRYPTO_CODER_BASE58)!)
+    }
+
+    public static var base58check: CoreCoder {
+        return CoreCoder (core: cryptoCoderCreate (CRYPTO_CODER_BASE58CHECK)!)
+    }
+
+    // The Core representation
+    internal let core: BRCryptoCoder
+
+    deinit { cryptoCoderGive (core) }
+
+    internal init (core: BRCryptoCoder) {
+        self.core = core
     }
 
     public func encode (data source: Data) -> String {
@@ -35,20 +45,15 @@ public enum CoreCoder: Coder {
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let sourceCount = sourceBytes.count
 
-            let coder = cryptoCoderCreate(coreType)!
-            defer { cryptoCoderGive (coder) }
+            let targetCount = cryptoCoderEncodeLength(self.core, sourceAddr, sourceCount)
+            precondition (targetCount != 0)
 
-            var result: String!
-
-            let targetCount = cryptoCoderEncodeLength(coder, sourceAddr, sourceCount)
             var target = Data (count: targetCount)
-            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+            return target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> String in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-                cryptoCoderEncode (coder, targetAddr, targetCount, sourceAddr, sourceCount)
-                result = String (cString: targetAddr!)
+                cryptoCoderEncode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+                return String (cString: targetAddr!)
             }
-
-            return result
         }
     }
 
@@ -56,17 +61,13 @@ public enum CoreCoder: Coder {
         return source.withCString { (sourceAddr: UnsafePointer<Int8>) -> Data? in
             let sourceCount: Int = source.count
 
-            let coder = cryptoCoderCreate(coreType)!
-            defer { cryptoCoderGive (coder) }
-
-            let targetCount = cryptoCoderDecodeLength(coder, sourceAddr, sourceCount)
+            let targetCount = cryptoCoderDecodeLength(self.core, sourceAddr, sourceCount)
             guard targetCount != 0 else { return nil }
 
             var target = Data (count: targetCount)
-
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoCoderDecode (coder, targetAddr, targetCount, sourceAddr, sourceCount)
+                cryptoCoderDecode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
             return target

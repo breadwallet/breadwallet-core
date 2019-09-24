@@ -41,6 +41,7 @@ cryptoHasherCreate(BRCryptoHasherType type) {
             break;
         }
         default: {
+            // for an unsupported algorithm, assert
             assert (0);
             break;
         }
@@ -105,9 +106,8 @@ cryptoHasherLength (BRCryptoHasher hasher) {
             break;
         }
         default: {
-            // for an unsupported algorithm, assert and return 0
+            // for an unsupported algorithm, assert
             assert (0);
-            length = 0;
             break;
         }
     }
@@ -115,21 +115,23 @@ cryptoHasherLength (BRCryptoHasher hasher) {
     return length;
 }
 
-extern size_t
+extern BRCryptoBoolean
 cryptoHasherHash (BRCryptoHasher hasher,
-                  void *dst,
-                  const void *src,
+                  uint8_t *dst,
+                  size_t dstLen,
+                  const uint8_t *src,
                   size_t srcLen) {
-    size_t length = cryptoHasherLength (hasher);
-
-    // for NULL dst buffer, return the length required
-    if (NULL == dst) {
-        return length;
-    // ... for non-NULL dst buffer but NULL src, assert and return 0
-    } else if (NULL == src) {
+    // - src CAN be NULL, if srcLen is 0
+    // - dst MUST be non-NULL and sufficiently sized
+    if ((NULL == src && 0 != srcLen) ||
+        NULL == dst || dstLen < cryptoHasherLength (hasher)) {
         assert (0);
-        return 0;
+        return CRYPTO_FALSE;
     }
+
+    // the hash routines don't return anything so assume success
+    // and only treat the unhandled case as failure
+    BRCryptoBoolean result = CRYPTO_TRUE;
 
     switch (hasher->type) {
         case CRYPTO_HASHER_SHA1: {
@@ -177,12 +179,14 @@ cryptoHasherHash (BRCryptoHasher hasher,
             break;
         }
         default: {
+            // for an unsupported algorithm, assert
             assert (0);
+            result = CRYPTO_FALSE;
             break;
         }
     }
 
-    return length;
+    return result;
 }
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);

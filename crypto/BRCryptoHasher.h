@@ -39,10 +39,11 @@ extern "C" {
     extern size_t
     cryptoHasherLength (BRCryptoHasher hasher);
 
-    extern size_t
+    extern BRCryptoBoolean
     cryptoHasherHash (BRCryptoHasher hasher,
-                      void *dst,
-                      const void *src,
+                      uint8_t *dst,
+                      size_t dstLen,
+                      const uint8_t *src,
                       size_t srcLen);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);

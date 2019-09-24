@@ -33,7 +33,7 @@ extern "C" {
                              const uint8_t *src,
                              size_t srcLen);
 
-    extern size_t
+    extern BRCryptoBoolean
     cryptoCoderEncode (BRCryptoCoder coder,
                        char *dst,
                        size_t dstLen,
@@ -45,7 +45,7 @@ extern "C" {
                              const char *src,
                              size_t srcLen);
 
-    extern size_t
+    extern BRCryptoBoolean
     cryptoCoderDecode (BRCryptoCoder coder,
                        uint8_t *dst,
                        size_t dstLen,

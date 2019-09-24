@@ -52,6 +52,12 @@ extern size_t
 cryptoCoderEncodeLength (BRCryptoCoder coder,
                          const uint8_t *src,
                          size_t srcLen) {
+    // - src CANNOT be NULL (see: BRBase58Encode), even with srcLen of 0
+    if (NULL == src) {
+        assert (0);
+        return 0;
+    }
+
     size_t length = 0;
 
     switch (coder->type) {
@@ -68,9 +74,7 @@ cryptoCoderEncodeLength (BRCryptoCoder coder,
             break;
         }
         default: {
-            // for an unsupported algorithm, assert and return 0
             assert (0);
-            length = 0;
             break;
         }
     }
@@ -78,36 +82,34 @@ cryptoCoderEncodeLength (BRCryptoCoder coder,
     return length;
 }
 
-extern size_t
+extern BRCryptoBoolean
 cryptoCoderEncode (BRCryptoCoder coder,
                    char *dst,
                    size_t dstLen,
                    const uint8_t *src,
                    size_t srcLen) {
-    size_t length = cryptoCoderEncodeLength (coder,
-                                             src,
-                                             srcLen);
-
-    // for NULL or insufficient length buffer, return the length required
-    if (NULL == dst || dstLen < length) {
-        return length;
-    // ... for non-NULL dst buffer but NULL src, assert and return 0
-    } else if (NULL == src) {
+    // - src CANNOT be NULL (see: BRBase58Encode), even with srcLen of 0
+    // - dst MUST be non-NULL and sufficiently sized
+    if (NULL == src ||
+        NULL == dst || dstLen < cryptoCoderEncodeLength (coder, src, srcLen)) {
         assert (0);
-        return 0;
+        return CRYPTO_FALSE;
     }
+
+    BRCryptoBoolean result = CRYPTO_FALSE;
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
             encodeHex (dst, dstLen, src, srcLen);
+            result = CRYPTO_TRUE;
             break;
         }
         case CRYPTO_CODER_BASE58: {
-            BRBase58Encode (dst, dstLen, src, srcLen);
+            result = AS_CRYPTO_BOOLEAN (BRBase58Encode (dst, dstLen, src, srcLen));
             break;
         }
         case CRYPTO_CODER_BASE58CHECK: {
-            BRBase58CheckEncode (dst, dstLen, src, srcLen);
+            result = AS_CRYPTO_BOOLEAN (BRBase58CheckEncode (dst, dstLen, src, srcLen));
             break;
         }
         default: {
@@ -116,13 +118,19 @@ cryptoCoderEncode (BRCryptoCoder coder,
         }
     }
 
-    return length;
+    return result;
 }
 
 extern size_t
 cryptoCoderDecodeLength (BRCryptoCoder coder,
                          const char *src,
                          size_t srcLen) {
+    // - src CANNOT be NULL (see: BRBase58Decode), even with srcLen of 0
+    if (NULL == src) {
+        assert (0);
+        return 0;
+    }
+
     size_t length = 0;
 
     switch (coder->type) {
@@ -139,9 +147,8 @@ cryptoCoderDecodeLength (BRCryptoCoder coder,
             break;
         }
         default: {
-            // for an unsupported algorithm, assert and return 0
+            // for an unsupported algorithm, assert
             assert (0);
-            length = 0;
             break;
         }
     }
@@ -149,45 +156,44 @@ cryptoCoderDecodeLength (BRCryptoCoder coder,
     return length;
 }
 
-extern size_t
+extern BRCryptoBoolean
 cryptoCoderDecode (BRCryptoCoder coder,
                    uint8_t *dst,
                    size_t dstLen,
                    const char *src,
                    size_t srcLen) {
-    size_t length = cryptoCoderDecodeLength (coder,
-                                             src,
-                                             srcLen);
-
-    // for NULL or insufficient length buffer, return the length required
-    if (NULL == dst || dstLen < length) {
-        return length;
-    // ... for non-NULL dst buffer but NULL src, assert and return 0
-    } else if (NULL == src) {
+    // - src CANNOT be NULL (see: BRBase58Decode), even with srcLen of 0
+    // - dst MUST be non-NULL and sufficiently sized
+    if (NULL == src ||
+        NULL == dst || dstLen < cryptoCoderDecodeLength (coder, src, srcLen)) {
         assert (0);
-        return 0;
+        return CRYPTO_FALSE;
     }
+
+    BRCryptoBoolean result = CRYPTO_FALSE;
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
             decodeHex (dst, dstLen, src, srcLen);
+            result = CRYPTO_TRUE;
             break;
         }
         case CRYPTO_CODER_BASE58: {
-            BRBase58Decode (dst, dstLen, src);
+            result = AS_CRYPTO_BOOLEAN (BRBase58Decode (dst, dstLen, src));
             break;
         }
         case CRYPTO_CODER_BASE58CHECK: {
-            BRBase58CheckDecode (dst, dstLen, src);
+            result = AS_CRYPTO_BOOLEAN (BRBase58CheckDecode (dst, dstLen, src));
             break;
         }
         default: {
+            // for an unsupported algorithm, assert
             assert (0);
             break;
         }
     }
 
-    return length;
+    return result;
 }
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCoder, cryptoCoder);
