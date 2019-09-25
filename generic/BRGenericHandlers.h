@@ -57,7 +57,7 @@ extern "C" {
 
     // MAEK: - Generic Wallet Manager
 
-    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (uint8_t *bytes,
+    typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
                                                                         size_t   bytesCount);
 
     typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
@@ -106,8 +106,7 @@ extern "C" {
         } wallet;
 
         struct {
-            BRGenericWalletManagerRecoverTransfer transferRecover;
-
+            BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
             BRGenericWalletManagerInitializeFileService fileServiceInit;
             BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
         } manager;

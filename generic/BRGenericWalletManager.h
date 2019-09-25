@@ -116,11 +116,10 @@ extern "C" {
     extern BRGenericAccount
     gwmGetAccount (BRGenericWalletManager gwm);
 
-    extern BRGenericTransfer
-    gwmRecoverTransfer (BRGenericWalletManager gwm,
-                        uint8_t *bytes,
-                        size_t   bytesCount);
-
+    extern BRArrayOf(BRGenericTransfer)
+    gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
+                                           uint8_t *bytes,
+                                           size_t   bytesCount);
 #ifdef __cplusplus
 }
 #endif

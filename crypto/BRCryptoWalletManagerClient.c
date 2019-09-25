@@ -1881,15 +1881,21 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     cwm = cryptoWalletManagerTake (cwm);
 
     // Fundamentally, the `transfer` must allow for determining the `wallet`
-    BRGenericTransfer transfer = gwmRecoverTransfer (cwm->u.gen, transaction, transactionLength);
+    BRArrayOf(BRGenericTransfer) transfers = gwmRecoverTransfersFromRawTransaction (cwm->u.gen, transaction, transactionLength);
 
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
     // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
     // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
     //
     // gwmAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
-
-    cryptoWalletManagerHandleTransferGEN (cwm, transfer);
+    if (transfers != NULL) {
+        for (size_t index = 0; index < array_count (transfers); index++) {
+            cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
+        }
+        // The wallet manager takes ownership of the actual transfers - so just
+        // delete the array of pointers
+        array_free(transfers);
+    }
 
     cryptoWalletManagerGive (cwm);
     // DON'T free (callbackState);
