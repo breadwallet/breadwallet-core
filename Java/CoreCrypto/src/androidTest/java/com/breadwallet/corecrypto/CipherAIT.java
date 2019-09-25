@@ -6,10 +6,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertArrayEquals;
 
-public class EncrypterAIT {
+public class CipherAIT {
 
     @Test
-    public void testEncrypter() {
+    public void testCipher() {
         byte[] k;
         byte[] d;
         byte[] a;
@@ -35,8 +35,8 @@ public class EncrypterAIT {
                 (byte) 0x24, (byte) 0x45, (byte) 0xdf, (byte) 0x4f, (byte) 0x9b,
                 (byte) 0x17, (byte) 0xad, (byte) 0x2b, (byte) 0x41, (byte) 0x7b,
                 (byte) 0xe6, (byte) 0x6c, (byte) 0x37, (byte) 0x10};
-        a = Encrypter.createForAesEcb(k).encrypt(d);
-        assertArrayEquals(d, Encrypter.createForAesEcb(k).decrypt(a));
+        a = Cipher.createForAesEcb(k).encrypt(d);
+        assertArrayEquals(d, Cipher.createForAesEcb(k).decrypt(a));
 
         // cha-cha
 
@@ -58,7 +58,7 @@ public class EncrypterAIT {
                 (byte) 0x99, (byte) 0x9a, (byte) 0x9b, (byte) 0x9c, (byte) 0x9d,
                 (byte) 0x9e, (byte) 0x9f
         }).get();
-        Encrypter alg = Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
+        Cipher alg = Cipher.createForChaCha20Poly1305(key, nonce12, ad);
 
         byte[] cipher = {
                 (byte) 0xd3, (byte) 0x1a, (byte) 0x8d, (byte) 0x34, (byte) 0x64,
@@ -94,7 +94,7 @@ public class EncrypterAIT {
         // pigeon
 
         Key pubKey = Key.createFromPublicKeyString("02d404943960a71535a79679f1cf1df80e70597c05b05722839b38ebc8803af517".getBytes(StandardCharsets.UTF_8)).get();
-        Encrypter pigeon = Encrypter.createForPigeon(key, pubKey, nonce12);
+        Cipher pigeon = Cipher.createForPigeon(key, pubKey, nonce12);
         byte [] pigeonCipher = pigeon.encrypt(msg);
         assertArrayEquals(msg, pigeon.decrypt(pigeonCipher));
     }

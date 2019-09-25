@@ -83,21 +83,21 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
-    private static final CryptoApi.EncrypterProvider encrypterProvider = new CryptoApi.EncrypterProvider() {
+    private static final CryptoApi.CipherProvider cipherProvider = new CryptoApi.CipherProvider() {
         @Override
-        public Encrypter createEncrypterrForAesEcb(byte[] key) {
-            return Encrypter.createForAesEcb(key);
+        public Cipher createCipherForAesEcb(byte[] key) {
+            return Cipher.createForAesEcb(key);
         }
 
         @Override
-        public Encrypter createEncrypterForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
-            return Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
+        public Cipher createCipherForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
+            return Cipher.createForChaCha20Poly1305(key, nonce12, ad);
         }
 
         @Override
-        public Encrypter createEncrypterForPigeon(com.breadwallet.crypto.Key privKey,
-                                                  com.breadwallet.crypto.Key pubKey, byte[] nonce12) {
-            return Encrypter.createForPigeon(privKey, pubKey, nonce12);
+        public Cipher createCipherForPigeon(com.breadwallet.crypto.Key privKey,
+                                            com.breadwallet.crypto.Key pubKey, byte[] nonce12) {
+            return Cipher.createForPigeon(privKey, pubKey, nonce12);
         }
     };
 
@@ -191,8 +191,8 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     }
 
     @Override
-    public CryptoApi.EncrypterProvider encrypterProvider() {
-        return encrypterProvider;
+    public CryptoApi.CipherProvider cipherProvider() {
+        return cipherProvider;
     }
 
     @Override

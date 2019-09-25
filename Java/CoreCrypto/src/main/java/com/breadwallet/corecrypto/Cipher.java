@@ -12,42 +12,42 @@ import com.breadwallet.corenative.crypto.BRCryptoCipher;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
-final class Encrypter implements com.breadwallet.crypto.Encrypter {
+final class Cipher implements com.breadwallet.crypto.Cipher {
 
     /* package */
-    static Encrypter createForAesEcb(byte[] key) {
+    static Cipher createForAesEcb(byte[] key) {
         BRCryptoCipher cipher = BRCryptoCipher.createAesEcb(key).orNull();
         checkNotNull(cipher);
-        return new Encrypter(cipher);
+        return new Cipher(cipher);
     }
 
     /* package */
-    static Encrypter createForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
+    static Cipher createForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
         BRCryptoCipher cipher = BRCryptoCipher.createChaCha20Poly1305(
                 Key.from(key).getBRCryptoKey(),
                 nonce12,
                 ad)
                 .orNull();
         checkNotNull(cipher);
-        return new Encrypter(cipher);
+        return new Cipher(cipher);
     }
 
     /* package */
-    static Encrypter createForPigeon(com.breadwallet.crypto.Key privKey,
-                                     com.breadwallet.crypto.Key pubKey,
-                                     byte[] nonce12) {
+    static Cipher createForPigeon(com.breadwallet.crypto.Key privKey,
+                                  com.breadwallet.crypto.Key pubKey,
+                                  byte[] nonce12) {
         BRCryptoCipher cipher = BRCryptoCipher.createPigeon(
                 Key.from(privKey).getBRCryptoKey(),
                 Key.from(pubKey).getBRCryptoKey(),
                 nonce12)
                 .orNull();
         checkNotNull(cipher);
-        return new Encrypter(cipher);
+        return new Cipher(cipher);
     }
 
     private final BRCryptoCipher core;
 
-    private Encrypter(BRCryptoCipher core) {
+    private Cipher(BRCryptoCipher core) {
         this.core = core;
     }
 
