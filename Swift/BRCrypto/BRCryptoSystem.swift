@@ -1505,7 +1505,14 @@ extension System {
                 manager.query.getBlockNumberAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
+                    // If we get a successful response, but the provided blocknumber is "0" then
+                    // that indicates that the JSON-RPC node is syncing.  Thus, if "0" transform
+                    // to a .failure
+                    res.flatMap {
+                        return ($0 != "0" && $0 != "0x0"
+                            ? Result.success ($0)
+                            : Result.failure (BlockChainDB.QueryError.noData))
+                    }.resolve (
                         success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
                         failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
                 }},
