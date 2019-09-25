@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.sun.jna.FromNativeContext;
@@ -179,6 +180,10 @@ public class BRCryptoKey extends PointerType {
             // clear out our copy; caller responsible for original array
             Arrays.fill(phraseUtf8, (byte) 0);
         }
+    }
+
+    public static Optional<BRCryptoKey> cryptoKeyCreateFromSecret(byte[] secret) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromSecret(new UInt256.ByValue(secret)));
     }
 
     public byte[] encodeAsPrivate() {

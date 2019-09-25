@@ -38,10 +38,14 @@ public class UInt256 extends Structure {
     }
 
     public static class ByReference extends UInt256 implements Structure.ByReference {
-
+        public ByReference(byte u8[]) {
+            super(u8);
+        }
     }
 
     public static class ByValue extends UInt256 implements Structure.ByValue {
-
+        public ByValue(byte u8[]) {
+            super(u8);
+        }
     }
 }

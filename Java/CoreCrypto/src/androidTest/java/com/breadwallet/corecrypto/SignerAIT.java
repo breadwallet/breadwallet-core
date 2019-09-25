@@ -20,7 +20,7 @@ public class SignerAIT {
         Signer signer;
         byte[] answer;
 
-        Key key = Key.createFromPrivateKeyString("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".getBytes(StandardCharsets.UTF_8)).get();
+        Key key = Key.createFromSecret(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}).get();
 
         // Basic DER
 

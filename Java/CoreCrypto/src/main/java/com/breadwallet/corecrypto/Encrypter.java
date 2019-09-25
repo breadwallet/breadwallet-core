@@ -7,35 +7,57 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoCipher;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /* package */
 final class Encrypter implements com.breadwallet.crypto.Encrypter {
 
-    // TODO(fix): Implement me!
-
     /* package */
     static Encrypter createForAesEcb(byte[] key) {
-        return null;
+        BRCryptoCipher cipher = BRCryptoCipher.createAesEcb(key).orNull();
+        checkNotNull(cipher);
+        return new Encrypter(cipher);
     }
 
     /* package */
     static Encrypter createForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
-        return null;
+        BRCryptoCipher cipher = BRCryptoCipher.createChaCha20Poly1305(
+                Key.from(key).getBRCryptoKey(),
+                nonce12,
+                ad)
+                .orNull();
+        checkNotNull(cipher);
+        return new Encrypter(cipher);
     }
 
     /* package */
     static Encrypter createForPigeon(com.breadwallet.crypto.Key privKey,
                                      com.breadwallet.crypto.Key pubKey,
                                      byte[] nonce12) {
-        return null;
+        BRCryptoCipher cipher = BRCryptoCipher.createPigeon(
+                Key.from(privKey).getBRCryptoKey(),
+                Key.from(pubKey).getBRCryptoKey(),
+                nonce12)
+                .orNull();
+        checkNotNull(cipher);
+        return new Encrypter(cipher);
+    }
+
+    private final BRCryptoCipher core;
+
+    private Encrypter(BRCryptoCipher core) {
+        this.core = core;
     }
 
     @Override
     public byte[] encrypt(byte[] data) {
-        return new byte[0];
+        return core.encrypt(data);
     }
 
     @Override
     public byte[] decrypt(byte[] data) {
-        return new byte[0];
+        return core.decrypt(data);
     }
 }

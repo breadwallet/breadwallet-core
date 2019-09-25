@@ -49,7 +49,15 @@ public class EncrypterAIT {
                 (byte) 0xc1, (byte) 0xc2, (byte) 0xc3, (byte) 0xc4, (byte) 0xc5,
                 (byte) 0xc6, (byte) 0xc7};
         byte[] msg = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.".getBytes(StandardCharsets.UTF_8);
-        Key key = Key.createFromPrivateKeyString("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".getBytes(StandardCharsets.UTF_8)).get();
+        Key key = Key.createFromSecret(new byte[] {
+                (byte) 0x80, (byte) 0x81, (byte) 0x82, (byte) 0x83, (byte) 0x84,
+                (byte) 0x85, (byte) 0x86, (byte) 0x87, (byte) 0x88, (byte) 0x89,
+                (byte) 0x8a, (byte) 0x8b, (byte) 0x8c, (byte) 0x8d, (byte) 0x8e,
+                (byte) 0x8f, (byte) 0x90, (byte) 0x91, (byte) 0x92, (byte) 0x93,
+                (byte) 0x94, (byte) 0x95, (byte) 0x96, (byte) 0x97, (byte) 0x98,
+                (byte) 0x99, (byte) 0x9a, (byte) 0x9b, (byte) 0x9c, (byte) 0x9d,
+                (byte) 0x9e, (byte) 0x9f
+        }).get();
         Encrypter alg = Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
 
         byte[] cipher = {
