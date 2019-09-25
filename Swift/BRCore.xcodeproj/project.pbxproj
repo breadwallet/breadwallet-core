@@ -60,6 +60,8 @@
 		3C5E1771232D461500A558C7 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 3C5E176F232D461500A558C7 /* LICENSE */; };
 		3C5E1773232D466700A558C7 /* CONTRIBUTORS in Resources */ = {isa = PBXBuildFile; fileRef = 3C5E1772232D466700A558C7 /* CONTRIBUTORS */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
+		3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
+		3C69A0EB233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
 		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
 		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
@@ -569,6 +571,7 @@
 		3C5E1804232D574A00A558C7 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		3C5F5E73212C82310038B732 /* BREthereumMPT.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMPT.h; sourceTree = "<group>"; };
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
+		3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMPersist.c; sourceTree = "<group>"; };
 		3C6AE1272329855300016196 /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
 		3C6AE1282329855300016196 /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
 		3C6AE1292329855300016196 /* sqlite3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sqlite3.h; sourceTree = "<group>"; };
@@ -1018,6 +1021,7 @@
 				3C2A53A220AF595400C430F6 /* BREthereumEWM.c */,
 				3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */,
 				3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */,
+				3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */,
 				3C9025F82106511700143B69 /* testEwm.c */,
 			);
 			path = ewm;
@@ -1909,6 +1913,7 @@
 				3CFEFE2422BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */,
 				3C25BF482236EE40004B093F /* BRBCashParams.c in Sources */,
 				3C6B17552131CE12003C313B /* BRUtilMath.c in Sources */,
+				3C69A0EB233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */,
 				3C6B17562131CE12003C313B /* BRUtilMathParse.c in Sources */,
 				3C6B17572131CE12003C313B /* BRUtilHex.c in Sources */,
 				3C6B17582131CE12003C313B /* BRBCashAddr.c in Sources */,
@@ -2025,6 +2030,7 @@
 				3CF66AE722A8358200C1E9BB /* BRCryptoNetwork.c in Sources */,
 				3CAB60D320AF8D1A00810CE4 /* BRUtilMathParse.c in Sources */,
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
+				3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */,
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CF66AE622A8342200C1E9BB /* BRCryptoWalletManager.c in Sources */,
 				3C6AE12B2329855300016196 /* sqlite3.c in Sources */,

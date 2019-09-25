@@ -272,6 +272,46 @@ private_extern int
 walletHasTransfer (BREthereumWallet wallet,
                    BREthereumTransfer transaction);
 
+/// MARK: - Persisted Wallet State;
+
+typedef struct BREthereumWalletStateRecord *BREthereumWalletState;
+
+extern BREthereumWalletState
+walletStateCreate (const BREthereumWallet wallet);
+
+extern void
+walletStateRelease (BREthereumWalletState state);
+
+/**
+ * If WalletState holds Ether, then the address will be EMPTY_ADDRESS_INIT
+ */
+extern BREthereumAddress
+walletStateGetAddress (const BREthereumWalletState walletState);
+
+extern UInt256
+walletStateGetAmount (const BREthereumWalletState walletState);
+
+extern uint64_t
+walletStateGetNonce (const BREthereumWalletState walletState);
+
+extern void
+walletStateSetNonce (BREthereumWalletState walletState,
+                     uint64_t nonce);
+
+extern BRRlpItem
+walletStateEncode (const BREthereumWalletState walletState,
+                   BRRlpCoder coder);
+
+extern BREthereumWalletState
+walletStateDecode (BRRlpItem item,
+                   BRRlpCoder coder);
+
+extern BREthereumHash
+walletStateGetHash (const BREthereumWalletState walletState);
+
+extern BRSetOf(BREthereumWalletState)
+walletStateSetCreate (size_t capacity);
+
 #ifdef __cplusplus
 }
 #endif

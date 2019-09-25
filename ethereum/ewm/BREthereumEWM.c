@@ -52,60 +52,10 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
 /// MARK: - Transaction File Service
 
-static const char *fileServiceTypeTransactions = "transactions";
-
-enum {
-    EWM_TRANSACTION_VERSION_1
-};
-
-static UInt256
-fileServiceTypeTransactionV1Identifier (BRFileServiceContext context,
-                                        BRFileService fs,
-                                        const void *entity) {
-    BREthereumTransaction transaction = (BREthereumTransaction) entity;
-    BREthereumHash hash = transactionGetHash(transaction);
-
-    UInt256 result;
-    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
-    return result;
-}
-
-static uint8_t *
-fileServiceTypeTransactionV1Writer (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    const void* entity,
-                                    uint32_t *bytesCount) {
-    BREthereumEWM ewm = context;
-    BREthereumTransaction transaction = (BREthereumTransaction) entity;
-
-    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
-
-    *bytesCount = (uint32_t) data.bytesCount;
-    return data.bytes;
-}
-
-static void *
-fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    uint8_t *bytes,
-                                    uint32_t bytesCount) {
-    BREthereumEWM ewm = context;
-
-    BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
-
-    BREthereumTransaction transaction = transactionRlpDecode(item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
-
-    return transaction;
-}
-
 static BRSetOf(BREthereumTransaction)
 initialTransactionsLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumTransaction) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (NULL != transactions && 1 != fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1)) {
+    if (NULL != transactions && 1 != fileServiceLoad (ewm->fs, transactions, ewmFileServiceTypeTransactions, 1)) {
         BRSetFreeAll (transactions, (void (*) (void*)) transactionRelease);
         return NULL;
     }
@@ -114,60 +64,10 @@ initialTransactionsLoad (BREthereumEWM ewm) {
 
 /// MARK: - Log File Service
 
-static const char *fileServiceTypeLogs = "logs";
-
-enum {
-    EWM_LOG_VERSION_1
-};
-
-static UInt256
-fileServiceTypeLogV1Identifier (BRFileServiceContext context,
-                                BRFileService fs,
-                                const void *entity) {
-    const BREthereumLog log = (BREthereumLog) entity;
-    BREthereumHash hash = logGetHash( log);
-
-    UInt256 result;
-    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
-    return result;
-}
-
-static uint8_t *
-fileServiceTypeLogV1Writer (BRFileServiceContext context,
-                            BRFileService fs,
-                            const void* entity,
-                            uint32_t *bytesCount) {
-    BREthereumEWM ewm = context;
-    BREthereumLog log = (BREthereumLog) entity;
-
-    BRRlpItem item = logRlpEncode (log, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
-
-    *bytesCount = (uint32_t) data.bytesCount;
-    return data.bytes;
-}
-
-static void *
-fileServiceTypeLogV1Reader (BRFileServiceContext context,
-                            BRFileService fs,
-                            uint8_t *bytes,
-                            uint32_t bytesCount) {
-    BREthereumEWM ewm = context;
-
-    BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
-
-    BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
-
-    return log;
-}
-
 static BRSetOf(BREthereumLog)
 initialLogsLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumLog) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (NULL != logs && 1 != fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1)) {
+    if (NULL != logs && 1 != fileServiceLoad (ewm->fs, logs, ewmFileServiceTypeLogs, 1)) {
         BRSetFreeAll (logs, (void (*) (void*)) logRelease);
         return NULL;
     }
@@ -175,189 +75,44 @@ initialLogsLoad (BREthereumEWM ewm) {
 }
 
 
-/// MARK: - Block File Service
-
-static const char *fileServiceTypeBlocks = "blocks";
-enum {
-    EWM_BLOCK_VERSION_1
-};
-
-static UInt256
-fileServiceTypeBlockV1Identifier (BRFileServiceContext context,
-                                  BRFileService fs,
-                                  const void *entity) {
-    const BREthereumBlock block = (BREthereumBlock) entity;
-    BREthereumHash hash = blockGetHash(block);
-
-    UInt256 result;
-    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
-    return result;
-}
-
-static uint8_t *
-fileServiceTypeBlockV1Writer (BRFileServiceContext context,
-                              BRFileService fs,
-                              const void* entity,
-                              uint32_t *bytesCount) {
-    BREthereumEWM ewm = context;
-    BREthereumBlock block = (BREthereumBlock) entity;
-
-    BRRlpItem item = blockRlpEncode(block, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
-
-    *bytesCount = (uint32_t) data.bytesCount;
-    return data.bytes;
-}
-
-static void *
-fileServiceTypeBlockV1Reader (BRFileServiceContext context,
-                              BRFileService fs,
-                              uint8_t *bytes,
-                              uint32_t bytesCount) {
-    BREthereumEWM ewm = context;
-
-    BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
-
-    BREthereumBlock block = blockRlpDecode (item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
-
-    return block;
-}
-
 static BRSetOf(BREthereumBlock)
 initialBlocksLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumBlock) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (NULL != blocks && 1 != fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1)) {
+    if (NULL != blocks && 1 != fileServiceLoad (ewm->fs, blocks, ewmFileServiceTypeBlocks, 1)) {
         BRSetFreeAll (blocks,  (void (*) (void*)) blockRelease);
         return NULL;
     }
     return blocks;
 }
 
-/// MARK: - Node File Service
-
-static const char *fileServiceTypeNodes = "nodes";
-enum {
-    EWM_NODE_VERSION_1
-};
-
-static UInt256
-fileServiceTypeNodeV1Identifier (BRFileServiceContext context,
-                                 BRFileService fs,
-                                 const void *entity) {
-    const BREthereumNodeConfig node = (BREthereumNodeConfig) entity;
-
-    BREthereumHash hash = nodeConfigGetHash(node);
-
-    UInt256 result;
-    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
-    return result;
-}
-
-static uint8_t *
-fileServiceTypeNodeV1Writer (BRFileServiceContext context,
-                             BRFileService fs,
-                             const void* entity,
-                             uint32_t *bytesCount) {
-    BREthereumEWM ewm = context;
-    const BREthereumNodeConfig node = (BREthereumNodeConfig) entity;
-
-    BRRlpItem item = nodeConfigEncode (node, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
-
-    *bytesCount = (uint32_t) data.bytesCount;
-    return data.bytes;
-}
-
-static void *
-fileServiceTypeNodeV1Reader (BRFileServiceContext context,
-                             BRFileService fs,
-                             uint8_t *bytes,
-                             uint32_t bytesCount) {
-    BREthereumEWM ewm = context;
-
-    BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
-
-    BREthereumNodeConfig node = nodeConfigDecode (item, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
-
-    return node;
-}
-
 static BRSetOf(BREthereumNodeConfig)
 initialNodesLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumNodeConfig) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (NULL != nodes && 1 != fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1)) {
+    if (NULL != nodes && 1 != fileServiceLoad (ewm->fs, nodes, ewmFileServiceTypeNodes, 1)) {
         BRSetFreeAll (nodes, (void (*) (void*)) nodeConfigRelease);
         return NULL;
     }
     return nodes;
 }
 
-/// MARK: - Token File Service
-
-static const char *fileServiceTypeTokens = "tokens";
-
-enum {
-    EWM_TOKEN_VERSION_1
-};
-
-static UInt256
-fileServiceTypeTokenV1Identifier (BRFileServiceContext context,
-                                        BRFileService fs,
-                                        const void *entity) {
-    BREthereumToken token = (BREthereumToken) entity;
-    BREthereumHash hash = tokenGetHash(token);
-
-    UInt256 result;
-    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
-    return result;
-}
-
-static uint8_t *
-fileServiceTypeTokenV1Writer (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    const void* entity,
-                                    uint32_t *bytesCount) {
-    BREthereumEWM ewm = context;
-    BREthereumToken token = (BREthereumToken) entity;
-
-    BRRlpItem item = tokenEncode(token, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
-
-    *bytesCount = (uint32_t) data.bytesCount;
-    return data.bytes;
-}
-
-static void *
-fileServiceTypeTokenV1Reader (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    uint8_t *bytes,
-                                    uint32_t bytesCount) {
-    BREthereumEWM ewm = context;
-
-    BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
-
-    BREthereumToken token = tokenDecode(item, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
-
-    return token;
-}
-
 static BRSetOf(BREthereumToken)
 initialTokensLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumToken) tokens = tokenSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (NULL != tokens && 1 != fileServiceLoad (ewm->fs, tokens, fileServiceTypeTokens, 1)) {
+    if (NULL != tokens && 1 != fileServiceLoad (ewm->fs, tokens, ewmFileServiceTypeTokens, 1)) {
         BRSetFreeAll (tokens, (void (*) (void*)) tokenRelease);
         return NULL;
     }
     return tokens;
+}
+
+static BRSetOf(BREthereumWalletState)
+initialWalletsLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumWalletState) states = walletStateSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (NULL != states && 1 != fileServiceLoad (ewm->fs, states, ewmFileServiceTypeWallets, 1)) {
+        BRSetFreeAll (states, (void (*) (void*)) walletStateRelease);
+        return NULL;
+    }
+    return states;
 }
 
 
@@ -436,19 +191,21 @@ ewmCreateInitialSets (BREthereumEWM ewm,
                       BRSetOf(BREthereumLog) *logs,
                       BRSetOf(BREthereumNodeConfig) *nodes,
                       BRSetOf(BREthereumBlock) *blocks,
-                      BRSetOf(BRethereumToken) *tokens) {
+                      BRSetOf(BREthereumToken) *tokens,
+                      BRSetOf(BREthereumWalletState) *states) {
 
     *transactions = initialTransactionsLoad(ewm);
     *logs = initialLogsLoad(ewm);
     *nodes = initialNodesLoad(ewm);
     *blocks = initialBlocksLoad(ewm);
     *tokens = initialTokensLoad(ewm);
+    *states = initialWalletsLoad(ewm);
 
     // If any are NULL, then we have an error and a full sync is required.  The sync will be
     // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
     // before the `accountTimestamp, which will be well in the past and we'll sync up to the
     // head of the blockchain).
-    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks || NULL == *tokens) {
+    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks || NULL == *tokens || NULL == *states) {
         // If the set exists, clear it out completely and then create another one.  Note, since
         // we have `BRSetFreeAll()` we'll use that even though it frees the set and then we
         // create one again, minimally wastefully.
@@ -466,6 +223,9 @@ ewmCreateInitialSets (BREthereumEWM ewm,
 
         if (NULL != *tokens) { BRSetFreeAll (*tokens, (void (*) (void*)) tokenRelease); }
         *tokens = tokenSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
+
+        if (NULL != *states) { BRSetFreeAll (*states, (void (*) (void*)) walletStateRelease); }
+        *states = walletStateSetCreate(EWM_INITIAL_SET_SIZE_DEFAULT);
     }
 
     // If we have no blocks; then add a checkpoint
@@ -530,62 +290,12 @@ ewmCreate (BREthereumNetwork network,
 
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
-    ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network),
-                                 ewm,
-                                 ewmFileServiceErrorHandler);
+    ewm->fs = fileServiceCreateFromTypeSpecfications (storagePath, "eth", networkGetName(network),
+                                                      ewm,
+                                                      ewmFileServiceErrorHandler,
+                                                      ewmFileServiceSpecificationsCount,
+                                                      ewmFileServiceSpecifications);
     if (NULL == ewm->fs) return ewmCreateErrorHandler(ewm, 1, "create");
-
-    /// Transaction
-    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeTransactions, EWM_TRANSACTION_VERSION_1,
-                                    (BRFileServiceContext) ewm,
-                                    fileServiceTypeTransactionV1Identifier,
-                                    fileServiceTypeTransactionV1Reader,
-                                    fileServiceTypeTransactionV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
-                                              EWM_TRANSACTION_VERSION_1))
-        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeTransactions);
-
-    /// Log
-    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeLogs, EWM_LOG_VERSION_1,
-                                    (BRFileServiceContext) ewm,
-                                    fileServiceTypeLogV1Identifier,
-                                    fileServiceTypeLogV1Reader,
-                                    fileServiceTypeLogV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
-                                              EWM_LOG_VERSION_1))
-        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeLogs);
-
-    /// Peer
-    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeNodes, EWM_NODE_VERSION_1,
-                                    (BRFileServiceContext) ewm,
-                                    fileServiceTypeNodeV1Identifier,
-                                    fileServiceTypeNodeV1Reader,
-                                    fileServiceTypeNodeV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
-                                              EWM_NODE_VERSION_1))
-        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeNodes);
-
-
-   /// Block
-    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeBlocks, EWM_BLOCK_VERSION_1,
-                                    (BRFileServiceContext) ewm,
-                                    fileServiceTypeBlockV1Identifier,
-                                    fileServiceTypeBlockV1Reader,
-                                    fileServiceTypeBlockV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
-                                              EWM_BLOCK_VERSION_1))
-        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeBlocks);
-
-    /// Token
-    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeTokens, EWM_TOKEN_VERSION_1,
-                                    (BRFileServiceContext) ewm,
-                                    fileServiceTypeTokenV1Identifier,
-                                    fileServiceTypeTokenV1Reader,
-                                    fileServiceTypeTokenV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTokens,
-                                              EWM_TOKEN_VERSION_1))
-        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeTokens);
-
 
     // Load all the persistent entities
     BRSetOf(BREthereumTransaction) transactions;
@@ -593,8 +303,10 @@ ewmCreate (BREthereumNetwork network,
     BRSetOf(BREthereumNodeConfig) nodes;
     BRSetOf(BREthereumBlock) blocks;
     BRSetOf(BREthereumToken) tokens;
+    BRSetOf(BREthereumWalletState) walletStates;
 
-    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
+    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp,
+                          &transactions, &logs, &nodes, &blocks, &tokens, &walletStates);
 
     // Save the recovered tokens
     ewm->tokens = tokens;
@@ -627,6 +339,38 @@ ewmCreate (BREthereumNetwork network,
 
     BRAssertDefineRecovery ((BRAssertRecoveryInfo) ewm,
                             (BRAssertRecoveryHandler) ewmAssertRecovery);
+
+    // Having restored the WalletState. restore that Wallet (balance).
+    FOR_SET (BREthereumWalletState, state, walletStates) {
+        BREthereumAddress address = walletStateGetAddress (state);
+
+        // If the WalletState address is EMPTY_ADDRESS_INIT, then the state is for ETHER
+        BREthereumBoolean addressIsForEther = addressEqual (EMPTY_ADDRESS_INIT, address);
+
+        // See if we have a token.
+        BREthereumToken token = (ETHEREUM_BOOLEAN_IS_TRUE (addressIsForEther)
+                                 ? NULL
+                                 : ewmLookupToken (ewm, address));
+
+        // If we don't have a token and the address is not for ether, then ignore the state
+        // This would occur if we have a state for a token that is no longer supported.
+        if (NULL == token && ETHEREUM_BOOLEAN_IS_FALSE(addressIsForEther)) continue;
+
+         // Get the balance
+        BREthereumAmount balance = (NULL == token
+                                    ? amountCreateEther (etherCreate (walletStateGetAmount (state)))
+                                    : amountCreateToken (createTokenQuantity (token, walletStateGetAmount (state))));
+
+        // Finally, update the balance; this will create TOK wallets as required.
+        ewmHandleBalance (ewm, balance);
+
+        if (NULL == token) {
+            accountSetAddressNonce (ewm->account,
+                                    accountGetPrimaryAddress(ewm->account),
+                                    walletStateGetNonce(state),
+                                    ETHEREUM_BOOLEAN_TRUE);
+        }
+    }
 
     // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
     // will be callbacks made to the EWM client.  Because we've defined `handlerForMain`
@@ -672,16 +416,12 @@ ewmCreate (BREthereumNetwork network,
             // how to get an ERC20 balance (execute a (free) transaction for 'balance'??); this
             // later case applies for `bcsCreate()` below in P2P modes.
             //
-            // But, on startup we have the transactions and the logs and DO NOT persistently store
-            // the per-wallet balance.  Thus, to get the balance we need an API hit (or a P2P hit).
-            // We might not have network...  So, get the balance assigned from existing transfers.
+            // In addition, because we DO NOT handle 'internal transactions' the sum of transfers
+            // cannot reliably produce the account balance.
             //
-            // Note: at this point transfers are not in wallets - we've just signalled adding the
-            // transactions and logs.  If we are going to update the balance (and it won't be
-            // N^2 as each transfer is added), then we need to signal a wallet balance update.
-            //
-            // One.Event.to.Update.Them.All
-            ewmSignalUpdateWalletBalances(ewm);
+            // So, we have all the logs and transactions and we won't modify the wallet balances
+            // that have been restored from persistent state.
+
 #if 0
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
@@ -752,8 +492,9 @@ ewmCreate (BREthereumNetwork network,
         }
     }
 
-    // mark as 'sync in progress' - we can't sent transactions until we have the nonce.
+    BRSetFreeAll (walletStates, (void (*) (void*)) walletStateRelease);
 
+    // mark as 'sync in progress' - we can't sent transactions until we have the nonce.
     return ewm;
 
 }
@@ -1256,6 +997,7 @@ ewmUpdateMode (BREthereumEWM ewm,
         BRSetOf(BREthereumBlock) blocks;
         BRSetOf(BREthereumTransaction) transactions;
         BRSetOf(BREthereumLog) logs;
+        BRSetOf(BREthereumWalletState) states;
 
         // We have BCS in all modes but in BRD_ONLY mode it is never started.
 
@@ -1309,7 +1051,8 @@ ewmUpdateMode (BREthereumEWM ewm,
 
             case SYNC_MODE_P2P_WITH_BRD_SYNC:
             case SYNC_MODE_P2P_ONLY:
-                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
+                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp,
+                                      &transactions, &logs, &nodes, &blocks, &tokens, &states);
 
                 ewm->bcs = bcsCreate (ewm->network,
                                       primaryAddress,
@@ -1319,6 +1062,8 @@ ewmUpdateMode (BREthereumEWM ewm,
                                       blocks,
                                       transactions,
                                       logs);
+
+                BRSetFreeAll (states, (void (*) (void*)) walletStateRelease);
                 break;
          }
 
@@ -2059,10 +1804,7 @@ ewmHandleAccountState (BREthereumEWM ewm,
 
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
 
-    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account),
-                           accountState.nonce,
-                           ETHEREUM_BOOLEAN_FALSE);
-
+    ewmHandleAnnounceNonce (ewm, accountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
     ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -2382,10 +2124,10 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
     size_t count = array_count(blocks);
 
     eth_log("EWM", "Save Blocks (Storage): %zu", count);
-    fileServiceClear(ewm->fs, fileServiceTypeBlocks);
+    fileServiceClear(ewm->fs, ewmFileServiceTypeBlocks);
 
     for (size_t index = 0; index < count; index++)
-        fileServiceSave (ewm->fs, fileServiceTypeBlocks, blocks[index]);
+        fileServiceSave (ewm->fs, ewmFileServiceTypeBlocks, blocks[index]);
     array_free (blocks);
 }
 
@@ -2395,10 +2137,10 @@ ewmHandleSaveNodes (BREthereumEWM ewm,
     size_t count = array_count(nodes);
 
     eth_log("EWM", "Save Nodes (Storage): %zu", count);
-    fileServiceClear(ewm->fs, fileServiceTypeNodes);
+    fileServiceClear(ewm->fs, ewmFileServiceTypeNodes);
 
     for (size_t index = 0; index < count; index++)
-        fileServiceSave(ewm->fs, fileServiceTypeNodes, nodes[index]);
+        fileServiceSave(ewm->fs, ewmFileServiceTypeNodes, nodes[index]);
 
     array_free (nodes);
 }
@@ -2416,11 +2158,11 @@ ewmHandleSaveTransaction (BREthereumEWM ewm,
             fileName);
 
     if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-        fileServiceRemove (ewm->fs, fileServiceTypeTransactions,
-                           fileServiceTypeTransactionV1Identifier (ewm, ewm->fs, transaction));
+        fileServiceRemove (ewm->fs, ewmFileServiceTypeTransactions,
+                           fileServiceGetIdentifier(ewm->fs, ewmFileServiceTypeTransactions, transaction));
 
     if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-        fileServiceSave (ewm->fs, fileServiceTypeTransactions, transaction);
+        fileServiceSave (ewm->fs, ewmFileServiceTypeTransactions, transaction);
 }
 
 extern void
@@ -2436,11 +2178,45 @@ ewmHandleSaveLog (BREthereumEWM ewm,
             filename);
 
     if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-        fileServiceRemove (ewm->fs, fileServiceTypeLogs,
-                           fileServiceTypeLogV1Identifier(ewm, ewm->fs, log));
+        fileServiceRemove (ewm->fs, ewmFileServiceTypeLogs,
+                           fileServiceGetIdentifier (ewm->fs, ewmFileServiceTypeLogs, log));
 
     if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-        fileServiceSave (ewm->fs, fileServiceTypeLogs, log);
+        fileServiceSave (ewm->fs, ewmFileServiceTypeLogs, log);
+}
+
+extern void
+ewmHandleSaveWallet (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumClientChangeType type) {
+    BREthereumWalletState state = walletStateCreate (wallet);
+
+    // If this is the primaryWallet, hack in the nonce
+    if (wallet == ewm->walletHoldingEther) {
+        walletStateSetNonce (state,
+                             accountGetAddressNonce (ewm->account,
+                                                     accountGetPrimaryAddress(ewm->account)));
+    }
+
+    BREthereumHash hash = walletStateGetHash(state);
+    BREthereumHashString filename;
+    hashFillString(hash, filename);
+
+    eth_log ("EWM", "Wallet: Save: %s: %s",
+             CLIENT_CHANGE_TYPE_NAME (type),
+             filename);
+
+    switch (type) {
+        case CLIENT_CHANGE_REM:
+            fileServiceRemove (ewm->fs, ewmFileServiceTypeWallets,
+                               fileServiceGetIdentifier (ewm->fs, ewmFileServiceTypeWallets, state));
+            break;
+
+        case CLIENT_CHANGE_ADD:
+        case CLIENT_CHANGE_UPD:
+            fileServiceSave (ewm->fs, ewmFileServiceTypeWallets, state);
+            break;
+    }
 }
 
 extern void
@@ -3144,6 +2920,6 @@ ewmCreateToken (BREthereumEWM ewm,
     }
     pthread_mutex_unlock (&ewm->lock);
 
-    fileServiceSave (ewm->fs, fileServiceTypeTokens, token);
+    fileServiceSave (ewm->fs, ewmFileServiceTypeTokens, token);
     return token;
 }

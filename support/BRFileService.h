@@ -133,6 +133,11 @@ fileServiceClear (BRFileService fs,
 extern int
 fileServiceClearAll (BRFileService fs);
 
+extern UInt256
+fileServiceGetIdentifier (BRFileService fs,
+                          const char *type,
+                          const void *entity);
+
 /**
  * A function type to produce an identifer from an entity.  The identifer must be constant for
  * a particulary entity through time.  The identifier is used to derive a filename (more generally
