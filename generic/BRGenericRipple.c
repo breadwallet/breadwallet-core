@@ -136,10 +136,10 @@ genericRippleWalletGetBalance (BRGenericWallet wallet) {
     return createUInt256(rippleWalletGetBalance(ripple));
 }
 
-static BRGenericTransfer
-genericRippleWalletManagerRecoverTransfer (uint8_t *bytes,
-                                           size_t   bytesCount) {
-    return rippleTransactionCreateFromBytes (bytes, (int) bytesCount);
+static BRArrayOf(BRGenericTransfer)
+genericRippleWalletManagerRecoverTransfersFromRawTransaction (uint8_t *bytes,
+                                                            size_t   bytesCount) {
+    return NULL;
 }
 
 
@@ -254,7 +254,7 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     },
 
     { // Wallet Manager
-        genericRippleWalletManagerRecoverTransfer,
+        genericRippleWalletManagerRecoverTransfersFromRawTransaction,
         genericRippleWalletManagerInitializeFileService,
         genericRippleWalletManagerLoadTransfers
     }
