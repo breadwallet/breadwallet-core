@@ -183,7 +183,7 @@ public class BRCryptoKey extends PointerType {
     }
 
     public static Optional<BRCryptoKey> cryptoKeyCreateFromSecret(byte[] secret) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromSecret(new UInt256.ByValue(secret)));
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromSecret(new UInt256(secret).toByValue()));
     }
 
     public byte[] encodeAsPrivate() {

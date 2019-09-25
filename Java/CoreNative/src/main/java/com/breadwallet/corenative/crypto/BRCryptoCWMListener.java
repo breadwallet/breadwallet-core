@@ -50,13 +50,29 @@ public class BRCryptoCWMListener extends Structure {
         super(peer);
     }
 
+    public ByReference toByReference() {
+        ByReference other = new ByReference();
+        other.context = this.context;
+        other.walletManagerEventCallback = this.walletManagerEventCallback;
+        other.walletEventCallback = this.walletEventCallback;
+        other.transferEventCallback = this.transferEventCallback;
+        return other;
+    }
+
+    public ByValue toByValue() {
+        ByValue other = new ByValue();
+        other.context = this.context;
+        other.walletManagerEventCallback = this.walletManagerEventCallback;
+        other.walletEventCallback = this.walletEventCallback;
+        other.transferEventCallback = this.transferEventCallback;
+        return other;
+    }
+
     public static class ByReference extends BRCryptoCWMListener implements Structure.ByReference {
 
     }
 
     public static class ByValue extends BRCryptoCWMListener implements Structure.ByValue {
-        public ByValue(Pointer context, BRCryptoCWMListenerWalletManagerEvent walletManagerEventCallback, BRCryptoCWMListenerWalletEvent walletEventCallback, BRCryptoCWMListenerTransferEvent transferEventCallback) {
-            super(context, walletManagerEventCallback, walletEventCallback, transferEventCallback);
-        }
+
     }
 }
