@@ -136,15 +136,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         query = BlockChainDB.createForTest ()
 
         // Create the system
-        guard let system = System (listener: listener,
-                                   account: account,
-                                   onMainnet: mainnet,
-                                   path: storagePath,
-                                   query: query)
-            else { exit(0) }
+        self.system = System (listener: listener,
+                              account: account,
+                              onMainnet: mainnet,
+                              path: storagePath,
+                              query: query)
 
-        self.system = system
-        
         // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
         let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);

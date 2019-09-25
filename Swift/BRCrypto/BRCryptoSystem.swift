@@ -409,19 +409,14 @@ public final class System {
     ///   - listenerQueue: The queue to use when performing listen event handler callbacks.  If a
     ///       queue is not specficied (default to `nil`), then one will be provided.
     ///
-    public init? (listener: SystemListener,
+    public init (listener: SystemListener,
                   account: Account,
                   onMainnet: Bool,
                   path: String,
                   query: BlockChainDB,
                   listenerQueue: DispatchQueue? = nil) {
-
         let accounctSpecificPath = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
-        guard System.ensurePath(accounctSpecificPath)
-            else {
-                print ("SYS: Init: Failed: path error")
-                return nil
-        }
+        precondition (System.ensurePath(accounctSpecificPath))
 
         self.listener  = listener
         self.account   = account
