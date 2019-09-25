@@ -37,11 +37,21 @@ public class UInt256 extends Structure {
         super(peer);
     }
 
-    public static class ByReference extends UInt256 implements Structure.ByReference {
+    public ByReference toByReference() {
+        ByReference other = new ByReference();
+        other.u8 = this.u8;
+        return other;
+    }
 
+    public ByValue toByValue() {
+        ByValue other = new ByValue();
+        other.u8 = this.u8;
+        return other;
+    }
+
+    public static class ByReference extends UInt256 implements Structure.ByReference {
     }
 
     public static class ByValue extends UInt256 implements Structure.ByValue {
-
     }
 }

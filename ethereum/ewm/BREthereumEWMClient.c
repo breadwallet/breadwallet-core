@@ -350,12 +350,17 @@ ewmAnnounceNonce (BREthereumEWM ewm,
  */
 extern void
 ewmHandleAnnounceNonce (BREthereumEWM ewm,
-                              BREthereumAddress address,
-                              uint64_t nonce,
-                              int rid) {
-    //    BREthereumEncodedAddress address = accountGetPrimaryAddress (ewmGetAccount(ewm));
-    //    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
-    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account), nonce, ETHEREUM_BOOLEAN_FALSE);
+                        BREthereumAddress address,
+                        uint64_t newNonce,
+                        int rid) {
+    uint64_t oldNonce = accountGetAddressNonce (ewm->account, address);
+    if (oldNonce != newNonce) {
+        // This may not change the nonce
+        accountSetAddressNonce (ewm->account, address, newNonce, ETHEREUM_BOOLEAN_FALSE);
+        // Only save the primaryWallet if the nonce has, in fact, changed.
+        if (oldNonce != accountGetAddressNonce (ewm->account, address))
+            ewmHandleSaveWallet (ewm, ewmGetWallet(ewm), CLIENT_CHANGE_UPD);
+    }
 }
 
 // ==============================================================================================
@@ -365,9 +370,9 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
 
 
 extern void
-ewmHandleAnnounceTransaction(BREthereumEWM ewm,
-                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
-                                   int id) {
+ewmHandleAnnounceTransaction (BREthereumEWM ewm,
+                              BREthereumEWMClientAnnounceTransactionBundle *bundle,
+                              int id) {
     switch (ewm->mode) {
         case SYNC_MODE_BRD_ONLY:
         case SYNC_MODE_BRD_WITH_P2P_SEND: {
@@ -888,11 +893,20 @@ ewmAnnounceTokenComplete (BREthereumEWM ewm,
 //
 // Client
 //
+static int
+ewmNeedWalletSave (BREthereumEWM ewm,
+                   BREthereumWallet wid,
+                   BREthereumWalletEvent event) {
+    return (WALLET_EVENT_BALANCE_UPDATED == event.type); // CREATED?
+}
 
 extern void
 ewmHandleWalletEvent(BREthereumEWM ewm,
                      BREthereumWallet wid,
                      BREthereumWalletEvent event) {
+    if (ewmNeedWalletSave (ewm, wid, event))
+        ewmHandleSaveWallet (ewm, wid, CLIENT_CHANGE_UPD);
+
     ewm->client.funcWalletEvent (ewm->client.context,
                                  ewm,
                                  wid,

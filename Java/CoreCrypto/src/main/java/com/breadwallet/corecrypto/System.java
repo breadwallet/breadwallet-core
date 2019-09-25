@@ -45,7 +45,6 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
@@ -87,21 +86,21 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletDeletedEve
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -110,6 +109,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /* package */
 final class System implements com.breadwallet.crypto.System {
@@ -164,19 +165,22 @@ final class System implements com.breadwallet.crypto.System {
                          BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
-        BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
+        Account cryptoAccount = Account.from(account);
+        path = path + (path.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
+
+        BRCryptoCWMListener cwmListener = new BRCryptoCWMListener(context,
                 CWM_LISTENER_WALLET_MANAGER_CALLBACK,
                 CWM_LISTENER_WALLET_CALLBACK,
                 CWM_LISTENER_TRANSFER_CALLBACK);
 
-        BRCryptoCWMClient.ByValue cwmClient = new BRCryptoCWMClient.ByValue(context,
+        BRCryptoCWMClient cwmClient = new BRCryptoCWMClient(context,
                 CWM_CLIENT_BTC,
                 CWM_CLIENT_ETH,
                 CWM_CLIENT_GEN);
 
         System system = new System(executor,
                 listener,
-                account,
+                cryptoAccount,
                 isMainnet,
                 path,
                 query,
@@ -201,8 +205,8 @@ final class System implements com.breadwallet.crypto.System {
     private final boolean isMainnet;
     private final String path;
     private final BlockchainDb query;
-    private final BRCryptoCWMListener.ByValue cwmListener;
-    private final BRCryptoCWMClient.ByValue cwmClient;
+    private final BRCryptoCWMListener cwmListener;
+    private final BRCryptoCWMClient cwmClient;
 
     private final Lock networksReadLock;
     private final Lock networksWriteLock;
@@ -211,20 +215,20 @@ final class System implements com.breadwallet.crypto.System {
     private final Lock walletManagersWriteLock;
     private final List<WalletManager> walletManagers;
 
-    boolean isNetworkReachable;
+    private boolean isNetworkReachable;
 
     private System(ScheduledExecutorService executor,
                    SystemListener listener,
-                   com.breadwallet.crypto.Account account,
+                   Account account,
                    boolean isMainnet,
                    String path,
                    BlockchainDb query,
-                   BRCryptoCWMListener.ByValue cwmListener,
-                   BRCryptoCWMClient.ByValue cwmClient) {
+                   BRCryptoCWMListener cwmListener,
+                   BRCryptoCWMClient cwmClient) {
         this.executor = executor;
         this.listener = listener;
         this.callbackCoordinator = new SystemCallbackCoordinator(executor);
-        this.account = Account.from(account);
+        this.account = account;
         this.isMainnet = isMainnet;
         this.path = path;
         this.query = query;
@@ -247,7 +251,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void configure(List<Currency> appCurrencies) {
+    public void configure(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies) {
         NetworkDiscovery.discoverNetworks(query, isMainnet, appCurrencies, new NetworkDiscovery.Callback() {
             @Override
             public void discovered(Network network) {
@@ -265,7 +269,13 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode, AddressScheme scheme) {
+    public void createWalletManager(com.breadwallet.crypto.Network network,
+                                    WalletManagerMode mode,
+                                    AddressScheme scheme,
+                                    Set<com.breadwallet.crypto.Currency> currencies) {
+        checkState(supportsWalletManagerMode(network, mode));
+        checkState(supportsAddressScheme(network, scheme));
+
         WalletManager walletManager = WalletManager.create(
                 cwmListener,
                 cwmClient,
@@ -276,7 +286,15 @@ final class System implements com.breadwallet.crypto.System {
                 path,
                 this,
                 callbackCoordinator);
+
+        for (com.breadwallet.crypto.Currency currency: currencies) {
+            if (network.hasCurrency(currency)) {
+                walletManager.registerWalletFor(currency);
+            }
+        }
+
         walletManager.setNetworkReachable(isNetworkReachable);
+
         addWalletManager(walletManager);
         announceSystemEvent(new SystemManagerAddedEvent(walletManager));
     }
@@ -428,7 +446,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public boolean supportsWalletManagerModes(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
+    public boolean supportsWalletManagerMode(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
         return getSupportedWalletManagerModes(network).contains(mode);
     }
 
@@ -464,7 +482,7 @@ final class System implements com.breadwallet.crypto.System {
     //
 
     private static void walletManagerEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
-                                            BRCryptoWalletManagerEvent.ByValue event) {
+                                            BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
@@ -761,7 +779,7 @@ final class System implements com.breadwallet.crypto.System {
     //
 
     private static void walletEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
-                                     @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent.ByValue event) {
+                                     @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
@@ -1156,7 +1174,7 @@ final class System implements com.breadwallet.crypto.System {
 
     private static void transferEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
                                        @Nullable BRCryptoWallet coreWallet, @Nullable BRCryptoTransfer coreTransfer,
-                                       BRCryptoTransferEvent.ByValue event) {
+                                       BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);

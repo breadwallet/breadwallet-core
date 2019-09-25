@@ -11,6 +11,7 @@
 #ifndef BR_Ethereum_EWM_Private_H
 #define BR_Ethereum_EWM_Private_H
 
+#include <stdint.h>
 #include <pthread.h>
 #include "support/BRFileService.h"
 #include "ethereum/blockchain/BREthereumBlockChain.h"
@@ -302,6 +303,11 @@ extern void
 ewmHandleSaveLog (BREthereumEWM ewm,
                   BREthereumLog log,
                   BREthereumClientChangeType type);
+
+extern void
+ewmHandleSaveWallet (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumClientChangeType type);
 
 //
 // Signal/Handle Sync (BCS Callback)
@@ -610,6 +616,18 @@ ewmHandleEWMEvent(BREthereumEWM ewm,
 
 extern const BREventType *ewmEventTypes[];
 extern const unsigned int ewmEventTypesCount;
+
+/// MARK: - File Service
+
+extern const char *ewmFileServiceTypeTransactions;
+extern const char *ewmFileServiceTypeLogs;
+extern const char *ewmFileServiceTypeBlocks;
+extern const char *ewmFileServiceTypeNodes;
+extern const char *ewmFileServiceTypeTokens;
+extern const char *ewmFileServiceTypeWallets;
+
+extern size_t ewmFileServiceSpecificationsCount;
+extern BRFileServiceTypeSpecification *ewmFileServiceSpecifications;
 
 #ifdef __cplusplus
 }

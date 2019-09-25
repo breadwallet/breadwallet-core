@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +31,23 @@ public class EthBlockApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, handler);
+        client.sendJsonRequest(networkName, json, new CompletionHandler<String, QueryError>() {
+            @Override
+            public void handleData(String data) {
+                // If we get a successful response, but the provided blocknumber is "0" then
+                // that indicates that the JSON-RPC node is syncing.  Thus, if "0" transform
+                // to a .failure
+                if (!"0".equals(data) && !"0x".equals(data)) {
+                    handler.handleData(data);
+                } else {
+                    handler.handleError(new QueryNoDataError());
+                }
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                handler.handleError(error);
+            }
+        });
     }
 }

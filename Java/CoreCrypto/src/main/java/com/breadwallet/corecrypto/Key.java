@@ -7,12 +7,13 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 /* package */
 final class Key implements com.breadwallet.crypto.Key {
@@ -95,15 +96,25 @@ final class Key implements com.breadwallet.crypto.Key {
     }
 
     /* package */
+    static Optional<Key> createFromSecret(byte[] secret) {
+        return BRCryptoKey.cryptoKeyCreateFromSecret(secret).transform(Key::new);
+    }
+
+    /* package */
     static Key create(BRCryptoKey core) {
         return new Key(core);
     }
 
     /* package */
     static Key from(com.breadwallet.crypto.Key key) {
+        if (key == null) {
+            return null;
+        }
+
         if (key instanceof Key) {
             return (Key) key;
         }
+
         throw new IllegalArgumentException("Unsupported key instance");
     }
 

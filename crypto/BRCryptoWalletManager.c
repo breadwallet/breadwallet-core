@@ -8,7 +8,9 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
 #include <pthread.h>
+#include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
@@ -24,7 +26,7 @@ static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
 static void
-cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm);
+cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 
@@ -189,10 +191,9 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // ... and finally start the EWM event handling (with CWM fully in place).
             ewmStart (cwm->u.eth);
 
-            // This will generate EWM wallet events... as EWM is started, the CWM callback of
-            // cwmWalletEventAsETH() will runs, create the CWM wallet and then signal both
-            // CRYPTO_WALLET_EVENT_CREATED and CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED.
-            cryptoWalletManagerInstallWalletsForCurrencies(cwm);
+            // This will install ERC20 Tokens for the CWM Currencies.  Corresponding Wallets are
+            // not created for these currencies.
+            cryptoWalletManagerInstallETHTokensForCurrencies(cwm);
 
             // We finish here with possibly EWM events in the EWM handler queue and/or with
             // CWM events in the CWM handler queue.
@@ -400,6 +401,19 @@ cryptoWalletManagerSetNetworkReachable (BRCryptoWalletManager cwm,
     }
 }
 
+//extern BRCryptoPeer
+//cryptoWalletManagerGetPeer (BRCryptoWalletManager cwm) {
+//    return (NULL == cwm->peer ? NULL : cryptoPeerTake (cwm->peer));
+//}
+//
+//extern void
+//cryptoWalletManagerSetPeer (BRCryptoWalletManager cwm,
+//                            BRCryptoPeer peer) {
+//    BRCryptoPeer oldPeer = cwm->peer;
+//    cwm->peer = (NULL == peer ? NULL : cryptoPeerTake(peer));
+//    if (NULL != oldPeer) cryptoPeerGive (oldPeer);
+//}
+
 extern BRCryptoWallet
 cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm) {
     return cryptoWalletTake (cwm->wallet);
@@ -433,6 +447,32 @@ cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
         }
     }
     pthread_mutex_unlock (&cwm->lock);
+    return wallet;
+}
+
+extern BRCryptoWallet
+cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
+                                   BRCryptoCurrency currency) {
+    BRCryptoWallet wallet = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
+    if (NULL == wallet) {
+        switch (cwm->type) {
+            case BLOCK_CHAIN_TYPE_BTC:
+                assert (0); // Only BTC currency; has `primaryWallet
+                break;
+
+            case BLOCK_CHAIN_TYPE_ETH: {
+                const char *issuer = cryptoCurrencyGetIssuer (currency);
+                BREthereumAddress ethAddress = addressCreate (issuer);
+                BREthereumToken ethToken = ewmLookupToken (cwm->u.eth, ethAddress);
+                assert (NULL != ethToken);
+                ewmGetWalletHoldingToken (cwm->u.eth, ethToken);
+                break;
+            }
+            case BLOCK_CHAIN_TYPE_GEN:
+                assert (0);
+                break;
+        }
+    }
     return wallet;
 }
 
@@ -478,7 +518,7 @@ cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
 }
 
 static void
-cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
+cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
     BRCryptoNetwork  network    = cryptoNetworkTake (cwm->network);
     BRCryptoCurrency currency   = cryptoNetworkGetCurrency(network);
     BRCryptoUnit     unitForFee = cryptoNetworkGetUnitAsBase (network, currency);
@@ -514,13 +554,7 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
                                                                 cryptoUnitGetBaseDecimalOffset(unitDefault),
                                                                 ethGasLimit,
                                                                 ethGasPrice);
-
-                        if (NULL != token) {
-                            // The following generates an EWM event of WALLET_EVENT_CREATED.  Which flows
-                            // to CWM and is handled in cwmWalletEventAsETH where a BRCrytoWallet is
-                            // created and then signalled on up.
-                            ewmGetWalletHoldingToken (cwm->u.eth, token);
-                        }
+                        assert (NULL != token); (void) &token;
                     }
                     break;
                 }
@@ -539,11 +573,25 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
 /// MARK: - Connect/Disconnect/Sync
 
 extern void
-cryptoWalletManagerConnect (BRCryptoWalletManager cwm) {
+cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
+                            BRCryptoPeer peer) {
     switch (cwm->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
+        case BLOCK_CHAIN_TYPE_BTC: {
+            // Assume `peer` is NULL; UINT128_ZERO will restore BRPeerManager peer discovery
+            UInt128  address = UINT128_ZERO;
+            uint16_t port    = 0;
+
+            if (NULL != peer) {
+                address = cryptoPeerGetAddrAsInt(peer);
+                port = cryptoPeerGetPort (peer);
+            }
+            
+            // Calling `SetFixedPeer` will 100% disconnect.  We could avoid calling SetFixedPeer
+            // if we kept a reference to `peer` and checked if it differs.
+            BRWalletManagerSetFixedPeer (cwm->u.btc, address, port);
             BRWalletManagerConnect (cwm->u.btc);
             break;
+        }
         case BLOCK_CHAIN_TYPE_ETH:
             ewmConnect (cwm->u.eth);
             break;
@@ -673,7 +721,8 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoTransferAsGEN (transfer),
                                      seed);
 
-            seed = UINT512_ZERO;
+            seed = UINT512_ZERO; (void) &seed;
+
             break;
         }
     }

@@ -64,7 +64,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         return network.height
     }
 
-   /// The primaryWallet - holds the network's currency - this is typically the wallet where
+    /// The primaryWallet - holds the network's currency - this is typically the wallet where
     /// fees are applied which may or may not differ from the specific wallet used for a
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
@@ -75,6 +75,36 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                        callbackCoordinator: callbackCoordinator,
                        take: false)
     }()
+
+    ///
+    /// Ensure that a wallet for currency exists.  If the wallet already exists, it is returned.
+    /// If the wallet needs to be created then `nil` is returned and a series of events will
+    //// occur - notably WalletEvent.created and WalletManagerEvent.walletAdded if the wallet is
+    /// created
+    ///
+    /// - Note: There is a precondition on `currency` being one in the managers' network
+    ///
+    /// - Parameter currency:
+    /// - Returns: The wallet for currency if it already exists, othersise `nil`
+    ///
+    public func registerWalletFor (currency: Currency) -> Wallet? {
+        precondition (network.hasCurrency(currency))
+        return cryptoWalletManagerRegisterWallet (core, currency.core)
+            .map { Wallet (core: $0,
+                           manager: self,
+                           callbackCoordinator: callbackCoordinator,
+                           take: false)
+        }
+    }
+
+//    public func unregisterWalletFor (currency: Currency) {
+//        wallets
+//            .first { $0.currency == currency }
+//            .map { unregisterWallet($0) }
+//    }
+//
+//    public func unregisterWallet (_ wallet: Wallet) {
+//    }
 
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
@@ -133,12 +163,17 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         }
     }
 
-    /// The default WalletFactory for creating wallets.
-    //    var walletFactory: WalletFactory { get set }
-
-    /// Connect to network and begin managing wallets for account
-    public func connect () {
-        cryptoWalletManagerConnect (core)
+    ///
+    /// Connect to the network and begin managing wallets.
+    ///
+    /// - Parameter peer: An optional NetworkPeer to use on the P2P network.  It is unusual to
+    ///     provide a peer as P2P networks will dynamically discover suitable peers.
+    ///
+    /// - Note: If peer is provided, there is a precondition on the networks matching.
+    ///
+    public func connect (using peer: NetworkPeer? = nil) {
+        precondition (peer == nil || peer!.network == network)
+        cryptoWalletManagerConnect (core, peer?.core)
     }
 
     /// Disconnect from the network.
@@ -213,15 +248,17 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         self.addressScheme     = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
-    public convenience init (system: System,
-                             callbackCoordinator: SystemCallbackCoordinator,
-                             account: Account,
-                             network: Network,
-                             mode: WalletManagerMode,
-                             addressScheme: AddressScheme,
-                             storagePath: String,
-                             listener: BRCryptoCWMListener,
-                             client: BRCryptoCWMClient) {
+
+    internal convenience init (system: System,
+                               callbackCoordinator: SystemCallbackCoordinator,
+                               account: Account,
+                               network: Network,
+                               mode: WalletManagerMode,
+                               addressScheme: AddressScheme,
+                               currencies: Set<Currency>,
+                               storagePath: String,
+                               listener: BRCryptoCWMListener,
+                               client: BRCryptoCWMClient) {
         self.init (core: cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
@@ -232,6 +269,14 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                    system: system,
                    callbackCoordinator: callbackCoordinator,
                    take: false)
+
+        // Register a wallet for each currency.
+        currencies
+            .forEach {
+                if network.hasCurrency ($0) {
+                    let _ = registerWalletFor(currency: $0)
+                }
+        }
     }
 
     deinit {

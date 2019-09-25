@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -16,11 +17,24 @@ import java.util.List;
 
 public interface CoreBRCryptoWalletManager {
 
-    static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
-                                            CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
-                                            int scheme, String path) {
-        return new OwnedBRCryptoWalletManager(CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
-                listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, scheme, path));
+    static CoreBRCryptoWalletManager create(BRCryptoCWMListener listener,
+                                            BRCryptoCWMClient client,
+                                            CoreBRCryptoAccount account,
+                                            CoreBRCryptoNetwork network,
+                                            int mode,
+                                            int scheme,
+                                            String path) {
+        return new OwnedBRCryptoWalletManager(
+                CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
+                        listener.toByValue(),
+                        client.toByValue(),
+                        account.asBRCryptoAccount(),
+                        network.asBRCryptoNetwork(),
+                        mode,
+                        scheme,
+                        path
+                )
+        );
     }
 
     static CoreBRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
@@ -37,6 +51,8 @@ public interface CoreBRCryptoWalletManager {
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 
+    Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency);
+
     void setNetworkReachable(boolean isNetworkReachable);
 
     int getMode();
@@ -51,7 +67,7 @@ public interface CoreBRCryptoWalletManager {
 
     void setAddressScheme(int scheme);
 
-    void connect();
+    void connect(BRCryptoPeer peer);
 
     void disconnect();
 

@@ -127,9 +127,10 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              // We might not see `syncProgress`
              // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
-             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested))),
              ]))
     }
 
@@ -218,11 +219,12 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              // We might not see `syncProgress`
              // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
-             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
 
              // Can have another sync started here... so scan
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested)),
                            strict: true, scan: true),
             ]))
     }
@@ -359,7 +361,8 @@ class MigrateSystemListener: SystemListener {
                 // Wallet Manager
                 let _ = system.createWalletManager (network: network,
                                                     mode: system.defaultMode(network: network),
-                                                    addressScheme: system.defaultAddressScheme(network: network))
+                                                    addressScheme: system.defaultAddressScheme(network: network),
+                                                    currencies: Set<Currency>())
             }
 
         case .managerAdded(let manager):

@@ -161,7 +161,7 @@ public class CryptoLibraryAIT {
         boolean success;
 
         BRCryptoAccount account = CoreBRCryptoAccount
-                .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), epochDate)
+                .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), UnsignedLong.valueOf(epoch))
                 .asBRCryptoAccount();
 
         //

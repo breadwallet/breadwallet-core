@@ -90,7 +90,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         switch (item.getItemId()) {
             case R.id.action_connect:
                 for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
-                    wm.connect();
+                    wm.connect(null);
                 }
                 return true;
             case R.id.action_sync:
