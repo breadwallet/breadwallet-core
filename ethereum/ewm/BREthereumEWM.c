@@ -682,7 +682,7 @@ ewmCreate (BREthereumNetwork network,
             //
             // One.Event.to.Update.Them.All
             ewmSignalUpdateWalletBalances(ewm);
-
+#if 0
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
             FOR_SET (BREthereumBlock, block, blocks)
@@ -692,6 +692,23 @@ ewmCreate (BREthereumNetwork network,
                                  blockGetHash( lastBlock),
                                  blockGetNumber (lastBlock),
                                  blockGetTimestamp (lastBlock));
+#endif
+            // Use the provided `blockHeight` in API modes.  We only have the `blockHeight` as a
+            // parameter, thus calling `ewmSignalBlockChain()` with 'empty' values for `blockHash`
+            // and `blockTimestamp` works because we know that `ewmHandleBlockChain` doesn't use
+            // those parameters.
+            //
+            // What was the expectation of the above `lastBlock` code in API modes?  It might have
+            // been from a time when `blockHeight` was not passed in as a parameters and thus we
+            // need some block height and the best we could do was the saved blocks (like from a
+            // P2P mode) or the checkpoint which is always there, at least.
+            //
+            // Our current API appraoch is to use BlockSet where a) we have the current block height
+            // or b) if BlockSet, is down we hardcode the block height at the time of the software
+            // distribution (See System.supportedBlockchains) - either way we have a better
+            // current block height than any checkpoint.
+            
+            ewmSignalBlockChain (ewm, EMPTY_HASH_INIT, ewm->blockHeight, 0);
 
             // ... and then just ignore nodes
 
@@ -3101,11 +3118,11 @@ ewmCreateToken (BREthereumEWM ewm,
     // `ewmHandleAnnounceToken()`) and one in `cryptoWalletManagerInstall...()` (on some App
     // listener thread).  Such a description, used here, is troubling in and of itself.
 
-    BREthereumAddress addr  = addressCreate(address);
-    BREthereumToken   token = ewmLookupToken (ewm, addr);
+    BREthereumAddress addr = addressCreate(address);
 
-    // Lock over BRSetAdd() and tokenUpdate()
+    // Lock over BRSetGet(), BRSetAdd() and tokenUpdate()
     pthread_mutex_lock (&ewm->lock);
+    BREthereumToken token = (BREthereumToken) BRSetGet (ewm->tokens, &addr);
     if (NULL == token) {
         token = tokenCreate (address,
                              symbol,
