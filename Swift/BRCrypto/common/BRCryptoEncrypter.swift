@@ -69,7 +69,9 @@ public final class CoreEncrypter: Encrypter {
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoCipherEncrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+
+                let result = cryptoCipherEncrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+                precondition(result == CRYPTO_TRUE)
             }
 
             return target
@@ -87,7 +89,9 @@ public final class CoreEncrypter: Encrypter {
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoCipherDecrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+
+                let result = cryptoCipherDecrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+                precondition(result == CRYPTO_TRUE)
             }
 
             return target

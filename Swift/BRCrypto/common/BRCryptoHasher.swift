@@ -82,7 +82,9 @@ public final class CoreHasher: HasherX {
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoHasherHash (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+
+                let result = cryptoHasherHash (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+                precondition(result == CRYPTO_TRUE)
             }
 
             return target

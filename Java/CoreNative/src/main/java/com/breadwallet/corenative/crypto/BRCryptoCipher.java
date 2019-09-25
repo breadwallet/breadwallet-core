@@ -59,7 +59,8 @@ public class BRCryptoCipher extends PointerType {
         checkState(0 != lengthAsInt);
 
         byte[] output = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoCipherEncrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibrary.INSTANCE.cryptoCipherEncrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return output;
     }
 
@@ -69,7 +70,8 @@ public class BRCryptoCipher extends PointerType {
         checkState(0 != lengthAsInt);
 
         byte[] output = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoCipherDecrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibrary.INSTANCE.cryptoCipherDecrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return output;
     }
 

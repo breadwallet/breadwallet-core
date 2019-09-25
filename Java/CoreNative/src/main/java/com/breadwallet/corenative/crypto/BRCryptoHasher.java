@@ -102,7 +102,8 @@ public class BRCryptoHasher extends PointerType {
         checkState(0 != lengthAsInt);
 
         byte[] hash = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoHasherHash(this, hash, new SizeT(hash.length), data, new SizeT(data.length));
+        int result = CryptoLibrary.INSTANCE.cryptoHasherHash(this, hash, new SizeT(hash.length), data, new SizeT(data.length));
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return hash;
     }
 

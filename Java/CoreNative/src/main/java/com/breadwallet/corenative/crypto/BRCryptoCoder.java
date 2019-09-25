@@ -55,7 +55,8 @@ public class BRCryptoCoder extends PointerType {
         checkState(0 != lengthAsInt);
 
         byte[] output = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoCoderEncode(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibrary.INSTANCE.cryptoCoderEncode(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return utf8BytesToString(output);
     }
 
@@ -69,7 +70,8 @@ public class BRCryptoCoder extends PointerType {
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoCoderDecode(this, output, new SizeT(output.length), inputWithTerminator);
+        int result = CryptoLibrary.INSTANCE.cryptoCoderDecode(this, output, new SizeT(output.length), inputWithTerminator);
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return Optional.of(output);
     }
 

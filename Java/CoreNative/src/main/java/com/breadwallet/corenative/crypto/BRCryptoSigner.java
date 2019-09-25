@@ -54,7 +54,8 @@ public class BRCryptoSigner extends PointerType {
         checkState(0 != lengthAsInt);
 
         byte[] signature = new byte[lengthAsInt];
-        CryptoLibrary.INSTANCE.cryptoSignerSign(this, key, signature, new SizeT(signature.length), digest, new SizeT(digest.length));
+        int result = CryptoLibrary.INSTANCE.cryptoSignerSign(this, key, signature, new SizeT(signature.length), digest, new SizeT(digest.length));
+        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
         return signature;
     }
 
