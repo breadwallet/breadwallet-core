@@ -113,6 +113,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             "btc" : .api_only,
             "eth" : .api_only,
 //            "bch" : .p2p_only,
+            "xrp" : .api_only
             ]
         if mainnet {
 
