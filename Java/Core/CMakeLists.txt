@@ -290,6 +290,7 @@ target_sources (core
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
+                src/main/cpp/core/ethereum/ewm/BREthereumEWMPersist.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
 #                src/main/cpp/core/ethereum/ewm/testEwm.c
                 )

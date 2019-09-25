@@ -778,6 +778,20 @@ fileServiceClearAll (BRFileService fs) {
     return success;
 }
 
+extern UInt256
+fileServiceGetIdentifier (BRFileService fs,
+                          const char *type,
+                          const void *entity) {
+
+    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
+    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return UINT256_ZERO; };
+
+    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
+    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return UINT256_ZERO; };
+
+    return handler->identifier (handler->context, fs, entity);
+}
+
 extern int
 fileServiceDefineType (BRFileService fs,
                        const char *type,

@@ -918,7 +918,7 @@ public class BlockChainDB {
                         .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asBlock) }
                         .recover { error = $0; return [] }.get()
 
-                    if let moreURL = more, nil == error {
+                    if let _ = more, nil == error {
                         moreResults = true
                         begBlockNumber = results.reduce(0) {
                             max ($0, $1.height)
@@ -1101,7 +1101,7 @@ public class BlockChainDB {
                                  completion: @escaping (Result<String,QueryError>) -> Void) {
         let json: JSON.Dict = [ "id" : ridIncr ]
 
-        var queryDict = [
+        let queryDict = [
             "module"    : "account",
             "action"    : "tokenbalance",
             "address"   : address,
@@ -1170,7 +1170,7 @@ public class BlockChainDB {
             "account" : address,
             "id"      : ridIncr ]
 
-        var queryDict = [
+        let queryDict = [
             "module"    : "account",
             "action"    : "txlist",
             "address"   : address,

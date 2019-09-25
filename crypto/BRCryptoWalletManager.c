@@ -554,6 +554,7 @@ cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
                                                                 cryptoUnitGetBaseDecimalOffset(unitDefault),
                                                                 ethGasLimit,
                                                                 ethGasPrice);
+                        assert (NULL != token); (void) &token;
                     }
                     break;
                 }
@@ -720,7 +721,8 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoTransferAsGEN (transfer),
                                      seed);
 
-            seed = UINT512_ZERO;
+            seed = UINT512_ZERO; (void) &seed;
+
             break;
         }
     }
