@@ -363,6 +363,13 @@ ewmCreate (BREthereumNetwork network,
 
         // Finally, update the balance; this will create TOK wallets as required.
         ewmHandleBalance (ewm, balance);
+
+        if (NULL == token) {
+            accountSetAddressNonce (ewm->account,
+                                    accountGetPrimaryAddress(ewm->account),
+                                    walletStateGetNonce(state),
+                                    ETHEREUM_BOOLEAN_TRUE);
+        }
     }
 
     // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
@@ -1797,10 +1804,7 @@ ewmHandleAccountState (BREthereumEWM ewm,
 
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
 
-    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account),
-                           accountState.nonce,
-                           ETHEREUM_BOOLEAN_FALSE);
-
+    ewmHandleAnnounceNonce (ewm, accountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
     ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -2186,6 +2190,13 @@ ewmHandleSaveWallet (BREthereumEWM ewm,
                      BREthereumWallet wallet,
                      BREthereumClientChangeType type) {
     BREthereumWalletState state = walletStateCreate (wallet);
+
+    // If this is the primaryWallet, hack in the nonce
+    if (wallet == ewm->walletHoldingEther) {
+        walletStateSetNonce (state,
+                             accountGetAddressNonce (ewm->account,
+                                                     accountGetPrimaryAddress(ewm->account)));
+    }
 
     BREthereumHash hash = walletStateGetHash(state);
     BREthereumHashString filename;

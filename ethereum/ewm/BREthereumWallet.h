@@ -291,6 +291,13 @@ walletStateGetAddress (const BREthereumWalletState walletState);
 extern UInt256
 walletStateGetAmount (const BREthereumWalletState walletState);
 
+extern uint64_t
+walletStateGetNonce (const BREthereumWalletState walletState);
+
+extern void
+walletStateSetNonce (BREthereumWalletState walletState,
+                     uint64_t nonce);
+
 extern BRRlpItem
 walletStateEncode (const BREthereumWalletState walletState,
                    BRRlpCoder coder);

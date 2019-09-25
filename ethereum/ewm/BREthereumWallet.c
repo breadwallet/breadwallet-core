@@ -611,22 +611,31 @@ struct BREthereumWalletStateRecord {
     // This is a token address or, if Ether, FAKE_ETHER_ADDRESS_INIT
     BREthereumAddress address;
 
-    // We need to be able to RLP encode/deocde this in a context where we do not know about tokens.
+    // Normally we would save the wallet's balance as `BREthereumAmount` but that concept includes
+    // the `BREthereumToken` if the amount is 'token based'.  In the context of WalletState we
+    // do not have tokens available (tokens are held as `BRSet` in `BREthereumEWM`, not globally).
+    // So, we'll save the balance as `UInt256` and then when recovering the wallet use this
+    // `amount` with the above `address` to create a proper balance.
     UInt256 amount;
+
+    // Include the account nonce if the this wallet state is for ETHER.  Hackily.
+    uint64_t nonce;
 };
 
 #define FAKE_ETHER_ADDRESS_INIT   ((const BREthereumAddress) { \
-  0xff, 0xff, 0xff, 0xff,   \
-  0xff, 0xff, 0xff, 0xff,   \
-  0xff, 0xff, 0xff, 0xff,   \
-  0xff, 0xff, 0xff, 0xff,   \
-  0xff, 0xff, 0xff, 0xff \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff \
 })
 
 extern BREthereumWalletState
 walletStateCreate (const BREthereumWallet wallet) {
     BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
 
+    state->nonce = 0;
+    
     BREthereumAmount balance = walletGetBalance(wallet);
     BREthereumToken  token   = walletGetToken (wallet);
 
@@ -659,12 +668,24 @@ walletStateGetAmount (const BREthereumWalletState walletState) {
     return walletState->amount;
 }
 
+extern uint64_t
+walletStateGetNonce (const BREthereumWalletState walletState) {
+    return walletState->nonce;
+}
+
+extern void
+walletStateSetNonce (BREthereumWalletState walletState,
+                     uint64_t nonce) {
+    walletState->nonce = nonce;
+}
+
 extern BRRlpItem
 walletStateEncode (const BREthereumWalletState state,
                    BRRlpCoder coder) {
-    return rlpEncodeList (coder, 2,
+    return rlpEncodeList (coder, 3,
                           addressRlpEncode (state->address, coder),
-                          rlpEncodeUInt256 (coder, state->amount, 0));
+                          rlpEncodeUInt256 (coder, state->amount, 0),
+                          rlpEncodeUInt64  (coder, state->nonce, 0));
 }
 
 extern BREthereumWalletState
@@ -672,14 +693,15 @@ walletStateDecode (BRRlpItem item,
                    BRRlpCoder coder) {
     BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
 
-     size_t itemsCount = 0;
-     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-     assert (2 == itemsCount);
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (3 == itemsCount);
 
     state->address = addressRlpDecode (items[0], coder);
     state->amount  = rlpDecodeUInt256 (coder, items[1], 0);
+    state->nonce   = rlpDecodeUInt64  (coder, items[2], 0);
 
-     return state;
+    return state;
 }
 
 extern BREthereumHash
