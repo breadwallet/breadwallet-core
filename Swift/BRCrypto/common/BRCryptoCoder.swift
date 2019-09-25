@@ -51,7 +51,10 @@ public final class CoreCoder: Coder {
             var target = Data (count: targetCount)
             return target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> String in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-                cryptoCoderEncode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+
+                let result = cryptoCoderEncode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+                precondition(result == CRYPTO_TRUE)
+                
                 return String (cString: targetAddr!)
             }
         }
@@ -59,15 +62,15 @@ public final class CoreCoder: Coder {
 
     public func decode (string source: String) -> Data? {
         return source.withCString { (sourceAddr: UnsafePointer<Int8>) -> Data? in
-            let sourceCount: Int = source.count
-
-            let targetCount = cryptoCoderDecodeLength(self.core, sourceAddr, sourceCount)
+            let targetCount = cryptoCoderDecodeLength(self.core, sourceAddr)
             guard targetCount != 0 else { return nil }
 
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoCoderDecode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
+
+                let result = cryptoCoderDecode (self.core, targetAddr, targetCount, sourceAddr)
+                precondition(result == CRYPTO_TRUE)
             }
 
             return target

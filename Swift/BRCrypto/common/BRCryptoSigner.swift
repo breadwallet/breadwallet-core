@@ -85,7 +85,9 @@ public final class CoreSigner: Signer {
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoSignerSign(self.core, key, targetAddr, targetCount, digestAddr, digestCount)
+
+                let result = cryptoSignerSign(self.core, key, targetAddr, targetCount, digestAddr, digestCount)
+                precondition(result == CRYPTO_TRUE)
             }
 
             return target

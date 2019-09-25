@@ -40,13 +40,29 @@ public class BRCryptoCWMClient extends Structure {
         super(peer);
     }
 
+    public ByReference toByReference() {
+        ByReference other = new ByReference();
+        other.context = this.context;
+        other.btc = this.btc;
+        other.eth = this.eth;
+        other.gen = this.gen;
+        return other;
+    }
+
+    public ByValue toByValue() {
+        ByValue other = new ByValue();
+        other.context = this.context;
+        other.btc = this.btc;
+        other.eth = this.eth;
+        other.gen = this.gen;
+        return other;
+    }
+
     public static class ByReference extends BRCryptoCWMClient implements Structure.ByReference {
 
     }
 
     public static class ByValue extends BRCryptoCWMClient implements Structure.ByValue {
-        public ByValue(Pointer context, BRCryptoCWMClientBtc btc, BRCryptoCWMClientEth eth, BRCryptoCWMClientGen gen) {
-            super(context, btc, eth, gen);
-        }
+
     }
 }

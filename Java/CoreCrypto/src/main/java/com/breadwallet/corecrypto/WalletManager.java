@@ -33,8 +33,8 @@ import static com.google.common.base.Preconditions.checkState;
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
-    static WalletManager create(BRCryptoCWMListener.ByValue listener,
-                                BRCryptoCWMClient.ByValue client,
+    static WalletManager create(BRCryptoCWMListener listener,
+                                BRCryptoCWMClient client,
                                 Account account,
                                 Network network,
                                 WalletManagerMode mode,

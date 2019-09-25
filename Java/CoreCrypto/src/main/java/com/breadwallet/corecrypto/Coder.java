@@ -7,25 +7,46 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoCoder;
 import com.google.common.base.Optional;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
 final class Coder implements com.breadwallet.crypto.Coder {
 
-    // TODO(fix): Implement me!
-
     /* package */
     static Coder createForAlgorithm(Algorithm algorithm) {
-        return null;
+        BRCryptoCoder core = null;
+        switch (algorithm) {
+            case HEX:
+                core = BRCryptoCoder.createHex().orNull();
+                break;
+            case BASE58:
+                core = BRCryptoCoder.createBase58().orNull();
+                break;
+            case BASE58CHECK:
+                core = BRCryptoCoder.createBase58Check().orNull();
+                break;
+        }
+
+        checkNotNull(core);
+        return new Coder(core);
+    }
+
+    private final BRCryptoCoder core;
+
+    private Coder(BRCryptoCoder core) {
+        this.core = core;
     }
 
     @Override
     public String encode(byte[] source) {
-        return null;
+        return core.encode(source);
     }
 
     @Override
     public Optional<byte[]> decode(String source) {
-        return Optional.absent();
+        return core.decode(source);
     }
 }
