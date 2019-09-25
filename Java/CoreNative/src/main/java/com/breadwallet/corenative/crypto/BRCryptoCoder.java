@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class BRCryptoCoder extends PointerType {
 
+    // these must mirror BRCryptoCoderType's enum values
     private static final int CRYPTO_CODER_HEX         = 0;
     private static final int CRYPTO_CODER_BASE58      = 1;
     private static final int CRYPTO_CODER_BASE58CHECK = 2;

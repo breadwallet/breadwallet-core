@@ -18,6 +18,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class BRCryptoSigner extends PointerType {
 
+    // these must mirror BRCryptoCoderType's enum values
     private static final int CRYPTO_SIGNER_BASIC_DER  = 0;
     private static final int CRYPTO_SIGNER_BASIC_JOSE = 1;
     private static final int CRYPTO_SIGNER_COMPACT    = 2;

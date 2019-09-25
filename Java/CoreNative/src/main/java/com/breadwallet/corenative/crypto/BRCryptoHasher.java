@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class BRCryptoHasher extends PointerType {
 
+    // these must mirror BRCryptoHasherType's enum values
     private static final int CRYPTO_HASHER_SHA1         = 0;
     private static final int CRYPTO_HASHER_SHA224       = 1;
     private static final int CRYPTO_HASHER_SHA256       = 2;
