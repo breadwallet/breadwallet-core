@@ -33,7 +33,7 @@ public final class CryptoApi {
     }
 
     public interface SystemProvider {
-        System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        Optional<System> create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
     }
 
     public interface CoderProvider {

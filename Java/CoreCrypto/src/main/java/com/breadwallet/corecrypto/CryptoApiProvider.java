@@ -1,7 +1,7 @@
 /*
  * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
-*
+ *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -66,13 +66,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
         @Override
-        public com.breadwallet.crypto.System create(ScheduledExecutorService executor,
-                                                    SystemListener listener,
-                                                    com.breadwallet.crypto.Account account,
-                                                    boolean isMainnet,
-                                                    String path,
-                                                    BlockchainDb query) {
-            return System.create(executor, listener, account, isMainnet, path, query);
+        public Optional<com.breadwallet.crypto.System> create(ScheduledExecutorService executor,
+                                                              SystemListener listener,
+                                                              com.breadwallet.crypto.Account account,
+                                                              boolean isMainnet,
+                                                              String path,
+                                                              BlockchainDb query) {
+            return System.create(executor, listener, account, isMainnet, path, query).transform(a -> a);
         }
     };
 

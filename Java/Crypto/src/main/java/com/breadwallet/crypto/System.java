@@ -11,6 +11,7 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.google.common.base.Optional;
 
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
+    static Optional<System> create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
         return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
