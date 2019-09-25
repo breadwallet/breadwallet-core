@@ -44,6 +44,9 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
         
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
+
+        // Reload the data - don't miss any wallets
+        self.tableView.reloadData()
         super.viewWillAppear(animated)
     }
 
