@@ -141,10 +141,8 @@ public class CoreCryptoApplication extends Application {
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
             storageFile = new File(getFilesDir(), "core");
-            if (wipe) {
-                if (storageFile.exists()) deleteRecursively(storageFile);
-                checkState(storageFile.mkdirs());
-            }
+            if (wipe) deleteRecursively(storageFile);
+            if (!storageFile.exists()) checkState(storageFile.mkdirs());
 
             Log.d(TAG, String.format("Account PaperKey:  %s", paperKeyString));
             Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
