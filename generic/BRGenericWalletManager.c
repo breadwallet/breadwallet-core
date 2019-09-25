@@ -203,10 +203,7 @@ gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
                     const char *currency,
                     uint64_t timestamp,
                     uint64_t blockHeight) {
-    BRGenericTransfer transfer = gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
-    // TODO in a later Jira item - notify the generic wallet that a transfer has been recovered - so it can
-    // add it to the list of transfers, calculate the new balance, etc.
-    return transfer;
+    return gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
 }
 
 extern BRArrayOf(BRGenericTransfer)
