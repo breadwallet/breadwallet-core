@@ -194,6 +194,20 @@ gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
     return gwmWalletCreate(gwm);
 }
 
+extern BRGenericTransfer
+gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+                    const char *hash,
+                    const char *from,
+                    const char *to,
+                    const char *amount,
+                    uint64_t timestamp,
+                    uint64_t blockHeight) {
+    BRGenericTransfer transfer = gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, timestamp, blockHeight);
+    // TODO in a later Jira item - notify the generic wallet that a transfer has been recovered - so it can
+    // add it to the list of transfers, calculate the new balance, etc.
+    return transfer;
+}
+
 extern BRArrayOf(BRGenericTransfer)
 gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
                                        uint8_t *bytes,

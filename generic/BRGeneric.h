@@ -119,12 +119,6 @@ extern "C" {
                                  BRGenericFeeBasis bid);
 
     extern BRGenericTransfer
-    gwmWalletRecoverTransfer (BRGenericWalletManager gwm,
-                              BRGenericWallet wid,
-                              uint8_t *bytes,
-                              size_t   bytesCount);
-
-    extern BRGenericTransfer
     gwmWalletCreateTransfer (BRGenericWalletManager gwm,
                              BRGenericWallet wid,
                              BRGenericAddress target,

@@ -116,6 +116,15 @@ extern "C" {
     extern BRGenericAccount
     gwmGetAccount (BRGenericWalletManager gwm);
 
+    extern BRGenericTransfer
+    gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+                        const char *hash,
+                        const char *from,
+                        const char *to,
+                        const char *amount,
+                        uint64_t timestamp,
+                        uint64_t blockHeight);
+
     extern BRArrayOf(BRGenericTransfer)
     gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
                                            uint8_t *bytes,

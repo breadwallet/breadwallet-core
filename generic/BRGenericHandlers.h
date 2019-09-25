@@ -56,6 +56,13 @@ extern "C" {
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
 
     // MAEK: - Generic Wallet Manager
+    // Create a transfer from the
+    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
+                                                                        const char *from,
+                                                                        const char *to,
+                                                                        const char *amount,
+                                                                        uint64_t timestamp,
+                                                                        uint64_t blockHeight);
 
     typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
                                                                         size_t   bytesCount);
@@ -106,6 +113,7 @@ extern "C" {
         } wallet;
 
         struct {
+            BRGenericWalletManagerRecoverTransfer transferRecover;
             BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
             BRGenericWalletManagerInitializeFileService fileServiceInit;
             BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
