@@ -13,7 +13,7 @@ import Foundation
 import BRCryptoC
 
 public protocol Coder {
-    func encode (data: Data) -> String
+    func encode (data: Data) -> String?
     func decode (string: String) -> Data?
 }
 
@@ -40,22 +40,21 @@ public final class CoreCoder: Coder {
         self.core = core
     }
 
-    public func encode (data source: Data) -> String {
-        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> String in
+    public func encode (data source: Data) -> String? {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> String? in
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let sourceCount = sourceBytes.count
 
             let targetCount = cryptoCoderEncodeLength(self.core, sourceAddr, sourceCount)
-            precondition (targetCount != 0)
+            guard targetCount != 0 else { return nil }
 
             var target = Data (count: targetCount)
-            return target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> String in
+            return target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> String? in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
 
                 let result = cryptoCoderEncode (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
-                precondition(result == CRYPTO_TRUE)
                 
-                return String (cString: targetAddr!)
+                return result == CRYPTO_TRUE ? String (cString: targetAddr!) : nil
             }
         }
     }
@@ -65,15 +64,15 @@ public final class CoreCoder: Coder {
             let targetCount = cryptoCoderDecodeLength(self.core, sourceAddr)
             guard targetCount != 0 else { return nil }
 
+            var result = CRYPTO_FALSE
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
-                let result = cryptoCoderDecode (self.core, targetAddr, targetCount, sourceAddr)
-                precondition(result == CRYPTO_TRUE)
+                result = cryptoCoderDecode (self.core, targetAddr, targetCount, sourceAddr)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
 }
