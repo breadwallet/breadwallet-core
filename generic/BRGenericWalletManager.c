@@ -194,6 +194,18 @@ gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
     return gwmWalletCreate(gwm);
 }
 
+extern BRGenericTransfer
+gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+                    const char *hash,
+                    const char *from,
+                    const char *to,
+                    const char *amount,
+                    const char *currency,
+                    uint64_t timestamp,
+                    uint64_t blockHeight) {
+    return gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
+}
+
 extern BRArrayOf(BRGenericTransfer)
 gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
                                        uint8_t *bytes,

@@ -14,6 +14,7 @@
 #include "ripple/BRRippleTransaction.h"
 
 #include "support/BRSet.h"
+#include "ethereum/util/BRUtilHex.h"
 
 // Account
 static void *
@@ -204,6 +205,24 @@ genericRippleWalletManagerInitializeFileService (BRFileServiceContext context,
         return; //  bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
 }
 
+static BRGenericTransfer
+genericRippleWalletManagerRecoverTransfer (const char *hash,
+                                           const char *from,
+                                           const char *to,
+                                           const char *amount,
+                                           const char *currency,
+                                           uint64_t timestamp,
+                                           uint64_t blockHeight) {
+    BRRippleUnitDrops amountDrops;
+    sscanf(amount, "%llu", &amountDrops);
+    BRRippleAddress toAddress = rippleAddressCreate(to);
+    BRRippleAddress fromAddress = rippleAddressCreate(from);
+    // Convert the hash string to bytes
+    BRRippleTransactionHash txId;
+    decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
+    return rippleTransferCreate(fromAddress, toAddress, amountDrops, txId, timestamp, blockHeight);
+}
+
 static BRArrayOf(BRGenericTransfer)
 genericRippleWalletManagerLoadTransfers (BRFileServiceContext context,
                                          BRFileService fileService) {
@@ -254,6 +273,7 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     },
 
     { // Wallet Manager
+        genericRippleWalletManagerRecoverTransfer,
         genericRippleWalletManagerRecoverTransfersFromRawTransaction,
         genericRippleWalletManagerInitializeFileService,
         genericRippleWalletManagerLoadTransfers
