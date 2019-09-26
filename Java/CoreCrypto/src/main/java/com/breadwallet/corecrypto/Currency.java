@@ -11,6 +11,8 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
@@ -42,47 +44,46 @@ final class Currency implements com.breadwallet.crypto.Currency {
 
     private final CoreBRCryptoCurrency core;
 
-    private final String uids;
-    private final String name;
-    private final String code;
-    private final String type;
+    private final Supplier<String> uidsSupplier;
+    private final Supplier<String> nameSupplier;
+    private final Supplier<String> codeSupplier;
+    private final Supplier<String> typeSupplier;
 
-    @Nullable
-    private final String issuer;
+    private final Supplier<String> issuerSupplier;
 
     private Currency(CoreBRCryptoCurrency core) {
         this.core = core;
 
-        this.uids = core.getUids();
-        this.name = core.getName();
-        this.code = core.getCode();
-        this.type = core.getType();
-        this.issuer = core.getIssuer();
+        this.uidsSupplier = Suppliers.memoize(core::getUids);
+        this.nameSupplier = Suppliers.memoize(core::getName);
+        this.codeSupplier = Suppliers.memoize(core::getCode);
+        this.typeSupplier = Suppliers.memoize(core::getType);
+        this.issuerSupplier = Suppliers.memoize(core::getIssuer);
     }
 
     @Override
     public String getUids() {
-        return uids;
+        return uidsSupplier.get();
     }
 
     @Override
     public String getName() {
-        return name;
+        return nameSupplier.get();
     }
 
     @Override
     public String getCode() {
-        return code;
+        return codeSupplier.get();
     }
 
     @Override
     public String getType() {
-        return type;
+        return typeSupplier.get();
     }
 
     @Override
     public Optional<String> getIssuer() {
-        return Optional.fromNullable(issuer);
+        return Optional.fromNullable(issuerSupplier.get());
     }
 
     @Override

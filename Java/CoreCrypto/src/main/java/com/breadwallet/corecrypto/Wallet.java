@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.util.Log;
+
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
@@ -19,6 +21,8 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +30,8 @@ import java.util.Objects;
 
 /* package */
 final class Wallet implements com.breadwallet.crypto.Wallet {
+
+    private static final String TAG = Wallet.class.getName();
 
     /* package */
     static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
@@ -49,18 +55,18 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private final WalletManager walletManager;
     private final SystemCallbackCoordinator callbackCoordinator;
 
-    private final Unit unitForFee;
-    private final Unit unit;
-    private final Currency defaultUnitCurrency;
+    private final Supplier<Unit> unitSupplier;
+    private final Supplier<Unit> unitForFeeSupplier;
+    private final Supplier<Currency> defaultUnitCurrencySupplier;
 
     private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.walletManager = walletManager;
         this.callbackCoordinator = callbackCoordinator;
 
-        this.unit = Unit.create(core.getUnit());
-        this.unitForFee = Unit.create(core.getUnitForFee());
-        this.defaultUnitCurrency = Currency.create(core.getCurrency());
+        this.unitSupplier = Suppliers.memoize(() -> Unit.create(core.getUnit()));
+        this.unitForFeeSupplier = Suppliers.memoize(() -> Unit.create(core.getUnitForFee()));
+        this.defaultUnitCurrencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
     }
 
     @Override
@@ -127,12 +133,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public Unit getUnit() {
-        return unit;
+        return unitSupplier.get();
     }
 
     @Override
     public Unit getUnitForFee() {
-        return unitForFee;
+        return unitForFeeSupplier.get();
     }
 
     @Override
@@ -162,12 +168,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public Currency getCurrency() {
-        return defaultUnitCurrency;
+        return defaultUnitCurrencySupplier.get();
     }
 
     @Override
     public String getName() {
-        return defaultUnitCurrency.getCode();
+        return getCurrency().getCode();
     }
 
     @Override
@@ -213,6 +219,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
             return optional;
 
         } else {
+            Log.d(TAG, "Transfer not found, creating wrapping instance");
             return Optional.of(Transfer.create(transfer, this));
         }
     }
