@@ -2217,6 +2217,8 @@ ewmHandleSaveWallet (BREthereumEWM ewm,
             fileServiceSave (ewm->fs, ewmFileServiceTypeWallets, state);
             break;
     }
+
+    walletStateRelease (state);
 }
 
 extern void
