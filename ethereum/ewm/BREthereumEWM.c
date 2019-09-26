@@ -609,7 +609,7 @@ extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     BREthereumEWMState oldState = ewm->state;
     BREthereumEWMState newState = ewm->state;
@@ -642,7 +642,7 @@ ewmConnect(BREthereumEWM ewm) {
             { .changed = { oldState, newState }}
         });
 
-    ewmUnlock (ewm);
+    pthread_mutex_unlock (&ewm->lock);
 
     return result;
 }
@@ -657,7 +657,7 @@ extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     BREthereumEWMState oldState = ewm->state;
     BREthereumEWMState newState = ewm->state;
@@ -714,7 +714,7 @@ ewmDisconnect (BREthereumEWM ewm) {
             { .changed = { oldState, newState }}
         });
 
-    ewmUnlock(ewm);
+    pthread_mutex_unlock (&ewm->lock);
 
     return result;
 }
@@ -723,7 +723,7 @@ extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     if (EWM_STATE_CONNECTED == ewm->state || EWM_STATE_SYNCING == ewm->state) {
         switch (ewm->mode) {
@@ -739,7 +739,7 @@ ewmIsConnected (BREthereumEWM ewm) {
         }
     }
 
-    ewmUnlock (ewm);
+    pthread_mutex_unlock (&ewm->lock);
     return result;
 }
 
@@ -955,15 +955,6 @@ ewmSyncToDepth (BREthereumEWM ewm,
     }
 }
 
-extern void
-ewmLock (BREthereumEWM ewm) {
-    pthread_mutex_lock (&ewm->lock);
-}
-
-extern void
-ewmUnlock (BREthereumEWM ewm) {
-    pthread_mutex_unlock (&ewm->lock);
-}
 /// MARK: - Mode
 
 extern BRSyncMode

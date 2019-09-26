@@ -121,12 +121,6 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 BREthereumBoolean pendExistingTransfers,
                 BRSyncDepth depth);
 
-extern void
-ewmLock (BREthereumEWM ewm);
-
-extern void
-ewmUnlock (BREthereumEWM ewm);
-
 extern BRSyncMode
 ewmGetMode (BREthereumEWM ewm);
 
