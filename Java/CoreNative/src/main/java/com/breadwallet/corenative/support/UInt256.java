@@ -37,12 +37,6 @@ public class UInt256 extends Structure {
         super(peer);
     }
 
-    public ByReference toByReference() {
-        ByReference other = new ByReference();
-        other.u8 = this.u8;
-        return other;
-    }
-
     public ByValue toByValue() {
         ByValue other = new ByValue();
         other.u8 = this.u8;
