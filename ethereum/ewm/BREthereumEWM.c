@@ -751,28 +751,28 @@ ewmAssertRecovery (BREthereumEWM ewm) {
 
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm) {
-    return ewm->network;
+    return ewm->network; // constant
 }
 
 extern BREthereumAccount
 ewmGetAccount (BREthereumEWM ewm) {
-    return ewm->account;
+    return ewm->account; // constant
 }
 
 extern char *
 ewmGetAccountPrimaryAddress(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressString(ewmGetAccount(ewm));
+    return accountGetPrimaryAddressString(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey // key.pubKey
 ewmGetAccountPrimaryAddressPublicKey(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm));
+    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey
 ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                            const char *paperKey) {
-    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey);
+    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey); // constant
 
 }
 
@@ -1064,7 +1064,10 @@ ewmUpdateMode (BREthereumEWM ewm,
 
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm) {
-    return ewm->blockHeight;
+    pthread_mutex_lock(&ewm->lock);
+    uint64_t height = ewm->blockHeight;
+    pthread_mutex_unlock(&ewm->lock);
+    return height;
 }
 
 extern void
@@ -1115,12 +1118,15 @@ ewmGetWallets (BREthereumEWM ewm) {
 
 extern size_t
 ewmGetWalletsCount (BREthereumEWM ewm) {
-    return (unsigned int) array_count(ewm->wallets);
+    pthread_mutex_lock(&ewm->lock);
+    size_t count = array_count(ewm->wallets);
+    pthread_mutex_unlock(&ewm->lock);
+    return count;
 }
 
 extern BREthereumWallet
 ewmGetWallet(BREthereumEWM ewm) {
-    return ewm->walletHoldingEther;
+    return ewm->walletHoldingEther; // constant
 }
 
 extern BREthereumWallet
@@ -1436,13 +1442,16 @@ ewmWalletGetTransferCount(BREthereumEWM ewm,
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet) {
-    return walletGetToken(wallet);
+    return walletGetToken(wallet); // constant
 }
 
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet) {
-    return walletGetBalance(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumAmount balance = walletGetBalance(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return balance;
 }
 
 
@@ -1450,21 +1459,30 @@ extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         BREthereumTransfer transfer) {
-    return transferGetGasEstimate(transfer);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGas gas = transferGetGasEstimate(transfer);
+    pthread_mutex_unlock(&ewm->lock);
+    return gas;
 
 }
 
 extern BREthereumGas
 ewmWalletGetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet) {
-    return walletGetDefaultGasLimit(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGas gas = walletGetDefaultGasLimit(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return gas;
 }
 
 extern void
 ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGas gasLimit) {
+    pthread_mutex_lock(&ewm->lock);
     walletSetDefaultGasLimit(wallet, gasLimit);
+    pthread_mutex_unlock(&ewm->lock);
+
     ewmSignalWalletEvent(ewm,
                          wallet,
                          (BREthereumWalletEvent) {
@@ -1476,14 +1494,20 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
 extern BREthereumGasPrice
 ewmWalletGetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet) {
-    return walletGetDefaultGasPrice(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGasPrice price = walletGetDefaultGasPrice(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return price;
 }
 
 extern void
 ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice) {
+    pthread_mutex_lock(&ewm->lock);
     walletSetDefaultGasPrice(wallet, gasPrice);
+    pthread_mutex_unlock(&ewm->lock);
+
     ewmSignalWalletEvent(ewm,
                          wallet,
                          (BREthereumWalletEvent) {
