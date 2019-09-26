@@ -477,7 +477,7 @@ fileServiceFailedSDB (BRFileService fs,
     return fileServiceFailedInternal (fs, releaseLock, NULL, NULL,
                                       (BRFileServiceError) {
                                           FILE_SERVICE_SDB,
-                                          { .sdb = { code }}
+                                          { .sdb = { code, sqlite3_errstr(code) }}
                                       });
 }
 
@@ -570,8 +570,8 @@ _fileServiceSave (BRFileService fs,
         return fileServiceFailedSDB (fs, needLock, status);
     }
 
-    // Execute the Update
-    if (SQLITE_DONE != sqlite3_step (fs->sdbInsertStmt)) {
+    status = sqlite3_step (fs->sdbInsertStmt);
+    if (SQLITE_DONE != status) {
         free (data);
         return fileServiceFailedSDB (fs, needLock, status);
     }
@@ -729,7 +729,8 @@ fileServiceRemove (BRFileService fs,
     if (SQLITE_OK != status)
         return fileServiceFailedSDB (fs, 1, status);
 
-    if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteStmt))
+    status = sqlite3_step (fs->sdbDeleteStmt);
+    if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
     pthread_mutex_unlock (&fs->lock);
@@ -751,7 +752,8 @@ fileServiceClearForType (BRFileService fs,
     if (SQLITE_OK != status)
         return fileServiceFailedSDB (fs, 1, status);
 
-    if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteAllTypeStmt))
+    status = sqlite3_step (fs->sdbDeleteAllTypeStmt);
+    if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
     pthread_mutex_unlock (&fs->lock);
