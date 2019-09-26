@@ -97,15 +97,14 @@ public class BRCryptoHasher extends PointerType {
         super();
     }
 
-    public byte[] hash(byte[] data) {
+    public Optional<byte[]> hash(byte[] data) {
         SizeT length = CryptoLibrary.INSTANCE.cryptoHasherLength(this);
         int lengthAsInt = Ints.checkedCast(length.longValue());
-        checkState(0 != lengthAsInt);
+        if (0 == lengthAsInt) return Optional.absent();
 
         byte[] hash = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoHasherHash(this, hash, new SizeT(hash.length), data, new SizeT(data.length));
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return hash;
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(hash) : Optional.absent();
     }
 
     public static class OwnedBRCryptoHasher extends BRCryptoHasher {

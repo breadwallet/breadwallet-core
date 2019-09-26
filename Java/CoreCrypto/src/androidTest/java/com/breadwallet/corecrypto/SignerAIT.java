@@ -25,9 +25,9 @@ public class SignerAIT {
         // Basic DER
 
         msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
-        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8));
+        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8)).get();
         signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.BASIC_DER);
-        signature = signer.sign(digest, key);
+        signature = signer.sign(digest, key).get();
 
         answer = new byte[] {
                 (byte) 0x30, (byte) 0x45, (byte) 0x02, (byte) 0x21, (byte) 0x00,
@@ -50,9 +50,9 @@ public class SignerAIT {
         // Basic JOSE
 
         msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
-        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8));
+        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8)).get();
         signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.BASIC_JOSE);
-        signature = signer.sign(digest, key);
+        signature = signer.sign(digest, key).get();
 
         answer = new byte[] {
                 (byte) 0xc0, (byte) 0xda, (byte) 0xfe, (byte) 0xc8, (byte) 0x25,
@@ -73,9 +73,9 @@ public class SignerAIT {
         // Compact
 
         msg = "foo";
-        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8));
+        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8)).get();
         signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.COMPACT);
-        signature = signer.sign(digest, key);
+        signature = signer.sign(digest, key).get();
 
         Optional<Key> keyPublic = signer.recover(digest, signature);
         assertTrue(keyPublic.isPresent());
@@ -99,15 +99,15 @@ public class SignerAIT {
         };
 
         byte[] message = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256_2)
-                .hash("Very deterministic message".getBytes(StandardCharsets.UTF_8));
+                .hash("Very deterministic message".getBytes(StandardCharsets.UTF_8)).get();
 
 
         for (int i = 0; i < secrets.length; i++) {
             Optional<Key> maybeKey = Key.createFromPrivateKeyString(secrets[i]);
             assertTrue(maybeKey.isPresent());
 
-            byte[] outputSig = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.COMPACT).sign(message, maybeKey.get());
-            String outputSigHex = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX).encode(outputSig);
+            byte[] outputSig = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.COMPACT).sign(message, maybeKey.get()).get();
+            String outputSigHex = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX).encode(outputSig).get();
             assertEquals(outputSigHex, signatures[i]);
         }
     }

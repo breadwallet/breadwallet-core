@@ -47,17 +47,16 @@ public class BRCryptoSigner extends PointerType {
         super();
     }
 
-    public byte[] sign(byte[] digest, BRCryptoKey key) {
+    public Optional<byte[]> sign(byte[] digest, BRCryptoKey key) {
         checkState(32 == digest.length);
 
         SizeT length = CryptoLibrary.INSTANCE.cryptoSignerSignLength(this, key, digest, new SizeT(digest.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
-        checkState(0 != lengthAsInt);
+        if (0 == lengthAsInt) return Optional.absent();
 
         byte[] signature = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoSignerSign(this, key, signature, new SizeT(signature.length), digest, new SizeT(digest.length));
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return signature;
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(signature) : Optional.absent();
     }
 
     public Optional<BRCryptoKey > recover(byte[] digest, byte[] signature) {

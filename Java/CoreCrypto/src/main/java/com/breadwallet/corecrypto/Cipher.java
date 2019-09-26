@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoCipher;
+import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -52,12 +53,12 @@ final class Cipher implements com.breadwallet.crypto.Cipher {
     }
 
     @Override
-    public byte[] encrypt(byte[] data) {
+    public Optional<byte[]> encrypt(byte[] data) {
         return core.encrypt(data);
     }
 
     @Override
-    public byte[] decrypt(byte[] data) {
+    public Optional<byte[]> decrypt(byte[] data) {
         return core.decrypt(data);
     }
 }

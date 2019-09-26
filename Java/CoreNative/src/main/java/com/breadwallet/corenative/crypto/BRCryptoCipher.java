@@ -53,26 +53,24 @@ public class BRCryptoCipher extends PointerType {
         super();
     }
 
-    public byte[] encrypt(byte[] input) {
+    public Optional<byte[]> encrypt(byte[] input) {
         SizeT length = CryptoLibrary.INSTANCE.cryptoCipherEncryptLength(this, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
-        checkState(0 != lengthAsInt);
+        if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoCipherEncrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return output;
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
-    public byte[] decrypt(byte[] input) {
+    public Optional<byte[]> decrypt(byte[] input) {
         SizeT length = CryptoLibrary.INSTANCE.cryptoCipherDecryptLength(this, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
-        checkState(0 != lengthAsInt);
+        if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoCipherDecrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return output;
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
     public static class OwnedBRCryptoCipher extends BRCryptoCipher {
