@@ -1660,6 +1660,28 @@ cwmGetTransactionsAsGEN (BRGenericClientContext context,
 }
 
 static void
+cwmGetTransfersAsGEN (BRGenericClientContext context,
+                       BRGenericWalletManager manager,
+                       const char *address,
+                       uint64_t begBlockNumber,
+                       uint64_t endBlockNumber,
+                       int rid) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_GEN_GET_TRANSFERS;
+    callbackState->rid = rid;
+
+    cwm->client.gen.funcGetTransfers (cwm->client.context,
+                                      cryptoWalletManagerTake (cwm),
+                                      callbackState,
+                                      address,
+                                      begBlockNumber, endBlockNumber);
+
+    cryptoWalletManagerGive (cwm);
+}
+
+static void
 cwmSubmitTransactionAsGEN (BRGenericClientContext context,
                            BRGenericWalletManager manager,
                            BRGenericWallet wallet,
@@ -1741,6 +1763,7 @@ cryptoWalletManagerClientCreateGENClient (BRCryptoWalletManager cwm) {
         cwm,
         cwmGetBlockNumberAsGEN,
         cwmGetTransactionsAsGEN,
+        cwmGetTransfersAsGEN,
         cwmSubmitTransactionAsGEN
     };
 }

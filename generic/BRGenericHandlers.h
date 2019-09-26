@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+    typedef enum {
+        GENERIC_SYNC_TYPE_TRANSACTION,
+        GENERIC_SYNC_TYPE_TRANSFER
+    } BRGenericAPISyncType;
+
     typedef struct BRGenericHandersRecord *BRGenericHandlers;
 
     typedef struct BRGenericAccountWithTypeRecord {
@@ -74,6 +79,8 @@ extern "C" {
     typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
                                                                                  BRFileService fileService);
 
+    typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
+
     // MARK: - Generic Handlers
 
     struct BRGenericHandersRecord {
@@ -118,6 +125,7 @@ extern "C" {
             BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
             BRGenericWalletManagerInitializeFileService fileServiceInit;
             BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
+            BRGenericWalletManagerGetAPISyncType apiSyncType;
         } manager;
     };
 

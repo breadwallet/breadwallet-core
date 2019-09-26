@@ -240,6 +240,11 @@ genericRippleWalletManagerLoadTransfers (BRFileServiceContext context,
     return result;
 }
 
+static BRGenericAPISyncType
+genericRippleWalletManagerGetAPISyncType (void) {
+    return GENERIC_SYNC_TYPE_TRANSFER;
+}
+
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
     {    // Account
@@ -276,7 +281,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletManagerRecoverTransfer,
         genericRippleWalletManagerRecoverTransfersFromRawTransaction,
         genericRippleWalletManagerInitializeFileService,
-        genericRippleWalletManagerLoadTransfers
+        genericRippleWalletManagerLoadTransfers,
+        genericRippleWalletManagerGetAPISyncType
     }
 };
 
