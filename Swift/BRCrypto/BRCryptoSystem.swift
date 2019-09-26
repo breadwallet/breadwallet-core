@@ -1589,6 +1589,36 @@ extension System {
 
                 }},
 
+            funcGetTransfers: { (context, cwm, sid, address, begBlockNumber, endBlockNumber) in
+                precondition (nil != context  && nil != cwm)
+
+                guard let (system, manager) = System.systemExtract (context, cwm)
+                    else { print ("SYS: GEN: GetTransfers: Missed {cwm}"); return }
+                print ("SYS: GEN: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                            addresses: [asUTF8String(address!)],
+                                            begBlockNumber: begBlockNumber,
+                                            endBlockNumber: endBlockNumber,
+                                            includeRaw: false) {
+                    (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive(cwm) }
+                        res.resolve(
+                            success: { $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
+                                let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
+                                let height    = transaction.blockHeight ?? 0
+                                for transfer in transaction.transfers {
+                                    cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                          transfer.source, transfer.target,
+                                                          transfer.amountValue, transfer.amountCurrency,
+                                                          timestamp, height)
+                                }
+                            }
+                            cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
+                            failure: { (_) in cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_FALSE) })
+                }
+            },
+
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
                 precondition (nil != context  && nil != cwm)
 
