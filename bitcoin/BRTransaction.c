@@ -71,7 +71,11 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
     
     if (script) {
         input->scriptLen = scriptLen;
-        array_new(input->script, scriptLen);
+        // XCode's Instruments flags this as a memory leak, despite it showing as being
+        // properly released, as part of BRTransactionFree being called. Analysis has shown
+        // that this false positive only occurs when a length value of 0 is provided. To
+        // get rid of this, use a minimum size of 1 when creating the array.
+        array_new(input->script, scriptLen ? scriptLen : 1);
         array_add_array(input->script, script, scriptLen);
     }
 }
@@ -86,7 +90,11 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     
     if (signature) {
         input->sigLen = sigLen;
-        array_new(input->signature, sigLen);
+        // XCode's Instruments flags this as a memory leak, despite it showing as being
+        // properly released, as part of BRTransactionFree being called. Analysis has shown
+        // that this false positive only occurs when a length value of 0 is provided. To
+        // get rid of this, use a minimum size of 1 when creating the array.
+        array_new(input->signature, sigLen ? sigLen : 1);
         array_add_array(input->signature, signature, sigLen);
     }
 }
@@ -101,7 +109,11 @@ void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen
     
     if (witness) {
         input->witLen = witLen;
-        array_new(input->witness, witLen);
+        // XCode's Instruments flags this as a memory leak, despite it showing as being
+        // properly released, as part of BRTransactionFree being called. Analysis has shown
+        // that this false positive only occurs when a length value of 0 is provided. To
+        // get rid of this, use a minimum size of 1 when creating the array.
+        array_new(input->witness, witLen ? witLen : 1);
         array_add_array(input->witness, witness, witLen);
     }
 }
