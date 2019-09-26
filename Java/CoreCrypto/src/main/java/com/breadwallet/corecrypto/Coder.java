@@ -41,7 +41,7 @@ final class Coder implements com.breadwallet.crypto.Coder {
     }
 
     @Override
-    public String encode(byte[] source) {
+    public Optional<String> encode(byte[] source) {
         return core.encode(source);
     }
 

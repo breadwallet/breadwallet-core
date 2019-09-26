@@ -41,7 +41,7 @@ final class Signer implements com.breadwallet.crypto.Signer {
     }
 
     @Override
-    public byte[] sign(byte[] digest, com.breadwallet.crypto.Key key) {
+    public Optional<byte[]> sign(byte[] digest, com.breadwallet.crypto.Key key) {
         return core.sign(digest, Key.from(key).getBRCryptoKey());
     }
 

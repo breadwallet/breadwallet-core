@@ -50,15 +50,14 @@ public class BRCryptoCoder extends PointerType {
         super();
     }
 
-    public String encode(byte[] input) {
+    public Optional<String> encode(byte[] input) {
         SizeT length = CryptoLibrary.INSTANCE.cryptoCoderEncodeLength(this, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
-        checkState(0 != lengthAsInt);
+        if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoCoderEncode(this, output, new SizeT(output.length), input, new SizeT(input.length));
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return utf8BytesToString(output);
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(utf8BytesToString(output)) : Optional.absent();
     }
 
     public Optional<byte[]> decode(String inputStr) {
@@ -72,8 +71,7 @@ public class BRCryptoCoder extends PointerType {
 
         byte[] output = new byte[lengthAsInt];
         int result = CryptoLibrary.INSTANCE.cryptoCoderDecode(this, output, new SizeT(output.length), inputWithTerminator);
-        checkState(result == BRCryptoBoolean.CRYPTO_TRUE);
-        return Optional.of(output);
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
     private static String utf8BytesToString(byte[] message) {

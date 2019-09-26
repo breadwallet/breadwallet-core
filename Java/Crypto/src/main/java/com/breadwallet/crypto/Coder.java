@@ -21,7 +21,7 @@ public interface Coder {
         return CryptoApi.getProvider().coderPrivider().createCoderForAlgorithm(algorithm);
     }
 
-    String encode(byte[] source);
+    Optional<String> encode(byte[] source);
 
     Optional<byte[]> decode(String source);
 }

@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+
 public interface Cipher {
 
     static Cipher createForAesEcb(byte[] key) {
@@ -21,7 +23,7 @@ public interface Cipher {
         return CryptoApi.getProvider().cipherProvider().createCipherForPigeon(privKey, pubKey, nonce12);
     }
 
-    byte[] encrypt(byte[] data);
+    Optional<byte[]> encrypt(byte[] data);
 
-    byte[] decrypt(byte[] data);
+    Optional<byte[]> decrypt(byte[] data);
 }

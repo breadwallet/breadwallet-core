@@ -226,9 +226,9 @@ class BRCryptoCommonTests: XCTestCase {
 
     func testEncoder () {
         var d: Data!
-        var a: String
-        var r: String
-        var s: String
+        var a: String!
+        var r: String!
+        var s: String!
 
         // HEX
         d = Data([0xde, 0xad, 0xbe, 0xef])
@@ -294,7 +294,7 @@ class BRCryptoCommonTests: XCTestCase {
         // pigeon
         let pubKey = Key.createFromString(asPublic: "02d404943960a71535a79679f1cf1df80e70597c05b05722839b38ebc8803af517")!
         let pigeon = CoreCipher.pigeon (privKey: key, pubKey: pubKey, nonce12: nonce12)
-        let pigeonCipher = pigeon.encrypt(data: msg)
+        let pigeonCipher = pigeon.encrypt(data: msg)!
         XCTAssertEqual (pigeon.decrypt(data: pigeonCipher), msg)
     }
 
@@ -353,14 +353,13 @@ class BRCryptoCommonTests: XCTestCase {
         ]
 
         let message =  "Very deterministic message".data(using: .utf8)
-            .map { CoreHasher.sha256_2.hash(data: $0 ) }
-        XCTAssertNotNil(message)
+        let digest = CoreHasher.sha256_2.hash(data: message!)
 
         zip (secrets, signatures).forEach { secret, signature in
             let key = Key.createFromString (asPrivate: secret)
             XCTAssertNotNil(key)
 
-            let outputSig = CoreSigner.compact.sign(data32: message!, using: key!)
+            let outputSig = CoreSigner.compact.sign(data32: digest!, using: key!)!
             //print (CoreCoder.hex.encode(data: outputSig))
             XCTAssert(CoreCoder.hex.encode(data: outputSig) == signature)
         }

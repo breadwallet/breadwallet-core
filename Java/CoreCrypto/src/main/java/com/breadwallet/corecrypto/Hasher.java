@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoHasher;
+import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -64,7 +65,7 @@ final class Hasher implements com.breadwallet.crypto.Hasher {
     }
 
     @Override
-    public byte[] hash(byte[] data) {
+    public Optional<byte[]> hash(byte[] data) {
         return core.hash(data);
     }
 }
