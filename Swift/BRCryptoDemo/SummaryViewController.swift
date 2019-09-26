@@ -92,12 +92,17 @@ class SummaryViewController: UITableViewController, WalletListener {
                                        preferredStyle: UIAlertController.Style.alert)
 
         alert.addAction (UIAlertAction (title: "Reset", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.reset()
+            UIApplication.doReset()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Wipe", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.doWipe()
             alert.dismiss(animated: true) {}
         })
 
         alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sync()
+            UIApplication.doSync()
             alert.dismiss(animated: true) {}
         })
 
@@ -107,7 +112,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         })
 
         alert.addAction (UIAlertAction (title: "Sleep Eth", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sleep()
+            UIApplication.doSleep()
             alert.dismiss(animated: true) {}
         })
 

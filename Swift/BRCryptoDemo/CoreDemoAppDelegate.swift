@@ -132,19 +132,21 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         // Create the listener
         listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
-                                         registerCurrencyCodes: registerCurrencyCodes,
-                                         isMainnet: mainnet)
+                                     registerCurrencyCodes: registerCurrencyCodes,
+                                     isMainnet: mainnet)
 
         // Create the BlockChainDB
         query = BlockChainDB.createForTest ()
 
         // Create the system
-        self.system = System (listener: listener,
-                              account: account,
-                              onMainnet: mainnet,
-                              path: storagePath,
-                              query: query)
+        self.system = System.create (listener: listener,
+                                     account: account,
+                                     onMainnet: mainnet,
+                                     path: storagePath,
+                                     query: query)
 
+        System.wipeAll (atPath: storagePath, except: [self.system])
+        
         // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
         let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
@@ -163,13 +165,13 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     func applicationDidEnterBackground(_ application: UIApplication) {
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-        system.stop()
+        system.disconnectAll()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         // Called as part of the transition from the background to the active state; here you can
         // undo many of the changes made on entering the background.
-        system.managers.forEach { $0.connect() }
+        system.connectAll()
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
@@ -202,13 +204,13 @@ extension UIApplication {
         return (UIApplication.shared.delegate as! CoreDemoAppDelegate).accountSpecification.paperKey
     }
 
-    static func sync () {
+    static func doSync () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
         print ("APP: Syncing")
         app.system.managers.forEach { $0.sync() }
     }
 
-    static func sleep() {
+    static func doSleep () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
         print ("APP: Disconnecting")
         app.system.managers.forEach { $0.disconnect() }
@@ -218,29 +220,70 @@ extension UIApplication {
         }
     }
 
-    static func reset () {
+    static func doReset () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
         print ("APP: Resetting")
 
-        // Create a new system
-        let system = System (listener: app.listener!,
-                             account: app.account,
-                             onMainnet: app.mainnet,
-                             path: app.storagePath,
-                             query: app.query)
+        // Destroy the current system.
+        System.destroy(system: app.system);
 
-        // Stop the existing system
-        app.system.stop()
+        // Clear out the UI
         app.summaryController.reset()
 
-        
-        // Assign and then configure the new system
-        app.system = system
+        // Create a new system
+        app.system = System.create (listener: app.listener!,
+                                    account: app.account,
+                                    onMainnet: app.mainnet,
+                                    path: app.storagePath,
+                                    query: app.query)
 
         // Passing `[]`... it is a demo app...
         app.system.configure(withCurrencyModels: [])
     }
 
+    static func doWipe () {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        print ("APP: Wiping")
+
+        let accountSpecificationsPath = Bundle(for: CoreDemoAppDelegate.self).path(forResource: "CoreTestsConfig", ofType: "json")!
+        let accountSpecifications     = AccountSpecification.loadFrom(configPath: accountSpecificationsPath)
+
+        let alert = UIAlertController (title: "Select Paper Key",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        accountSpecifications
+            .forEach { (accountSpecification) in
+                let action = UIAlertAction (title: accountSpecification.identifier, style: .default) { (action) in
+                    System.destroy (system: app.system)
+                    app.summaryController.reset()
+
+                    let mainnet = (accountSpecification.network == "mainnet")
+
+                    app.account = Account.createFrom (phrase: accountSpecification.paperKey,
+                                                      timestamp: accountSpecification.timestamp,
+                                                      uids: "WalletID: \(accountSpecification.identifier)")
+
+                    print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+                    print ("APP: Account Timestamp : \(app.account.timestamp)")
+                    print ("APP: Mainnet           : \(mainnet)")
+
+                    app.system = System.create (listener: app.listener!,
+                                                account: app.account,
+                                                onMainnet: mainnet,
+                                                path: app.storagePath,
+                                                query: app.query)
+
+                    app.system.configure(withCurrencyModels: [])
+                }
+                alert.addAction (action)
+        }
+
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+
+        app.summaryController.present (alert, animated: true) {}
+    }
+    
     static func peer (network: Network) -> NetworkPeer? {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return nil }
         guard Currency.codeAsBTC == network.currency.code else { return nil }

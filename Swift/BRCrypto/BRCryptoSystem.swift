@@ -409,7 +409,7 @@ public final class System {
     ///   - listenerQueue: The queue to use when performing listen event handler callbacks.  If a
     ///       queue is not specficied (default to `nil`), then one will be provided.
     ///
-    public init (listener: SystemListener,
+    internal init (listener: SystemListener,
                   account: Account,
                   onMainnet: Bool,
                   path: String,
@@ -540,10 +540,17 @@ public final class System {
     }
 
     ///
-    /// Stop the system.  All managers are disconnected.  Will inhibit `System` processing.
+    /// Disconnect all wallet managers
     ///
-    public func stop () {
+    public func disconnectAll () {
         managers.forEach { $0.disconnect() }
+    }
+
+    ///
+    /// Connect all wallet managers.  They will be connected w/o an explict NetworkPeer.
+    ///
+    public func connectAll () {
+        managers.forEach { $0.connect() }
     }
 
     ///
@@ -818,8 +825,8 @@ public final class System {
     /// A index to globally identify systems.
     static var systemIndex: Int32 = 0;
 
-    /// A dictionary mapping an index to a system weakly.
-    static var systemMapping: [Int32 : Weak<System>] = [:]
+    /// A dictionary mapping an index to a system.
+    static var systemMapping: [Int32 : System] = [:]
 
     ///
     /// Lookup a `System` from an `index
@@ -830,10 +837,15 @@ public final class System {
     ///
     static func systemLookup (index: Int32) -> System? {
         return systemQueue.sync {
-            return systemMapping[index]?.value
+            return systemMapping[index]
         }
     }
 
+    static func systemRemove (index: Int32) {
+        return systemQueue.sync {
+            systemMapping.removeValue(forKey: index)
+        }
+    }
     ///
     /// Add a systme to the mapping.  Create a new index in the process and assign as system.index
     ///
@@ -845,7 +857,7 @@ public final class System {
         systemQueue.async (flags: .barrier) {
             systemIndex += 1
             system.index = systemIndex // Always 1 or more
-            systemMapping[system.index] = Weak (value: system)
+            systemMapping[system.index] = system
         }
     }
 
@@ -896,6 +908,64 @@ public final class System {
     var systemContext: BRCryptoCWMClientContext? {
         let index = Int(self.index)
         return UnsafeMutableRawPointer (bitPattern: index)
+    }
+
+    public static func create (listener: SystemListener,
+                               account: Account,
+                               onMainnet: Bool,
+                               path: String,
+                               query: BlockChainDB,
+                               listenerQueue: DispatchQueue? = nil) -> System {
+        return System (listener: listener,
+                       account: account,
+                       onMainnet: onMainnet,
+                       path: path,
+                       query: query,
+                       listenerQueue: listenerQueue)
+    }
+
+    public static func destroy (system: System) {
+        // Stop all callbacks.  This might be inconsistent with 'deleted' events.
+        System.systemRemove (index: system.index)
+
+        // Disconnect all wallet managers
+        system.disconnectAll()
+
+        // Stop
+    }
+
+    // In work...
+    private static func wipe (system: System) {
+        // Safe the path to the persistent storage
+        let storagePath = system.path;
+
+        // Destroy the system.
+        destroy(system: system)
+
+        // Clear out persistent storage
+        do {
+            if FileManager.default.fileExists(atPath: storagePath) {
+                try FileManager.default.removeItem(atPath: storagePath)
+            }
+        }
+        catch let error as NSError {
+            print("Error: \(error.localizedDescription)")
+        }
+    }
+
+    public static func wipeAll (atPath: String, except systems: [System]) {
+        do {
+            try FileManager.default.contentsOfDirectory (atPath: atPath)
+                .map     { (path) in atPath + "/" + path }
+                .filter  { (path) in !systems.contains { path == $0.path } }
+                .forEach { (path) in
+                    do {
+                        try FileManager.default.removeItem (atPath: path)
+                    }
+                    catch {}
+            }
+        }
+        catch {}
     }
 }
 
