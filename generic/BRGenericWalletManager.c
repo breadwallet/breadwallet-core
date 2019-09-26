@@ -257,12 +257,21 @@ gwmPeriodicDispatcher (BREventHandler handler,
         // Callback to 'client' to get all transactions (for all wallet addresses) between
         // a {beg,end}BlockNumber.  The client will gather the transactions and then call
         // bwmAnnounceTransaction()  (for each one or with all of them).
-        gwm->client.getTransactions (gwm->client.context,
-                                     gwm,
-                                     address,
-                                     gwm->brdSync.begBlockNumber,
-                                     gwm->brdSync.endBlockNumber,
-                                     gwm->requestId++);
+        if (gwm->handlers->manager.apiSyncType() == GENERIC_SYNC_TYPE_TRANSFER) {
+            gwm->client.getTransfers (gwm->client.context,
+                                         gwm,
+                                         address,
+                                         gwm->brdSync.begBlockNumber,
+                                         gwm->brdSync.endBlockNumber,
+                                         gwm->requestId++);
+        } else {
+            gwm->client.getTransactions (gwm->client.context,
+                                      gwm,
+                                      address,
+                                      gwm->brdSync.begBlockNumber,
+                                      gwm->brdSync.endBlockNumber,
+                                      gwm->requestId++);
+        }
 
         // TODO: Handle address
         // free (address);

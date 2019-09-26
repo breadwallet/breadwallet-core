@@ -42,6 +42,13 @@ extern "C" {
                                          uint64_t endBlockNumber,
                                          int rid);
 
+    typedef void
+    (*BRGenericGetTransfersCallback) (BRGenericClientContext context,
+                                      BRGenericWalletManager manager,
+                                      const char *address,
+                                      uint64_t begBlockNumber,
+                                      uint64_t endBlockNumber,
+                                      int rid);
 
     extern int // success - data is valid
     gwmAnnounceTransfer (BRGenericWalletManager manager,
@@ -70,6 +77,7 @@ extern "C" {
         BRGenericClientContext context;
         BRGenericGetBlockNumberCallback getBlockNumber;
         BRGenericGetTransactionsCallback getTransactions;
+        BRGenericGetTransfersCallback getTransfers;
         BRGenericSubmitTransactionCallback submitTransaction;
     } BRGenericClient;
 
