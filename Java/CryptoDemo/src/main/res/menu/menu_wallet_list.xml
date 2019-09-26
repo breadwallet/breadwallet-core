@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <item android:id="@+id/action_add_wallet"
+        android:title="Add"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
+
     <item android:id="@+id/action_connect"
         android:title="Connect"
         app:showAsAction="never"

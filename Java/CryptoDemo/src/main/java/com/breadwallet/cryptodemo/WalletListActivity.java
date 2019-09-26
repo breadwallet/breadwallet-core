@@ -8,6 +8,7 @@
 package com.breadwallet.cryptodemo;
 
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.util.SortedList;
@@ -24,6 +25,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Amount;
+import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Wallet;
@@ -37,8 +39,11 @@ import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class WalletListActivity extends AppCompatActivity implements DefaultSystemListener {
 
@@ -88,6 +93,43 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_add_wallet:
+                AlertDialog dialog;
+
+                List<Currency> missingCurrencies = getMissingCurrencies();
+                if (missingCurrencies.isEmpty()) {
+                    // all currencies have wallets; ignore
+                    dialog = new AlertDialog.Builder(this)
+                            .setMessage("All currencies added and accounted for!")
+                            .create();
+
+                } else {
+                    // extract the currencies and their descriptions
+                    String[] itemTexts = new String[missingCurrencies.size()];
+                    Currency[] itemCurrencies = new Currency[missingCurrencies.size()];
+                    for (int i = 0; i < missingCurrencies.size(); i++) {
+                        itemCurrencies[i] = missingCurrencies.get(i);
+                        itemTexts[i] = itemCurrencies[i].getCode();
+                    }
+
+                    // prompt for addition
+                    dialog = new AlertDialog.Builder(this)
+                            .setSingleChoiceItems(itemTexts,
+                                    -1,
+                                    (d, w) -> {
+                                        for (WalletManager manager : CoreCryptoApplication.getSystem().getWalletManagers()) {
+                                            if (manager.getNetwork().hasCurrency(itemCurrencies[w])) {
+                                                manager.registerWalletFor(itemCurrencies[w]);
+                                                break;
+                                            }
+                                        }
+                                        d.dismiss();
+                                    })
+                            .create();
+                }
+
+                dialog.show();
+                return true;
             case R.id.action_connect:
                 for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
                     wm.connect(null);
@@ -109,6 +151,25 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
                 return true;
         }
         return false;
+    }
+
+    private List<Currency> getMissingCurrencies() {
+        Set<Currency> missingCurrencies = new HashSet<>();
+
+        for (WalletManager manager: CoreCryptoApplication.getSystem().getWalletManagers()) {
+            // get all currencies for existing wallet managers
+            missingCurrencies.addAll(manager.getNetwork().getCurrencies());
+
+            for (Wallet wallet: manager.getWallets()) {
+                // remove the currencies for existing wallets
+                 missingCurrencies.remove(wallet.getCurrency());
+            }
+        }
+
+        // sort by currency code
+        List<Currency> currencies = new ArrayList<>(missingCurrencies);
+        Collections.sort(currencies, (o1, o2) -> o1.getCode().compareTo(o2.getCode()));
+        return currencies;
     }
 
     @Override
