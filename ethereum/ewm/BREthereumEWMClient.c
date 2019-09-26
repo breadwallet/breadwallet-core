@@ -310,8 +310,8 @@ ewmHandlGasEstimateFailure (BREthereumEWM ewm,
  */
 extern void
 ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
-                                    uint64_t blockNumber,
-                                    int rid) {
+                              uint64_t blockNumber,
+                              int rid) {
     ewmUpdateBlockHeight(ewm, blockNumber);
 }
 
@@ -625,10 +625,10 @@ ewmHandleAnnounceComplete (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ewmAnnounceBlocks (BREthereumEWM ewm,
-                              int id,
-                              // const char *strBlockHash,
-                              int blockNumbersCount,
-                              uint64_t *blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
+                   int id,
+                   // const char *strBlockHash,
+                   int blockNumbersCount,
+                   uint64_t *blockNumbers) {
     assert (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode);
 
     // into bcs...
@@ -639,7 +639,6 @@ ewmAnnounceBlocks (BREthereumEWM ewm,
 
     return SUCCESS;
 }
-
 
 // ==============================================================================================
 //
@@ -785,14 +784,14 @@ ewmUpdateTokens (BREthereumEWM ewm) {
                           18,
                           NULL,
                           NULL);
-        ewmAnnounceToken(ewm, rid,
-                         "0x722dd3f80bac40c951b51bdd28dd19d435762180",
-                         "TST",
-                         "Test Standard Token",
-                         "TeST Standard Token (TST) for TeSTing (TST)",
-                         18,
-                         NULL,
-                         NULL);
+        ewmAnnounceToken (ewm, rid,
+                          "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                          "TST",
+                          "Test Standard Token",
+                          "TeST Standard Token (TST) for TeSTing (TST)",
+                          18,
+                          NULL,
+                          NULL);
         ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
     }
 

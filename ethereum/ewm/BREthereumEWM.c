@@ -50,7 +50,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
 /* Forward Implementation */
 
-/// MARK: - Transaction File Service
+/// MARK: - File Service, Initial Load
 
 static BRSetOf(BREthereumTransaction)
 initialTransactionsLoad (BREthereumEWM ewm) {
@@ -61,8 +61,6 @@ initialTransactionsLoad (BREthereumEWM ewm) {
     }
     return transactions;
 }
-
-/// MARK: - Log File Service
 
 static BRSetOf(BREthereumLog)
 initialLogsLoad (BREthereumEWM ewm) {
@@ -778,9 +776,8 @@ ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
 
 }
 
-///
-/// Sync
-///
+/// MARK: - Sync
+
 typedef struct {
     BREthereumEWM ewm;
     uint64_t begBlockNumber;
@@ -967,6 +964,7 @@ extern void
 ewmUnlock (BREthereumEWM ewm) {
     pthread_mutex_unlock (&ewm->lock);
 }
+/// MARK: - Mode
 
 extern BRSyncMode
 ewmGetMode (BREthereumEWM ewm) {
@@ -1108,9 +1106,6 @@ ewmInsertWallet (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
 }
 
-//
-// Wallet (Actions)
-//
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm) {
     pthread_mutex_lock(&ewm->lock);
@@ -1168,9 +1163,7 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-
     transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
-
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1194,14 +1187,12 @@ ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-
     transfer = walletCreateTransferGeneric(wallet,
                                               addressCreate(recvAddress),
                                               amount,
                                               gasPrice,
                                               gasLimit,
                                               data);
-
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1223,9 +1214,7 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-    {
-        transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
-    }
+    transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1540,7 +1529,7 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
 }
 
-
+#if defined (NEVER_DEFINED)
 /**
  * Handle a `gasEstimate` for `transaction` in `wallet`
  *
@@ -1555,8 +1544,8 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
                       BREthereumTransfer transfer,
                       BREthereumGas gasEstimate) {
     pthread_mutex_lock(&ewm->lock);
-
     transferSetGasEstimate(transfer, gasEstimate);
+    pthread_mutex_unlock(&ewm->lock);
 
     ewmSignalTransferEvent(ewm,
                            wallet,
@@ -1565,11 +1554,8 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
                                TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                                SUCCESS
                            });
-
-    pthread_mutex_unlock(&ewm->lock);
-
 }
-
+#endif
 // ==============================================================================================
 //
 // LES(BCS)/BRD Handlers
