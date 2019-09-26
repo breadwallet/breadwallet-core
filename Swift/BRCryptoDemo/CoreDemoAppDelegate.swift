@@ -144,7 +144,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                               onMainnet: mainnet,
                               path: storagePath,
                               query: query)
-        
+
         // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
         let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);

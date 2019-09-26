@@ -365,6 +365,31 @@ public final class System {
         return managers.flatMap { $0.wallets }
     }
 
+    static func ensurePath (_ path: String) -> Bool {
+        // Apple on `fileExists`, `isWritableFile`
+        //    "The following methods are of limited utility. Attempting to predicate behavior
+        //     based on the current state of the filesystem or a particular file on the filesystem
+        //     is encouraging odd behavior in the face of filesystem race conditions. It's far
+        //     better to attempt an operation (like loading a file or creating a directory) and
+        //     handle the error gracefully than it is to try to figure out ahead of time whether
+        //     the operation will succeed."
+
+        do {
+            // Ensure that `storagePath` exists.  Seems the return value can be ignore:
+            //    "true if the directory was created, true if createIntermediates is set and the
+            //     directory already exists, or false if an error occurred."
+            // The `attributes` need not be provided as we have write permission :
+            //    "Permissions are set according to the umask of the current process"
+            try FileManager.default.createDirectory (atPath: path,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch { return false }
+
+        // Ensure `path` is writeable.
+        return FileManager.default.isWritableFile (atPath: path)
+    }
+
     ///
     /// Initialize System
     ///
@@ -385,15 +410,18 @@ public final class System {
     ///       queue is not specficied (default to `nil`), then one will be provided.
     ///
     public init (listener: SystemListener,
-                 account: Account,
-                 onMainnet: Bool,
-                 path: String,
-                 query: BlockChainDB,
-                 listenerQueue: DispatchQueue? = nil) {
+                  account: Account,
+                  onMainnet: Bool,
+                  path: String,
+                  query: BlockChainDB,
+                  listenerQueue: DispatchQueue? = nil) {
+        let accounctSpecificPath = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
+        precondition (System.ensurePath(accounctSpecificPath))
+
         self.listener  = listener
         self.account   = account
         self.onMainnet = onMainnet
-        self.path  = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
+        self.path  = accounctSpecificPath
         self.query = query
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)

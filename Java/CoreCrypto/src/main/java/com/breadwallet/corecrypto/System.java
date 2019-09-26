@@ -155,6 +155,13 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final boolean DEFAULT_IS_NETWORK_REACHABLE = true;
 
+    private static boolean ensurePath (String path) {
+        File storageFile = new File(path);
+        return ((storageFile.exists() || storageFile.mkdirs())
+                && storageFile.isDirectory()
+                && storageFile.canWrite());
+    }
+
     /* package */
     static System create(ScheduledExecutorService executor,
                          SystemListener listener,
@@ -162,10 +169,11 @@ final class System implements com.breadwallet.crypto.System {
                          boolean isMainnet,
                          String path,
                          BlockchainDb query) {
-        Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
-
         Account cryptoAccount = Account.from(account);
         path = path + (path.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
+        checkState(ensurePath(path));
+
+        Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
         BRCryptoCWMListener cwmListener = new BRCryptoCWMListener(context,
                 CWM_LISTENER_WALLET_MANAGER_CALLBACK,
@@ -186,8 +194,7 @@ final class System implements com.breadwallet.crypto.System {
                 cwmListener,
                 cwmClient);
 
-        SYSTEMS.put(context,
-                new WeakReference<>(system));
+        SYSTEMS.put(context, new WeakReference<>(system));
 
         return system;
     }

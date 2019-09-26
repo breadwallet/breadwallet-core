@@ -11,6 +11,7 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.google.common.base.Optional;
 
 import java.util.List;
 import java.util.Set;
