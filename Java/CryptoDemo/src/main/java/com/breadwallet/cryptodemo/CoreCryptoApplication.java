@@ -163,7 +163,7 @@ public class CoreCryptoApplication extends Application {
             executor = Executors.newSingleThreadScheduledExecutor();
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
             system = System.create(executor, systemListener, account,
-                    isMainnet, storageFile.getAbsolutePath(), blockchainDb).get();
+                    isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
             connectivityReceiver = new ConnectivityBroadcastReceiver();
@@ -179,7 +179,7 @@ public class CoreCryptoApplication extends Application {
                 account,
                 isMainnet,
                 storageFile.getAbsolutePath(),
-                blockchainDb).get();
+                blockchainDb);
         system.configure(Collections.emptyList());
     }
 }

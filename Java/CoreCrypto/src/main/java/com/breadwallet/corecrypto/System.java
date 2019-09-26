@@ -163,7 +163,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     /* package */
-    static Optional<System> create(ScheduledExecutorService executor,
+    static System create(ScheduledExecutorService executor,
                          SystemListener listener,
                          com.breadwallet.crypto.Account account,
                          boolean isMainnet,
@@ -171,7 +171,7 @@ final class System implements com.breadwallet.crypto.System {
                          BlockchainDb query) {
         Account cryptoAccount = Account.from(account);
         path = path + (path.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
-        if (!ensurePath(path)) return Optional.absent();
+        checkState(ensurePath(path));
 
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
@@ -196,7 +196,7 @@ final class System implements com.breadwallet.crypto.System {
 
         SYSTEMS.put(context, new WeakReference<>(system));
 
-        return Optional.of(system);
+        return system;
     }
 
     private static Optional<System> getSystem(Pointer context) {
