@@ -115,7 +115,6 @@ initialWalletsLoad (BREthereumEWM ewm) {
     return states;
 }
 
-
 /**
  *
  *
@@ -1074,63 +1073,6 @@ ewmUpdateMode (BREthereumEWM ewm,
 
 /// MARK: - Blocks
 
-#if defined (NEVER_DEFINED)
-extern BREthereumBlock
-ewmLookupBlockByHash(BREthereumEWM ewm,
-                     const BREthereumHash hash) {
-    BREthereumBlock block = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->blocks); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, blockGetHash(ewm->blocks[i]))) {
-            block = ewm->blocks[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return block;
-}
-
-extern BREthereumBlock
-ewmLookupBlock(BREthereumEWM ewm,
-               BREthereumBlockId bid) {
-    BREthereumBlock block = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    block = (0 <= bid && bid < array_count(ewm->blocks)
-             ? ewm->blocks[bid]
-             : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return block;
-}
-
-extern BREthereumBlockId
-ewmLookupBlockId (BREthereumEWM ewm,
-                  BREthereumBlock block) {
-    BREthereumBlockId bid = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->blocks); i++)
-        if (block == ewm->blocks[i]) {
-            bid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return bid;
-}
-
-extern BREthereumBlockId
-ewmInsertBlock (BREthereumEWM ewm,
-                BREthereumBlock block) {
-    BREthereumBlockId bid = -1;
-    pthread_mutex_lock(&ewm->lock);
-    array_add(ewm->blocks, block);
-    bid = (BREthereumBlockId) (array_count(ewm->blocks) - 1);
-    pthread_mutex_unlock(&ewm->lock);
-    ewmSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
-    return bid;
-}
-#endif
-
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm) {
     return ewm->blockHeight;
@@ -1152,128 +1094,7 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
 }
 
 /// MARK: - Transfers
-
-#if defined (NEVER_DEFINED)
-extern BREthereumTransfer
-ewmLookupTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    transfer = (0 <= tid && tid < array_count(ewm->transfers)
-                ? ewm->transfers[tid]
-                : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return transfer;
-}
-
-extern BREthereumTransfer
-ewmLookupTransferByHash (BREthereumEWM ewm,
-                         const BREthereumHash hash) {
-    BREthereumTransfer transfer = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->transfers); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transferGetHash(ewm->transfers[i]))) {
-            transfer = ewm->transfers[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return transfer;
-}
-
-extern BREthereumTransferId
-ewmLookupTransferId (BREthereumEWM ewm,
-                     BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->transfers); i++)
-        if (transfer == ewm->transfers[i]) {
-            tid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return tid;
-}
-
-extern BREthereumTransferId
-ewmInsertTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer;
-
-    pthread_mutex_lock(&ewm->lock);
-    array_add (ewm->transfers, transfer);
-    tid = (BREthereumTransferId) (array_count(ewm->transfers) - 1);
-    pthread_mutex_unlock(&ewm->lock);
-
-    return tid;
-}
-
-extern void
-ewmDeleteTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = ewm->transfers[tid];
-    if (NULL == transfer) return;
-
-    // Remove from any (and all - should be but one) wallet
-    for (int wid = 0; wid < array_count(ewm->wallets); wid++)
-        if (walletHasTransfer(ewm->wallets[wid], transfer)) {
-            walletUnhandleTransfer(ewm->wallets[wid], transfer);
-            ewmSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
-        }
-
-    // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
-    ewm->transfers[tid] = NULL;
-    transferRelease(transfer);
-}
-#endif
-
 /// MARK: - Wallets
-
-#if defined (NEVER_DEFINED)
-extern BREthereumWallet
-ewmLookupWallet(BREthereumEWM ewm,
-                BREthereumWalletId wid) {
-    BREthereumWallet wallet = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    wallet = (0 <= wid && wid < array_count(ewm->wallets)
-              ? ewm->wallets[wid]
-              : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return wallet;
-}
-
-extern BREthereumWalletId
-ewmLookupWalletId(BREthereumEWM ewm,
-                  BREthereumWallet wallet) {
-    BREthereumWalletId wid = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count (ewm->wallets); i++)
-        if (wallet == ewm->wallets[i]) {
-            wid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return wid;
-}
-
-extern BREthereumWallet
-ewmLookupWalletByTransfer (BREthereumEWM ewm,
-                           BREthereumTransfer transfer) {
-    BREthereumWallet wallet = NULL;
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count (ewm->wallets); i++)
-        if (walletHasTransfer(ewm->wallets[i], transfer)) {
-            wallet = ewm->wallets[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return wallet;
-}
-#endif
 
 extern void
 ewmInsertWallet (BREthereumEWM ewm,
