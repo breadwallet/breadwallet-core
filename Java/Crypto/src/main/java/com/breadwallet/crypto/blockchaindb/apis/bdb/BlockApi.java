@@ -20,13 +20,8 @@ import com.google.common.primitives.UnsignedLong;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class BlockApi {
-
-    private static final UnsignedLong PAGINATION_COUNT = UnsignedLong.valueOf(5000);
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
@@ -39,8 +34,18 @@ public class BlockApi {
     public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           CompletionHandler<List<Block>, QueryError> handler) {
-        executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx,
-                includeTxRaw, includeTxProof, handler));
+        ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+        paramsBuilder.put("blockchain_id", id);
+        paramsBuilder.put("include_raw", String.valueOf(includeRaw));
+        paramsBuilder.put("include_tx", String.valueOf(includeTx));
+        paramsBuilder.put("include_tx_raw", String.valueOf(includeTxRaw));
+        paramsBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
+        paramsBuilder.put("start_height", beginBlockNumber.toString());
+        paramsBuilder.put("end_height", endBlockNumber.toString());
+        ImmutableMultimap<String, String> params = paramsBuilder.build();
+
+        PagedCompletionHandler<List<Block>, QueryError> pagedHandler = createPagedResultsHandler(handler);
+        jsonClient.sendGetForArrayWithPaging("blocks", params, Block::asBlocks, pagedHandler);
     }
 
     public void getBlock(String id, boolean includeRaw,
@@ -55,67 +60,32 @@ public class BlockApi {
         jsonClient.sendGetWithId("blocks", id, params, Block::asBlock, handler);
     }
 
-    private void getBlocksOnExecutor(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
-                                     boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                                     CompletionHandler<List<Block>, QueryError> handler) {
-        final QueryError[] error = {null};
-        List<Block> allBlocks = new ArrayList<>();
-        Semaphore sema = new Semaphore(0);
+    private void submitGetNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
+        executorService.submit(() -> getNextBlocks(nextUrl, handler));
+    }
 
-        ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
-        paramsBuilder.put("blockchain_id", id);
-        paramsBuilder.put("include_raw", String.valueOf(includeRaw));
-        paramsBuilder.put("include_tx", String.valueOf(includeTx));
-        paramsBuilder.put("include_tx_raw", String.valueOf(includeTxRaw));
-        paramsBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
-        paramsBuilder.put("start_height", beginBlockNumber.toString());
-        paramsBuilder.put("end_height", endBlockNumber.toString());
-        ImmutableMultimap<String, String> params = paramsBuilder.build();
+    private void getNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
+        jsonClient.sendGetForArrayWithPaging("blocks", nextUrl, Block::asBlocks, handler);
+    }
 
-        final String[] nextUrl = {null};
-
-        jsonClient.sendGetForArrayWithPaging("blocks", params, Block::asBlocks,
-                new PagedCompletionHandler<List<Block>, QueryError>() {
+    private PagedCompletionHandler<List<Block>, QueryError> createPagedResultsHandler(CompletionHandler<List<Block>, QueryError> handler) {
+        List<Block> allResults = new ArrayList<>();
+        return new PagedCompletionHandler<List<Block>, QueryError>() {
             @Override
-            public void handleData(List<Block> blocks, PageInfo info) {
-                nextUrl[0] = info.nextUrl;
-                allBlocks.addAll(blocks);
-                sema.release();
+            public void handleData(List<Block> results, PageInfo info) {
+                allResults.addAll(results);
+
+                if (info.nextUrl == null) {
+                    handler.handleData(allResults);
+                } else {
+                    submitGetNextBlocks(info.nextUrl, this);
+                }
             }
 
             @Override
-            public void handleError(QueryError e) {
-                error[0] = e;
-                sema.release();
+            public void handleError(QueryError error) {
+                handler.handleError(error);
             }
-        });
-
-        sema.acquireUninterruptibly();
-
-        while (nextUrl[0] != null && error[0] == null) {
-            jsonClient.sendGetForArrayWithPaging("blocks", nextUrl[0], Block::asBlocks,
-                    new PagedCompletionHandler<List<Block>, QueryError>() {
-                        @Override
-                        public void handleData(List<Block> blocks, PageInfo info) {
-                            nextUrl[0] = info.nextUrl;
-                            allBlocks.addAll(blocks);
-                            sema.release();
-                        }
-
-                        @Override
-                        public void handleError(QueryError e) {
-                            error[0] = e;
-                            sema.release();
-                        }
-                    });
-
-            sema.acquireUninterruptibly();
-        }
-
-        if (error[0] != null) {
-            handler.handleError(error[0]);
-        } else {
-            handler.handleData(allBlocks);
-        }
+        };
     }
 }
