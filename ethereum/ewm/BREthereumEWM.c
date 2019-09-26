@@ -1506,8 +1506,6 @@ extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
                    BREthereumGasPrice gasPrice) {
-    pthread_mutex_lock(&ewm->lock);
-
     walletSetDefaultGasPrice(wallet, gasPrice);
 
     ewmSignalWalletEvent(ewm,
@@ -1516,8 +1514,6 @@ ewmHandleGasPrice (BREthereumEWM ewm,
                              WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                              SUCCESS
                          });
-
-    pthread_mutex_unlock(&ewm->lock);
 }
 
 #if defined (NEVER_DEFINED)
@@ -1598,20 +1594,14 @@ ewmHandleBlockChain (BREthereumEWM ewm,
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
-    pthread_mutex_lock(&ewm->lock);
-
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
-
     ewmHandleAnnounceNonce (ewm, accountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
     ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
-    pthread_mutex_unlock(&ewm->lock);
 }
 
 extern void
 ewmHandleBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
-    pthread_mutex_lock(&ewm->lock);
-
     BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
                                ? ewmGetWallet(ewm)
                                : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
@@ -1637,7 +1627,6 @@ ewmHandleBalance (BREthereumEWM ewm,
             free (amountAsString);
         }
     }
-    pthread_mutex_unlock(&ewm->lock);
 }
 
 static int
