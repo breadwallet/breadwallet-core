@@ -1113,7 +1113,7 @@ ewmGetWallets (BREthereumEWM ewm) {
     return wallets;
 }
 
-extern unsigned int
+extern size_t
 ewmGetWalletsCount (BREthereumEWM ewm) {
     return (unsigned int) array_count(ewm->wallets);
 }
@@ -2071,7 +2071,7 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 //
 // Periodic Dispatcher
 //
-extern void
+static void
 ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 

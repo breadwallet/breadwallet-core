@@ -50,6 +50,10 @@ extern void
 ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet);
 
+extern void
+ewmUpdateBlockHeight(BREthereumEWM ewm,
+                     uint64_t blockHeight);
+
 //
 // EWM
 //
