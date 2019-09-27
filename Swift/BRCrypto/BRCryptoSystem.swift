@@ -554,7 +554,7 @@ public final class System {
     }
 
     ///
-    ///
+    /// Stop all wallet managers.  This causes event processing to stop.
     ///
     internal func stopAll () {
         managers.forEach { $0.stop() }

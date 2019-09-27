@@ -38,6 +38,9 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
     var query: BlockChainDB!
 
+    var currencyCodesToMode: [String:WalletManagerMode]!
+    var registerCurrencyCodes: [String]!
+
     var btcPeerSpec = (address: "103.99.168.100", port: UInt16(8333))
     var btcPeer: NetworkPeer? = nil
     var btcPeerUse = false
@@ -112,7 +115,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath?.description ?? "<none>")");
         print ("APP: Mainnet           : \(mainnet)")
-        let currencyCodesToMode: [String:WalletManagerMode] = [
+
+        currencyCodesToMode = [
             "btc" : .api_only,
             "eth" : .api_only,
 //            "bch" : .p2p_only,
@@ -124,7 +128,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         }
 
-        let registerCurrencyCodes = [
+        registerCurrencyCodes = [
             "ZLA",
             "ADT"]
 
@@ -256,7 +260,6 @@ extension UIApplication {
             .forEach { (accountSpecification) in
                 let action = UIAlertAction (title: accountSpecification.identifier, style: .default) { (action) in
                     System.destroy (system: app.system)
-                    app.summaryController.reset()
 
                     let mainnet = (accountSpecification.network == "mainnet")
 
@@ -268,6 +271,9 @@ extension UIApplication {
                     print ("APP: Account Timestamp : \(app.account.timestamp)")
                     print ("APP: Mainnet           : \(mainnet)")
 
+                    // Create the listener
+                    app.listener.isMainnet = mainnet
+
                     app.system = System.create (listener: app.listener!,
                                                 account: app.account,
                                                 onMainnet: mainnet,
@@ -275,10 +281,12 @@ extension UIApplication {
                                                 query: app.query)
 
                     app.system.configure(withCurrencyModels: [])
+                    alert.dismiss (animated: true) {
+                        app.summaryController.reset()
+                    }
                 }
                 alert.addAction (action)
         }
-
         alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
 
         app.summaryController.present (alert, animated: true) {}
