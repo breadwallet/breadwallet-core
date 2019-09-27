@@ -93,7 +93,7 @@ rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance);
  * @return void
  */
 extern void
-rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasis);
+rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleFeeBasis feeBasis);
 
 /**
  * Get the ripple default fee basis that is stored with this wallet
@@ -102,7 +102,7 @@ rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasi
  *
  * @return feeBasis  the default base fee that has been set for this wallet
  */
-extern BRRippleUnitDrops
+extern BRRippleFeeBasis
 rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
 
 extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer);

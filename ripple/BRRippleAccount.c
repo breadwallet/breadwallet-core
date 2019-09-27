@@ -31,8 +31,7 @@
 
 #define WORD_LIST_LENGTH 2048
 
-// A hard-coded representation of the __fee__ address
-uint8_t feeBytes[] = {
+uint8_t feeAddressBytes[20] = {
     0x42, 0x52, 0x44, 0x5F, 0x5F, 0x66, 0x65, 0x65,
     0x5F, 0x5F, 0x42, 0x52, 0x44, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00
@@ -93,7 +92,8 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
     char *string = calloc (1, 36);
 
     // Check for our special case __fee__ address
-    if (memcmp(address.bytes, feeBytes, sizeof(feeBytes)) == 0) {
+    // See the note in BRRippleAcount.h with respect to the feeAddressBytes
+    if (memcmp(address.bytes, feeAddressBytes, sizeof(feeAddressBytes)) == 0) {
         strcpy(string, "__fee__");
     } else {
         // The process is this:
@@ -316,9 +316,10 @@ rippleAddressCreate(const char * rippleAddressString)
 {
     BRRippleAddress address;
     memset(address.bytes, 0x00, sizeof(address.bytes));
-    // 1 special case so far - the __fee__ address
+    // 1 special case so far - the __fee__ address.
+    // See the note in BRRippleAcount.h with respect to the feeAddressBytes
     if (strcmp(rippleAddressString, "__fee__") == 0) {
-        memcpy(address.bytes, feeBytes, sizeof(feeBytes));
+        memcpy(address.bytes, feeAddressBytes, sizeof(feeAddressBytes));
     } else {
         // Work backwards from this ripple address (string) to what is
         // known as the acount ID (20 bytes)

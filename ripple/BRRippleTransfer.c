@@ -13,6 +13,7 @@
 #include "BRRippleAccount.h"
 #include "BRRippleUtils.h"
 #include "BRRipplePrivateStructs.h"
+#include "BRRippleFeeBasis.h"
 #include <stdlib.h>
 
 const char * fee = "__fee__";
@@ -64,7 +65,10 @@ extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer)
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
 {
     assert(transfer);
-    if (memcmp(transfer->targetAddress.bytes, fee, strlen(fee)) == 0) {
+    // See the note in BRRippleAcount.h with respect to the feeAddressBytes
+    // If the "target" address is set to the feeAddressBytes then return the
+    // amount on this transfer - otherwise return 0.
+    if (memcmp(transfer->targetAddress.bytes, feeAddressBytes, sizeof(transfer->targetAddress.bytes)) == 0) {
         return transfer->amount;
     } else {
         return (BRRippleUnitDrops)0L;

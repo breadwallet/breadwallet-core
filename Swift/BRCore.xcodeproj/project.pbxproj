@@ -281,6 +281,7 @@
 		C3169686232283A200743E45 /* BRRippleTransfer.c in Sources */ = {isa = PBXBuildFile; fileRef = C3169685232283A200743E45 /* BRRippleTransfer.c */; };
 		C31696892322B0A800743E45 /* BRRippleUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C31696872322B0A800743E45 /* BRRippleUtils.c */; };
 		C316968B2322F17500743E45 /* BRRippleUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C31696872322B0A800743E45 /* BRRippleUtils.c */; };
+		C32DAD04233E7DCB005FDD54 /* BRRippleFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = C32DAD03233E7DCB005FDD54 /* BRRippleFeeBasis.c */; };
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
@@ -701,6 +702,8 @@
 		C3169685232283A200743E45 /* BRRippleTransfer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleTransfer.c; sourceTree = "<group>"; };
 		C31696872322B0A800743E45 /* BRRippleUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleUtils.c; sourceTree = "<group>"; };
 		C31696882322B0A800743E45 /* BRRippleUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleUtils.h; sourceTree = "<group>"; };
+		C32DAD02233E7DCB005FDD54 /* BRRippleFeeBasis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleFeeBasis.h; sourceTree = "<group>"; };
+		C32DAD03233E7DCB005FDD54 /* BRRippleFeeBasis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleFeeBasis.c; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
 		C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSerialize.c; sourceTree = "<group>"; };
@@ -1282,6 +1285,8 @@
 				C3C453E0226E2C62004CC0C7 /* BRRippleBase.h */,
 				C3C864A6227CA28E0055120E /* BRRippleBase58.c */,
 				C3C864A5227CA28E0055120E /* BRRippleBase58.h */,
+				C32DAD02233E7DCB005FDD54 /* BRRippleFeeBasis.h */,
+				C32DAD03233E7DCB005FDD54 /* BRRippleFeeBasis.c */,
 				C3C864B02284E8250055120E /* BRRipplePrivateStructs.h */,
 				C3C453DF226E2C62004CC0C7 /* BRRippleSerialize.h */,
 				C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */,
@@ -2003,6 +2008,7 @@
 				3CAB60CD20AF8D1A00810CE4 /* BREthereumEWM.c in Sources */,
 				C3C864A4227C6B490055120E /* BRRippleWallet.c in Sources */,
 				3C25BF472236EE40004B093F /* BRBCashParams.c in Sources */,
+				C32DAD04233E7DCB005FDD54 /* BRRippleFeeBasis.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,
 				3C7BE5A8230EFD2E005FD4CD /* BRCryptoTransfer.c in Sources */,
 				3CAB60D220AF8D1A00810CE4 /* BRUtilMath.c in Sources */,

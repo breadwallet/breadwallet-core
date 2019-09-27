@@ -12,7 +12,7 @@
 
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
-
+#include "ripple/BRRippleFeeBasis.h"
 #include "support/BRSet.h"
 #include "ethereum/util/BRUtilHex.h"
 
@@ -82,36 +82,35 @@ static BRGenericAddress
 genericRippleTransferGetTargetAddress (BRGenericTransfer transfer) {
     BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
 
-    *address = rippleTransactionGetTarget(transfer);
+    *address = rippleTransferGetTarget(transfer);
     return address;
 }
 
 static UInt256
 genericRippleTransferGetAmount (BRGenericTransfer transfer) {
-    BRRippleUnitDrops drops = rippleTransactionGetAmount (transfer);
+    BRRippleUnitDrops drops = rippleTransferGetAmount (transfer);
     return createUInt256(drops);
 }
 
 static UInt256
 genericRippleTransferGetFee (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleUnitDrops drops = rippleTransactionGetFee (ripple);
+    BRRippleTransfer ripple = transfer;
+    BRRippleUnitDrops drops = rippleTransferGetFee (ripple);
     return createUInt256(drops);
 }
 
 static BRGenericFeeBasis
 genericRippleTransferGetFeeBasis (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleFeeBasis rippleFeeBasis = rippleTransactionGetFeeBasis (ripple);
-
-    BRGenericFeeBasis feeBasis = malloc (sizeof (BRRippleFeeBasis));
-    memcpy (feeBasis, &rippleFeeBasis, sizeof (BRRippleFeeBasis));
+    BRRippleUnitDrops rippleFee = rippleTransferGetFee (transfer);
+    BRRippleFeeBasis *feeBasis = (BRRippleFeeBasis*) calloc(1, sizeof(BRRippleFeeBasis));
+    feeBasis->pricePerCostFactor = rippleFee;
+    feeBasis->costFactor = 1;
     return feeBasis;
 }
 
 static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleTransactionHash hash = rippleTransactionGetHash(ripple);
+    BRRippleTransfer ripple = transfer;
+    BRRippleTransactionHash hash = rippleTransferGetTransactionId(ripple);
     UInt256 value;
     memcpy (value.u8, hash.bytes, 32);
     return (BRGenericHash) { value };
@@ -245,6 +244,33 @@ genericRippleWalletManagerGetAPISyncType (void) {
     return GENERIC_SYNC_TYPE_TRANSFER;
 }
 
+static UInt256
+genericRippleFeeBasisGetPricePerCostFactor (BRGenericFeeBasis feeBasis)
+{
+    BRRippleUnitDrops pricePerCostFactor = rippleFeeBasisGetPricePerCostFactor(feeBasis);
+    printf("pricePerCostFactor: %llu\n", pricePerCostFactor);
+
+    return createUInt256(pricePerCostFactor);
+}
+
+static double
+genericRippleFeeBasisGetCostFactor (BRGenericFeeBasis feeBasis)
+{
+    return rippleFeeBasisGetCostFactor(feeBasis);
+}
+
+static uint32_t
+genericRippleFeeBasisIsEqual (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2)
+{
+    return rippleFeeBasisIsEqual(fb1, fb2);
+}
+
+static void
+genericRippleFeeBasisFree (BRGenericFeeBasis feeBasis) {
+    BRRippleFeeBasis *rippleFeeBasis = feeBasis;
+    free (rippleFeeBasis);
+}
+
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
     {    // Account
@@ -282,7 +308,14 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletManagerRecoverTransfersFromRawTransaction,
         genericRippleWalletManagerInitializeFileService,
         genericRippleWalletManagerLoadTransfers,
-        genericRippleWalletManagerGetAPISyncType
+        genericRippleWalletManagerGetAPISyncType,
+    },
+
+    { // fee basis
+        genericRippleFeeBasisGetPricePerCostFactor,
+        genericRippleFeeBasisGetCostFactor,
+        genericRippleFeeBasisIsEqual,
+        genericRippleFeeBasisFree
     }
 };
 

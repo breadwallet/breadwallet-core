@@ -88,6 +88,4 @@ typedef uint32_t BRRippleLastLedgerSequence;
 typedef uint32_t BRRippleSourceTag;
 typedef uint32_t BRRippleDestinationTag;
 
-typedef BRRippleUnitDrops BRRippleFeeBasis;
-
 #endif

@@ -12,6 +12,7 @@
 #define BRRipple_transaction_h
 
 #include "BRRippleBase.h"
+#include "BRRippleFeeBasis.h"
 #include "BRKey.h"
 #include "support/BRSet.h"
 
