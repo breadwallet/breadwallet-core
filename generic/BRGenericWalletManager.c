@@ -337,15 +337,7 @@ gwmInstallFileService(BRGenericWalletManager gwm,
     gwm->handlers->manager.fileServiceInit (gwm, gwm->fileService);
 }
 
-
-/// MARK: - Events
-
-const BREventType *gwmEventTypes[] = {
-    // ...
-};
-
-const unsigned int
-gwmEventTypesCount = (sizeof (gwmEventTypes) / sizeof (BREventType*));
+/// MARK: - Fee Basis
 
 extern UInt256
 gwmGetFeeBasisPricePerCostFactor (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis) {
@@ -364,3 +356,12 @@ extern uint32_t gwmGetFeeBasisIsEqual (BRGenericWalletManager gwm, BRGenericFeeB
 extern void gwmFeeBasisRelease(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis) {
     gwm->handlers->feebasis.free (feeBasis);
 }
+
+/// MARK: - Events
+
+const BREventType *gwmEventTypes[] = {
+    // ...
+};
+
+const unsigned int
+gwmEventTypesCount = (sizeof (gwmEventTypes) / sizeof (BREventType*));
