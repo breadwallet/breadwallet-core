@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "BRRipple.h"
 #include "BRRippleBase58.h"
+#include "BRRippleFeeBasis.h"
 #include "BRCrypto.h"
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
@@ -74,7 +75,10 @@ testRippleTransaction (void /* ... */) {
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
     rippleAccountFree(account);
@@ -98,7 +102,10 @@ testRippleTransactionGetters (void /* ... */) {
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 10;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
     uint64_t fee = rippleTransactionGetFee(transaction);
@@ -122,8 +129,8 @@ testRippleTransactionGetters (void /* ... */) {
     BRRippleAddress target = rippleTransactionGetTarget(transaction);
     assert(0 == memcmp(target.bytes, targetAddress.bytes, 20));
     
-    BRRippleFeeBasis feeBasis = rippleTransactionGetFeeBasis(transaction);
-    assert(feeBasis == 10);
+    BRRippleFeeBasis actualFeeBasis = rippleTransactionGetFeeBasis(transaction);
+    assert(actualFeeBasis.pricePerCostFactor == 10);
 
     rippleAccountFree(account);
     rippleTransactionFree(transaction);
@@ -310,7 +317,10 @@ testSerializeWithSignature () {
     memcpy(sourceAddress.bytes, address.bytes, 20);
     memcpy(targetAddress.bytes, destBytes, 20);
 
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 10;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
     uint32_t sequence_number = 25;
@@ -583,10 +593,11 @@ static void testWalletValues()
     assert(balance == expected_balance);
 
     BRRippleFeeBasis feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
-    assert(0 == feeBasis);
-    rippleWalletSetDefaultFeeBasis(wallet, 10);
-    feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
-    assert(10 == feeBasis);
+    assert(0 == feeBasis.pricePerCostFactor);
+    feeBasis.pricePerCostFactor = 10;
+    rippleWalletSetDefaultFeeBasis(wallet, feeBasis);
+    BRRippleFeeBasis newFeeBasis = rippleWalletGetDefaultFeeBasis(wallet);
+    assert(10 == newFeeBasis.pricePerCostFactor);
 
     rippleWalletFree(wallet);
 }
@@ -652,7 +663,10 @@ testTransactionId (void /* ... */) {
 
     BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
     BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
-    BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
@@ -786,7 +800,10 @@ createSubmittableTransaction (void /* ... */) {
 
     BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
     BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);

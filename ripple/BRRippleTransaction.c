@@ -70,7 +70,7 @@ struct BRRippleTransactionRecord {
     BRRippleTransactionType transactionType;
 
     // The base fee according to the Ripple network.
-    BRRippleAmount feeBasis;
+    BRRippleFeeBasis feeBasis;
 
     BRRippleUnitDrops fee; // The actual fee sent in the tx
     
@@ -133,8 +133,7 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     BRRippleTransaction transaction = createTransactionObject();
 
     // Common fields
-    transaction->feeBasis.currencyType = 0; // XRP
-    transaction->feeBasis.amount.u64Amount = feeBasis; // NOTE: the actual fee will be calculated during serialization
+    transaction->feeBasis = feeBasis;
     transaction->fee = 0; // Don't know it yet
     transaction->sourceAddress = sourceAddress;
     transaction->transactionType = RIPPLE_TX_TYPE_PAYMENT;
@@ -229,7 +228,7 @@ static uint64_t calculateFee(BRRippleTransaction transaction)
     // the fee = baseFee * numSignatures and since we only support a single
     // signature there is nothing to do here yet.
     // See https://xrpl.org/transaction-cost.html for the calculations required
-    return transaction->feeBasis.amount.u64Amount;
+    return transaction->feeBasis.pricePerCostFactor * transaction->feeBasis.costFactor;
 }
 
 /*
@@ -570,7 +569,7 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
 extern BRRippleFeeBasis rippleTransactionGetFeeBasis(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return (BRRippleFeeBasis)transaction->feeBasis.amount.u64Amount;
+    return transaction->feeBasis;
 }
 
 static size_t

@@ -13,6 +13,7 @@
 #include "BRRippleWallet.h"
 #include "support/BRArray.h"
 #include "BRRipplePrivateStructs.h"
+#include "BRRippleFeeBasis.h"
 #include <stdio.h>
 //
 // Wallet
@@ -20,7 +21,7 @@
 struct BRRippleWalletRecord
 {
     BRRippleUnitDrops balance; // XRP balance
-    BRRippleUnitDrops feeBasis; // Base fee for transactions
+    BRRippleFeeBasis feeBasis; // Base fee for transactions
 
     // Ripple account
     BRRippleAccount account;
@@ -76,13 +77,13 @@ rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance)
     wallet->balance = balance;
 }
 
-extern void rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasis)
+extern void rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleFeeBasis feeBasis)
 {
     assert(wallet);
     wallet->feeBasis = feeBasis;
 }
 
-extern BRRippleUnitDrops rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet)
+extern BRRippleFeeBasis rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet)
 {
     assert(wallet);
     return wallet->feeBasis;

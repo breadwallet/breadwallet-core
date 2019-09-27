@@ -81,6 +81,12 @@ extern "C" {
 
     typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
 
+    // FeeBasis
+    typedef UInt256 (*BRGenericFeeBasisGetPricePerCostFactor) (BRGenericFeeBasis feeBasis);
+    typedef double (*BRGenericFeeBasisGetCostFactor) (BRGenericFeeBasis feeBasis);
+    typedef uint32_t (*BRGenericFeeBasisIsEqual) (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
+    typedef void (*BRGenericFeeBasisFree) (BRGenericFeeBasis feeBasis);
+
     // MARK: - Generic Handlers
 
     struct BRGenericHandersRecord {
@@ -127,6 +133,13 @@ extern "C" {
             BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
             BRGenericWalletManagerGetAPISyncType apiSyncType;
         } manager;
+
+        struct {
+            BRGenericFeeBasisGetPricePerCostFactor pricePerCostFactor;
+            BRGenericFeeBasisGetCostFactor costFactor;
+            BRGenericFeeBasisIsEqual feeBasisIsEqual;
+            BRGenericFeeBasisFree free;
+        } feebasis;
     };
 
     extern void

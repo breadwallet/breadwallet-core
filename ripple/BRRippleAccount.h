@@ -14,6 +14,12 @@
 #include "BRRippleTransaction.h"
 #include "BRKey.h"
 
+// We cannot do the normal conversion from bytes
+// to ripple address for the __fee__ address. So
+// instead we convert it to these hard-coded bytes
+// (and back again when needed) - defined in BRRippleAccount.c
+extern uint8_t feeAddressBytes[20];
+
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
 /**

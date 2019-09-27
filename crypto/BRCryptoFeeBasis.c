@@ -92,7 +92,7 @@ cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
         case BLOCK_CHAIN_TYPE_ETH: break;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            // TODO: Release BRGenericFeeBasis
+            gwmFeeBasisRelease(feeBasis->u.gen.gwm, feeBasis->u.gen.bid);
             break;
     }
     free (feeBasis);
@@ -113,8 +113,7 @@ cryptoFeeBasisGetPricePerCostFactorAsUInt256 (BRCryptoFeeBasis feeBasis) {
             return feeBasis->u.eth.u.gas.price.etherPerGas.valueInWEI;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (0);
-            return UINT256_ZERO;
+            return gwmGetFeeBasisPricePerCostFactor(feeBasis->u.gen.gwm, feeBasis->u.gen.bid);
     }
 }
 
@@ -141,8 +140,7 @@ cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis) {
             return feeBasis->u.eth.u.gas.limit.amountOfGas;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (0);
-            return 0;
+            return gwmGetFeeBasisCostFactor(feeBasis->u.gen.gwm, feeBasis->u.gen.bid);
     }
 }
 
@@ -193,10 +191,8 @@ cryptoFeeBasisIsIdentical (BRCryptoFeeBasis feeBasis1,
             return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (feeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
 
         case BLOCK_CHAIN_TYPE_GEN:
-            // TODO: Compare GEN fee basis.
-            assert (0);
-            return AS_CRYPTO_BOOLEAN (feeBasis1->u.gen.gwm == feeBasis2->u.gen.gwm &&
-                                      feeBasis1->u.gen.bid == feeBasis2->u.gen.bid);
+            if (feeBasis1->u.gen.gwm != feeBasis2->u.gen.gwm) return CRYPTO_FALSE;
+            return AS_CRYPTO_BOOLEAN (gwmGetFeeBasisIsEqual(feeBasis1->u.gen.gwm, feeBasis1->u.gen.bid, feeBasis2->u.gen.bid));
     }
 }
 

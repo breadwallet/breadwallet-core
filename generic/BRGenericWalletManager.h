@@ -138,6 +138,12 @@ extern "C" {
     gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
                                            uint8_t *bytes,
                                            size_t   bytesCount);
+
+    extern UInt256 gwmGetFeeBasisPricePerCostFactor(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+    extern double gwmGetFeeBasisCostFactor(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+    extern uint32_t gwmGetFeeBasisIsEqual(BRGenericWalletManager gwm, BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
+    extern void gwmFeeBasisRelease(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+
 #ifdef __cplusplus
 }
 #endif
