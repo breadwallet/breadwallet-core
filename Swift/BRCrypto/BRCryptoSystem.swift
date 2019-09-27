@@ -554,6 +554,13 @@ public final class System {
     }
 
     ///
+    ///
+    ///
+    internal func stopAll () {
+        managers.forEach { $0.stop() }
+    }
+
+    ///
     /// Set the network reachable flag for all managers. Setting or clearing this flag will
     /// NOT result in a connect/disconnect operation by a manager. Callers must use the
     /// `connect`/`disconnect` calls to change a WalletManager's connectivity state. Instead,
@@ -932,6 +939,7 @@ public final class System {
         system.disconnectAll()
 
         // Stop
+        system.stopAll()
     }
 
     // In work...

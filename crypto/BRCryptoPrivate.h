@@ -386,6 +386,10 @@ extern "C" {
     cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                                  BRCryptoWalletManagerState state);
 
+
+    private_extern void
+    cryptoWalletManagerStop (BRCryptoWalletManager cwm);
+
     private_extern BRWalletManager
     cryptoWalletManagerAsBTC (BRCryptoWalletManager manager);
 
