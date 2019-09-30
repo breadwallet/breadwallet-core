@@ -228,21 +228,31 @@ extension UIApplication {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
         print ("APP: Resetting")
 
-        // Destroy the current system.
-        System.destroy(system: app.system);
-
-        // Clear out the UI
+        // Clear out the UI.  Note: there is a race here on callbacks to the listener.  Something
+        // in the UI *might* be created if an event occurs before the subsequent wipe completes.
         app.summaryController.reset()
+
+        // Destroy the current system.
+        System.wipe(system: app.system);
+
+        // Again
+        app.summaryController.reset()
+
+        // Remove the reference to the old system
+        app.system = nil;
 
         // Create a new system
         app.system = System.create (listener: app.listener!,
                                     account: app.account,
-                                    onMainnet: app.mainnet,
+                                    onMainnet: app.listener.isMainnet,  // Wipe might change.
                                     path: app.storagePath,
                                     query: app.query)
 
         // Passing `[]`... it is a demo app...
         app.system.configure(withCurrencyModels: [])
+
+        // Too soon...
+        app.summaryController.update()
     }
 
     static func doWipe () {
@@ -259,7 +269,9 @@ extension UIApplication {
         accountSpecifications
             .forEach { (accountSpecification) in
                 let action = UIAlertAction (title: accountSpecification.identifier, style: .default) { (action) in
-                    System.destroy (system: app.system)
+                    app.summaryController.reset()
+
+                    System.wipe (system: app.system)
 
                     let mainnet = (accountSpecification.network == "mainnet")
 
@@ -283,6 +295,7 @@ extension UIApplication {
                     app.system.configure(withCurrencyModels: [])
                     alert.dismiss (animated: true) {
                         app.summaryController.reset()
+                        app.summaryController.update()
                     }
                 }
                 alert.addAction (action)

@@ -90,8 +90,19 @@ fileServiceCreate (const char *basePath,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler);
 
+/**
+ * Release fs.  This will close `fs` if it hasn't been already and then free the memory and any
+ * other resources associaed with the fs (such as locks).
+ */
 extern void
 fileServiceRelease (BRFileService fs);
+
+/**
+ * Close fs.  This will close the DB associated with `fs`.  The `fs` must not be used after closing;
+ * if it is then an IMPL error is raised.  This can be called multiple times (but shouldn't be).
+ */
+extern void
+fileServiceClose (BRFileService fs);
 
 extern void
 fileServiceSetErrorHandler (BRFileService fs,

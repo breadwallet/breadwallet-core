@@ -159,6 +159,7 @@ gwmRelease (BRGenericWalletManager gwm) {
 extern void
 gwmStop (BRGenericWalletManager gwm) {
     eventHandlerStop (gwm->handler);
+    fileServiceClose (gwm->fileService);
 }
 
 extern BRGenericHandlers

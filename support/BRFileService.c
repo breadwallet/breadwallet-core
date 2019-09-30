@@ -186,6 +186,7 @@ struct BRFileServiceRecord {
     sqlite3_stmt *sdbDeleteStmt;
     sqlite3_stmt *sdbDeleteAllTypeStmt;
     sqlite3_stmt *sdbDeleteAllStmt;
+    uint8_t  sdbClosed;
 
     char *currency;
     char *network;
@@ -250,6 +251,7 @@ fileServiceCreate (const char *basePath,
 
     fs->sdb = NULL;
     fs->sdbPath = NULL;
+    fs->sdbClosed = 0;
 
     // Save currency and network
     fs->currency = strdup (currency);
@@ -347,11 +349,46 @@ fileServiceCreate (const char *basePath,
     return fs;
 }
 
+static void
+_fileServiceFinalizeStmt (BRFileService fs, sqlite3_stmt **stmt) {
+    if (NULL != stmt && NULL != *stmt) {
+        sqlite3_finalize (*stmt);
+        *stmt = NULL;
+    }
+}
+
+static void
+_fileServiceCloseInternal (BRFileService fs) {
+    if (fs->sdbClosed) return;
+
+    fs->sdbClosed = 1;
+    _fileServiceFinalizeStmt (fs, &fs->sdbInsertStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbSelectStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbSelectAllStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbUpdateStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteAllTypeStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteAllStmt);
+
+    if (NULL != fs->sdb) sqlite3_close (fs->sdb);
+    fs->sdb = NULL;
+}
+
+extern void
+fileServiceClose (BRFileService fs) {
+    pthread_mutex_lock (&fs->lock);
+    _fileServiceCloseInternal(fs);
+    pthread_mutex_unlock (&fs->lock);
+}
+
 // This is callable with a partially allocated BRFileService.  So, be
 // careful with fields that might not yet exist.
 extern void
 fileServiceRelease (BRFileService fs) {
     pthread_mutex_lock (&fs->lock);
+
+    _fileServiceCloseInternal(fs);
+
     if (NULL != fs->entityTypes) {
         size_t typesCount = array_count(fs->entityTypes);
         for (size_t index = 0; index < typesCount; index++)
@@ -363,15 +400,6 @@ fileServiceRelease (BRFileService fs) {
     if (NULL != fs->currency) free (fs->currency);
     if (NULL != fs->sdbPath)  free (fs->sdbPath);
 
-    if (NULL != fs->sdbInsertStmt)        sqlite3_finalize (fs->sdbInsertStmt);
-    if (NULL != fs->sdbSelectStmt)        sqlite3_finalize (fs->sdbSelectStmt);
-    if (NULL != fs->sdbSelectAllStmt)     sqlite3_finalize (fs->sdbSelectAllStmt);
-    if (NULL != fs->sdbUpdateStmt)        sqlite3_finalize (fs->sdbUpdateStmt);
-    if (NULL != fs->sdbDeleteStmt)        sqlite3_finalize (fs->sdbDeleteStmt);
-    if (NULL != fs->sdbDeleteAllTypeStmt) sqlite3_finalize (fs->sdbDeleteAllTypeStmt);
-    if (NULL != fs->sdbDeleteAllStmt)     sqlite3_finalize (fs->sdbDeleteAllStmt);
-
-    if (NULL != fs->sdb) sqlite3_close (fs->sdb);
     pthread_mutex_unlock (&fs->lock);
     pthread_mutex_destroy(&fs->lock);
 
@@ -549,6 +577,9 @@ _fileServiceSave (BRFileService fs,
     if (needLock)
         pthread_mutex_lock (&fs->lock);
 
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, needLock, NULL, NULL, "closed");
+
     sqlite3_reset (fs->sdbInsertStmt);
     sqlite3_clear_bindings(fs->sdbInsertStmt);
 
@@ -606,6 +637,9 @@ fileServiceLoad (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+
     sqlite3_reset (fs->sdbSelectAllStmt);
 
     status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
@@ -719,6 +753,9 @@ fileServiceRemove (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+
     sqlite3_reset (fs->sdbDeleteStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
@@ -745,6 +782,9 @@ fileServiceClearForType (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);

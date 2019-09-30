@@ -596,6 +596,9 @@ ewmStop (BREthereumEWM ewm) {
 
     // Stop the EWM thread
     eventHandlerStop(ewm->handler);
+
+    // Close the file service.
+    fileServiceClose (ewm->fs);
 }
 
 /// MARK: - Connect / Disconnect

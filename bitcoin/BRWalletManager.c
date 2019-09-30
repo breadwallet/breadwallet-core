@@ -1076,6 +1076,7 @@ extern void
 BRWalletManagerStop (BRWalletManager manager) {
     BRWalletManagerDisconnect (manager);
     eventHandlerStop (manager->handler);
+    fileServiceClose (manager->fileService);
 }
 
 extern BRWallet *

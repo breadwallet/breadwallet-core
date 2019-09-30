@@ -554,13 +554,6 @@ public final class System {
     }
 
     ///
-    /// Stop all wallet managers.  This causes event processing to stop.
-    ///
-    internal func stopAll () {
-        managers.forEach { $0.stop() }
-    }
-
-    ///
     /// Set the network reachable flag for all managers. Setting or clearing this flag will
     /// NOT result in a connect/disconnect operation by a manager. Callers must use the
     /// `connect`/`disconnect` calls to change a WalletManager's connectivity state. Instead,
@@ -848,11 +841,25 @@ public final class System {
         }
     }
 
+    /// An array of removed systems.  This is a workaround for systems that have been destroyed.
+    /// We do not correctly handle 'release' and thus C-level memory issues are introduced; rather
+    /// than solving those memory issues now, we'll avoid 'release' by holding a reference.
+    private static var systemRemovedSystems = [System]()
+
+    /// If true, save removed system in the above array. Set to `false` for debugging 'release'.
+    private static var systemRemovedSystemsSave = true;
+
     static func systemRemove (index: Int32) {
         return systemQueue.sync {
             systemMapping.removeValue(forKey: index)
+                .map {
+                    if systemRemovedSystemsSave {
+                        systemRemovedSystems.append ($0)
+                    }
+            }
         }
     }
+
     ///
     /// Add a systme to the mapping.  Create a new index in the process and assign as system.index
     ///
@@ -931,24 +938,34 @@ public final class System {
                        listenerQueue: listenerQueue)
     }
 
-    public static func destroy (system: System) {
+    static func destroy (system: System) {
         // Stop all callbacks.  This might be inconsistent with 'deleted' events.
         System.systemRemove (index: system.index)
 
         // Disconnect all wallet managers
         system.disconnectAll()
 
-        // Stop
-        system.stopAll()
+        // Stop all the wallet managers.
+        system.managers.forEach { $0.stop() }
     }
 
-    // In work...
-    private static func wipe (system: System) {
-        // Safe the path to the persistent storage
+    ///
+    /// Cease use of `system` and remove (aka 'wipe') its persistent storage.  Caution is highly
+    /// warranted; none of the System's references, be they Wallet Managers, Wallets, Transfers, etc
+    /// should be *touched* once the system is wiped.
+    ///
+    /// - Note: This function blocks until completed.  Be sure that all references are dereferenced
+    ///         *before* invoking this function and remove the reference to `system` after this
+    ///         returns.
+    ///
+    /// - Parameter system: the system to wipe
+    ///
+    public static func wipe (system: System) {
+        // Save the path to the persistent storage
         let storagePath = system.path;
 
         // Destroy the system.
-        destroy(system: system)
+        destroy (system: system)
 
         // Clear out persistent storage
         do {
@@ -961,6 +978,15 @@ public final class System {
         }
     }
 
+    ///
+    /// Remove (aka 'wipe') the persistent storage associated with any and all systems located
+    /// within `atPath` except for a specified array of systems to preserve.  Generally, this
+    /// function should be called on startup after all systems have been created.  When called at
+    ///  that time, any 'left over' systems will have their persistent storeage wiped.
+    ///
+    /// - Parameter atPath: the file system path where system data is persistently stored
+    /// - Parameter systems: the array of systems that shouldn not have their data wiped.
+    ///
     public static func wipeAll (atPath: String, except systems: [System]) {
         do {
             try FileManager.default.contentsOfDirectory (atPath: atPath)

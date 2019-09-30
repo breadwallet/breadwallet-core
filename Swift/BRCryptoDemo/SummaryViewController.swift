@@ -27,6 +27,13 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
+    func update () {
+        DispatchQueue.main.async {
+            self.wallets = UIApplication.sharedSystem.wallets
+            self.tableView.reloadData()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -37,7 +44,7 @@ class SummaryViewController: UITableViewController, WalletListener {
     }
 
     override func viewWillAppear (_ animated: Bool) {
-        self.wallets = UIApplication.sharedSystem.wallets
+        super.viewWillAppear(animated)
 
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (walletListener: self)
@@ -46,8 +53,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
 
         // Reload the data - don't miss any wallets
-        self.tableView.reloadData()
-        super.viewWillAppear(animated)
+        update ()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
