@@ -327,6 +327,16 @@ ewmSignalSync (BREthereumEWM ewm,
                uint64_t blockNumberStop);
 
 //
+// Signal/Handle Sync (BCS Callback)
+//
+extern void
+ewmHandleSyncAPI (BREthereumEWM ewm);
+
+extern void
+ewmSignalSyncAPI (BREthereumEWM ewm,
+                  BREthereumBoolean OOB);
+
+//
 // Signal/Handle Get Blocks (BCS Callback)
 //
 extern void
