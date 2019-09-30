@@ -11,7 +11,6 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.google.common.base.Optional;
 
 import java.util.List;
 import java.util.Set;
@@ -19,8 +18,20 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
+    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String storagePath, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,storagePath, query);
+    }
+
+    static void destroy(System system) {
+        CryptoApi.getProvider().systemProvider().destroy(system);
+    }
+
+    static void wipe(System system) {
+        CryptoApi.getProvider().systemProvider().wipe(system);
+    }
+
+    static void wipeAll(String storagePath, List<System> exemptSystems) {
+        CryptoApi.getProvider().systemProvider().wipeAll(storagePath, exemptSystems);;
     }
 
     void configure(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies);
@@ -44,7 +55,24 @@ public interface System {
                              AddressScheme addressScheme,
                              Set<Currency> currencies);
 
-    void stop();
+    /**
+     * Connect all wallet managers.
+     *
+     * They will be connected w/o an explict NetworkPeer.
+     */
+    void connectAll();
+
+    /**
+     * Disconnect all wallet managers.
+     */
+    void disconnectAll();
+
+    /**
+     * Stop all wallet managers.
+     *
+     * This causes event processing to stop.
+     */
+    void stopAll();
 
     void subscribe(String subscriptionToken);
 

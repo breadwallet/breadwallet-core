@@ -28,4 +28,9 @@
         app:showAsAction="never"
         tools:ignore="HardcodedText" />
 
+    <item android:id="@+id/action_wipe"
+        android:title="Wipe"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
+
 </menu>

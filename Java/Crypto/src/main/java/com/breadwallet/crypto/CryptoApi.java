@@ -34,6 +34,9 @@ public final class CryptoApi {
 
     public interface SystemProvider {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        void destroy(System system);
+        void wipe(System system);
+        void wipeAll(String path, List<System> exemptSystems);
     }
 
     public interface CoderProvider {
