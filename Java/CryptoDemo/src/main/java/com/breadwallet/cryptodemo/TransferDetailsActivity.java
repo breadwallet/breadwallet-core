@@ -41,8 +41,6 @@ import java.text.DateFormat;
 
 public class TransferDetailsActivity extends AppCompatActivity {
 
-    private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
-
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferDetailsActivity.EXTRA_WALLET_NAME";
     private static final String EXTRA_TXN_ID = "com.breadwallet.cryptodemo,TransferDetailsActivity.EXTRA_TXN_ID";
 
@@ -183,7 +181,9 @@ public class TransferDetailsActivity extends AppCompatActivity {
         feeView.setText(feeText);
         feeView.setOnClickListener(v -> copyPlaintext("Fee", feeView.getText()));
 
-        String dateText = confirmation.transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
+        String dateText = confirmation
+                .transform((c) -> DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG).format(c.getConfirmationTime()))
+                .or("<pending>");
         dateView.setText(dateText);
 
         String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
