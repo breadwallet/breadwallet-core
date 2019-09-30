@@ -834,7 +834,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                                                           cryptoWalletManagerTake(cwm),
                                                           (BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
-                                                              { .syncStopped = { BRSyncStoppedReasonUnknown() } }
+                                                              { .syncStopped = { BRSyncStoppedReasonComplete() } }
                                                           });
             }
 

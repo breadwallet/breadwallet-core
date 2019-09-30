@@ -146,11 +146,11 @@ struct BREthereumEWMRecord {
         uint64_t begBlockNumber;
         uint64_t endBlockNumber;
 
-        int ridTransaction;
-        int ridLog;
+        unsigned int ridTransaction;
+        unsigned int ridLog;
 
-        int completedTransaction:1;
-        int completedLog:1;
+        unsigned int completedTransaction:1;
+        unsigned int completedLog:1;
     } brdSync;
 };
 

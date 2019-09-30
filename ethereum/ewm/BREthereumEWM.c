@@ -2447,6 +2447,35 @@ ewmUpdateLogs (BREthereumEWM ewm,
     }
 }
 
+// ==============================================================================================
+//
+// Announce {Transactions, Logs} Complete
+//
+extern void
+ewmHandleAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(isTransaction)) {
+        if (rid == ewm->brdSync.ridTransaction)
+            ewm->brdSync.completedTransaction = 1; // completed, no matter success or failure
+    }
+    else /* isLog */ {
+        if (rid == ewm->brdSync.ridLog)
+            ewm->brdSync.completedLog = 1;         // completed, no matter success or failure
+    }
+
+    if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
+        // If this was not an 'ongoing' sync, then signal back to 'connected'
+        if (ewmIsNotAnOngoingSync (ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_CHANGED,
+                SUCCESS,
+                { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+            });
+    }
+}
+
 //
 // Periodicaly query the BRD backend to get current status (block number, nonce, balances,
 // transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
@@ -2468,14 +2497,6 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 1) check if the prior sync has completed.
     if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
-        // If this was not an 'ongoing' sync, then signal back to 'connected'
-        if (ewmIsNotAnOngoingSync(ewm))
-            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
-                EWM_EVENT_CHANGED,
-                SUCCESS,
-                { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
-            });
-
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
                                        ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
