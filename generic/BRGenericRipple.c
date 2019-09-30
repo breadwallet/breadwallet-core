@@ -74,7 +74,7 @@ static BRGenericAddress
 genericRippleTransferGetSourceAddress (BRGenericTransfer transfer) {
     BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
 
-    *address = rippleTransactionGetSource(transfer);
+    *address = rippleTransferGetSource(transfer);
     return address;
 }
 
