@@ -119,6 +119,22 @@ public class BRCryptoCWMClientEth extends Structure {
         super(peer);
     }
 
+    public BRCryptoCWMClientEth toByValue() {
+        ByValue other = new ByValue();
+        other.funcGetEtherBalance = this.funcGetEtherBalance;
+        other.funcGetTokenBalance = this.funcGetTokenBalance;
+        other.funcGetGasPrice = this.funcGetGasPrice;
+        other.funcEstimateGas = this.funcEstimateGas;
+        other.funcSubmitTransaction = this.funcSubmitTransaction;
+        other.funcGetTransactions = this.funcGetTransactions;
+        other.funcGetLogs = this.funcGetLogs;
+        other.funcGetBlocks = this.funcGetBlocks;
+        other.funcGetTokens = this.funcGetTokens;
+        other.funcGetBlockNumber = this.funcGetBlockNumber;
+        other.funcGetNonce = this.funcGetNonce;
+        return other;
+    }
+
     public static class ByReference extends BRCryptoCWMClientEth implements Structure.ByReference {
 
     }
