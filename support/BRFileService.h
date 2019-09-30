@@ -65,6 +65,7 @@ typedef struct {
 
         struct {
             int code;  // sqlite3_status_code
+            const char *reason;
         } sdb;
 
         struct {

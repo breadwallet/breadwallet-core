@@ -787,12 +787,14 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
             break;
         case FILE_SERVICE_ENTITY:
             // This is likely a coding error too.
-            _peer_log ("bread: FileService Error: ENTITY (%s); %s",
+            _peer_log ("bread: FileService Error: ENTITY (%s): %s",
                      error.u.entity.type,
                      error.u.entity.reason);
             break;
         case FILE_SERVICE_SDB:
-            _peer_log ("bread: FileService Error: SDB: %d", error.u.sdb.code);
+            _peer_log ("bread: FileService Error: SDB: (%d): %s",
+                       error.u.sdb.code,
+                       error.u.sdb.reason);
             break;
     }
     _peer_log ("bread: FileService Error: FORCED SYNC%s", "");

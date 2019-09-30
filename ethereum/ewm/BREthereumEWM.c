@@ -144,7 +144,9 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
                      error.u.entity.reason);
             break;
         case FILE_SERVICE_SDB:
-            eth_log ("EWM", "FileService Error: SDB: %d", error.u.sdb.code);
+            eth_log ("EWM", "FileService Error: SDB: (%d): %s",
+                     error.u.sdb.code,
+                     error.u.sdb.reason);
             break;
     }
     eth_log ("EWM", "FileService Error: FORCED SYNC%s", "");
