@@ -20,7 +20,6 @@
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
-#include "ethereum/ewm/BREthereumTransfer.h"
 #include "support/BRBase.h"
 #include "support/BRSyncMode.h"
 
@@ -1280,7 +1279,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
 
                 BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
 
-                BREthereumFeeBasis ethFeeBasis = transferGetFeeBasis (tid);
+                BREthereumFeeBasis ethFeeBasis = ewmTransferGetFeeBasis (ewm, tid);
 
                 BRCryptoUnit unit = cryptoTransferGetUnitForFee(transfer);
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit,

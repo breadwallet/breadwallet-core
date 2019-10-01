@@ -2529,6 +2529,12 @@ ewmTransferGetGasLimit(BREthereumEWM ewm,
     return feeBasisGetGasLimit(transferGetFeeBasis(transfer));
 }
 
+extern BREthereumFeeBasis
+ewmTransferGetFeeBasis (BREthereumEWM ewm,
+                        BREthereumTransfer transfer) {
+    return transferGetFeeBasis (transfer);
+}
+
 extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer) {

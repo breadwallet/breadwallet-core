@@ -321,6 +321,10 @@ extern BREthereumGas
 ewmTransferGetGasLimit(BREthereumEWM ewm,
                        BREthereumTransfer transfer);
 
+extern BREthereumFeeBasis
+ewmTransferGetFeeBasis (BREthereumEWM ewm,
+                        BREthereumTransfer transfer);
+
 extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer);

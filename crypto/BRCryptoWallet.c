@@ -15,12 +15,11 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
 
-#include "generic/BRGeneric.h"
 
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
-#include "ethereum/ewm/BREthereumTransfer.h"
+#include "generic/BRGeneric.h"
 
 /**
  *
