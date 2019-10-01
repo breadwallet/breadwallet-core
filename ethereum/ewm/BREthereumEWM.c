@@ -2426,11 +2426,13 @@ ewmTransferFillRawData (BREthereumEWM ewm,
                         uint8_t **bytesPtr, size_t *bytesCountPtr) {
     assert (NULL != bytesCountPtr && NULL != bytesPtr);
 
+    pthread_mutex_lock (&ewm->lock);
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
     assert (NULL != transaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
+    pthread_mutex_unlock (&ewm->lock);
 
     BRRlpItem item = transactionRlpEncode(transaction,
                                           ewm->network,
@@ -2452,9 +2454,11 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                 BREthereumTransfer transfer,
                                 const char *prefix) {
     assert (walletHasTransfer(wallet, transfer));
-
+    
+    pthread_mutex_lock (&ewm->lock);
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
-
+    pthread_mutex_unlock (&ewm->lock);
+    
     return (NULL == transaction ? NULL
             : transactionGetRlpHexEncoded (transaction,
                                            ewm->network,
@@ -2462,7 +2466,7 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                             ? RLP_TYPE_TRANSACTION_SIGNED
                                             : RLP_TYPE_TRANSACTION_UNSIGNED),
                                            prefix));
-            }
+}
 
 /// MARK: - Transfer
 
@@ -2481,13 +2485,19 @@ ewmTransferGetSource (BREthereumEWM ewm,
 extern BREthereumHash
 ewmTransferGetIdentifier(BREthereumEWM ewm,
                          BREthereumTransfer transfer) {
-    return transferGetIdentifier (transfer);
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumHash identifier = transferGetIdentifier (transfer);
+    pthread_mutex_unlock (&ewm->lock);
+    return identifier;
 }
 
 extern BREthereumHash
 ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
                                          BREthereumTransfer transfer) {
-    return transferGetOriginatingTransactionHash(transfer);
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumHash hash = transferGetOriginatingTransactionHash(transfer);
+    pthread_mutex_unlock (&ewm->lock);
+    return hash;
 }
 
 extern char *
@@ -2549,12 +2559,16 @@ ewmTransferExtractStatusIncluded (BREthereumEWM ewm,
                                   uint64_t *blockTransactionIndex,
                                   uint64_t *blockTimestamp,
                                   BREthereumGas *gasUsed) {
-    return AS_ETHEREUM_BOOLEAN (transferExtractStatusIncluded (transfer,
-                                                               blockHash,
-                                                               blockNumber,
-                                                               blockTransactionIndex,
-                                                               blockTimestamp,
-                                                               gasUsed));
+    pthread_mutex_lock (&ewm->lock);
+    int included = transferExtractStatusIncluded (transfer,
+                                                  blockHash,
+                                                  blockNumber,
+                                                  blockTransactionIndex,
+                                                  blockTimestamp,
+                                                  gasUsed);
+    pthread_mutex_unlock (&ewm->lock);
+
+    return AS_ETHEREUM_BOOLEAN (included);
 }
 
 extern BREthereumHash
@@ -2627,10 +2641,10 @@ ewmTransferIsConfirmed(BREthereumEWM ewm,
 extern BREthereumBoolean
 ewmTransferIsSubmitted(BREthereumEWM ewm,
                        BREthereumTransfer transfer) {
-    return AS_ETHEREUM_BOOLEAN(ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatus(transfer, TRANSFER_STATUS_SUBMITTED)) ||
-                               ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusOrTwo(transfer,
-                                                                               TRANSFER_STATUS_INCLUDED,
-                                                                               TRANSFER_STATUS_ERRORED)));
+    return AS_ETHEREUM_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_SUBMITTED)) ||
+                                ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusOrTwo (transfer,
+                                                                                  TRANSFER_STATUS_INCLUDED,
+                                                                                  TRANSFER_STATUS_ERRORED)));
 }
 
 extern char *
