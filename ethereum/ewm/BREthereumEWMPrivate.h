@@ -36,6 +36,8 @@ typedef enum {
 (CLIENT_CHANGE_ADD == (ev) ? "Add" \
 : (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
 
+#define EWM_REQUEST_ID_UNKNOWN    (UINT_MAX)
+
 //
 // EWM
 //

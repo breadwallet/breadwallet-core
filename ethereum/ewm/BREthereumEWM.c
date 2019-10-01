@@ -258,6 +258,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->bcs = NULL;
     ewm->blockHeight = blockHeight;
     ewm->confirmationsUntilFinal = confirmationsUntilFinal;
+    ewm->requestId = 0;
 
     {
         char address [ADDRESS_ENCODED_CHARS];
@@ -266,8 +267,8 @@ ewmCreate (BREthereumNetwork network,
     }
 
     // Initialize the `brdSync` struct
-    ewm->brdSync.ridTransaction = -1;
-    ewm->brdSync.ridLog = -1;
+    ewm->brdSync.ridTransaction = EWM_REQUEST_ID_UNKNOWN;
+    ewm->brdSync.ridLog = EWM_REQUEST_ID_UNKNOWN;
     ewm->brdSync.begBlockNumber = 0;
     ewm->brdSync.endBlockNumber = ewm->blockHeight;
     ewm->brdSync.completedTransaction = 1;
@@ -954,8 +955,8 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 // (that is below) will immediately reassign new rids thereby mooting the need for
                 // assignin -1 here.  However, assigning -1 here does no harm and allows replacing
                 // of `ewmHandleSyncAPI` with `ewmSignalSyncAPI` if need be.
-                ewm->brdSync.ridLog = -1;
-                ewm->brdSync.ridTransaction = -1;
+                ewm->brdSync.ridLog = EWM_REQUEST_ID_UNKNOWN;
+                ewm->brdSync.ridTransaction = EWM_REQUEST_ID_UNKNOWN;
 
                 // If this was not an 'ongoing' sync, then signal back to 'connected'.  This will
                 // appear as syncEnded(success) - that is okay.
