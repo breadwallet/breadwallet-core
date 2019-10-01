@@ -40,13 +40,13 @@ public class CoreSystemListener implements SystemListener {
 
     private static final String TAG = CoreSystemListener.class.getName();
 
-    private final WalletManagerMode mode;
+    private final WalletManagerMode preferredMode;
     private final boolean isMainnet;
     private final List<String> currencyCodesNeeded;
 
     /* package */
-    CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
-        this.mode = mode;
+    CoreSystemListener(WalletManagerMode preferredMode, boolean isMainnet, List<String> currencyCodesNeeded) {
+        this.preferredMode = preferredMode;
         this.isMainnet = isMainnet;
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
     }
@@ -78,11 +78,12 @@ public class CoreSystemListener implements SystemListener {
                 }
 
                 if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-                    WalletManagerMode wmMode = system.supportsWalletManagerMode(network, mode) ?
-                            mode : system.getDefaultWalletManagerMode(network);
+                    WalletManagerMode mode = system.supportsWalletManagerMode(network, preferredMode) ?
+                            preferredMode : system.getDefaultWalletManagerMode(network);
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);
-                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme, Collections.emptySet());
+                    Log.d(TAG, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
+                    system.createWalletManager(network, mode, addressScheme, Collections.emptySet());
                 }
                 return null;
             }
