@@ -167,8 +167,8 @@ public class CoreCryptoApplication extends Application {
     private void resetSystemImpl() {
         Log.d(TAG, "Resetting");
 
-        // Destroy the current system.
-        System.destroy(system);
+        // Wipe the current system.
+        System.wipe(system);
 
         // Create a new system
         system = System.create(

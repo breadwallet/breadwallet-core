@@ -77,11 +77,6 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
 
         @Override
-        public void destroy(com.breadwallet.crypto.System system) {
-            System.destroy(system);
-        }
-
-        @Override
         public void wipe(com.breadwallet.crypto.System system) {
             System.wipe(system);
         }

@@ -115,8 +115,19 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final String TAG = System.class.getName();
 
-    private static final Map<Pointer, System> SYSTEMS = new ConcurrentHashMap<>();
+    /// A index to globally identify systems.
     private static final AtomicInteger SYSTEM_IDS = new AtomicInteger(0);
+
+    /// A dictionary mapping an index to a system.
+    private static final Map<Pointer, System> SYSTEMS_ACTIVE = new ConcurrentHashMap<>();
+
+    /// An array of removed systems.  This is a workaround for systems that have been destroyed.
+    /// We do not correctly handle 'release' and thus C-level memory issues are introduced; rather
+    /// than solving those memory issues now, we'll avoid 'release' by holding a reference.
+    private static final List<System> SYSTEMS_INACTIVE = Collections.synchronizedList(new ArrayList<>());
+
+    /// If true, save removed system in the above array. Set to `false` for debugging 'release'.
+    private static final boolean SYSTEMS_INACTIVE_RETAIN = !BuildConfig.DEBUG;
 
     //
     // Keep a static reference to the callbacks so that they are never GC'ed
@@ -195,22 +206,9 @@ final class System implements com.breadwallet.crypto.System {
                 cwmListener,
                 cwmClient);
 
-        SYSTEMS.put(context, system);
+        SYSTEMS_ACTIVE.put(context, system);
 
         return system;
-    }
-
-    /* package */
-    static void destroy(com.breadwallet.crypto.System system) {
-        System sys = System.from(system);
-        // Stop all callbacks.  This might be inconsistent with 'deleted' events.
-        SYSTEMS.remove(sys.context);
-
-        // Disconnect all wallet managers
-        sys.disconnectAll();
-
-        // Stop
-        sys.stopAll();
     }
 
     /* package */
@@ -240,6 +238,23 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
+    private static void destroy(com.breadwallet.crypto.System system) {
+        System sys = System.from(system);
+        // Stop all callbacks.  This might be inconsistent with 'deleted' events.
+        SYSTEMS_ACTIVE.remove(sys.context);
+
+        // Disconnect all wallet managers
+        sys.disconnectAll();
+
+        // Stop
+        sys.stopAll();
+
+        // Register the system as inactive
+        if (SYSTEMS_INACTIVE_RETAIN) {
+            SYSTEMS_INACTIVE.add(sys);
+        }
+    }
+
     private static void deleteRecursively (String toDeletePath) {
         deleteRecursively(new File(toDeletePath));
     }
@@ -257,7 +272,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static Optional<System> getSystem(Pointer context) {
-        return Optional.fromNullable(SYSTEMS.get(context));
+        return Optional.fromNullable(SYSTEMS_ACTIVE.get(context));
     }
 
     private static System from(com.breadwallet.crypto.System system) {
@@ -391,13 +406,6 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void stopAll() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.stop();
-        }
-    }
-
-    @Override
     public void subscribe(String subscriptionToken) {
         // TODO(fix): Implement this!
     }
@@ -427,6 +435,12 @@ final class System implements com.breadwallet.crypto.System {
             wallets.addAll(manager.getWallets());
         }
         return wallets;
+    }
+
+    private void stopAll() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.stop();
+        }
     }
 
     // Network management
