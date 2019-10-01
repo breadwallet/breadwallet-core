@@ -1,7 +1,7 @@
 /*
  * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
-*
+ *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -13,6 +13,7 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -74,6 +75,16 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
                                                     BlockchainDb query) {
             return System.create(executor, listener, account, isMainnet, path, query);
         }
+
+        @Override
+        public void wipe(com.breadwallet.crypto.System system) {
+            System.wipe(system);
+        }
+
+        @Override
+        public void wipeAll(String path, List<com.breadwallet.crypto.System> exemptSystems) {
+            System.wipeAll(path, exemptSystems);
+        }
     };
 
     private static final CryptoApi.CoderProvider coderProvider = new CryptoApi.CoderProvider() {
@@ -83,21 +94,21 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
-    private static final CryptoApi.EncrypterProvider encrypterProvider = new CryptoApi.EncrypterProvider() {
+    private static final CryptoApi.CipherProvider cipherProvider = new CryptoApi.CipherProvider() {
         @Override
-        public Encrypter createEncrypterrForAesEcb(byte[] key) {
-            return Encrypter.createForAesEcb(key);
+        public Cipher createCipherForAesEcb(byte[] key) {
+            return Cipher.createForAesEcb(key);
         }
 
         @Override
-        public Encrypter createEncrypterForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
-            return Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
+        public Cipher createCipherForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
+            return Cipher.createForChaCha20Poly1305(key, nonce12, ad);
         }
 
         @Override
-        public Encrypter createEncrypterForPigeon(com.breadwallet.crypto.Key privKey,
-                                                  com.breadwallet.crypto.Key pubKey, byte[] nonce12) {
-            return Encrypter.createForPigeon(privKey, pubKey, nonce12);
+        public Cipher createCipherForPigeon(com.breadwallet.crypto.Key privKey,
+                                            com.breadwallet.crypto.Key pubKey, byte[] nonce12) {
+            return Cipher.createForPigeon(privKey, pubKey, nonce12);
         }
     };
 
@@ -191,8 +202,8 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     }
 
     @Override
-    public CryptoApi.EncrypterProvider encrypterProvider() {
-        return encrypterProvider;
+    public CryptoApi.CipherProvider cipherProvider() {
+        return cipherProvider;
     }
 
     @Override

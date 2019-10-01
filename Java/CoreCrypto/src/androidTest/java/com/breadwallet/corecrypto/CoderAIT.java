@@ -19,7 +19,7 @@ public class CoderAIT {
 
         d = new byte[] {(byte) 0xde, (byte)0xad, (byte)0xbe, (byte)0xef};
         a = "deadbeef";
-        r = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX).encode(d);
+        r = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX).encode(d).get();
         assertEquals(a, r);
         assertArrayEquals(d, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.HEX).decode(r).get());
 
@@ -30,23 +30,23 @@ public class CoderAIT {
 
         s = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
         d = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).decode(s).get();
-        assertEquals(s, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).encode(d));
+        assertEquals(s, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).encode(d).get());
 
         s = "z";
         d = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).decode(s).get();
-        assertEquals(s, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).encode(d));
+        assertEquals(s, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58).encode(d).get());
 
         //  BASE58CHECK
 
         d = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        s = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).encode(d);
+        s = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).encode(d).get();
         assertArrayEquals(d, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).decode(s).get());
 
         d = new byte[] {
                 (byte) 0x05, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
                 (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
                 (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
-        s = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).encode(d);
+        s = Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).encode(d).get();
         assertArrayEquals(d, Coder.createForAlgorithm(com.breadwallet.crypto.Coder.Algorithm.BASE58CHECK).decode(s).get());
     }
 }

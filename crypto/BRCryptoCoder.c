@@ -123,8 +123,7 @@ cryptoCoderEncode (BRCryptoCoder coder,
 
 extern size_t
 cryptoCoderDecodeLength (BRCryptoCoder coder,
-                         const char *src,
-                         size_t srcLen) {
+                         const char *src) {
     // - src CANNOT be NULL (see: BRBase58Decode), even with srcLen of 0
     if (NULL == src) {
         assert (0);
@@ -135,7 +134,8 @@ cryptoCoderDecodeLength (BRCryptoCoder coder,
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
-            length = (0 == srcLen % 2) ? decodeHexLength (srcLen) : 0;
+            size_t strLen = strlen (src);
+            length = (0 == strLen % 2) ? decodeHexLength (strLen) : 0;
             break;
         }
         case CRYPTO_CODER_BASE58: {
@@ -160,12 +160,11 @@ extern BRCryptoBoolean
 cryptoCoderDecode (BRCryptoCoder coder,
                    uint8_t *dst,
                    size_t dstLen,
-                   const char *src,
-                   size_t srcLen) {
+                   const char *src) {
     // - src CANNOT be NULL (see: BRBase58Decode), even with srcLen of 0
     // - dst MUST be non-NULL and sufficiently sized
     if (NULL == src ||
-        NULL == dst || dstLen < cryptoCoderDecodeLength (coder, src, srcLen)) {
+        NULL == dst || dstLen < cryptoCoderDecodeLength (coder, src)) {
         assert (0);
         return CRYPTO_FALSE;
     }
@@ -174,7 +173,7 @@ cryptoCoderDecode (BRCryptoCoder coder,
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
-            decodeHex (dst, dstLen, src, srcLen);
+            decodeHex (dst, dstLen, src, strlen (src));
             result = CRYPTO_TRUE;
             break;
         }

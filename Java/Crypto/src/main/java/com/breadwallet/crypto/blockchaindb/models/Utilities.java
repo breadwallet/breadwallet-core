@@ -28,11 +28,15 @@ import java.util.Locale;
 
 public final class Utilities {
 
-    private static DateFormat ISO_8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US);
+    private static final ThreadLocal<DateFormat> ISO_8601_FORMAT = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US);
+        }
+    };
 
     public static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
         try {
-            return ISO_8601_FORMAT.parse(json.getString(name));
+            return ISO_8601_FORMAT.get().parse(json.getString(name));
         } catch (ParseException e) {
             throw new JSONException("Invalid date value for " + name);
         }
@@ -40,14 +44,14 @@ public final class Utilities {
 
     public static Optional<Date> getOptional8601DateFromString(JSONObject json, String name) {
         try {
-            return Optional.fromNullable(ISO_8601_FORMAT.parse(json.optString(name, null)));
+            return Optional.fromNullable(ISO_8601_FORMAT.get().parse(json.optString(name, null)));
         } catch (ParseException e) {
             return Optional.absent();
         }
     }
 
     public  static String get8601StringFromDate(Date date) {
-        return ISO_8601_FORMAT.format(date);
+        return ISO_8601_FORMAT.get().format(date);
     }
 
     public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {

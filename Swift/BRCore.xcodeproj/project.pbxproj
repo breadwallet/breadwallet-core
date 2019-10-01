@@ -148,7 +148,7 @@
 		3C902623210A7E9800143B69 /* BREthereumTransfer.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C902622210A7E9800143B69 /* BREthereumTransfer.c */; };
 		3C915B0922E0B66400AAD000 /* BRCryptoHasher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B0822E0B66400AAD000 /* BRCryptoHasher.swift */; };
 		3C915B0B22E0B6B000AAD000 /* BRCryptoCoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B0A22E0B6B000AAD000 /* BRCryptoCoder.swift */; };
-		3C915B0D22E0B98D00AAD000 /* BRCryptoEncrypter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B0C22E0B98D00AAD000 /* BRCryptoEncrypter.swift */; };
+		3C915B0D22E0B98D00AAD000 /* BRCryptoCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B0C22E0B98D00AAD000 /* BRCryptoCipher.swift */; };
 		3C915B0F22E0C67800AAD000 /* BRCryptoSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B0E22E0C67800AAD000 /* BRCryptoSigner.swift */; };
 		3C915B1122E0EBE900AAD000 /* BRCryptoCommonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C915B1022E0EBE900AAD000 /* BRCryptoCommonTests.swift */; };
 		3C97E2352241658E003FD88F /* BRCryptoCurrency.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2332241658E003FD88F /* BRCryptoCurrency.c */; };
@@ -596,7 +596,7 @@
 		3C902622210A7E9800143B69 /* BREthereumTransfer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumTransfer.c; sourceTree = "<group>"; };
 		3C915B0822E0B66400AAD000 /* BRCryptoHasher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoHasher.swift; sourceTree = "<group>"; };
 		3C915B0A22E0B6B000AAD000 /* BRCryptoCoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoCoder.swift; sourceTree = "<group>"; };
-		3C915B0C22E0B98D00AAD000 /* BRCryptoEncrypter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoEncrypter.swift; sourceTree = "<group>"; };
+		3C915B0C22E0B98D00AAD000 /* BRCryptoCipher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoCipher.swift; sourceTree = "<group>"; };
 		3C915B0E22E0C67800AAD000 /* BRCryptoSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoSigner.swift; sourceTree = "<group>"; };
 		3C915B1022E0EBE900AAD000 /* BRCryptoCommonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoCommonTests.swift; sourceTree = "<group>"; };
 		3C97E2332241658E003FD88F /* BRCryptoCurrency.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCurrency.c; sourceTree = "<group>"; };
@@ -1410,7 +1410,7 @@
 				3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */,
 				3C915B0822E0B66400AAD000 /* BRCryptoHasher.swift */,
 				3C915B0A22E0B6B000AAD000 /* BRCryptoCoder.swift */,
-				3C915B0C22E0B98D00AAD000 /* BRCryptoEncrypter.swift */,
+				3C915B0C22E0B98D00AAD000 /* BRCryptoCipher.swift */,
 				3C915B0E22E0C67800AAD000 /* BRCryptoSigner.swift */,
 			);
 			path = common;
@@ -1798,7 +1798,7 @@
 				3C0EAE1A2191145A000577A6 /* BRSupport.swift in Sources */,
 				3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */,
 				CEF5E0F22315C290009EF3C0 /* BRCryptoPayment.swift in Sources */,
-				3C915B0D22E0B98D00AAD000 /* BRCryptoEncrypter.swift in Sources */,
+				3C915B0D22E0B98D00AAD000 /* BRCryptoCipher.swift in Sources */,
 				3CF66B1822AAE45400C1E9BB /* BRCryptoCurrency.swift in Sources */,
 				3CF66B1522AAE45400C1E9BB /* BRCryptoAccount.swift in Sources */,
 				3CF66B1122AAE45400C1E9BB /* BRCryptoNetwork.swift in Sources */,

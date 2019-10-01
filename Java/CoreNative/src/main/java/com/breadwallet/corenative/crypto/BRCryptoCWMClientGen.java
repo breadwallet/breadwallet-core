@@ -53,6 +53,14 @@ public class BRCryptoCWMClientGen extends Structure {
         this.funcSubmitTransaction = funcSubmitTransaction;
     }
 
+    public ByValue toByValue() {
+        ByValue other = new ByValue();
+        other.funcGetBlockNumber = this.funcGetBlockNumber;
+        other.funcGetTransactions = this.funcGetTransactions;
+        other.funcSubmitTransaction = this.funcSubmitTransaction;
+        return other;
+    }
+
     public BRCryptoCWMClientGen(Pointer peer) {
         super(peer);
     }

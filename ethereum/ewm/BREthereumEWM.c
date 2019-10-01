@@ -141,7 +141,9 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
                      error.u.entity.reason);
             break;
         case FILE_SERVICE_SDB:
-            eth_log ("EWM", "FileService Error: SDB: %d", error.u.sdb.code);
+            eth_log ("EWM", "FileService Error: SDB: (%d): %s",
+                     error.u.sdb.code,
+                     error.u.sdb.reason);
             break;
     }
     eth_log ("EWM", "FileService Error: FORCED SYNC%s", "");
@@ -253,6 +255,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->bcs = NULL;
     ewm->blockHeight = blockHeight;
     ewm->confirmationsUntilFinal = confirmationsUntilFinal;
+    ewm->requestId = 0;
 
     {
         char address [ADDRESS_ENCODED_CHARS];
@@ -261,12 +264,12 @@ ewmCreate (BREthereumNetwork network,
     }
 
     // Initialize the `brdSync` struct
-    ewm->brdSync.ridTransaction = -1;
-    ewm->brdSync.ridLog = -1;
+    ewm->brdSync.ridTransaction = EWM_REQUEST_ID_UNKNOWN;
+    ewm->brdSync.ridLog = EWM_REQUEST_ID_UNKNOWN;
     ewm->brdSync.begBlockNumber = 0;
     ewm->brdSync.endBlockNumber = ewm->blockHeight;
-    ewm->brdSync.completedTransaction = 0;
-    ewm->brdSync.completedLog = 0;
+    ewm->brdSync.completedTransaction = 1;
+    ewm->brdSync.completedLog = 1;
 
     // Get the client assigned early; callbacks as EWM/BCS state is re-establish, regarding
     // blocks, peers, transactions and logs, will be invoked.
@@ -593,6 +596,9 @@ ewmStop (BREthereumEWM ewm) {
 
     // Stop the EWM thread
     eventHandlerStop(ewm->handler);
+
+    // Close the file service.
+    fileServiceClose (ewm->fs);
 }
 
 /// MARK: - Connect / Disconnect
@@ -624,8 +630,12 @@ ewmConnect(BREthereumEWM ewm) {
 
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
+                // Immediately start an API sync
+                ewmSignalSyncAPI (ewm, ETHEREUM_BOOLEAN_TRUE);
                 break;
             case SYNC_MODE_BRD_WITH_P2P_SEND:
+                ewmSignalSyncAPI (ewm, ETHEREUM_BOOLEAN_TRUE);
+                // fall-through
             case SYNC_MODE_P2P_WITH_BRD_SYNC:
             case SYNC_MODE_P2P_ONLY:
                 bcsStart(ewm->bcs);
@@ -686,8 +696,8 @@ ewmDisconnect (BREthereumEWM ewm) {
 
                     ewm->brdSync.begBlockNumber = 0;
                     ewm->brdSync.endBlockNumber = ewm->blockHeight;
-                    ewm->brdSync.completedTransaction = 0;
-                    ewm->brdSync.completedLog = 0;
+                    ewm->brdSync.completedTransaction = 1;
+                    ewm->brdSync.completedLog = 1;
                 }
                 break;
             default: break;
@@ -937,14 +947,38 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 free (wallets);
             }
 
+            // Abort an in progress sync
+            if (!ewm->brdSync.completedTransaction || !ewm->brdSync.completedLog) {
+                // With the following, any callback to `ewmHandleAnnounceComplete` WILL skip out
+                // before changing `brdSync` state.  Of course, the call to ewmHandleSyncAPI()
+                // (that is below) will immediately reassign new rids thereby mooting the need for
+                // assignin -1 here.  However, assigning -1 here does no harm and allows replacing
+                // of `ewmHandleSyncAPI` with `ewmSignalSyncAPI` if need be.
+                ewm->brdSync.ridLog = EWM_REQUEST_ID_UNKNOWN;
+                ewm->brdSync.ridTransaction = EWM_REQUEST_ID_UNKNOWN;
+
+                // If this was not an 'ongoing' sync, then signal back to 'connected'.  This will
+                // appear as syncEnded(success) - that is okay.
+                if (ewmIsNotAnOngoingSync (ewm))
+                    ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                        EWM_EVENT_CHANGED,
+                        SUCCESS,
+                        { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+                    });
+
+                // Start anew as 'completed'
+                ewm->brdSync.completedTransaction = 1;
+                ewm->brdSync.completedLog = 1;
+            }
+
             // don't allow the sync to jump forward so that we don't have a situation where
             // we miss transfers
             ewm->brdSync.begBlockNumber = (ewm->brdSync.begBlockNumber < blockHeight ?
                                            ewm->brdSync.begBlockNumber : blockHeight);
 
-            // Try to avoid letting a nearly completed sync from continuing.
-            ewm->brdSync.completedTransaction = 0;
-            ewm->brdSync.completedLog = 0;
+            // Immediately sync - inline call (not via 'signal'; directly 'handle')
+            ewmHandleSyncAPI (ewm);
+
             pthread_mutex_unlock(&ewm->lock);
             return ETHEREUM_BOOLEAN_TRUE;
         }
@@ -2028,6 +2062,8 @@ ewmHandleSaveWallet (BREthereumEWM ewm,
             fileServiceSave (ewm->fs, ewmFileServiceTypeWallets, state);
             break;
     }
+
+    walletStateRelease (state);
 }
 
 extern void
@@ -2254,26 +2290,28 @@ ewmUpdateLogs (BREthereumEWM ewm,
     }
 }
 
+// ==============================================================================================
 //
-// Periodicaly query the BRD backend to get current status (block number, nonce, balances,
-// transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
-// `eventHandlerSetTimeoutDispatcher()`)
+// Announce {Transactions, Logs} Complete
 //
-static void
-ewmPeriodicDispatcher (BREventHandler handler,
-                       BREventTimeout *event) {
-    BREthereumEWM ewm = (BREthereumEWM) event->context;
+extern void
+ewmHandleAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(isTransaction)) {
+        // skip out if `rid` doesn't match
+        if (rid != ewm->brdSync.ridTransaction) return;
+        ewm->brdSync.completedTransaction = 1; // completed, no matter success or failure
+    }
+    else /* isLog */ {
+        // skip out if `rid` doesn't match
+        if (rid != ewm->brdSync.ridLog) return;
+        ewm->brdSync.completedLog = 1;         // completed, no matter success or failure
+    }
 
-    if (ewm->state != EWM_STATE_CONNECTED) return;
-    if (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode) return;
-
-    // Get this always and early.
-    ewmUpdateBlockNumber(ewm);
-    ewmUpdateNonce(ewm);
-
-    // Handle a BRD Sync:
-
-    // 1) check if the prior sync has completed.
+    // If both transaction and log are completed we'll signal complete and then, on
+    // success, update `begBlockNumber`
     if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
         // If this was not an 'ongoing' sync, then signal back to 'connected'
         if (ewmIsNotAnOngoingSync(ewm))
@@ -2283,13 +2321,29 @@ ewmPeriodicDispatcher (BREventHandler handler,
                 { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
             });
 
-        // 1a) if so, advance the sync range by updating `begBlockNumber`
-        ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
-                                       ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
-                                       : 0);
+        // On success, advance the begBlockNumber
+        if (ETHEREUM_BOOLEAN_IS_TRUE(success))
+            ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
+                                           ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
+                                           : 0);
     }
+}
 
-    // 2) completed or not, update the `endBlockNumber` to the current block height.
+extern void
+ewmHandleSyncAPI (BREthereumEWM ewm) {
+    if (ewm->state != EWM_STATE_CONNECTED) return;
+    if (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode) return;
+
+    // Get this always and early.
+    ewmUpdateBlockNumber(ewm);
+    ewmUpdateNonce(ewm);
+
+    // Handle a BRD Sync:
+
+    // 1) if a prior sync has not completed, skip out
+    if (!ewm->brdSync.completedTransaction || !ewm->brdSync.completedLog) return;
+
+    // 2) Update the `endBlockNumber` to the current block height.
     ewm->brdSync.endBlockNumber = ewmGetBlockHeight(ewm);
 
     // 3) if the `endBlockNumber` differs from the `begBlockNumber` then perform a 'sync'
@@ -2351,6 +2405,18 @@ ewmPeriodicDispatcher (BREventHandler handler,
     // End handling a BRD Sync
 
     if (NULL != ewm->bcs) bcsClean (ewm->bcs);
+}
+
+//
+// Periodicaly query the BRD backend to get current status (block number, nonce, balances,
+// transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
+// `eventHandlerSetTimeoutDispatcher()`)
+//
+static void
+ewmPeriodicDispatcher (BREventHandler handler,
+                       BREventTimeout *event) {
+    BREthereumEWM ewm = (BREthereumEWM) event->context;
+    ewmHandleSyncAPI(ewm);
 }
 
 extern void

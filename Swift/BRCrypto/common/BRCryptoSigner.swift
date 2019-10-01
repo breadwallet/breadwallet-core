@@ -26,7 +26,7 @@ public protocol Signer {
     ///
     /// - Returns: the signature
     ///
-    func sign (data32: Data, using: Key) -> Data
+    func sign (data32: Data, using: Key) -> Data?
 
     ///
     /// Recover the CryptoKey (only the public key portion) from the signed data and the signature.
@@ -68,11 +68,11 @@ public final class CoreSigner: Signer {
         self.core = core
     }
 
-    public func sign (data32 digest: Data, using privateKey: Key) -> Data {
+    public func sign (data32 digest: Data, using privateKey: Key) -> Data? {
         // Copy the key - prep to pass to Core C functions
         let key = privateKey.core
 
-        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Data in
+        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Data? in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let digestCount = digestBytes.count
 
@@ -80,15 +80,17 @@ public final class CoreSigner: Signer {
             precondition (32 == digestCount)
 
             let targetCount = cryptoSignerSignLength(self.core, key, digestAddr, digestCount)
-            precondition (targetCount != 0)
+            guard targetCount != 0 else { return nil }
 
+            var result = CRYPTO_FALSE
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                cryptoSignerSign(self.core, key, targetAddr, targetCount, digestAddr, digestCount)
+
+                result = cryptoSignerSign(self.core, key, targetAddr, targetCount, digestAddr, digestCount)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
 

@@ -115,6 +115,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void stop() {
+        core.stop();
+    }
+
+    @Override
     public void syncToDepth(BRSyncDepth depth) {
         core.syncToDepth(depth);
     }

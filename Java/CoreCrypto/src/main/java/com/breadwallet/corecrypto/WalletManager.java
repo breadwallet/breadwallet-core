@@ -22,6 +22,7 @@ import com.breadwallet.crypto.errors.WalletSweeperError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,13 +34,13 @@ import static com.google.common.base.Preconditions.checkState;
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
-    static WalletManager create(BRCryptoCWMListener.ByValue listener,
-                                BRCryptoCWMClient.ByValue client,
+    static WalletManager create(BRCryptoCWMListener listener,
+                                BRCryptoCWMClient client,
                                 Account account,
                                 Network network,
                                 WalletManagerMode mode,
                                 AddressScheme addressScheme,
-                                String path,
+                                String storagePath,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
         return new WalletManager(
@@ -50,7 +51,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                         network.getCoreBRCryptoNetwork(),
                         Utilities.walletManagerModeToCrypto(mode),
                         Utilities.addressSchemeToCrypto(addressScheme),
-                        path
+                        storagePath
                 ),
                 system,
                 callbackCoordinator
@@ -111,6 +112,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public void sync() {
         core.sync();
+    }
+
+    @Override
+    public void stop() {
+        core.stop();
     }
 
     @Override
