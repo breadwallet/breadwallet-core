@@ -7,25 +7,46 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoSigner;
 import com.google.common.base.Optional;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
 final class Signer implements com.breadwallet.crypto.Signer {
 
-    // TODO(fix): Implement me!
-
     /* package */
     static Signer createForAlgorithm(Algorithm algorithm) {
-        return null;
+        BRCryptoSigner core = null;
+        switch (algorithm) {
+            case BASIC_DER:
+                core = BRCryptoSigner.createBasicDer().orNull();
+                break;
+            case BASIC_JOSE:
+                core = BRCryptoSigner.createBasicJose().orNull();
+                break;
+            case COMPACT:
+                core = BRCryptoSigner.createCompact().orNull();
+                break;
+        }
+
+        checkNotNull(core);
+        return new Signer(core);
+    }
+
+    private final BRCryptoSigner core;
+
+    private Signer(BRCryptoSigner core) {
+        this.core = core;
     }
 
     @Override
-    public byte[] sign(byte[] data, com.breadwallet.crypto.Key key) {
-        return new byte[0];
+    public Optional<byte[]> sign(byte[] digest, com.breadwallet.crypto.Key key) {
+        return core.sign(digest, Key.from(key).getBRCryptoKey());
     }
 
     @Override
-    public Optional<Key> recover(byte[] data, byte[] signature) {
-        return Optional.absent();
+    public Optional<Key> recover(byte[] digest, byte[] signature) {
+        return core.recover(digest, signature).transform(Key::create);
     }
 }

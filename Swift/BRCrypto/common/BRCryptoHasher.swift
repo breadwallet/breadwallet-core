@@ -13,113 +13,81 @@ import Foundation // for Data
 import BRCryptoC
 
 public protocol HasherX {
-    func hash (data: Data) -> Data
+    func hash (data: Data) -> Data?
 }
 
+public final class CoreHasher: HasherX {
 
-public enum CoreHasher: HasherX {
-    case sha1
-    case sha256
-    case sha224
-    case sha256_2
-    case sha384
-    case sha512
-    case rmd160
-    case hash160
-    case sha3
-    case keccak256
-    case md5
-    //    case murmur3 (seed: UInt32)
-    //    case sip64 (key16: Data)
-    // ...
+    public static var sha1: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA1)!)
+    }
 
-    public func hash (data source: Data) -> Data {
-        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
-            let sourceAddr = sourceBytes.baseAddress
-            let sourceCount = source.count
+    public static var sha224: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA224)!)
+    }
 
-            var target: Data!
-            switch self {
+    public static var sha256: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA256)!)
+    }
 
-            case .sha1:
-                target = Data (count: 20)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA1 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var sha256_2: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA256_2)!)
+    }
 
-            case .sha256:
-                target = Data (count: 32)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA256 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var sha384: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA384)!)
+    }
 
-            case .sha224:
-                target = Data (count: 28)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA224 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var sha512: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA512)!)
+    }
 
-            case .sha256_2:
-                target = Data (count: 32)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA256_2 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var sha3: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_SHA3)!)
+    }
 
-            case .sha384:
-                target = Data (count: 48)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA384 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var rmd160: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_RMD160)!)
+    }
 
-            case .sha512:
-                target = Data (count: 64)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA512 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var hash160: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_HASH160)!)
+    }
 
-            case .rmd160:
-                target = Data (count: 20)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRRMD160 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var keccak256: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_KECCAK256)!)
+    }
 
-            case .hash160:
-                target = Data (count: 20)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRHash160 (targetAddr, sourceAddr, sourceCount)
-                }
+    public static var md5: CoreHasher {
+        return CoreHasher (core: cryptoHasherCreate (CRYPTO_HASHER_MD5)!)
+    }
 
-            case .sha3:
-                target = Data (count: 32)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRSHA3_256 (targetAddr, sourceAddr, sourceCount)
-                }
+    // The Core representation
+    internal let core: BRCryptoHasher
 
-          case .keccak256:
-                target = Data (count: 32)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRKeccak256 (targetAddr, sourceAddr, sourceCount)
-                }
+    deinit { cryptoHasherGive (core) }
 
-            case .md5:
-                target = Data (count: 16)
-                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let targetAddr = targetBytes.baseAddress
-                    BRMD5 (targetAddr, sourceAddr, sourceCount)
-                }
+    internal init (core: BRCryptoHasher) {
+        self.core = core
+    }
+
+    public func hash (data source: Data) -> Data? {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data? in
+            let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let sourceCount = sourceBytes.count
+
+            let targetCount = cryptoHasherLength(self.core)
+            guard targetCount != 0 else { return nil }
+
+            var result = CRYPTO_FALSE
+            var target = Data (count: targetCount)
+            target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+
+                result = cryptoHasherHash (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
  }

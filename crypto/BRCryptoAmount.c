@@ -175,14 +175,34 @@ cryptoAmountAdd (BRCryptoAmount a1,
     assert (CRYPTO_TRUE == cryptoAmountIsCompatible (a1, a2));
 
     int overflow = 0;
-    UInt256 sum = addUInt256_Overflow(a1->value, a2->value, &overflow);
+    int negative = 0;
 
-    return overflow ? NULL : cryptoAmountCreate (a1->unit, CRYPTO_FALSE, sum);
+    if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE != a2->isNegative) {
+        // (-x) + y = (y - x)
+        UInt256 value = subUInt256_Negative (a2->value, a1->value, &negative);
+        return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
+    }
+    else if (CRYPTO_TRUE != a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
+        // x + (-y) = x - y
+        UInt256 value = subUInt256_Negative (a1->value, a2->value, &negative);
+        return cryptoAmountCreate(a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
+    }
+    else if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
+        // (-x) + (-y) = - (x + y)
+        UInt256 value = addUInt256_Overflow (a2->value, a1->value, &overflow);
+        return overflow ? NULL :  cryptoAmountCreate (a1->unit, CRYPTO_TRUE, value);
+    }
+    else {
+        UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
+        return overflow ? NULL :  cryptoAmountCreate (a1->unit, CRYPTO_FALSE, value);
+    }
 }
 
 extern BRCryptoAmount
 cryptoAmountSub (BRCryptoAmount a1,
                  BRCryptoAmount a2) {
+    assert (CRYPTO_TRUE == cryptoAmountIsCompatible (a1, a2));
+
     int overflow = 0;
     int negative = 0;
 

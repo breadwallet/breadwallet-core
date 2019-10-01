@@ -91,7 +91,6 @@ import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,8 +115,19 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final String TAG = System.class.getName();
 
-    private static final Map<Pointer, WeakReference<System>> SYSTEMS = new ConcurrentHashMap<>();
+    /// A index to globally identify systems.
     private static final AtomicInteger SYSTEM_IDS = new AtomicInteger(0);
+
+    /// A dictionary mapping an index to a system.
+    private static final Map<Pointer, System> SYSTEMS_ACTIVE = new ConcurrentHashMap<>();
+
+    /// An array of removed systems.  This is a workaround for systems that have been destroyed.
+    /// We do not correctly handle 'release' and thus C-level memory issues are introduced; rather
+    /// than solving those memory issues now, we'll avoid 'release' by holding a reference.
+    private static final List<System> SYSTEMS_INACTIVE = Collections.synchronizedList(new ArrayList<>());
+
+    /// If true, save removed system in the above array. Set to `false` for debugging 'release'.
+    private static final boolean SYSTEMS_INACTIVE_RETAIN = !BuildConfig.DEBUG;
 
     //
     // Keep a static reference to the callbacks so that they are never GC'ed
@@ -155,24 +165,33 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final boolean DEFAULT_IS_NETWORK_REACHABLE = true;
 
+    private static boolean ensurePath(String storagePath) {
+        File storageFile = new File(storagePath);
+        return ((storageFile.exists() || storageFile.mkdirs())
+                && storageFile.isDirectory()
+                && storageFile.canWrite());
+    }
+
     /* package */
     static System create(ScheduledExecutorService executor,
                          SystemListener listener,
                          com.breadwallet.crypto.Account account,
                          boolean isMainnet,
-                         String path,
+                         String storagePath,
                          BlockchainDb query) {
+        Account cryptoAccount = Account.from(account);
+
+        storagePath = storagePath + (storagePath.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
+        checkState(ensurePath(storagePath));
+
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
-        Account cryptoAccount = Account.from(account);
-        path = path + (path.endsWith(File.separator) ? "" : File.separator) + cryptoAccount.getFilesystemIdentifier();
-
-        BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
+        BRCryptoCWMListener cwmListener = new BRCryptoCWMListener(context,
                 CWM_LISTENER_WALLET_MANAGER_CALLBACK,
                 CWM_LISTENER_WALLET_CALLBACK,
                 CWM_LISTENER_TRANSFER_CALLBACK);
 
-        BRCryptoCWMClient.ByValue cwmClient = new BRCryptoCWMClient.ByValue(context,
+        BRCryptoCWMClient cwmClient = new BRCryptoCWMClient(context,
                 CWM_CLIENT_BTC,
                 CWM_CLIENT_ETH,
                 CWM_CLIENT_GEN);
@@ -181,20 +200,91 @@ final class System implements com.breadwallet.crypto.System {
                 listener,
                 cryptoAccount,
                 isMainnet,
-                path,
+                storagePath,
                 query,
+                context,
                 cwmListener,
                 cwmClient);
 
-        SYSTEMS.put(context,
-                new WeakReference<>(system));
+        SYSTEMS_ACTIVE.put(context, system);
 
         return system;
     }
 
+    /* package */
+    static void wipe(com.breadwallet.crypto.System system) {
+        // Safe the path to the persistent storage
+        String storagePath = system.getPath();
+
+        // Destroy the system.
+        destroy(system);
+
+        // Clear out persistent storage
+        deleteRecursively(storagePath);
+    }
+
+    /* package */
+    static void wipeAll(String storagePath, List<com.breadwallet.crypto.System> exemptSystems) {
+        Set<String> exemptSystemPath = new HashSet<>();
+        for (com.breadwallet.crypto.System sys: exemptSystems) {
+            exemptSystemPath.add(sys.getPath());
+        }
+
+        File storageFile = new File(storagePath);
+        for (File child : storageFile.listFiles()) {
+            if (!exemptSystemPath.contains(child.getAbsolutePath())) {
+                deleteRecursively(child);
+            }
+        }
+    }
+
+    private static void destroy(com.breadwallet.crypto.System system) {
+        System sys = System.from(system);
+        // Stop all callbacks.  This might be inconsistent with 'deleted' events.
+        SYSTEMS_ACTIVE.remove(sys.context);
+
+        // Disconnect all wallet managers
+        sys.disconnectAll();
+
+        // Stop
+        sys.stopAll();
+
+        // Register the system as inactive
+        if (SYSTEMS_INACTIVE_RETAIN) {
+            SYSTEMS_INACTIVE.add(sys);
+        }
+    }
+
+    private static void deleteRecursively (String toDeletePath) {
+        deleteRecursively(new File(toDeletePath));
+    }
+
+    private static void deleteRecursively (File toDelete) {
+        if (toDelete.isDirectory()) {
+            for (File child : toDelete.listFiles()) {
+                deleteRecursively(child);
+            }
+        }
+
+        if (toDelete.exists() && !toDelete.delete()) {
+            Log.e(TAG, "Failed to delete " + toDelete.getAbsolutePath());
+        }
+    }
+
     private static Optional<System> getSystem(Pointer context) {
-        WeakReference<System> ref = SYSTEMS.get(context);
-        return null != ref ? Optional.fromNullable(ref.get()): Optional.absent();
+        return Optional.fromNullable(SYSTEMS_ACTIVE.get(context));
+    }
+
+    private static System from(com.breadwallet.crypto.System system) {
+        if (system == null) {
+            return null;
+        }
+
+        if (system instanceof System) {
+            return (System) system;
+        }
+
+        throw new IllegalArgumentException("Unsupported system instance");
     }
 
     private final ExecutorService executor;
@@ -202,10 +292,11 @@ final class System implements com.breadwallet.crypto.System {
     private final SystemCallbackCoordinator callbackCoordinator;
     private final Account account;
     private final boolean isMainnet;
-    private final String path;
+    private final String storagePath;
     private final BlockchainDb query;
-    private final BRCryptoCWMListener.ByValue cwmListener;
-    private final BRCryptoCWMClient.ByValue cwmClient;
+    private final Pointer context;
+    private final BRCryptoCWMListener cwmListener;
+    private final BRCryptoCWMClient cwmClient;
 
     private final Lock networksReadLock;
     private final Lock networksWriteLock;
@@ -220,17 +311,19 @@ final class System implements com.breadwallet.crypto.System {
                    SystemListener listener,
                    Account account,
                    boolean isMainnet,
-                   String path,
+                   String storagePath,
                    BlockchainDb query,
-                   BRCryptoCWMListener.ByValue cwmListener,
-                   BRCryptoCWMClient.ByValue cwmClient) {
+                   Pointer context,
+                   BRCryptoCWMListener cwmListener,
+                   BRCryptoCWMClient cwmClient) {
         this.executor = executor;
         this.listener = listener;
         this.callbackCoordinator = new SystemCallbackCoordinator(executor);
         this.account = account;
         this.isMainnet = isMainnet;
-        this.path = path;
+        this.storagePath = storagePath;
         this.query = query;
+        this.context = context;
         this.cwmListener = cwmListener;
         this.cwmClient = cwmClient;
 
@@ -282,7 +375,7 @@ final class System implements com.breadwallet.crypto.System {
                 Network.from(network),
                 mode,
                 scheme,
-                path,
+                storagePath,
                 this,
                 callbackCoordinator);
 
@@ -299,7 +392,14 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void stop() {
+    public void connectAll() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.connect(null);
+        }
+    }
+
+    @Override
+    public void disconnectAll() {
         for (WalletManager manager: getWalletManagers()) {
             manager.disconnect();
         }
@@ -325,7 +425,7 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public String getPath() {
-        return path;
+        return storagePath;
     }
 
     @Override
@@ -335,6 +435,12 @@ final class System implements com.breadwallet.crypto.System {
             wallets.addAll(manager.getWallets());
         }
         return wallets;
+    }
+
+    private void stopAll() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.stop();
+        }
     }
 
     // Network management
@@ -481,7 +587,7 @@ final class System implements com.breadwallet.crypto.System {
     //
 
     private static void walletManagerEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
-                                            BRCryptoWalletManagerEvent.ByValue event) {
+                                            BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
@@ -778,7 +884,7 @@ final class System implements com.breadwallet.crypto.System {
     //
 
     private static void walletEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
-                                     @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent.ByValue event) {
+                                     @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
@@ -1173,7 +1279,7 @@ final class System implements com.breadwallet.crypto.System {
 
     private static void transferEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
                                        @Nullable BRCryptoWallet coreWallet, @Nullable BRCryptoTransfer coreTransfer,
-                                       BRCryptoTransferEvent.ByValue event) {
+                                       BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferEventCallback");
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);

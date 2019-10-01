@@ -152,7 +152,14 @@ gwmCreate (BRGenericClient client,
 
 extern void
 gwmRelease (BRGenericWalletManager gwm) {
+    gwmDisconnect (gwm);
     free (gwm);
+}
+
+extern void
+gwmStop (BRGenericWalletManager gwm) {
+    eventHandlerStop (gwm->handler);
+    fileServiceClose (gwm->fileService);
 }
 
 extern BRGenericHandlers
@@ -173,7 +180,7 @@ gwmConnect (BRGenericWalletManager gwm) {
 
 extern void
 gwmDisconnect (BRGenericWalletManager gwm) {
-    eventHandlerStop (gwm->handler);
+    gwmStop (gwm);  // This is questionable.
     // Event
 
 }

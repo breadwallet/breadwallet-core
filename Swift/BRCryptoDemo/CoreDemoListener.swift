@@ -24,7 +24,7 @@ class CoreDemoListener: SystemListener {
     private let networkCurrencyCodesToMode: [String:WalletManagerMode]
     private let registerCurrencyCodes: [String]
 
-    private let isMainnet: Bool
+    internal var isMainnet: Bool
 
     public init (networkCurrencyCodesToMode: [String:WalletManagerMode],
                  registerCurrencyCodes: [String],

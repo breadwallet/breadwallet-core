@@ -11,6 +11,7 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 
 import java.util.List;
 
@@ -92,6 +93,11 @@ final class Key implements com.breadwallet.crypto.Key {
         }
 
         return BRCryptoKey.createForBIP32BitID(phraseUtf8, index, uri, words).transform(Key::new);
+    }
+
+    /* package */
+    static Optional<Key> createFromSecret(byte[] secret) {
+        return BRCryptoKey.cryptoKeyCreateFromSecret(secret).transform(Key::new);
     }
 
     /* package */

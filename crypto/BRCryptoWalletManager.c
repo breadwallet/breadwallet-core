@@ -279,6 +279,10 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
+    // Ensure CWM is stopped...
+    cryptoWalletManagerStop (cwm);
+
+    // ... then release memory.
     cryptoAccountGive (cwm->account);
     cryptoNetworkGive (cwm->network);
     if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
@@ -289,7 +293,6 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            BRWalletManagerStop (cwm->u.btc);
             BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
@@ -306,6 +309,21 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     memset (cwm, 0, sizeof(*cwm));
     free (cwm);
+}
+
+private_extern void
+cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerStop (cwm->u.btc);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmStop (cwm->u.eth);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            gwmStop (cwm->u.gen);
+            break;
+    }
 }
 
 extern BRCryptoNetwork
@@ -546,14 +564,15 @@ cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
                         // Argubably EWM should create a wallet for the token.  But, it doesn't.
                         // So we'll call `ewmGetWalletHoldingToken()` to get a wallet.
 
-                        ewmCreateToken (cwm->u.eth,
-                                        address,
-                                        cryptoCurrencyGetCode (c),
-                                        cryptoCurrencyGetName(c),
-                                        cryptoCurrencyGetUids(c), // description
-                                        cryptoUnitGetBaseDecimalOffset(unitDefault),
-                                        ethGasLimit,
-                                        ethGasPrice);
+                        BREthereumToken token = ewmCreateToken (cwm->u.eth,
+                                                                address,
+                                                                cryptoCurrencyGetCode (c),
+                                                                cryptoCurrencyGetName(c),
+                                                                cryptoCurrencyGetUids(c), // description
+                                                                cryptoUnitGetBaseDecimalOffset(unitDefault),
+                                                                ethGasLimit,
+                                                                ethGasPrice);
+                        assert (NULL != token); (void) &token;
                     }
                     break;
                 }

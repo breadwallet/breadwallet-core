@@ -27,6 +27,13 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
+    func update () {
+        DispatchQueue.main.async {
+            self.wallets = UIApplication.sharedSystem.wallets
+            self.tableView.reloadData()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -37,14 +44,16 @@ class SummaryViewController: UITableViewController, WalletListener {
     }
 
     override func viewWillAppear (_ animated: Bool) {
-        self.wallets = UIApplication.sharedSystem.wallets
+        super.viewWillAppear(animated)
 
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (walletListener: self)
         }
         
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
-        super.viewWillAppear(animated)
+
+        // Reload the data - don't miss any wallets
+        update ()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -89,12 +98,17 @@ class SummaryViewController: UITableViewController, WalletListener {
                                        preferredStyle: UIAlertController.Style.alert)
 
         alert.addAction (UIAlertAction (title: "Reset", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.reset()
+            UIApplication.doReset()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Wipe", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.doWipe()
             alert.dismiss(animated: true) {}
         })
 
         alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sync()
+            UIApplication.doSync()
             alert.dismiss(animated: true) {}
         })
 
@@ -104,7 +118,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         })
 
         alert.addAction (UIAlertAction (title: "Sleep Eth", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sleep()
+            UIApplication.doSleep()
             alert.dismiss(animated: true) {}
         })
 
@@ -113,6 +127,31 @@ class SummaryViewController: UITableViewController, WalletListener {
         self.present (alert, animated: true) {}
     }
     
+    @IBAction func doAddWallet(_ sender: Any) {
+        let system = UIApplication.sharedSystem
+        let currencies = system.managers
+            .flatMap { $0.network.currencies }
+            // Remove any currency already in `wallets`
+            .filter { (c) in !wallets.contains { c == $0.currency } }
+
+        let alert = UIAlertController (title: "Add Wallet",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        currencies.forEach { (c) in
+            // The manager for (c)`
+            if let manager = system.managers.first (where: { $0.network.hasCurrency(c) }) {
+                alert.addAction (UIAlertAction (title: "\(c.code) (\(manager.name))", style: .default) { (action) in
+                    let _ = manager.registerWalletFor(currency: c)
+                    alert.dismiss(animated: true) {}
+                })
+            }
+        }
+
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+        self.present (alert, animated: true) {}
+        
+    }
     // MARK: - Table View
 
     override func numberOfSections(in tableView: UITableView) -> Int {

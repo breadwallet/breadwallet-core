@@ -25,11 +25,11 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class TransactionApi {
 
-    private static final UnsignedLong PAGINATION_COUNT = UnsignedLong.valueOf(5000);
     private static final int ADDRESS_COUNT = 50;
 
     private final BdbApiClient jsonClient;
@@ -43,8 +43,24 @@ public class TransactionApi {
     public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
-        executorService.submit(() -> getTransactionsOnExecutor(id, addresses, beginBlockNumber, endBlockNumber,
-                includeRaw, includeProof, handler));
+        List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
+        GetTransactionsCoordinator coordinator = new GetTransactionsCoordinator(chunkedAddressesList, handler);
+
+        for (int i = 0; i < chunkedAddressesList.size(); i++) {
+            List<String> chunkedAddresses = chunkedAddressesList.get(i);
+
+            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+            paramsBuilder.put("blockchain_id", id);
+            paramsBuilder.put("include_proof", String.valueOf(includeProof));
+            paramsBuilder.put("include_raw", String.valueOf(includeRaw));
+            paramsBuilder.put("start_height", beginBlockNumber.toString());
+            paramsBuilder.put("end_height", endBlockNumber.toString());
+            for (String address : chunkedAddresses) paramsBuilder.put("address", address);
+            ImmutableMultimap<String, String> params = paramsBuilder.build();
+
+            PagedCompletionHandler<List<Transaction>, QueryError> pagedHandler = coordinator.createPagedResultsHandler(chunkedAddresses);
+            jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions, pagedHandler);
+        }
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
@@ -63,71 +79,99 @@ public class TransactionApi {
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
 
-    private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,
-                                           UnsignedLong endBlockNumber, boolean includeRaw, boolean includeProof,
-                                           CompletionHandler<List<Transaction>, QueryError> handler) {
-        final QueryError[] error = {null};
-        List<Transaction> allTransactions = new ArrayList<>();
-        Semaphore sema = new Semaphore(0);
+    private void submitGetNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+        executorService.submit(() -> getNextTransactions(nextUrl, handler));
+    }
 
-        List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
-        for (int i = 0; i < chunkedAddressesList.size() && error[0] == null; i++) {
-            List<String> chunkedAddresses = chunkedAddressesList.get(i);
+    private void getNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+        jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction::asTransactions,
+                handler);
+    }
 
-            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
-            paramsBuilder.put("blockchain_id", id);
-            paramsBuilder.put("include_proof", String.valueOf(includeProof));
-            paramsBuilder.put("include_raw", String.valueOf(includeRaw));
-            paramsBuilder.put("start_height", beginBlockNumber.toString());
-            paramsBuilder.put("end_height", endBlockNumber.toString());
-            for (String address : chunkedAddresses) paramsBuilder.put("address", address);
-            ImmutableMultimap<String, String> params = paramsBuilder.build();
+    private class GetTransactionsCoordinator {
 
-            final String[] nextUrl = {null};
+        private final List<List<String>> chunks;
+        private final List<Transaction> transactions;
+        private final CompletionHandler<List<Transaction>, QueryError> handler;
 
-            jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions,
-                    new PagedCompletionHandler<List<Transaction>, QueryError>() {
-                        @Override
-                        public void handleData(List<Transaction> transactions, PageInfo info) {
-                            nextUrl[0] = info.nextUrl;
-                            allTransactions.addAll(transactions);
-                            sema.release();
-                        }
+        private QueryError error;
 
-                        @Override
-                        public void handleError(QueryError e) {
-                            error[0] = e;
-                            sema.release();
-                        }
-                    });
+        private GetTransactionsCoordinator(List<List<String>> chunks, CompletionHandler<List<Transaction>, QueryError> handler) {
+            this.chunks = new ArrayList<>(chunks);
+            this.transactions = new ArrayList<>();
+            this.handler = handler;
+        }
 
-            sema.acquireUninterruptibly();
+        private PagedCompletionHandler<List<Transaction>, QueryError> createPagedResultsHandler(List<String> chunk) {
+            List<Transaction> allResults = new ArrayList<>();
+            return new PagedCompletionHandler<List<Transaction>, QueryError>() {
+                @Override
+                public void handleData(List<Transaction> results, PageInfo info) {
+                    allResults.addAll(results);
 
-            while (nextUrl[0] != null && error[0] == null) {
-                jsonClient.sendGetForArrayWithPaging("transactions", nextUrl[0], Transaction::asTransactions,
-                        new PagedCompletionHandler<List<Transaction>, QueryError>() {
-                            @Override
-                            public void handleData(List<Transaction> transactions, PageInfo info) {
-                                nextUrl[0] = info.nextUrl;
-                                allTransactions.addAll(transactions);
-                                sema.release();
-                            }
+                    if (info.nextUrl == null) {
+                        GetTransactionsCoordinator.this.handleChunkData(chunk, allResults);
+                    } else {
+                        submitGetNextTransactions(info.nextUrl, this);
+                    }
+                }
 
-                            @Override
-                            public void handleError(QueryError e) {
-                                error[0] = e;
-                                sema.release();
-                            }
-                        });
+                @Override
+                public void handleError(QueryError error) {
+                    GetTransactionsCoordinator.this.handleError(error);
+                }
+            };
+        }
 
-                sema.acquireUninterruptibly();
+        private void handleChunkData(List<String> chunk, List<Transaction> data) {
+            boolean transitionToSuccess = false;
+
+            synchronized (this) {
+                checkState(!isInSuccessState());
+
+                if (!isInErrorState()) {
+                    chunks.remove(chunk);
+                    transactions.addAll(data);
+                    transitionToSuccess = isInSuccessState();
+                }
+            }
+
+            if (transitionToSuccess) {
+                handleSuccess();
             }
         }
 
-        if (error[0] != null) {
-            handler.handleError(error[0]);
-        } else {
-            handler.handleData(allTransactions);
+        private void handleError(QueryError error) {
+            boolean transitionToError = false;
+
+            synchronized (this) {
+                checkState(!isInSuccessState());
+
+                if (!isInErrorState()) {
+                    this.error = error;
+                    transitionToError = isInErrorState();
+                }
+            }
+
+            if (transitionToError) {
+                handleFailure(error);
+            }
+        }
+
+        private boolean isInErrorState() {
+            return error != null;
+        }
+
+        private boolean isInSuccessState() {
+            return chunks.isEmpty();
+        }
+
+        private void handleSuccess() {
+            handler.handleData(transactions);
+        }
+
+        private void handleFailure(QueryError error) {
+            handler.handleError(error);
         }
     }
 }

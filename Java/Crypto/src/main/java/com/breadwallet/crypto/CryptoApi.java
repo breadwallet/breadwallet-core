@@ -34,16 +34,18 @@ public final class CryptoApi {
 
     public interface SystemProvider {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        void wipe(System system);
+        void wipeAll(String path, List<System> exemptSystems);
     }
 
     public interface CoderProvider {
         Coder createCoderForAlgorithm(Coder.Algorithm algorithm);
     }
 
-    public interface EncrypterProvider {
-        Encrypter createEncrypterrForAesEcb(byte[] key);
-        Encrypter createEncrypterForChaCha20Poly1305(Key key, byte[] nonce12, byte[] ad);
-        Encrypter createEncrypterForPigeon(Key privKey, Key pubKey, byte[] nonce12);
+    public interface CipherProvider {
+        Cipher createCipherForAesEcb(byte[] key);
+        Cipher createCipherForChaCha20Poly1305(Key key, byte[] nonce12, byte[] ad);
+        Cipher createCipherForPigeon(Key privKey, Key pubKey, byte[] nonce12);
     }
 
     public interface HasherProvider {
@@ -73,7 +75,7 @@ public final class CryptoApi {
         SystemProvider systemProvider();
 
         CoderProvider coderPrivider();
-        EncrypterProvider encrypterProvider();
+        CipherProvider cipherProvider();
         HasherProvider hasherProvider();
         KeyProvider keyProvider();
         SignerProvider signerProvider();

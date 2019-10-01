@@ -92,6 +92,12 @@ public class CoreCryptoApplication extends Application {
         instance.resetSystemImpl();
     }
 
+    public static void wipeSystem() {
+        checkState(null != instance && instance.runOnce.get());
+
+        instance.wipeSystemImpl();
+    }
+
     public static DispatchingSystemListener getDispatchingSystemListener() {
         checkState(null != instance && instance.runOnce.get());
 
@@ -108,18 +114,6 @@ public class CoreCryptoApplication extends Application {
         checkState(null != instance && instance.runOnce.get());
 
         return instance.executor;
-    }
-
-    private static void deleteRecursively (File file) {
-        if (file.isDirectory()) {
-            for (File child : file.listFiles()) {
-                deleteRecursively(child);
-            }
-        }
-
-        if (file.exists() && !file.delete()) {
-            Log.e(TAG, "Failed to delete " + file.getAbsolutePath());
-        }
     }
 
     @Override
@@ -141,10 +135,7 @@ public class CoreCryptoApplication extends Application {
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
             storageFile = new File(getFilesDir(), "core");
-            if (wipe) {
-                if (storageFile.exists()) deleteRecursively(storageFile);
-                checkState(storageFile.mkdirs());
-            }
+            if (!storageFile.exists()) checkState(storageFile.mkdirs());
 
             Log.d(TAG, String.format("Account PaperKey:  %s", paperKeyString));
             Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
@@ -166,13 +157,20 @@ public class CoreCryptoApplication extends Application {
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
+            System.wipeAll(storageFile.getAbsolutePath(), wipe ? Collections.emptyList() : Collections.singletonList(system));
+
             connectivityReceiver = new ConnectivityBroadcastReceiver();
             registerReceiver(connectivityReceiver , new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         }
     }
 
     private void resetSystemImpl() {
-        system.stop();
+        Log.d(TAG, "Resetting");
+
+        // Wipe the current system.
+        System.wipe(system);
+
+        // Create a new system
         system = System.create(
                 executor,
                 systemListener,
@@ -180,6 +178,27 @@ public class CoreCryptoApplication extends Application {
                 isMainnet,
                 storageFile.getAbsolutePath(),
                 blockchainDb);
+
+        // Passing empty list... it is a demo app...
+        system.configure(Collections.emptyList());
+    }
+
+    private void wipeSystemImpl() {
+        Log.d(TAG, "Wiping");
+
+        // Wipe the current system.
+        System.wipe(system);
+
+        // Create a new system
+        system = System.create(
+                executor,
+                systemListener,
+                account,
+                isMainnet,
+                storageFile.getAbsolutePath(),
+                blockchainDb);
+
+        // Passing empty list... it is a demo app...
         system.configure(Collections.emptyList());
     }
 }

@@ -6,10 +6,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertArrayEquals;
 
-public class EncrypterAIT {
+public class CipherAIT {
 
     @Test
-    public void testEncrypter() {
+    public void testCipher() {
         byte[] k;
         byte[] d;
         byte[] a;
@@ -35,8 +35,8 @@ public class EncrypterAIT {
                 (byte) 0x24, (byte) 0x45, (byte) 0xdf, (byte) 0x4f, (byte) 0x9b,
                 (byte) 0x17, (byte) 0xad, (byte) 0x2b, (byte) 0x41, (byte) 0x7b,
                 (byte) 0xe6, (byte) 0x6c, (byte) 0x37, (byte) 0x10};
-        a = Encrypter.createForAesEcb(k).encrypt(d);
-        assertArrayEquals(d, Encrypter.createForAesEcb(k).decrypt(a));
+        a = Cipher.createForAesEcb(k).encrypt(d).get();
+        assertArrayEquals(d, Cipher.createForAesEcb(k).decrypt(a).get());
 
         // cha-cha
 
@@ -49,8 +49,16 @@ public class EncrypterAIT {
                 (byte) 0xc1, (byte) 0xc2, (byte) 0xc3, (byte) 0xc4, (byte) 0xc5,
                 (byte) 0xc6, (byte) 0xc7};
         byte[] msg = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.".getBytes(StandardCharsets.UTF_8);
-        Key key = Key.createFromPrivateKeyString("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".getBytes(StandardCharsets.UTF_8)).get();
-        Encrypter alg = Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
+        Key key = Key.createFromSecret(new byte[] {
+                (byte) 0x80, (byte) 0x81, (byte) 0x82, (byte) 0x83, (byte) 0x84,
+                (byte) 0x85, (byte) 0x86, (byte) 0x87, (byte) 0x88, (byte) 0x89,
+                (byte) 0x8a, (byte) 0x8b, (byte) 0x8c, (byte) 0x8d, (byte) 0x8e,
+                (byte) 0x8f, (byte) 0x90, (byte) 0x91, (byte) 0x92, (byte) 0x93,
+                (byte) 0x94, (byte) 0x95, (byte) 0x96, (byte) 0x97, (byte) 0x98,
+                (byte) 0x99, (byte) 0x9a, (byte) 0x9b, (byte) 0x9c, (byte) 0x9d,
+                (byte) 0x9e, (byte) 0x9f
+        }).get();
+        Cipher alg = Cipher.createForChaCha20Poly1305(key, nonce12, ad);
 
         byte[] cipher = {
                 (byte) 0xd3, (byte) 0x1a, (byte) 0x8d, (byte) 0x34, (byte) 0x64,
@@ -80,14 +88,14 @@ public class EncrypterAIT {
                 (byte) 0xe2, (byte) 0x6a, (byte) 0x7e, (byte) 0x90, (byte) 0x2e,
                 (byte) 0xcb, (byte) 0xd0, (byte) 0x60, (byte) 0x06, (byte) 0x91
         };
-        assertArrayEquals(cipher, alg.encrypt(msg));
-        assertArrayEquals(msg, alg.decrypt(cipher));
+        assertArrayEquals(cipher, alg.encrypt(msg).get());
+        assertArrayEquals(msg, alg.decrypt(cipher).get());
 
         // pigeon
 
         Key pubKey = Key.createFromPublicKeyString("02d404943960a71535a79679f1cf1df80e70597c05b05722839b38ebc8803af517".getBytes(StandardCharsets.UTF_8)).get();
-        Encrypter pigeon = Encrypter.createForPigeon(key, pubKey, nonce12);
-        byte [] pigeonCipher = pigeon.encrypt(msg);
-        assertArrayEquals(msg, pigeon.decrypt(pigeonCipher));
+        Cipher pigeon = Cipher.createForPigeon(key, pubKey, nonce12);
+        byte [] pigeonCipher = pigeon.encrypt(msg).get();
+        assertArrayEquals(msg, pigeon.decrypt(pigeonCipher).get());
     }
 }

@@ -13,13 +13,17 @@ import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
+import com.breadwallet.corenative.crypto.BRCryptoCipher;
+import com.breadwallet.corenative.crypto.BRCryptoCoder;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
+import com.breadwallet.corenative.crypto.BRCryptoHasher;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoPeer;
+import com.breadwallet.corenative.crypto.BRCryptoSigner;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
@@ -114,6 +118,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
     void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
     int cryptoKeyHasSecret(BRCryptoKey key);
     int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
@@ -247,6 +252,7 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSyncToDepth(BRCryptoWalletManager cwm, int depth);
+    void cryptoWalletManagerStop(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, ByteBuffer paperKey);
     void cryptoWalletManagerSubmitForKey(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, BRCryptoKey key);
     void cwmAnnounceGetBlockNumberSuccessAsInteger(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,long blockNumber);
@@ -298,6 +304,36 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletSweeperValidate(BRCryptoWalletSweeper sweeper);
     void cryptoWalletSweeperRelease(BRCryptoWalletSweeper sweeper);
 
+    // crypto/BRCryptoCoder.h
+    BRCryptoCoder.OwnedBRCryptoCoder cryptoCoderCreate(int type);
+    SizeT cryptoCoderEncodeLength(BRCryptoCoder coder, byte[] src, SizeT srcLen);
+    int cryptoCoderEncode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    SizeT cryptoCoderDecodeLength(BRCryptoCoder coder, byte[] src);
+    int cryptoCoderDecode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src);
+    void cryptoCoderGive(BRCryptoCoder coder);
+
+    // crypto/BRCryptoCipher.h
+    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
+    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
+    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
+    SizeT cryptoCipherEncryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
+    int cryptoCipherEncrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    SizeT cryptoCipherDecryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
+    int cryptoCipherDecrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    void cryptoCipherGive(BRCryptoCipher cipher);
+
+    // crypto/BRCryptoHasher.h
+    BRCryptoHasher.OwnedBRCryptoHasher cryptoHasherCreate(int type);
+    SizeT cryptoHasherLength(BRCryptoHasher hasher);
+    int cryptoHasherHash(BRCryptoHasher hasher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    void cryptoHasherGive(BRCryptoHasher hasher);
+
+    // crypto/BRCryptoSigner.h
+    BRCryptoSigner.OwnedBRCryptoSigner cryptoSignerCreate(int type);
+    SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
+    int cryptoSignerSign(BRCryptoSigner signer, BRCryptoKey key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
+    BRCryptoKey.OwnedBRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
+    void cryptoSignerGive(BRCryptoSigner signer);
 
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);

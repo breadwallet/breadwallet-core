@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+
 public interface Hasher {
 
     enum Algorithm {
@@ -27,5 +29,5 @@ public interface Hasher {
         return CryptoApi.getProvider().hasherProvider().createHasherForAlgorithm(algorithm);
     }
 
-    byte[] hash(byte[] data);
+    Optional<byte[]> hash(byte[] data);
 }

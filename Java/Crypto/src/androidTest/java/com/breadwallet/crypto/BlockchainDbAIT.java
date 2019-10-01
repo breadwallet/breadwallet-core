@@ -44,8 +44,6 @@ public class BlockchainDbAIT {
     private static final String BRD_AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
 
-    private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
-
     private BlockchainDb blockchainDb;
 
     @Before
@@ -223,8 +221,13 @@ public class BlockchainDbAIT {
     public void testGetGasEstimateAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getGasEstimateAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F", "0x10000", "0x1234567890ABCDEF", handler);
+        blockchainDb.getGasEstimateAsEth(
+                "mainnet",
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                "0x1000000000",
+                "",
+                handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -238,7 +241,10 @@ public class BlockchainDbAIT {
     public void testGetTransactionsAsEth() {
         SynchronousCompletionHandler<List<EthTransaction>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransactionsAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", UnsignedLong.ZERO,
+        blockchainDb.getTransactionsAsEth(
+                "mainnet",
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                UnsignedLong.ZERO,
                 UnsignedLong.valueOf(7778000), handler);
         List<EthTransaction> output = handler.dat().get();
         assertFalse(output.isEmpty());
@@ -248,21 +254,31 @@ public class BlockchainDbAIT {
     public void testGetLogsAsEth() {
         SynchronousCompletionHandler<List<EthLog>> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This test doesn't return anything; should it?
-        // blockchainDb.getLogsAsEth("mainnet", null, "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-        //         ETH_EVENT_ERC20_TRANSFER, 0, 7778000, handler);
-        // List<EthLog> output = handler.dat().get();
-        // assertFalse(output.isEmpty());
+         blockchainDb.getLogsAsEth(
+                 "mainnet",
+                 null,
+                 "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                 "0xa9059cbb",
+                 UnsignedLong.ZERO,
+                 UnsignedLong.valueOf(7778000),
+                 handler);
+         List<EthLog> output = handler.dat().get();
+         assertFalse(output.isEmpty());
     }
 
     @Test
     public void testGetBlocksAsEth() {
-        SynchronousCompletionHandler<List<Long>> handler = new SynchronousCompletionHandler<>();
+        SynchronousCompletionHandler<List<UnsignedLong>> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This test doesn't return anything; should it?
-        // blockchainDb.getBlocksAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0xF, 0, 7778000, handler);
-        // List<Long> output = handler.dat().get();
-        // assertFalse(output.isEmpty());
+        blockchainDb.getBlocksAsEth(
+                "mainnet",
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                UnsignedInteger.valueOf(0xF),
+                UnsignedLong.ZERO,
+                UnsignedLong.valueOf(7778000),
+                handler);
+        List<UnsignedLong> output = handler.dat().get();
+        assertFalse(output.isEmpty());
     }
 
     @Test

@@ -57,6 +57,14 @@ public class BRCryptoCWMClientBtc extends Structure {
         super(peer);
     }
 
+    public ByValue toByValue() {
+        ByValue other = new ByValue();
+        other.funcGetBlockNumber = this.funcGetBlockNumber;
+        other.funcGetTransactions = this.funcGetTransactions;
+        other.funcSubmitTransaction = this.funcSubmitTransaction;
+        return other;
+    }
+
     public static class ByReference extends BRCryptoCWMClientBtc implements Structure.ByReference {
 
     }

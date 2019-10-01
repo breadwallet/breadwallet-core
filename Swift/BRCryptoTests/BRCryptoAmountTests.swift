@@ -116,8 +116,14 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssert (-1.5       == btc4.double (as: BTC_BTC))
         XCTAssert (-150000000 == btc4.double (as: BTC_SATOSHI))
 
-        XCTAssert ("-B1.50"          == btc4.string (as: BTC_BTC))
-        XCTAssert ("-SAT150,000,000" == btc4.string (as: BTC_SATOSHI))
+        if #available(iOS 13, *) {
+            XCTAssertEqual ("-B 1.50", btc4.string (as: BTC_BTC))
+            XCTAssertEqual ("-SAT 150,000,000", btc4.string (as: BTC_SATOSHI)!)
+        }
+        else {
+            XCTAssertEqual ("-B1.50", btc4.string (as: BTC_BTC))
+            XCTAssertEqual ("-SAT150,000,000", btc4.string (as: BTC_SATOSHI)!)
+        }
 
         XCTAssertEqual (btc1.double(as: BTC_BTC),     btc1.convert(to: BTC_SATOSHI)?.double(as: BTC_BTC))
         XCTAssertEqual (btc1.double(as: BTC_SATOSHI), btc1.convert(to: BTC_BTC)?.double(as: BTC_SATOSHI))
@@ -140,6 +146,18 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertTrue  ((eth2 - eth3)!.isNegative)
         XCTAssertFalse ((eth2 - eth2)!.isNegative)
 
+        let a1 = Amount.create (double: +1.0, unit: ETH_WEI)
+        let a2 = Amount.create (double: -1.0, unit: ETH_WEI)
+        XCTAssert (+0.0 == (a1 + a2)!.double (as: ETH_WEI));
+        XCTAssert (+0.0 == (a2 + a1)!.double (as: ETH_WEI));
+        XCTAssert (-2.0 == (a2 + a2)!.double (as: ETH_WEI));
+        XCTAssert (+2.0 == (a1 + a1)!.double (as: ETH_WEI));
+
+        XCTAssert (+2.0 == (a1 - a2)!.double (as: ETH_WEI))
+        XCTAssert (-2.0 == (a2 - a1)!.double (as: ETH_WEI))
+        XCTAssert (+0.0 == (a1 - a1)!.double (as: ETH_WEI))
+        XCTAssert (+0.0 == (a2 - a2)!.double (as: ETH_WEI))
+
         //
         // String
         //
@@ -157,14 +175,27 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssert (100000000 == btc3s.double (as: BTC_SATOSHI))
         XCTAssert (1         == btc3s.double (as: BTC_BTC))
 
-        XCTAssert ("SAT100,000,000" == btc3s.string (as: BTC_SATOSHI))
-        XCTAssert ("B1.00"          == btc3s.string (as: BTC_BTC))
+        if #available(iOS 13, *) {
+            XCTAssertEqual ("SAT 100,000,000", btc3s.string (as: BTC_SATOSHI)!)
+            XCTAssertEqual ("B 1.00",          btc3s.string (as: BTC_BTC)!)
+        }
+        else {
+            XCTAssertEqual ("SAT100,000,000", btc3s.string (as: BTC_SATOSHI)!)
+            XCTAssertEqual ("B1.00",          btc3s.string (as: BTC_BTC)!)
+        }
 
         let btc4s = Amount.create (string: "0x5f5e100", negative: true, unit: BTC_SATOSHI)!
         XCTAssert (-100000000 == btc4s.double (as: BTC_SATOSHI))
         XCTAssert (-1         == btc4s.double (as: BTC_BTC))
-        XCTAssert ("-SAT100,000,000" == btc4s.string (as: BTC_SATOSHI))
-        XCTAssert ("-B1.00"          == btc4s.string (as: BTC_BTC))
+
+        if #available(iOS 13, *) {
+            XCTAssertEqual ("-SAT 100,000,000", btc4s.string (as: BTC_SATOSHI)!)
+            XCTAssertEqual ("-B 1.00",          btc4s.string (as: BTC_BTC)!)
+        }
+        else {
+            XCTAssertEqual ("-SAT100,000,000", btc4s.string (as: BTC_SATOSHI)!)
+            XCTAssertEqual ("-B1.00",          btc4s.string (as: BTC_BTC)!)
+        }
 
         XCTAssertNil (Amount.create (string: "w0x5f5e100", unit: BTC_SATOSHI))
         XCTAssertNil (Amount.create (string: "0x5f5e100w", unit: BTC_SATOSHI))
@@ -226,7 +257,12 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertNotNil (a5?.double(as: ETH_WEI))
         XCTAssertEqual(1234567891234567891, a5?.double(as: ETH_WEI)!)
         // Lost precision - last 5 digits
-        XCTAssertEqual("wei1,234,567,891,234,570,000", a5?.string(as: ETH_WEI)!)
+        if #available(iOS 13, *) {
+            XCTAssertEqual("wei 1,234,567,891,234,568,000", a5?.string(as: ETH_WEI)!)
+        }
+        else {
+            XCTAssertEqual("wei1,234,567,891,234,570,000", a5?.string(as: ETH_WEI)!)
+        }
 
         XCTAssertEqual("1234567891234567891", a5?.string (base: 10, preface: ""))
         XCTAssertEqual("1000000000000000000", Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 10, preface: ""))

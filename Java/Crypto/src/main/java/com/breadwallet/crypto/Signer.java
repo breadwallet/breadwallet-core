@@ -21,7 +21,7 @@ public interface Signer {
         return CryptoApi.getProvider().signerProvider().createSignerForAlgorithm(algorithm);
     }
 
-    byte[] sign(byte[] data, Key key);
+    Optional<byte[]> sign(byte[] digest, Key key);
 
-    Optional<? extends Key> recover(byte[] data, byte[] signature);
+    Optional<? extends Key> recover(byte[] digest, byte[] signature);
 }

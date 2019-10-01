@@ -27,6 +27,8 @@ public interface WalletManager {
 
     void sync();
 
+    void stop();
+
     void syncToDepth(WalletManagerSyncDepth depth);
 
     void submit(Transfer transfer, byte[] phraseUtf8);

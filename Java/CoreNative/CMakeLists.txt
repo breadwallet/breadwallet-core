@@ -252,6 +252,7 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
+                src/main/cpp/core/ethereum/ewm/BREthereumEWMPersist.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h)
 
 # Ethereum Tests
@@ -326,8 +327,16 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoFeeBasis.h
                 src/main/cpp/core/crypto/BRCryptoHash.c
                 src/main/cpp/core/crypto/BRCryptoHash.h
+                src/main/cpp/core/crypto/BRCryptoCipher.c
+                src/main/cpp/core/crypto/BRCryptoCipher.h
+                src/main/cpp/core/crypto/BRCryptoCoder.c
+                src/main/cpp/core/crypto/BRCryptoCoder.h
+                src/main/cpp/core/crypto/BRCryptoHasher.c
+                src/main/cpp/core/crypto/BRCryptoHasher.h
                 src/main/cpp/core/crypto/BRCryptoKey.c
                 src/main/cpp/core/crypto/BRCryptoKey.h
+                src/main/cpp/core/crypto/BRCryptoSigner.c
+                src/main/cpp/core/crypto/BRCryptoSigner.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
                 src/main/cpp/core/crypto/BRCryptoNetwork.h
                 src/main/cpp/core/crypto/BRCryptoStatus.c

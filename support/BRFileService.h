@@ -65,6 +65,7 @@ typedef struct {
 
         struct {
             int code;  // sqlite3_status_code
+            const char *reason;
         } sdb;
 
         struct {
@@ -90,8 +91,19 @@ fileServiceCreate (const char *basePath,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler);
 
+/**
+ * Release fs.  This will close `fs` if it hasn't been already and then free the memory and any
+ * other resources associaed with the fs (such as locks).
+ */
 extern void
 fileServiceRelease (BRFileService fs);
+
+/**
+ * Close fs.  This will close the DB associated with `fs`.  The `fs` must not be used after closing;
+ * if it is then an IMPL error is raised.  This can be called multiple times (but shouldn't be).
+ */
+extern void
+fileServiceClose (BRFileService fs);
 
 extern void
 fileServiceSetErrorHandler (BRFileService fs,
@@ -132,6 +144,11 @@ fileServiceClear (BRFileService fs,
 
 extern int
 fileServiceClearAll (BRFileService fs);
+
+extern UInt256
+fileServiceGetIdentifier (BRFileService fs,
+                          const char *type,
+                          const void *entity);
 
 /**
  * A function type to produce an identifer from an entity.  The identifer must be constant for
