@@ -388,6 +388,35 @@ ewmSignalSync (BREthereumEWM ewm,
 
 // ==============================================================================================
 //
+// Handle Sync API
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+} BREthereumHandleSyncAPIEvent;
+
+static void
+ewmHandleSyncAPIEventDispatcher(BREventHandler ignore,
+                             BREthereumHandleSyncAPIEvent *event) {
+    ewmHandleSyncAPI (event->ewm);
+}
+
+BREventType handleSyncAPIEventType = {
+    "EWM: Handle Sync API Event",
+    sizeof (BREthereumHandleSyncAPIEvent),
+    (BREventDispatcher) ewmHandleSyncAPIEventDispatcher
+};
+
+extern void
+ewmSignalSyncAPI (BREthereumEWM ewm,
+                  BREthereumBoolean OOB) {
+    BREthereumHandleSyncEvent event = { { NULL, &handleSyncAPIEventType }, ewm };
+    if (ETHEREUM_BOOLEAN_IS_TRUE(OOB)) eventHandlerSignalEventOOB (ewm->handler, (BREvent*) &event);
+    else eventHandlerSignalEvent (ewm->handler, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
 // Handle GetBlocks
 //
 typedef struct {
@@ -995,6 +1024,7 @@ const BREventType *ewmEventTypes[] = {
     &handleSaveBlocksEventType,
     &handleSaveNodesEventType,
     &handleSyncEventType,
+    &handleSyncAPIEventType,
     &handleGetBlocksEventType,
 
     &ewmClientWalletEventType,
