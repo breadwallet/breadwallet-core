@@ -59,24 +59,37 @@ extern "C" {
 #define CRYPTO_REF_DEBUG 0
 #endif
 
-#define DECLARE_CRYPTO_GIVE_TAKE(type, preface) \
-  extern type preface##Take (type obj);  \
+#define DECLARE_CRYPTO_GIVE_TAKE(type, preface)                                   \
+  extern type preface##Take (type obj);                                           \
+  extern type preface##TakeWeak (type obj);                                       \
   extern void preface##Give (type obj)
 
-#define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface) \
-  extern type              \
-  preface##Take (type obj) {   \
-    atomic_fetch_add (&obj->ref.count, 1); \
-    return obj;            \
-  }                        \
-  extern void              \
-  preface##Give (type obj) {  \
-    unsigned int __count = atomic_fetch_sub (&obj->ref.count, 1); \
-    assert (0 != __count); \
-    if (1 == __count) {    \
-        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); } \
-        obj->ref.free (obj);  \
-    }                      \
+#define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface)                                 \
+  extern type                                                                     \
+  preface##Take (type obj) {                                                      \
+    unsigned int _c = atomic_fetch_add (&obj->ref.count, 1);                      \
+    /* catch take after release */                                                \
+    assert (0 != _c);                                                             \
+    return obj;                                                                   \
+  }                                                                               \
+  extern type                                                                     \
+  preface##TakeWeak (type obj) {                                                  \
+    unsigned int _c = atomic_load(&obj->ref.count);                               \
+    /* keep trying to take unless object is released */                           \
+    while (_c != 0 &&                                                             \
+           !atomic_compare_exchange_weak (&obj->ref.count, &_c, _c + 1)) {}       \
+    if (0 != CRYPTO_REF_DEBUG && 0 == _c) { printf ("CRY: Missed: %s\n", #type); }\
+    return (_c != 0) ? obj : NULL;                                                \
+  }                                                                               \
+  extern void                                                                     \
+  preface##Give (type obj) {                                                      \
+    unsigned int _c = atomic_fetch_sub (&obj->ref.count, 1);                      \
+    /* catch give after release */                                                \
+    assert (0 != _c);                                                             \
+    if (1 == _c) {                                                                \
+        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); }      \
+        obj->ref.free (obj);                                                      \
+    }                                                                             \
   }
 
 #define CRYPTO_AS_FREE(release)     ((void (*) (void *)) release)
