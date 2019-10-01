@@ -64,10 +64,9 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
                           BREthereumWallet wallet,
                           UInt256 value,
                           int rid) {
-    BREthereumAmount amount =
-    (AMOUNT_ETHER == walletGetAmountType(wallet)
-     ? amountCreateEther(etherCreate(value))
-     : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+    BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
+                               ? amountCreateEther(etherCreate(value))
+                               : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
 
     ewmSignalBalance(ewm, amount);
 }
@@ -136,10 +135,12 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
             case SYNC_MODE_BRD_WITH_P2P_SEND: {
+                pthread_mutex_lock (&ewm->lock);
                 ewm->client.funcGetGasPrice (ewm->client.context,
                                              ewm,
                                              wallet,
                                              ++ewm->requestId);
+                pthread_mutex_unlock (&ewm->lock);
                 break;
             }
 
@@ -194,6 +195,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
             case SYNC_MODE_BRD_WITH_P2P_SEND: {
+                pthread_mutex_lock (&ewm->lock);
+
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
                 BREthereumFeeBasis feeBasis = transferGetFeeBasis (transfer);
@@ -216,6 +219,7 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                                              price,
                                              data,
                                              ++ewm->requestId);
+                pthread_mutex_unlock (&ewm->lock);
 
                 free (from);
                 free (to);
@@ -353,6 +357,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
                         BREthereumAddress address,
                         uint64_t newNonce,
                         int rid) {
+    pthread_mutex_lock (&ewm->lock);
     uint64_t oldNonce = accountGetAddressNonce (ewm->account, address);
     if (oldNonce != newNonce) {
         // This may not change the nonce
@@ -361,6 +366,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
         if (oldNonce != accountGetAddressNonce (ewm->account, address))
             ewmHandleSaveWallet (ewm, ewmGetWallet(ewm), CLIENT_CHANGE_UPD);
     }
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 // ==============================================================================================
@@ -642,6 +648,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
     // assert: wallet-has-transfer
     // assert: signed
     // assert: originatingTransaction
+    pthread_mutex_lock (&ewm->lock);
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     BREthereumBoolean isSigned = transactionIsSigned (transaction);
@@ -677,6 +684,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
             bcsSendTransaction(ewm->bcs, transaction);
             break;
     }
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 extern void
@@ -734,7 +742,7 @@ ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
         BREthereumHash hash = hashCreate(strHash);
         // We announce a submitted transfer => there is an originating transaction.
         if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))
-            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, transferGetOriginatingTransactionHash (transfer))))
+            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, ewmTransferGetOriginatingTransactionHash (ewm, transfer))))
             return ERROR_TRANSACTION_HASH_MISMATCH;
     }
 
