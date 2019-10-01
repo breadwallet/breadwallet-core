@@ -131,9 +131,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
                 dialog.show();
                 return true;
             case R.id.action_connect:
-                for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
-                    wm.connect(null);
-                }
+                CoreCryptoApplication.getSystem().connectAll();
                 return true;
             case R.id.action_sync:
                 for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
@@ -141,12 +139,14 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
                 }
                 return true;
             case R.id.action_disconnect:
-                for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
-                    wm.disconnect();
-                }
+                CoreCryptoApplication.getSystem().disconnectAll();
                 return true;
             case R.id.action_reset:
                 CoreCryptoApplication.resetSystem();
+                walletsAdapter.clear();
+                return true;
+            case R.id.action_wipe:
+                CoreCryptoApplication.wipeSystem();
                 walletsAdapter.clear();
                 return true;
         }

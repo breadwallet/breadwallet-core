@@ -88,6 +88,9 @@ extern "C" {
     gwmRelease (BRGenericWalletManager gwm);
 
     extern void
+    gwmStop (BRGenericWalletManager gwm);
+
+    extern void
     gwmConnect (BRGenericWalletManager gwm);
 
     extern void

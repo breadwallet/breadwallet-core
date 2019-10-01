@@ -11,7 +11,6 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.google.common.base.Optional;
 
 import java.util.List;
 import java.util.Set;
@@ -19,10 +18,46 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
+    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String storagePath, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,storagePath, query);
     }
 
+    /**
+     * Cease use of `system` and remove (aka 'wipe') its persistent storage.
+     *
+     * Caution is highly warranted; none of the System's references, be they Wallet Managers,
+     * Wallets, Transfers, etc. should be *touched* once the system is wiped.
+     *
+     * Note: This function blocks until completed.  Be sure that all references are dereferenced
+     *       *before* invoking this function and remove the reference to `system` after this
+     *       returns.
+     */
+    static void wipe(System system) {
+        CryptoApi.getProvider().systemProvider().wipe(system);
+    }
+
+    /**
+     * Remove (aka 'wipe') the persistent storage associated with any and all systems located
+     * within `atPath` except for a specified array of systems to preserve.  Generally, this
+     * function should be called on startup after all systems have been created.  When called at
+     * that time, any 'left over' systems will have their persistent storeage wiped.
+     *
+     * @param storagePath the file system path where system data is persistently stored
+     * @param exemptSystems the list of systems that should not have their data wiped.
+     */
+    static void wipeAll(String storagePath, List<System> exemptSystems) {
+        CryptoApi.getProvider().systemProvider().wipeAll(storagePath, exemptSystems);;
+    }
+
+    /**
+     * Configure the system.  This will query various BRD services, notably the BlockChainDB, to
+     * establish the available networks (aka blockchains) and their currencies.  For each
+     * `Network` there will be `SystemEvent` which can be used by the App to create a
+     * `WalletManager`.
+     *
+     * @param appCurrencies If the BlockChainDB does not return any currencies, then
+     *                      use `applicationCurrencies` merged into the defaults.
+     */
     void configure(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies);
 
     /**
@@ -44,7 +79,17 @@ public interface System {
                              AddressScheme addressScheme,
                              Set<Currency> currencies);
 
-    void stop();
+    /**
+     * Connect all wallet managers.
+     *
+     * They will be connected w/o an explict NetworkPeer.
+     */
+    void connectAll();
+
+    /**
+     * Disconnect all wallet managers.
+     */
+    void disconnectAll();
 
     void subscribe(String subscriptionToken);
 

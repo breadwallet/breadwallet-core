@@ -27,6 +27,13 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
+    func update () {
+        DispatchQueue.main.async {
+            self.wallets = UIApplication.sharedSystem.wallets
+            self.tableView.reloadData()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -37,7 +44,7 @@ class SummaryViewController: UITableViewController, WalletListener {
     }
 
     override func viewWillAppear (_ animated: Bool) {
-        self.wallets = UIApplication.sharedSystem.wallets
+        super.viewWillAppear(animated)
 
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (walletListener: self)
@@ -46,8 +53,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
 
         // Reload the data - don't miss any wallets
-        self.tableView.reloadData()
-        super.viewWillAppear(animated)
+        update ()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -92,12 +98,17 @@ class SummaryViewController: UITableViewController, WalletListener {
                                        preferredStyle: UIAlertController.Style.alert)
 
         alert.addAction (UIAlertAction (title: "Reset", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.reset()
+            UIApplication.doReset()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Wipe", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.doWipe()
             alert.dismiss(animated: true) {}
         })
 
         alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sync()
+            UIApplication.doSync()
             alert.dismiss(animated: true) {}
         })
 
@@ -107,7 +118,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         })
 
         alert.addAction (UIAlertAction (title: "Sleep Eth", style: UIAlertAction.Style.default) { (action) in
-            UIApplication.sleep()
+            UIApplication.doSleep()
             alert.dismiss(animated: true) {}
         })
 
