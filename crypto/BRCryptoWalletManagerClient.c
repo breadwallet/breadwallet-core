@@ -1772,6 +1772,29 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
 
 // MARK: - Client Creation Functions
 
+// The below client functions pass a BRCryptoWalletManager reference to the underlying
+// currency-specific wallet managers WITHOUT incrementing the reference count. This
+// is because if we incremented the count, the CWM's reference count would have no
+// way (currently) of being set back to zero as this particular reference would never
+// be given.
+//
+// So, now that we've given a reference without incrementing the count, we have a
+// situation where one of these callbacks can occur whilst `cryptoWalletManagerRelease`
+// is executing. To handle that issue, each callback uses `cryptoWalletManagerTakeWeak`
+// to check if the release is currently happening (i.e. reference count of 0). If so,
+// they have an early exit and the release can proceed as usual. If it is not releasing,
+// the reference count is incremented for the duration of the call.
+//
+// The natural question is, can these callbacks occur *after* `cryptoWalletManagerRelease`?
+// The answer, thankfully, is NO. The callbacks are called as by A) a thread
+// owned by the currency-specific wallet manager, which will be cleaned up gracefully as
+// part of `cryptoWalletManagerRelease`; or B) an app thread, which necessitates the CWM
+// reference count not being 0. In either case, the BRCryptoWalletManager's memory
+// has not yet been freed.
+//
+// TLDR; use `cryptoWalletManagerTakeWeak` in *ALL* BRWalletManagerClient,
+//       BREthereumClient and cryptoWalletManagerClientCreateGENClient callbacks.
+
 extern BRWalletManagerClient
 cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cwm) {
     return (BRWalletManagerClient) {
