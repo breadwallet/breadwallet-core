@@ -2002,22 +2002,18 @@ cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
         assert (0);
     }
 
-    // There is no need to acually calculate the balance here - it will be done by the
-    // object that is listenting to this event
-    // NOTE: Since cryptoAmountCreateInteger does a take of the "unit" and we are forced
-    // to take the unit with the call to cryptoWalletGetUnit - it must be "given" here as well
-    BRCryptoUnit unit = cryptoWalletGetUnit(cwm->wallet);
-    BRCryptoAmount balance = cryptoAmountCreateInteger(0, unit);
+    // Synchronizing of transfers is complete - calculate the new balance
+    BRCryptoAmount balance = cryptoWalletGetBalance(cwm->wallet);
     // ... and announce the balance
     cwm->listener.walletEventCallback (cwm->listener.context,
                                        cryptoWalletManagerTake (cwm),
                                        cryptoWalletTake (cwm->wallet),
                                        (BRCryptoWalletEvent) {
                                            CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
-                                           { .balanceUpdated = { balance }}
+                                           { .balanceUpdated = { cryptoAmountTake(balance) }}
                                        });
 
-    cryptoUnitGive(unit);
+    cryptoAmountGive(balance);
     cryptoWalletManagerGive (cwm);
     free (callbackState);
 }
