@@ -1949,7 +1949,6 @@ cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
         gwmAnnounceTransferComplete (cwm->u.gen,
                                      callbackState->rid,
                                      CRYPTO_TRUE == success);
-
     } else {
         assert (0);
     }
@@ -2003,6 +2002,18 @@ cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
         assert (0);
     }
 
+    // Synchronizing of transfers is complete - calculate the new balance
+    BRCryptoAmount balance = cryptoWalletGetBalance(cwm->wallet);
+    // ... and announce the balance
+    cwm->listener.walletEventCallback (cwm->listener.context,
+                                       cryptoWalletManagerTake (cwm),
+                                       cryptoWalletTake (cwm->wallet),
+                                       (BRCryptoWalletEvent) {
+                                           CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                           { .balanceUpdated = { cryptoAmountTake(balance) }}
+                                       });
+
+    cryptoAmountGive(balance);
     cryptoWalletManagerGive (cwm);
     free (callbackState);
 }
