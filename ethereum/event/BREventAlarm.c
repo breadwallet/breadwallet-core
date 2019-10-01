@@ -137,8 +137,12 @@ alarmIsPeriodic (BREventAlarm *alarm) {
 
 static void
 alarmPeriodUpdate (BREventAlarm *alarm) {
-    if (alarmIsPeriodic(alarm)) {
-        timespecInc(&alarm->expiration, &alarm->period);
+    timespecInc(&alarm->expiration, &alarm->period);
+
+    // ensure that expiration does not occur in the past
+    struct timespec now = getTime();
+    if (-1 == timespecCompare(&alarm->expiration, &now)) {
+        alarm->expiration = now;
     }
 }
 
