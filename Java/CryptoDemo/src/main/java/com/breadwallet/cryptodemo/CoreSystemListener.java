@@ -36,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkState;
+
 public class CoreSystemListener implements SystemListener {
 
     private static final String TAG = CoreSystemListener.class.getName();
@@ -83,7 +85,7 @@ public class CoreSystemListener implements SystemListener {
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);
                     Log.d(TAG, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
-                    system.createWalletManager(network, mode, addressScheme, Collections.emptySet());
+                    checkState(system.createWalletManager(network, mode, addressScheme, Collections.emptySet()));
                 }
                 return null;
             }

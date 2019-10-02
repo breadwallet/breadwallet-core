@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkState;
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
-    static WalletManager create(BRCryptoCWMListener listener,
+    static Optional<WalletManager> create(BRCryptoCWMListener listener,
                                 BRCryptoCWMClient client,
                                 Account account,
                                 Network network,
@@ -43,18 +43,16 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String storagePath,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        return new WalletManager(
-                CoreBRCryptoWalletManager.create(
-                        listener,
-                        client,
-                        account.getCoreBRCryptoAccount(),
-                        network.getCoreBRCryptoNetwork(),
-                        Utilities.walletManagerModeToCrypto(mode),
-                        Utilities.addressSchemeToCrypto(addressScheme),
-                        storagePath
-                ),
-                system,
-                callbackCoordinator
+        return CoreBRCryptoWalletManager.create(
+                listener,
+                client,
+                account.getCoreBRCryptoAccount(),
+                network.getCoreBRCryptoNetwork(),
+                Utilities.walletManagerModeToCrypto(mode),
+                Utilities.addressSchemeToCrypto(addressScheme),
+                storagePath
+        ).transform(
+                cwm -> new WalletManager(cwm, system, callbackCoordinator)
         );
     }
 

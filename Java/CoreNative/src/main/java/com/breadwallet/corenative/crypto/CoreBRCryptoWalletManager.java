@@ -17,14 +17,14 @@ import java.util.List;
 
 public interface CoreBRCryptoWalletManager {
 
-    static CoreBRCryptoWalletManager create(BRCryptoCWMListener listener,
-                                            BRCryptoCWMClient client,
-                                            CoreBRCryptoAccount account,
-                                            CoreBRCryptoNetwork network,
-                                            int mode,
-                                            int scheme,
-                                            String path) {
-        return new OwnedBRCryptoWalletManager(
+    static Optional<CoreBRCryptoWalletManager> create(BRCryptoCWMListener listener,
+                                                      BRCryptoCWMClient client,
+                                                      CoreBRCryptoAccount account,
+                                                      CoreBRCryptoNetwork network,
+                                                      int mode,
+                                                      int scheme,
+                                                      String path) {
+        return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
                         listener.toByValue(),
                         client.toByValue(),
@@ -34,6 +34,8 @@ public interface CoreBRCryptoWalletManager {
                         scheme,
                         path
                 )
+        ).transform(
+                OwnedBRCryptoWalletManager::new
         );
     }
 

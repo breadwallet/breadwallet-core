@@ -361,14 +361,14 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void createWalletManager(com.breadwallet.crypto.Network network,
-                                    WalletManagerMode mode,
-                                    AddressScheme scheme,
-                                    Set<com.breadwallet.crypto.Currency> currencies) {
+    public boolean createWalletManager(com.breadwallet.crypto.Network network,
+                                       WalletManagerMode mode,
+                                       AddressScheme scheme,
+                                       Set<com.breadwallet.crypto.Currency> currencies) {
         checkState(supportsWalletManagerMode(network, mode));
         checkState(supportsAddressScheme(network, scheme));
 
-        WalletManager walletManager = WalletManager.create(
+        Optional<WalletManager> maybeWalletManager = WalletManager.create(
                 cwmListener,
                 cwmClient,
                 account,
@@ -378,7 +378,11 @@ final class System implements com.breadwallet.crypto.System {
                 storagePath,
                 this,
                 callbackCoordinator);
+        if (!maybeWalletManager.isPresent()) {
+            return false;
+        }
 
+        WalletManager walletManager = maybeWalletManager.get();
         for (com.breadwallet.crypto.Currency currency: currencies) {
             if (network.hasCurrency(currency)) {
                 walletManager.registerWalletFor(currency);
@@ -389,6 +393,7 @@ final class System implements com.breadwallet.crypto.System {
 
         addWalletManager(walletManager);
         announceSystemEvent(new SystemManagerAddedEvent(walletManager));
+        return true;
     }
 
     @Override
@@ -1342,7 +1347,6 @@ final class System implements com.breadwallet.crypto.System {
 
     private static void handleTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
-        // TODO(fix): Deal with memory management for the fee
         TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
         TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
 
