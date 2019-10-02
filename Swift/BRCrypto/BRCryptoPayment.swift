@@ -170,7 +170,7 @@ public final class PaymentProtocolRequest {
         return wallet.createTransfer(request: self, estimatedFeeBasis: estimatedFeeBasis)
     }
 
-    public func signTransfer(transfer: Transfer, paperKey: String) -> Bool {
+    public func signTransfer(transfer: Transfer, paperKey: Data) -> Bool {
         return manager.sign(transfer: transfer, paperKey: paperKey)
     }
 

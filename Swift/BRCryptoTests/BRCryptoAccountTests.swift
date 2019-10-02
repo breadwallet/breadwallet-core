@@ -16,7 +16,7 @@ class BRCryptoAccountTests: XCTestCase {
 
     let dateFormatter = DateFormatter()
 
-    let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic"
+    let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic\0".data(using: .utf8)!
     let address = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
     let date    = "2018-01-01"
 
@@ -29,20 +29,20 @@ class BRCryptoAccountTests: XCTestCase {
     }
 
     func testPhrase () {
-        XCTAssertTrue  (Account.validatePhrase (self.phrase, words: BRCryptoAccountTests.words))
+        XCTAssertTrue  (Account.validatePaperKey (self.phrase, words: BRCryptoAccountTests.words))
 
-        guard let (phrase, _) = Account.generatePhrase (words: BRCryptoAccountTests.words)
+        guard let (phrase, _) = Account.generatePaperKey (words: BRCryptoAccountTests.words)
             else { XCTAssert (false); return }
 
-        XCTAssertTrue  (Account.validatePhrase (phrase, words: BRCryptoAccountTests.words))
-        XCTAssertFalse (Account.validatePhrase ("Ask @jmo for a pithy quote", words: BRCryptoAccountTests.words))
+        XCTAssertTrue  (Account.validatePaperKey (phrase, words: BRCryptoAccountTests.words))
+        XCTAssertFalse (Account.validatePaperKey ("Ask @jmo for a pithy quote\0".data(using: .utf8)!, words: BRCryptoAccountTests.words))
     }
 
     func testAccount () {
         let timestamp = dateFormatter.date(from: date)!
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        guard let a1 = Account.createFrom (phrase: phrase, timestamp: timestamp, uids: walletId)
+        guard let a1 = Account.createFrom (paperKey: phrase, timestamp: timestamp, uids: walletId)
             else { XCTAssert(false); return}
 
         XCTAssertEqual (a1.addressAsETH, address)
@@ -54,8 +54,8 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertEqual (a2.addressAsETH, a1.addressAsETH);
 
-        guard let (phrase3, timestamp3) = Account.generatePhrase (words: BRCryptoAccountTests.words),
-            let a3 = Account.createFrom (phrase: phrase3, timestamp: timestamp3, uids: "ignore")
+        guard let (phrase3, timestamp3) = Account.generatePaperKey (words: BRCryptoAccountTests.words),
+            let a3 = Account.createFrom (paperKey: phrase3, timestamp: timestamp3, uids: "ignore")
             else { XCTAssert (false); return }
 
         XCTAssertFalse (a3.validate(serialization: a1.serialize))

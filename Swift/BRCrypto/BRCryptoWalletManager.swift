@@ -193,18 +193,28 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         cryptoWalletManagerSyncToDepth (core, depth.core)
     }
 
-    internal func sign (transfer: Transfer, paperKey: String) -> Bool {
-        return CRYPTO_TRUE == cryptoWalletManagerSign (core,
-                                                       transfer.wallet.core,
-                                                       transfer.core,
-                                                       paperKey)
+    internal func sign (transfer: Transfer, paperKey: Data) -> Bool {
+        precondition(paperKey.lastIndex(of: 0) != nil) // must be null terminated!
+
+        return paperKey.withUnsafeBytes { (paperKeyBytes: UnsafeRawBufferPointer) -> Bool in
+            let paperKeyAddr  = paperKeyBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+            return CRYPTO_TRUE == cryptoWalletManagerSign (core,
+                                                           transfer.wallet.core,
+                                                           transfer.core,
+                                                           paperKeyAddr)
+        }
     }
 
-    public func submit (transfer: Transfer, paperKey: String) {
-        cryptoWalletManagerSubmit (core,
-                                   transfer.wallet.core,
-                                   transfer.core,
-                                   paperKey)
+    public func submit (transfer: Transfer, paperKey: Data) {
+        precondition(paperKey.lastIndex(of: 0) != nil) // must be null terminated!
+
+        paperKey.withUnsafeBytes { (paperKeyBytes: UnsafeRawBufferPointer) -> Void in
+            let paperKeyAddr  = paperKeyBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+            cryptoWalletManagerSubmit (core,
+                                       transfer.wallet.core,
+                                       transfer.core,
+                                       paperKeyAddr)
+        }
     }
 
     internal func submit (transfer: Transfer, key: Key) {

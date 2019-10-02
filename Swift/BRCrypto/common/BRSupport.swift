@@ -221,13 +221,13 @@ extension Date {
 public struct AccountSpecification {
     public let identifier: String
     public let network: String
-    public let paperKey: String
+    public let paperKey: Data
     public let timestamp: Date
 
     init (dict: [String: String]) {
         self.identifier = dict["identifier"]! //as! String
         self.network    = dict["network"]!
-        self.paperKey   = dict["paperKey"]!
+        self.paperKey   = dict["paperKey"]!.data(using: String.Encoding.utf8)! + [0]
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"

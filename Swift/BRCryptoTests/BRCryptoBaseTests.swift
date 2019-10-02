@@ -72,7 +72,7 @@ class BRCryptoBaseTests: XCTestCase {
 
         /// Create the account
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        account = Account.createFrom (phrase: specifiction.paperKey,
+        account = Account.createFrom (paperKey: specifiction.paperKey,
                                       timestamp: specifiction.timestamp,
                                       uids: walletId)
     }

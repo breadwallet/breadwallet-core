@@ -77,7 +77,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
 
-        account = Account.createFrom (phrase: accountSpecification.paperKey,
+        account = Account.createFrom (paperKey: accountSpecification.paperKey,
                                       timestamp: accountSpecification.timestamp,
                                       uids: walletId)
         guard nil != account
@@ -110,8 +110,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        
-        print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+        let paperKeyString = String(data: accountSpecification.paperKey, encoding: .utf8)!
+        print ("APP: Account PaperKey  : \(paperKeyString.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath?.description ?? "<none>")");
         print ("APP: Mainnet           : \(mainnet)")
@@ -132,7 +132,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             "ZLA",
             "ADT"]
 
-        print ("APP: CurrenciesToMode  : \(currencyCodesToMode)")
+        print ("APP: CurrenciesToMode  : \(currencyCodesToMode ?? [:])")
 
         // Create the listener
         listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,
@@ -204,7 +204,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
 
 extension UIApplication {
-    static var paperKey: String {
+    static var paperKey: Data {
         return (UIApplication.shared.delegate as! CoreDemoAppDelegate).accountSpecification.paperKey
     }
 
@@ -275,11 +275,12 @@ extension UIApplication {
 
                     let mainnet = (accountSpecification.network == "mainnet")
 
-                    app.account = Account.createFrom (phrase: accountSpecification.paperKey,
+                    app.account = Account.createFrom (paperKey: accountSpecification.paperKey,
                                                       timestamp: accountSpecification.timestamp,
                                                       uids: "WalletID: \(accountSpecification.identifier)")
 
-                    print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+                    let paperKeyString = String(data: accountSpecification.paperKey, encoding: .utf8)!
+                    print ("APP: Account PaperKey  : \(paperKeyString.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
                     print ("APP: Account Timestamp : \(app.account.timestamp)")
                     print ("APP: Mainnet           : \(mainnet)")
 

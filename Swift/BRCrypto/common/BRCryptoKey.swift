@@ -23,20 +23,25 @@ public final class Key {
     }
 
     ///
-    /// Create `Key` from a BIP-39 phrase
+    /// Create `Key` from a UTF8-encoded BIP-39 paper key
     ///
     /// - Parameters:
-    ///   - phrase: A 12 word phrase (aka paper key)
-    ///   - words: Official BIP-39 list of words, with 2048 entries, in the language for `phrase`
+    ///   - paperKey: A UTF8-encoded 12 word paper key
+    ///   - words: Official BIP-39 list of words, with 2048 entries, in the language for `paperKey`
     ///
     /// - Returns: A Key, if the phrase if valid
     ///
-    static public func createFrom (phrase: String, words: [String]? = wordList) -> Key? {
+    static public func createFrom (paperKey: Data, words: [String]? = wordList) -> Key? {
+        precondition(paperKey.lastIndex(of: 0) != nil) // must be null terminated!
+
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
-        return cryptoKeyCreateFromPhraseWithWords (phrase, &words)
-            .map { Key (core: $0)}
+        return paperKey.withUnsafeBytes { (paperKeyBytes: UnsafeRawBufferPointer) -> Key? in
+            let paperKeyAddr  = paperKeyBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+            return cryptoKeyCreateFromPhraseWithWords (paperKeyAddr, &words)
+                .map { Key (core: $0)}
+        }
     }
 
     ///

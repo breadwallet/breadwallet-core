@@ -23,7 +23,7 @@ class BRCryptoCommonTests: XCTestCase {
     func testKey () {
         var s: String!
         var t: String!
-        //var d: Data!
+        var pk: Data!
         var k: Key!
         var l: Key!
         var p: Bool!
@@ -103,11 +103,15 @@ class BRCryptoCommonTests: XCTestCase {
         //
         // Phrase
         //
-        k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
+
+        pk = "ginger settle marine tissue robot crane night number ramp coast roast critic\0".data(using: .utf8)
+        k = Key.createFrom (paperKey: pk, words: BRCryptoAccountTests.words)
         XCTAssertNotNil(k)
-        k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: nil)
+        pk = "ginger settle marine tissue robot crane night number ramp coast roast critic\0".data(using: .utf8)
+        k = Key.createFrom (paperKey: pk, words: nil)
         XCTAssertNil(k)
-        k = Key.createFrom (phrase: "not-a-chance", words: BRCryptoAccountTests.words)
+        pk = "not-a-chance\0".data(using: .utf8)
+        k = Key.createFrom (paperKey: pk, words: BRCryptoAccountTests.words)
         XCTAssertNil(k)
 
         // Pigeon
