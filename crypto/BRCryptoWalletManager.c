@@ -160,7 +160,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network),
                                              cryptoNetworkGetConfirmationsUntilFinal (network));
-            if (NULL == cwm->u.btc) { error = 1; goto cleanupOnError; }
+            if (NULL == cwm->u.btc) { error = 1; break ; }
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
@@ -186,7 +186,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network),
                                     cryptoNetworkGetConfirmationsUntilFinal (network));
-            if (NULL == cwm->u.eth) { error = 1; goto cleanupOnError; }
+            if (NULL == cwm->u.eth) { error = 1; break; }
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet(cwm->u.eth));
@@ -222,7 +222,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     cwmPath,
                                     GEN_DISPATCHER_PERIOD,
                                     cryptoNetworkGetHeight(network));
-            if (NULL == cwm->u.gen) { error = 1; goto cleanupOnError; }
+            if (NULL == cwm->u.gen) { error = 1; break; }
 
             // ... and create the primary wallet
             cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, gwmCreatePrimaryWallet (cwm->u.gen));
@@ -275,7 +275,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
     }
 
-cleanupOnError:
     if (error) {
         cryptoWalletManagerGive (cwm);
         cwm = NULL;
