@@ -50,7 +50,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
 /* Forward Implementation */
 
-/// MARK: - Transaction File Service
+/// MARK: - File Service, Initial Load
 
 static BRSetOf(BREthereumTransaction)
 initialTransactionsLoad (BREthereumEWM ewm) {
@@ -61,8 +61,6 @@ initialTransactionsLoad (BREthereumEWM ewm) {
     }
     return transactions;
 }
-
-/// MARK: - Log File Service
 
 static BRSetOf(BREthereumLog)
 initialLogsLoad (BREthereumEWM ewm) {
@@ -114,7 +112,6 @@ initialWalletsLoad (BREthereumEWM ewm) {
     }
     return states;
 }
-
 
 /**
  *
@@ -618,7 +615,7 @@ extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     BREthereumEWMState oldState = ewm->state;
     BREthereumEWMState newState = ewm->state;
@@ -655,7 +652,7 @@ ewmConnect(BREthereumEWM ewm) {
             { .changed = { oldState, newState }}
         });
 
-    ewmUnlock (ewm);
+    pthread_mutex_unlock (&ewm->lock);
 
     return result;
 }
@@ -670,7 +667,7 @@ extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     BREthereumEWMState oldState = ewm->state;
     BREthereumEWMState newState = ewm->state;
@@ -727,7 +724,7 @@ ewmDisconnect (BREthereumEWM ewm) {
             { .changed = { oldState, newState }}
         });
 
-    ewmUnlock(ewm);
+    pthread_mutex_unlock (&ewm->lock);
 
     return result;
 }
@@ -736,7 +733,7 @@ extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm) {
     BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    ewmLock (ewm);
+    pthread_mutex_lock(&ewm->lock);
 
     if (EWM_STATE_CONNECTED == ewm->state || EWM_STATE_SYNCING == ewm->state) {
         switch (ewm->mode) {
@@ -752,7 +749,7 @@ ewmIsConnected (BREthereumEWM ewm) {
         }
     }
 
-    ewmUnlock (ewm);
+    pthread_mutex_unlock (&ewm->lock);
     return result;
 }
 
@@ -764,34 +761,33 @@ ewmAssertRecovery (BREthereumEWM ewm) {
 
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm) {
-    return ewm->network;
+    return ewm->network; // constant
 }
 
 extern BREthereumAccount
 ewmGetAccount (BREthereumEWM ewm) {
-    return ewm->account;
+    return ewm->account; // constant
 }
 
 extern char *
 ewmGetAccountPrimaryAddress(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressString(ewmGetAccount(ewm));
+    return accountGetPrimaryAddressString(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey // key.pubKey
 ewmGetAccountPrimaryAddressPublicKey(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm));
+    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey
 ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                            const char *paperKey) {
-    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey);
+    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey); // constant
 
 }
 
-///
-/// Sync
-///
+/// MARK: - Sync
+
 typedef struct {
     BREthereumEWM ewm;
     uint64_t begBlockNumber;
@@ -993,15 +989,7 @@ ewmSyncToDepth (BREthereumEWM ewm,
     }
 }
 
-extern void
-ewmLock (BREthereumEWM ewm) {
-    pthread_mutex_lock (&ewm->lock);
-}
-
-extern void
-ewmUnlock (BREthereumEWM ewm) {
-    pthread_mutex_unlock (&ewm->lock);
-}
+/// MARK: - Mode
 
 extern BRSyncMode
 ewmGetMode (BREthereumEWM ewm) {
@@ -1108,66 +1096,12 @@ ewmUpdateMode (BREthereumEWM ewm,
 
 /// MARK: - Blocks
 
-#if defined (NEVER_DEFINED)
-extern BREthereumBlock
-ewmLookupBlockByHash(BREthereumEWM ewm,
-                     const BREthereumHash hash) {
-    BREthereumBlock block = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->blocks); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, blockGetHash(ewm->blocks[i]))) {
-            block = ewm->blocks[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return block;
-}
-
-extern BREthereumBlock
-ewmLookupBlock(BREthereumEWM ewm,
-               BREthereumBlockId bid) {
-    BREthereumBlock block = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    block = (0 <= bid && bid < array_count(ewm->blocks)
-             ? ewm->blocks[bid]
-             : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return block;
-}
-
-extern BREthereumBlockId
-ewmLookupBlockId (BREthereumEWM ewm,
-                  BREthereumBlock block) {
-    BREthereumBlockId bid = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->blocks); i++)
-        if (block == ewm->blocks[i]) {
-            bid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return bid;
-}
-
-extern BREthereumBlockId
-ewmInsertBlock (BREthereumEWM ewm,
-                BREthereumBlock block) {
-    BREthereumBlockId bid = -1;
-    pthread_mutex_lock(&ewm->lock);
-    array_add(ewm->blocks, block);
-    bid = (BREthereumBlockId) (array_count(ewm->blocks) - 1);
-    pthread_mutex_unlock(&ewm->lock);
-    ewmSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
-    return bid;
-}
-#endif
-
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm) {
-    return ewm->blockHeight;
+    pthread_mutex_lock(&ewm->lock);
+    uint64_t height = ewm->blockHeight;
+    pthread_mutex_unlock(&ewm->lock);
+    return height;
 }
 
 extern void
@@ -1186,128 +1120,7 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
 }
 
 /// MARK: - Transfers
-
-#if defined (NEVER_DEFINED)
-extern BREthereumTransfer
-ewmLookupTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    transfer = (0 <= tid && tid < array_count(ewm->transfers)
-                ? ewm->transfers[tid]
-                : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return transfer;
-}
-
-extern BREthereumTransfer
-ewmLookupTransferByHash (BREthereumEWM ewm,
-                         const BREthereumHash hash) {
-    BREthereumTransfer transfer = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->transfers); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transferGetHash(ewm->transfers[i]))) {
-            transfer = ewm->transfers[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return transfer;
-}
-
-extern BREthereumTransferId
-ewmLookupTransferId (BREthereumEWM ewm,
-                     BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count(ewm->transfers); i++)
-        if (transfer == ewm->transfers[i]) {
-            tid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return tid;
-}
-
-extern BREthereumTransferId
-ewmInsertTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer;
-
-    pthread_mutex_lock(&ewm->lock);
-    array_add (ewm->transfers, transfer);
-    tid = (BREthereumTransferId) (array_count(ewm->transfers) - 1);
-    pthread_mutex_unlock(&ewm->lock);
-
-    return tid;
-}
-
-extern void
-ewmDeleteTransfer (BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    BREthereumTransfer transfer = ewm->transfers[tid];
-    if (NULL == transfer) return;
-
-    // Remove from any (and all - should be but one) wallet
-    for (int wid = 0; wid < array_count(ewm->wallets); wid++)
-        if (walletHasTransfer(ewm->wallets[wid], transfer)) {
-            walletUnhandleTransfer(ewm->wallets[wid], transfer);
-            ewmSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
-        }
-
-    // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
-    ewm->transfers[tid] = NULL;
-    transferRelease(transfer);
-}
-#endif
-
 /// MARK: - Wallets
-
-#if defined (NEVER_DEFINED)
-extern BREthereumWallet
-ewmLookupWallet(BREthereumEWM ewm,
-                BREthereumWalletId wid) {
-    BREthereumWallet wallet = NULL;
-
-    pthread_mutex_lock(&ewm->lock);
-    wallet = (0 <= wid && wid < array_count(ewm->wallets)
-              ? ewm->wallets[wid]
-              : NULL);
-    pthread_mutex_unlock(&ewm->lock);
-    return wallet;
-}
-
-extern BREthereumWalletId
-ewmLookupWalletId(BREthereumEWM ewm,
-                  BREthereumWallet wallet) {
-    BREthereumWalletId wid = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count (ewm->wallets); i++)
-        if (wallet == ewm->wallets[i]) {
-            wid = i;
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return wid;
-}
-
-extern BREthereumWallet
-ewmLookupWalletByTransfer (BREthereumEWM ewm,
-                           BREthereumTransfer transfer) {
-    BREthereumWallet wallet = NULL;
-    pthread_mutex_lock(&ewm->lock);
-    for (int i = 0; i < array_count (ewm->wallets); i++)
-        if (walletHasTransfer(ewm->wallets[i], transfer)) {
-            wallet = ewm->wallets[i];
-            break;
-        }
-    pthread_mutex_unlock(&ewm->lock);
-    return wallet;
-}
-#endif
 
 extern void
 ewmInsertWallet (BREthereumEWM ewm,
@@ -1321,9 +1134,6 @@ ewmInsertWallet (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
 }
 
-//
-// Wallet (Actions)
-//
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm) {
     pthread_mutex_lock(&ewm->lock);
@@ -1340,14 +1150,17 @@ ewmGetWallets (BREthereumEWM ewm) {
     return wallets;
 }
 
-extern unsigned int
+extern size_t
 ewmGetWalletsCount (BREthereumEWM ewm) {
-    return (unsigned int) array_count(ewm->wallets);
+    pthread_mutex_lock(&ewm->lock);
+    size_t count = array_count(ewm->wallets);
+    pthread_mutex_unlock(&ewm->lock);
+    return count;
 }
 
 extern BREthereumWallet
 ewmGetWallet(BREthereumEWM ewm) {
-    return ewm->walletHoldingEther;
+    return ewm->walletHoldingEther; // constant
 }
 
 extern BREthereumWallet
@@ -1381,9 +1194,7 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-
     transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
-
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1407,14 +1218,12 @@ ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-
     transfer = walletCreateTransferGeneric(wallet,
                                               addressCreate(recvAddress),
                                               amount,
                                               gasPrice,
                                               gasLimit,
                                               data);
-
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1436,9 +1245,7 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-    {
-        transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
-    }
+    transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1456,7 +1263,10 @@ ewmWalletEstimateTransferFee(BREthereumEWM ewm,
                              BREthereumWallet wallet,
                              BREthereumAmount amount,
                              int *overflow) {
-    return walletEstimateTransferFee(wallet, amount, overflow);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumEther fee = walletEstimateTransferFee(wallet, amount, overflow);
+    pthread_mutex_unlock(&ewm->lock);
+    return fee;
 }
 
 extern BREthereumEther
@@ -1466,7 +1276,10 @@ ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
                                      BREthereumGasPrice price,
                                      BREthereumGas gas,
                                      int *overflow) {
-    return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumEther fee = walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+    pthread_mutex_unlock(&ewm->lock);
+    return fee;
 }
 
 extern void
@@ -1497,7 +1310,9 @@ extern BREthereumBoolean
 ewmWalletCanCancelTransfer (BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumTransfer oldTransfer) {
+    pthread_mutex_lock(&ewm->lock);
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+    pthread_mutex_unlock(&ewm->lock);
 
     // TODO: Something about the 'status' (not already cancelled, etc)
     return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
@@ -1507,6 +1322,7 @@ extern BREthereumTransfer // status, error
 ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
                                 BREthereumWallet wallet,
                                 BREthereumTransfer oldTransfer) {
+    pthread_mutex_lock(&ewm->lock);
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     assert (NULL != oldTransaction);
@@ -1534,6 +1350,8 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
                                                                              ? TRANSFER_BASIS_TRANSACTION
                                                                              : TRANSFER_BASIS_LOG));
     walletHandleTransfer(wallet, transfer);
+    pthread_mutex_unlock(&ewm->lock);
+
     return transfer;
 }
 
@@ -1541,7 +1359,9 @@ extern BREthereumBoolean
 ewmWalletCanReplaceTransfer (BREthereumEWM ewm,
                              BREthereumWallet wid,
                              BREthereumTransfer oldTransfer) {
+    pthread_mutex_lock(&ewm->lock);
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+    pthread_mutex_unlock(&ewm->lock);
 
     // TODO: Something about the 'status' (not already replaced, etc)
     return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
@@ -1555,6 +1375,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
                                   BREthereumBoolean updateGasPrice,
                                   BREthereumBoolean updateGasLimit,
                                   BREthereumBoolean updateNonce) {
+    pthread_mutex_lock(&ewm->lock);
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     assert (NULL != oldTransaction);
@@ -1602,6 +1423,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
                                                                              ? TRANSFER_BASIS_TRANSACTION
                                                                              : TRANSFER_BASIS_LOG));
     walletHandleTransfer(wallet, transfer);
+    pthread_mutex_unlock(&ewm->lock);
     return transfer;
 }
 
@@ -1669,13 +1491,16 @@ ewmWalletGetTransferCount(BREthereumEWM ewm,
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet) {
-    return walletGetToken(wallet);
+    return walletGetToken(wallet); // constant
 }
 
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet) {
-    return walletGetBalance(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumAmount balance = walletGetBalance(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return balance;
 }
 
 
@@ -1683,21 +1508,30 @@ extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         BREthereumTransfer transfer) {
-    return transferGetGasEstimate(transfer);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGas gas = transferGetGasEstimate(transfer);
+    pthread_mutex_unlock(&ewm->lock);
+    return gas;
 
 }
 
 extern BREthereumGas
 ewmWalletGetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet) {
-    return walletGetDefaultGasLimit(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGas gas = walletGetDefaultGasLimit(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return gas;
 }
 
 extern void
 ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGas gasLimit) {
+    pthread_mutex_lock(&ewm->lock);
     walletSetDefaultGasLimit(wallet, gasLimit);
+    pthread_mutex_unlock(&ewm->lock);
+
     ewmSignalWalletEvent(ewm,
                          wallet,
                          (BREthereumWalletEvent) {
@@ -1709,14 +1543,20 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
 extern BREthereumGasPrice
 ewmWalletGetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet) {
-    return walletGetDefaultGasPrice(wallet);
+    pthread_mutex_lock(&ewm->lock);
+    BREthereumGasPrice price = walletGetDefaultGasPrice(wallet);
+    pthread_mutex_unlock(&ewm->lock);
+    return price;
 }
 
 extern void
 ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice) {
+    pthread_mutex_lock(&ewm->lock);
     walletSetDefaultGasPrice(wallet, gasPrice);
+    pthread_mutex_unlock(&ewm->lock);
+
     ewmSignalWalletEvent(ewm,
                          wallet,
                          (BREthereumWalletEvent) {
@@ -1739,8 +1579,6 @@ extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
                    BREthereumGasPrice gasPrice) {
-    pthread_mutex_lock(&ewm->lock);
-
     walletSetDefaultGasPrice(wallet, gasPrice);
 
     ewmSignalWalletEvent(ewm,
@@ -1749,11 +1587,9 @@ ewmHandleGasPrice (BREthereumEWM ewm,
                              WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                              SUCCESS
                          });
-
-    pthread_mutex_unlock(&ewm->lock);
 }
 
-
+#if defined (NEVER_DEFINED)
 /**
  * Handle a `gasEstimate` for `transaction` in `wallet`
  *
@@ -1767,8 +1603,6 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
                       BREthereumWallet wallet,
                       BREthereumTransfer transfer,
                       BREthereumGas gasEstimate) {
-    pthread_mutex_lock(&ewm->lock);
-
     transferSetGasEstimate(transfer, gasEstimate);
 
     ewmSignalTransferEvent(ewm,
@@ -1778,11 +1612,8 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
                                TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                                SUCCESS
                            });
-
-    pthread_mutex_unlock(&ewm->lock);
-
 }
-
+#endif
 // ==============================================================================================
 //
 // LES(BCS)/BRD Handlers
@@ -1834,20 +1665,14 @@ ewmHandleBlockChain (BREthereumEWM ewm,
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
-    pthread_mutex_lock(&ewm->lock);
-
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
-
     ewmHandleAnnounceNonce (ewm, accountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
     ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
-    pthread_mutex_unlock(&ewm->lock);
 }
 
 extern void
 ewmHandleBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
-    pthread_mutex_lock(&ewm->lock);
-
     BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
                                ? ewmGetWallet(ewm)
                                : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
@@ -1873,7 +1698,6 @@ ewmHandleBalance (BREthereumEWM ewm,
             free (amountAsString);
         }
     }
-    pthread_mutex_unlock(&ewm->lock);
 }
 
 static int
@@ -2320,7 +2144,7 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 //
 // Periodic Dispatcher
 //
-extern void
+static void
 ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 
@@ -2615,11 +2439,13 @@ ewmTransferFillRawData (BREthereumEWM ewm,
                         uint8_t **bytesPtr, size_t *bytesCountPtr) {
     assert (NULL != bytesCountPtr && NULL != bytesPtr);
 
+    pthread_mutex_lock (&ewm->lock);
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
     assert (NULL != transaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
+    pthread_mutex_unlock (&ewm->lock);
 
     BRRlpItem item = transactionRlpEncode(transaction,
                                           ewm->network,
@@ -2641,9 +2467,11 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                 BREthereumTransfer transfer,
                                 const char *prefix) {
     assert (walletHasTransfer(wallet, transfer));
-
+    
+    pthread_mutex_lock (&ewm->lock);
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
-
+    pthread_mutex_unlock (&ewm->lock);
+    
     return (NULL == transaction ? NULL
             : transactionGetRlpHexEncoded (transaction,
                                            ewm->network,
@@ -2651,7 +2479,7 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                             ? RLP_TYPE_TRANSACTION_SIGNED
                                             : RLP_TYPE_TRANSACTION_UNSIGNED),
                                            prefix));
-            }
+}
 
 /// MARK: - Transfer
 
@@ -2670,13 +2498,19 @@ ewmTransferGetSource (BREthereumEWM ewm,
 extern BREthereumHash
 ewmTransferGetIdentifier(BREthereumEWM ewm,
                          BREthereumTransfer transfer) {
-    return transferGetIdentifier (transfer);
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumHash identifier = transferGetIdentifier (transfer);
+    pthread_mutex_unlock (&ewm->lock);
+    return identifier;
 }
 
 extern BREthereumHash
 ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
                                          BREthereumTransfer transfer) {
-    return transferGetOriginatingTransactionHash(transfer);
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumHash hash = transferGetOriginatingTransactionHash(transfer);
+    pthread_mutex_unlock (&ewm->lock);
+    return hash;
 }
 
 extern char *
@@ -2718,10 +2552,19 @@ ewmTransferGetGasLimit(BREthereumEWM ewm,
     return feeBasisGetGasLimit(transferGetFeeBasis(transfer));
 }
 
+extern BREthereumFeeBasis
+ewmTransferGetFeeBasis (BREthereumEWM ewm,
+                        BREthereumTransfer transfer) {
+    return transferGetFeeBasis (transfer);
+}
+
 extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer) {
-    return transferGetNonce(transfer);
+    pthread_mutex_lock (&ewm->lock);
+    uint64_t nonce = transferGetNonce(transfer);
+    pthread_mutex_unlock (&ewm->lock);
+    return nonce;
 }
 
 extern BREthereumBoolean
@@ -2732,12 +2575,16 @@ ewmTransferExtractStatusIncluded (BREthereumEWM ewm,
                                   uint64_t *blockTransactionIndex,
                                   uint64_t *blockTimestamp,
                                   BREthereumGas *gasUsed) {
-    return AS_ETHEREUM_BOOLEAN (transferExtractStatusIncluded (transfer,
-                                                               blockHash,
-                                                               blockNumber,
-                                                               blockTransactionIndex,
-                                                               blockTimestamp,
-                                                               gasUsed));
+    pthread_mutex_lock (&ewm->lock);
+    int included = transferExtractStatusIncluded (transfer,
+                                                  blockHash,
+                                                  blockNumber,
+                                                  blockTransactionIndex,
+                                                  blockTimestamp,
+                                                  gasUsed);
+    pthread_mutex_unlock (&ewm->lock);
+
+    return AS_ETHEREUM_BOOLEAN (included);
 }
 
 extern BREthereumHash
@@ -2810,31 +2657,35 @@ ewmTransferIsConfirmed(BREthereumEWM ewm,
 extern BREthereumBoolean
 ewmTransferIsSubmitted(BREthereumEWM ewm,
                        BREthereumTransfer transfer) {
-    return AS_ETHEREUM_BOOLEAN(ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatus(transfer, TRANSFER_STATUS_SUBMITTED)) ||
-                               ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusOrTwo(transfer,
-                                                                               TRANSFER_STATUS_INCLUDED,
-                                                                               TRANSFER_STATUS_ERRORED)));
+    return AS_ETHEREUM_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_SUBMITTED)) ||
+                                ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusOrTwo (transfer,
+                                                                                  TRANSFER_STATUS_INCLUDED,
+                                                                                  TRANSFER_STATUS_ERRORED)));
 }
 
 extern char *
 ewmTransferStatusGetError (BREthereumEWM ewm,
                            BREthereumTransfer transfer) {
-    if (TRANSFER_STATUS_ERRORED == transferGetStatus(transfer)) {
-        char *reason;
+    char *reason = NULL;
+
+    pthread_mutex_lock (&ewm->lock);
+    if (TRANSFER_STATUS_ERRORED == transferGetStatus(transfer))
         transferExtractStatusError (transfer, &reason);
-        return reason;
-    }
-    else return NULL;
+    pthread_mutex_unlock (&ewm->lock);
+
+    return reason;
 }
 
 extern int
 ewmTransferStatusGetErrorType (BREthereumEWM ewm,
                                BREthereumTransfer transfer) {
-    BREthereumTransactionErrorType type;
+    BREthereumTransactionErrorType type = (BREthereumTransactionErrorType) -1;
 
-    return (transferExtractStatusErrorType (transfer, &type)
-            ? type
-            : (int ) -1);
+    pthread_mutex_lock (&ewm->lock);
+    transferExtractStatusErrorType (transfer, &type);
+    pthread_mutex_unlock (&ewm->lock);
+
+    return type;
 }
 
 extern BREthereumBoolean
@@ -2859,7 +2710,12 @@ ewmTransferGetFee(BREthereumEWM ewm,
                   BREthereumTransfer transfer,
                   int *overflow) {
     assert (NULL != transfer);
-    return transferGetFee(transfer, overflow);
+
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumEther fee = transferGetFee(transfer, overflow);
+    pthread_mutex_unlock (&ewm->lock);
+
+    return fee;
 }
 
 /// MARK: - Amount
@@ -2921,6 +2777,7 @@ ewmTransferDelete (BREthereumEWM ewm,
     if (NULL == transfer) return;
 
     // Remove from any (and all - should be but one) wallet
+    pthread_mutex_lock (&ewm->lock);
     for (int wid = 0; wid < array_count(ewm->wallets); wid++) {
         BREthereumWallet wallet = ewm->wallets[wid];
         if (walletHasTransfer(wallet, transfer)) {
@@ -2933,6 +2790,7 @@ ewmTransferDelete (BREthereumEWM ewm,
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     transferRelease(transfer);
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 extern BREthereumToken

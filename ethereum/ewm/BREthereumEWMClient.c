@@ -64,10 +64,9 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
                           BREthereumWallet wallet,
                           UInt256 value,
                           int rid) {
-    BREthereumAmount amount =
-    (AMOUNT_ETHER == walletGetAmountType(wallet)
-     ? amountCreateEther(etherCreate(value))
-     : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+    BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
+                               ? amountCreateEther(etherCreate(value))
+                               : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
 
     ewmSignalBalance(ewm, amount);
 }
@@ -136,10 +135,12 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
             case SYNC_MODE_BRD_WITH_P2P_SEND: {
+                pthread_mutex_lock (&ewm->lock);
                 ewm->client.funcGetGasPrice (ewm->client.context,
                                              ewm,
                                              wallet,
                                              ++ewm->requestId);
+                pthread_mutex_unlock (&ewm->lock);
                 break;
             }
 
@@ -194,6 +195,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
             case SYNC_MODE_BRD_WITH_P2P_SEND: {
+                pthread_mutex_lock (&ewm->lock);
+
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
                 BREthereumFeeBasis feeBasis = transferGetFeeBasis (transfer);
@@ -216,6 +219,7 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                                              price,
                                              data,
                                              ++ewm->requestId);
+                pthread_mutex_unlock (&ewm->lock);
 
                 free (from);
                 free (to);
@@ -310,8 +314,8 @@ ewmHandlGasEstimateFailure (BREthereumEWM ewm,
  */
 extern void
 ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
-                                    uint64_t blockNumber,
-                                    int rid) {
+                              uint64_t blockNumber,
+                              int rid) {
     ewmUpdateBlockHeight(ewm, blockNumber);
 }
 
@@ -353,6 +357,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
                         BREthereumAddress address,
                         uint64_t newNonce,
                         int rid) {
+    pthread_mutex_lock (&ewm->lock);
     uint64_t oldNonce = accountGetAddressNonce (ewm->account, address);
     if (oldNonce != newNonce) {
         // This may not change the nonce
@@ -361,6 +366,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
         if (oldNonce != accountGetAddressNonce (ewm->account, address))
             ewmHandleSaveWallet (ewm, ewmGetWallet(ewm), CLIENT_CHANGE_UPD);
     }
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 // ==============================================================================================
@@ -606,10 +612,10 @@ ewmAnnounceLogComplete (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ewmAnnounceBlocks (BREthereumEWM ewm,
-                              int id,
-                              // const char *strBlockHash,
-                              int blockNumbersCount,
-                              uint64_t *blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
+                   int id,
+                   // const char *strBlockHash,
+                   int blockNumbersCount,
+                   uint64_t *blockNumbers) {
     assert (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode);
 
     // into bcs...
@@ -620,7 +626,6 @@ ewmAnnounceBlocks (BREthereumEWM ewm,
 
     return SUCCESS;
 }
-
 
 // ==============================================================================================
 //
@@ -643,6 +648,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
     // assert: wallet-has-transfer
     // assert: signed
     // assert: originatingTransaction
+    pthread_mutex_lock (&ewm->lock);
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     BREthereumBoolean isSigned = transactionIsSigned (transaction);
@@ -678,6 +684,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
             bcsSendTransaction(ewm->bcs, transaction);
             break;
     }
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 extern void
@@ -735,7 +742,7 @@ ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
         BREthereumHash hash = hashCreate(strHash);
         // We announce a submitted transfer => there is an originating transaction.
         if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))
-            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, transferGetOriginatingTransactionHash (transfer))))
+            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, ewmTransferGetOriginatingTransactionHash (ewm, transfer))))
             return ERROR_TRANSACTION_HASH_MISMATCH;
     }
 
@@ -766,14 +773,14 @@ ewmUpdateTokens (BREthereumEWM ewm) {
                           18,
                           NULL,
                           NULL);
-        ewmAnnounceToken(ewm, rid,
-                         "0x722dd3f80bac40c951b51bdd28dd19d435762180",
-                         "TST",
-                         "Test Standard Token",
-                         "TeST Standard Token (TST) for TeSTing (TST)",
-                         18,
-                         NULL,
-                         NULL);
+        ewmAnnounceToken (ewm, rid,
+                          "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                          "TST",
+                          "Test Standard Token",
+                          "TeST Standard Token (TST) for TeSTing (TST)",
+                          18,
+                          NULL,
+                          NULL);
         ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
     }
 
@@ -980,227 +987,3 @@ ewmHandleEWMEvent(BREthereumEWM ewm,
                               ewm,
                               event);
 }
-
-
-
-#if 0 // Transaction
-BREthereumTransactionId tid = -1;
-BREthereumAddress primaryAddress = accountGetPrimaryAddress(ewm->account);
-
-assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(primaryAddress, bundle->from))
-        || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(primaryAddress, bundle->to)));
-
-// primaryAddress is either the transaction's `source` or `target`.
-BREthereumBoolean isSource = addressEqual(primaryAddress, bundle->from);
-
-BREthereumWalletId wid = ewmGetWallet(ewm);
-BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-
-BREthereumBlock block = ewmLookupBlockByHash(ewm, bundle->blockHash);
-block = blockCreateMinimal(bundle->blockHash, bundle->blockNumber, bundle->blockTimestamp);
-ewmSignalBlockEvent(ewm, ewmInsertBlock(ewm, block),
-                          BLOCK_EVENT_CREATED,
-                          SUCCESS, NULL);
-
-// Look for a pre-existing transaction
-BREthereumTransaction transaction = walletGetTransactionByHash(wallet, bundle->hash);
-
-// If we did not have a transaction for 'hash' it might be (might likely be) a newly submitted
-// transaction that we are holding but that doesn't have a hash yet.  This will *only* apply
-// if we are the source.
-if (NULL == transaction && ETHEREUM_BOOLEAN_IS_TRUE(isSource))
-transaction = walletGetTransactionByNonce(wallet, primaryAddress, bundle->nonce);
-
-// If we still don't have a transaction (with 'hash' or 'nonce'); then create one.
-if (NULL == transaction) {
-    BREthereumAddress sourceAddr = (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? primaryAddress : bundle->from);
-    BREthereumAddress targetAddr = (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? bundle->to : primaryAddress);
-
-    // Get the amount; this will be '0' if this is a token transfer
-    BREthereumAmount amount = amountCreateEther(etherCreate(bundle->amount));
-
-    // Easily extract the gasPrice and gasLimit.
-    BREthereumGasPrice gasPrice = gasPriceCreate(etherCreate(bundle->gasPrice));
-
-    BREthereumGas gasLimit = gasCreate(bundle->gasLimit);
-
-    // Finally, get ourselves a transaction.
-    transaction = transactionCreate(sourceAddr,
-                                    targetAddr,
-                                    amount,
-                                    gasPrice,
-                                    gasLimit,
-                                    bundle->nonce);
-    // With a new transaction:
-    //
-    //   a) add to the ewm
-    tid = ewmInsertTransaction(ewm, transaction);
-    //
-    //  b) add to the wallet
-    walletHandleTransaction(wallet, transaction);
-    //
-    //  c) announce the wallet update
-    ewmSignalTransactionEvent(ewm, wid, tid,
-                                    TRANSACTION_EVENT_CREATED,
-                                    SUCCESS, NULL);
-    //
-    //  d) announce as submitted (=> there is a hash, submitted by 'us' or 'them')
-    walletTransactionSubmitted(wallet, transaction, bundle->hash);
-
-}
-
-if (-1 == tid)
-tid = ewmLookupTransactionId(ewm, transaction);
-
-BREthereumGas gasUsed = gasCreate(bundle->gasUsed);
-// TODO: Process 'state' properly - errors?
-
-// Get the current status.
-BREthereumTransactionStatus status = transactionGetStatus(transaction);
-
-// Update the status as blocked
-if (TRANSACTION_STATUS_INCLUDED != status.type)
-walletTransactionIncluded(wallet, transaction, gasUsed,
-                          blockGetHash(block),
-                          blockGetNumber(block),
-                          bundle->blockTransactionIndex);
-
-// Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
-ewmSignalTransactionEvent(ewm, wid, tid,
-                                (TRANSACTION_STATUS_INCLUDED == status.type
-                                 ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                 : TRANSACTION_EVENT_BLOCKED),
-                                SUCCESS,
-                                NULL);
-#endif
-
-
-#if 0 // Log
-BREthereumTransactionId tid = -1;
-
-pthread_mutex_lock(&ewm->lock);
-
-// Token of interest
-BREthereumToken token = tokenLookupByAddress(bundle->contract);
-if (NULL == token) { pthread_mutex_unlock(&ewm->lock); return; } // uninteresting token
-
-// Event of interest
-BREthereumContractEvent event = contractLookupEventForTopic (contractERC20, bundle->arrayTopics[0]);
-if (NULL == event || event != eventERC20Transfer) { pthread_mutex_unlock(&ewm->lock); return; }; // uninteresting event
-
-BREthereumBlock block = NULL;
-//    BREthereumBlock block = ewmLookupBlockByHash(ewm, bundle->blockHash);
-//    block = blockCreateMinimal(bundle->blockHash, bundle->blockNumber, bundle->blockTimestamp);
-//    ewmSignalBlockEvent(ewm, ewmInsertBlock(ewm, block),
-//                                BLOCK_EVENT_CREATED,
-//                                SUCCESS, NULL);
-
-// Wallet for token
-BREthereumWalletId wid = (NULL == token
-                          ? ewmGetWallet(ewm)
-                          : ewmGetWalletHoldingToken(ewm, token));
-BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-
-// Existing transaction
-BREthereumTransaction transaction = walletGetTransactionByHash(wallet, bundle->hash);
-
-BREthereumGasPrice gasPrice = gasPriceCreate(etherCreate(bundle->gasPrice));
-BREthereumGas gasUsed = gasCreate(bundle->gasUsed);
-
-
-// Create a token transaction
-if (NULL == transaction) {
-
-    // Parse the topic data - we fake it becasue we 'know' topics indices
-    BREthereumAddress sourceAddr =
-    addressCreate(eventERC20TransferDecodeAddress(event, bundle->arrayTopics[1]));
-
-    BREthereumAddress targetAddr =
-    addressCreate(eventERC20TransferDecodeAddress(event, bundle->arrayTopics[2]));
-
-    BRCoreParseStatus status = CORE_PARSE_OK;
-
-    BREthereumAmount amount =
-    amountCreateToken(createTokenQuantity(token, eventERC20TransferDecodeUInt256(event,
-                                                                                 bundle->data,
-                                                                                 &status)));
-
-    transaction = transactionCreate(sourceAddr, targetAddr, amount, gasPrice, gasUsed, 0);
-
-    // With a new transaction:
-    //
-    //   a) add to the ewm
-    tid = ewmInsertTransaction(ewm, transaction);
-    //
-    //  b) add to the wallet
-    walletHandleTransaction(wallet, transaction);
-    //
-    //  c) announce the wallet update
-    ewmSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_CREATED, SUCCESS, NULL);
-
-    //
-    //  d) announce as submitted.
-    walletTransactionSubmitted(wallet, transaction, bundle->hash);
-
-}
-
-if (-1 == tid)
-tid = ewmLookupTransactionId(ewm, transaction);
-
-// TODO: Process 'state' properly - errors?
-
-// Get the current status.
-BREthereumTransactionStatus status = transactionGetStatus(transaction);
-
-// Update the status as blocked
-if (TRANSACTION_STATUS_INCLUDED != status.type)
-walletTransactionIncluded(wallet, transaction, gasUsed,
-                          blockGetHash(block),
-                          blockGetNumber(block),
-                          bundle->blockTransactionIndex);
-
-// Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
-ewmSignalTransactionEvent(ewm, wid, tid,
-                                (TRANSACTION_STATUS_INCLUDED == status.type
-                                 ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                 : TRANSACTION_EVENT_BLOCKED),
-                                SUCCESS,
-                                NULL);
-
-// Hmmmm...
-pthread_mutex_unlock(&ewm->lock);
-#endif
-
-
-#if 0 // token
-static int
-ewmDataIsEmpty (BREthereumEWM ewm, const char *data) {
-    return NULL == data || 0 == strcmp ("", data) || 0 == strcmp ("0x", data);
-}
-
-// If `data` is anything besides "0x", then we have a contract function call.  At that point
-// it seems we need to process `data` to extract the 'function + args' and then, if the
-// function is 'transfer() token' we can then and only then conclude that we have a token
-
-if (ewmDataIsEmpty(ewm, data)) return NULL;
-
-// There is contract data; see if it is a ERC20 function.
-BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, data);
-
-// Not an ERC20 token
-if (NULL == function) return NULL;
-
-// See if we have an existing token.
-BREthereumToken token = tokenLookup(target);
-if (NULL == token) token = tokenLookup(contract);
-
-// We found a token...
-if (NULL != token) return token;
-
-// ... we didn't find a token - we should create is dynamically.
-fprintf (stderr, "Ignoring transaction for unknown ERC20 token at '%s'", target);
-return NULL;
-#endif
-
-
-
