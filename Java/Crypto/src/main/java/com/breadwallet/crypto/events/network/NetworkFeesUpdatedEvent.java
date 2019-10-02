@@ -1,5 +1,5 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 10/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
 *
  * See the LICENSE file at the project root for license information.
@@ -7,9 +7,10 @@
  */
 package com.breadwallet.crypto.events.network;
 
-public interface NetworkEventVisitor<T> {
+public final class NetworkFeesUpdatedEvent implements NetworkEvent {
 
-    T visit(NetworkCreatedEvent event);
-
-    T visit(NetworkFeesUpdatedEvent event);
+    @Override
+    public <T> T accept(NetworkEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

@@ -73,6 +73,7 @@ final class Network implements com.breadwallet.crypto.Network {
             }
         }
 
+        checkState(!fees.isEmpty());
         for (NetworkFee fee: fees) {
             core.addFee(fee.getCoreBRCryptoNetworkFee());
         }
@@ -107,8 +108,8 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Boolean isMainnet;
     private final Currency currency;
     private final Set<Currency> currencies;
-    private final List<NetworkFee> fees;
-    private NetworkFee minimumFee;
+
+    private List<NetworkFee> fees;
 
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
@@ -127,15 +128,8 @@ final class Network implements com.breadwallet.crypto.Network {
         fees = new ArrayList<>();
         count = core.getFeeCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            NetworkFee fee = NetworkFee.create(core.getFee(i));
-            if (minimumFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minimumFee.getConfirmationTimeInMilliseconds()) > 0) {
-                minimumFee = fee;
-            }
-            fees.add(fee);
+            fees.add(NetworkFee.create(core.getFee(i)));
         }
-
-        checkState(!fees.isEmpty());
-        checkState(minimumFee != null);
     }
 
     @Override
@@ -201,11 +195,17 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public List<? extends NetworkFee> getFees() {
-        return fees;
+        return new ArrayList<>(fees);
     }
 
     @Override
     public NetworkFee getMinimumFee() {
+        NetworkFee minimumFee = null;
+        for (NetworkFee fee: getFees()) {
+            if (minimumFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minimumFee.getConfirmationTimeInMilliseconds()) > 0) {
+                minimumFee = fee;
+            }
+        }
         return minimumFee;
     }
 
@@ -290,6 +290,12 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     void setHeight(UnsignedLong height) {
         core.setHeight(height);
+    }
+
+    /* package */
+    void setFees(List<NetworkFee> fees) {
+        checkState(!fees.isEmpty());
+        this.fees = new ArrayList<>(fees);
     }
 
     /* package */
