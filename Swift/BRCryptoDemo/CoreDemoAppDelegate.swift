@@ -214,6 +214,12 @@ extension UIApplication {
         app.system.managers.forEach { $0.sync() }
     }
 
+    static func doUpdateFees() {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        print ("APP: Updating fees")
+        app.system.updateNetworkFees()
+    }
+
     static func doSleep () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
         print ("APP: Disconnecting")

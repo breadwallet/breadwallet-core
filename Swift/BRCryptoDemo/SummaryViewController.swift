@@ -112,6 +112,11 @@ class SummaryViewController: UITableViewController, WalletListener {
             alert.dismiss(animated: true) {}
         })
 
+        alert.addAction (UIAlertAction (title: "Update Fees", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.doUpdateFees()
+            alert.dismiss(animated: true) {}
+        })
+
         alert.addAction(UIAlertAction (title: "Show Wallet Managers", style: UIAlertAction.Style.default) { (action) in
             self.showManagersButton.sendActions (for: .touchUpInside)
             alert.dismiss(animated: true) {}

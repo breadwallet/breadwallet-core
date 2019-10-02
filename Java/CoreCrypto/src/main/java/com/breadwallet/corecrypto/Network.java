@@ -11,6 +11,7 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
+import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
@@ -109,8 +110,6 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Currency currency;
     private final Set<Currency> currencies;
 
-    private List<NetworkFee> fees;
-
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
 
@@ -123,12 +122,6 @@ final class Network implements com.breadwallet.crypto.Network {
         UnsignedLong count = core.getCurrencyCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             currencies.add(Currency.create(core.getCurrency(i)));
-        }
-
-        fees = new ArrayList<>();
-        count = core.getFeeCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            fees.add(NetworkFee.create(core.getFee(i)));
         }
     }
 
@@ -195,7 +188,11 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public List<? extends NetworkFee> getFees() {
-        return new ArrayList<>(fees);
+        List<NetworkFee> fees = new ArrayList<>();
+        for (CoreBRCryptoNetworkFee fee: core.getFees()) {
+            fees.add(NetworkFee.create(fee));
+        }
+        return fees;
     }
 
     @Override
@@ -295,7 +292,11 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     void setFees(List<NetworkFee> fees) {
         checkState(!fees.isEmpty());
-        this.fees = new ArrayList<>(fees);
+        List<CoreBRCryptoNetworkFee> cryptoFees = new ArrayList<>(fees.size());
+        for (NetworkFee fee: fees) {
+            cryptoFees.add(fee.getCoreBRCryptoNetworkFee());
+        }
+        core.setFees(cryptoFees);
     }
 
     /* package */

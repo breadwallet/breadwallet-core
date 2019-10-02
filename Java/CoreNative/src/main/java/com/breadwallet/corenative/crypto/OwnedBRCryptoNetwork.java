@@ -12,6 +12,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
+import java.util.List;
 import java.util.Objects;
 
 /* package */
@@ -58,13 +59,13 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public UnsignedLong getFeeCount() {
-        return core.getFeeCount();
+    public List<CoreBRCryptoNetworkFee> getFees() {
+        return core.getFees();
     }
 
     @Override
-    public CoreBRCryptoNetworkFee getFee(UnsignedLong i) {
-        return core.getFee(i);
+    public void setFees(List<CoreBRCryptoNetworkFee> fees) {
+        core.setFees(fees);
     }
 
     @Override

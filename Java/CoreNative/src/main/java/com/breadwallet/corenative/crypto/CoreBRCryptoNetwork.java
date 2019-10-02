@@ -13,6 +13,8 @@ import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
+import java.util.List;
+
 public interface CoreBRCryptoNetwork {
 
     static CoreBRCryptoNetwork createAsBtc(String uids, String name, boolean isMainnet) {
@@ -57,9 +59,9 @@ public interface CoreBRCryptoNetwork {
 
     CoreBRCryptoCurrency getCurrency(UnsignedLong index);
 
-    UnsignedLong getFeeCount();
+    List<CoreBRCryptoNetworkFee> getFees();
 
-    CoreBRCryptoNetworkFee getFee(UnsignedLong i);
+    void setFees(List<CoreBRCryptoNetworkFee> fees);
 
     String getUids();
 

@@ -150,8 +150,8 @@ public interface CryptoLibrary extends Library {
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
-    SizeT cryptoNetworkGetNetworkFeeCount(BRCryptoNetwork network);
-    BRCryptoNetworkFee cryptoNetworkGetNetworkFeeAt(BRCryptoNetwork network, SizeT index);
+    void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
+    Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
     BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
