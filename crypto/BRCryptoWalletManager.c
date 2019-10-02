@@ -279,6 +279,10 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
+    // Ensure CWM is stopped...
+    cryptoWalletManagerStop (cwm);
+
+    // ... then release memory.
     cryptoAccountGive (cwm->account);
     cryptoNetworkGive (cwm->network);
     if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
@@ -289,7 +293,6 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            BRWalletManagerStop (cwm->u.btc);
             BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
@@ -306,6 +309,21 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     memset (cwm, 0, sizeof(*cwm));
     free (cwm);
+}
+
+private_extern void
+cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerStop (cwm->u.btc);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmStop (cwm->u.eth);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            gwmStop (cwm->u.gen);
+            break;
+    }
 }
 
 extern BRCryptoNetwork

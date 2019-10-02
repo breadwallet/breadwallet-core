@@ -73,6 +73,8 @@ public interface CoreBRCryptoWalletManager {
 
     void sync();
 
+    void stop();
+
     void syncToDepth(BRSyncDepth depth);
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);

@@ -13,8 +13,8 @@ import Foundation
 import BRCryptoC
 
 public protocol Cipher {
-    func encrypt (data: Data) -> Data
-    func decrypt (data: Data) -> Data
+    func encrypt (data: Data) -> Data?
+    func decrypt (data: Data) -> Data?
 }
 
 public final class CoreCipher: Cipher {
@@ -58,43 +58,43 @@ public final class CoreCipher: Cipher {
         self.core = core
     }
 
-    public func encrypt (data source: Data) -> Data {
-        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
+    public func encrypt (data source: Data) -> Data? {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data? in
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let sourceCount = sourceBytes.count
 
             let targetCount = cryptoCipherEncryptLength(self.core, sourceAddr, sourceCount)
-            precondition (targetCount != 0)
+            guard targetCount != 0 else { return nil }
 
+            var result = CRYPTO_FALSE
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
-                let result = cryptoCipherEncrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
-                precondition(result == CRYPTO_TRUE)
+                result = cryptoCipherEncrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
 
-    public func decrypt (data source: Data) -> Data {
-        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
+    public func decrypt (data source: Data) -> Data? {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data? in
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
             let sourceCount = sourceBytes.count
 
             let targetCount = cryptoCipherDecryptLength(self.core, sourceAddr, sourceCount)
-            precondition (targetCount != 0)
+            guard targetCount != 0 else { return nil }
 
+            var result = CRYPTO_FALSE
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
-                let result = cryptoCipherDecrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
-                precondition(result == CRYPTO_TRUE)
+                result = cryptoCipherDecrypt (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
 }

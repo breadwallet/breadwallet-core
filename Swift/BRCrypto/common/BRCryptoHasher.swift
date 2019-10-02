@@ -13,7 +13,7 @@ import Foundation // for Data
 import BRCryptoC
 
 public protocol HasherX {
-    func hash (data: Data) -> Data
+    func hash (data: Data) -> Data?
 }
 
 public final class CoreHasher: HasherX {
@@ -71,23 +71,23 @@ public final class CoreHasher: HasherX {
         self.core = core
     }
 
-    public func hash (data source: Data) -> Data {
-        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data in
+    public func hash (data source: Data) -> Data? {
+        return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data? in
             let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let sourceCount = sourceBytes.count
 
             let targetCount = cryptoHasherLength(self.core)
-            precondition (targetCount != 0)
+            guard targetCount != 0 else { return nil }
 
+            var result = CRYPTO_FALSE
             var target = Data (count: targetCount)
             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
-                let result = cryptoHasherHash (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
-                precondition(result == CRYPTO_TRUE)
+                result = cryptoHasherHash (self.core, targetAddr, targetCount, sourceAddr, sourceCount)
             }
 
-            return target
+            return result == CRYPTO_TRUE ? target : nil
         }
     }
  }

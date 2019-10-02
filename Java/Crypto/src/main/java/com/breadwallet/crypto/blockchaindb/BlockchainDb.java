@@ -107,7 +107,7 @@ public class BlockchainDb {
         this.ethBlockApi = new EthBlockApi(brdClient);
         this.ethGasApi = new EthGasApi(brdClient);
         this.ethTokenApi = new EthTokenApi(brdClient);
-        this.ethTransferApi = new EthTransferApi(brdClient, executorService);
+        this.ethTransferApi = new EthTransferApi(brdClient);
     }
 
     public static BlockchainDb createForTest (OkHttpClient client,

@@ -129,14 +129,18 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
         for (size_t index = 0; index < inputsCount; index++) {
             size_t addressSize = BRTxInputAddress (&inputs[index], NULL, 0, addressParams);
-            char address [addressSize];
 
-            BRTxInputAddress (&inputs[index], address, addressSize, addressParams);
+            // ensure address fits in a BRAddress struct, which adds a nul-terminator
+            assert (addressSize < sizeof (BRAddress));
+            if (0 != addressSize && addressSize < sizeof (BRAddress)) {
+                char address [addressSize + 1];
+                BRTxInputAddress (&inputs[index], address, addressSize, addressParams);
+                address [addressSize] = '\0'; // ensure address is nul-terminated
 
-            if (inputsContain == BRWalletContainsAddress(wid, address)) {
-                assert (addressSize < sizeof (BRAddress));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
-                break;
+                if (inputsContain == BRWalletContainsAddress(wid, address)) {
+                    transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
+                    break;
+                }
             }
         }
     }
@@ -149,17 +153,21 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
         for (size_t index = 0; index < outputsCount; index++) {
             size_t addressSize = BRTxOutputAddress (&outputs[index], NULL, 0, addressParams);
-            char address [addressSize];
 
-            BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
+            // ensure address fits in a BRAddress struct, which adds a nul-terminator
+            assert (addressSize < sizeof (BRAddress));
+            if (0 != addressSize && addressSize < sizeof (BRAddress)) {
+                // There will be no targetAddress if we send the amount to ourselves.  In that
+                // case `outputsContain = 0` and every output is our own address and thus 1 is always
+                // returned by `BRWalletContainsAddress()`
+                char address [addressSize + 1];
+                BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
+                address [addressSize] = '\0'; // ensure address is nul-terminated
 
-            // There will be no targetAddress if we send the amount to ourselves.  In that
-            // case `outputsContain = 0` and every output is our own address and thus 1 is always
-            // returned by `BRWalletContainsAddress()`
-            if (outputsContain == BRWalletContainsAddress(wid, address)) {
-                assert (addressSize < sizeof (BRAddress));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
-                break;
+                if (outputsContain == BRWalletContainsAddress(wid, address)) {
+                    transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
+                    break;
+                }
             }
         }
     }
@@ -533,7 +541,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             int accountIsTarget = gwmAddressEqual (gwm, target, address);
 
             // TODO: BRGenericAddress - release source, target, address
-            
+
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
             else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;

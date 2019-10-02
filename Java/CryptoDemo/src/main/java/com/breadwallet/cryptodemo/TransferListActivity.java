@@ -61,8 +61,6 @@ import java.util.Objects;
 
 public class TransferListActivity extends AppCompatActivity {
 
-    private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
-
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
 
     public static void start(Activity callerActivity, Wallet wallet) {
@@ -385,7 +383,8 @@ public class TransferListActivity extends AppCompatActivity {
             TransferViewModel transfer = viewModels.get(i);
 
             String dateText = transfer.getConfirmation()
-                    .transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
+                    .transform((c) -> DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG).format(c.getConfirmationTime()))
+                    .or("<pending>");
 
             String addressText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
             addressText = String.format("Hash: %s", addressText);

@@ -181,6 +181,10 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         cryptoWalletManagerDisconnect (core)
     }
 
+    internal func stop () {
+        cryptoWalletManagerStop (core);
+    }
+    
     public func sync () {
         cryptoWalletManagerSync (core)
     }

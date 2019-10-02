@@ -50,15 +50,6 @@ public class BRCryptoCWMListener extends Structure {
         super(peer);
     }
 
-    public ByReference toByReference() {
-        ByReference other = new ByReference();
-        other.context = this.context;
-        other.walletManagerEventCallback = this.walletManagerEventCallback;
-        other.walletEventCallback = this.walletEventCallback;
-        other.transferEventCallback = this.transferEventCallback;
-        return other;
-    }
-
     public ByValue toByValue() {
         ByValue other = new ByValue();
         other.context = this.context;

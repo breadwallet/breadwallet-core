@@ -601,25 +601,6 @@ ewmAnnounceLogComplete (BREthereumEWM ewm,
 
 // ==============================================================================================
 //
-// Announce {Transactions, Logs} Complete
-//
-extern void
-ewmHandleAnnounceComplete (BREthereumEWM ewm,
-                           BREthereumBoolean isTransaction,
-                           BREthereumBoolean success,
-                           int rid) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE(isTransaction)) {
-        if (rid == ewm->brdSync.ridTransaction)
-            ewm->brdSync.completedTransaction = ETHEREUM_BOOLEAN_IS_TRUE(success);
-    }
-    else {
-        if (rid == ewm->brdSync.ridLog)
-            ewm->brdSync.completedLog = ETHEREUM_BOOLEAN_IS_TRUE(success);
-    }
-}
-
-// ==============================================================================================
-//
 // Blocks
 //
 

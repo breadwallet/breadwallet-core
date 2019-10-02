@@ -139,6 +139,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void stop() {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerStop(this);
+    }
+
+    @Override
     public void syncToDepth(BRSyncDepth depth) {
         CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toNative());
     }

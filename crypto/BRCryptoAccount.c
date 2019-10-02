@@ -363,6 +363,7 @@ cryptoAccountGetFileSystemIdentifier (BRCryptoAccount account) {
     // Double SHA the serialization
     UInt256 hash;
     BRSHA256_2(&hash, mpkBytes, mpkSize);
+    free (mpkBytes);
 
     // Take the first 32 characters.
     return strndup(u256hex(hash), 32);

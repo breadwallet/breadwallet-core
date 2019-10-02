@@ -1,7 +1,7 @@
 /*
  * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
-*
+ *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -13,6 +13,7 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -73,6 +74,16 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
                                                     String path,
                                                     BlockchainDb query) {
             return System.create(executor, listener, account, isMainnet, path, query);
+        }
+
+        @Override
+        public void wipe(com.breadwallet.crypto.System system) {
+            System.wipe(system);
+        }
+
+        @Override
+        public void wipeAll(String path, List<com.breadwallet.crypto.System> exemptSystems) {
+            System.wipeAll(path, exemptSystems);
         }
     };
 

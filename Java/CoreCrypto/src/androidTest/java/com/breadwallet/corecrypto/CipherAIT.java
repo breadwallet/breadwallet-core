@@ -35,8 +35,8 @@ public class CipherAIT {
                 (byte) 0x24, (byte) 0x45, (byte) 0xdf, (byte) 0x4f, (byte) 0x9b,
                 (byte) 0x17, (byte) 0xad, (byte) 0x2b, (byte) 0x41, (byte) 0x7b,
                 (byte) 0xe6, (byte) 0x6c, (byte) 0x37, (byte) 0x10};
-        a = Cipher.createForAesEcb(k).encrypt(d);
-        assertArrayEquals(d, Cipher.createForAesEcb(k).decrypt(a));
+        a = Cipher.createForAesEcb(k).encrypt(d).get();
+        assertArrayEquals(d, Cipher.createForAesEcb(k).decrypt(a).get());
 
         // cha-cha
 
@@ -88,14 +88,14 @@ public class CipherAIT {
                 (byte) 0xe2, (byte) 0x6a, (byte) 0x7e, (byte) 0x90, (byte) 0x2e,
                 (byte) 0xcb, (byte) 0xd0, (byte) 0x60, (byte) 0x06, (byte) 0x91
         };
-        assertArrayEquals(cipher, alg.encrypt(msg));
-        assertArrayEquals(msg, alg.decrypt(cipher));
+        assertArrayEquals(cipher, alg.encrypt(msg).get());
+        assertArrayEquals(msg, alg.decrypt(cipher).get());
 
         // pigeon
 
         Key pubKey = Key.createFromPublicKeyString("02d404943960a71535a79679f1cf1df80e70597c05b05722839b38ebc8803af517".getBytes(StandardCharsets.UTF_8)).get();
         Cipher pigeon = Cipher.createForPigeon(key, pubKey, nonce12);
-        byte [] pigeonCipher = pigeon.encrypt(msg);
-        assertArrayEquals(msg, pigeon.decrypt(pigeonCipher));
+        byte [] pigeonCipher = pigeon.encrypt(msg).get();
+        assertArrayEquals(msg, pigeon.decrypt(pigeonCipher).get());
     }
 }

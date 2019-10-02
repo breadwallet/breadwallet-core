@@ -26,19 +26,17 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class EthTransferApi {
 
     private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
 
     private final BrdApiClient client;
-    private final ExecutorService executorService;
 
-    public EthTransferApi(BrdApiClient client, ExecutorService executorService) {
+    public EthTransferApi(BrdApiClient client) {
         this.client = client;
-        this.executorService = executorService;
     }
 
     public void submitTransactionAsEth(String networkName, String transaction, int rid,
@@ -109,60 +107,123 @@ public class EthTransferApi {
 
     public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
                                int rid, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
-        executorService.submit(() -> getBlocksAsEthOnExecutor(networkName, address, interests, blockStart, blockEnd,
-                rid, handler));
+        GetBlocksCoordinator coordinator = new GetBlocksCoordinator(address, interests, handler);
+
+        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, coordinator.createTxnHandler());
+        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, coordinator.createLogHandler());
     }
 
-    private void getBlocksAsEthOnExecutor(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart,
-                                          UnsignedLong blockEnd, int rid, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
-        final QueryError[] error = {null};
+    private static class GetBlocksCoordinator {
 
-        List<EthTransaction> transactions = new ArrayList<>();
-        Semaphore transactionsSema = new Semaphore(0);
-        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new CompletionHandler<List<EthTransaction>, QueryError>() {
-            @Override
-            public void handleData(List<EthTransaction> data) {
-                transactions.addAll(data);
-                transactionsSema.release();
+        private final String address;
+        private final UnsignedInteger interests;
+        private final CompletionHandler<List<UnsignedLong>, QueryError> handler;
+
+        private List<EthTransaction> transactions;
+        private List<EthLog> logs;
+        private QueryError error;
+
+        private GetBlocksCoordinator(String address, UnsignedInteger interests, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
+            this.address = address;
+            this.interests = interests;
+            this.handler = handler;
+        }
+
+        private CompletionHandler<List<EthTransaction>, QueryError> createTxnHandler() {
+            return new CompletionHandler<List<EthTransaction>, QueryError>() {
+                @Override
+                public void handleData(List<EthTransaction> data) {
+                    GetBlocksCoordinator.this.handleTxnData(data);
+                }
+
+                @Override
+                public void handleError(QueryError e) {
+                    GetBlocksCoordinator.this.handleError(e);
+                }
+            };
+        }
+
+        private CompletionHandler<List<EthLog>, QueryError> createLogHandler() {
+            return new CompletionHandler<List<EthLog>, QueryError>() {
+                @Override
+                public void handleData(List<EthLog> data) {
+                    GetBlocksCoordinator.this.handleLogData(data);
+                }
+
+                @Override
+                public void handleError(QueryError e) {
+                    GetBlocksCoordinator.this.handleError(e);
+                }
+            };
+        }
+
+        private void handleTxnData(List<EthTransaction> txns) {
+            boolean transitionToSuccess = false;
+
+            synchronized (this) {
+                checkState(!isInSuccessState());
+
+                if (!isInErrorState()) {
+                    this.transactions = txns;
+                    transitionToSuccess = isInSuccessState();
+                }
             }
 
-            @Override
-            public void handleError(QueryError e) {
-                error[0] = e;
-                transactionsSema.release();
+            if (transitionToSuccess) {
+                handleSuccess();
             }
-        });
+        }
 
-        List<EthLog> logs = new ArrayList<>();
-        Semaphore logsSema = new Semaphore(0);
-        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new CompletionHandler<List<EthLog>, QueryError>() {
-            @Override
-            public void handleData(List<EthLog> data) {
-                logs.addAll(data);
-                logsSema.release();
+        private void handleLogData(List<EthLog> logs) {
+            boolean transitionToSuccess = false;
+
+            synchronized (this) {
+                checkState(!isInSuccessState());
+
+                if (!isInErrorState()) {
+                    this.logs = logs;
+                    transitionToSuccess = isInSuccessState();
+                }
             }
 
-            @Override
-            public void handleError(QueryError e) {
-                error[0] = e;
-                logsSema.release();
+            if (transitionToSuccess) {
+                handleSuccess();
             }
-        });
+        }
 
-        transactionsSema.acquireUninterruptibly();
-        logsSema.acquireUninterruptibly();
+        private void handleError(QueryError error) {
+            boolean transitionToError = false;
 
-        if (error[0] != null) {
-            handler.handleError(error[0]);
+            synchronized (this) {
+                checkState(!isInSuccessState());
 
-        } else {
+                if (!isInErrorState()) {
+                    this.error = error;
+                    transitionToError = isInErrorState();
+                }
+            }
+
+            if (transitionToError) {
+                handleFailure(error);
+            }
+        }
+
+        private boolean isInErrorState() {
+            return error != null;
+        }
+
+        private boolean isInSuccessState() {
+            return transactions != null && logs != null;
+        }
+
+        private void handleSuccess() {
             List<UnsignedLong> numbers = new ArrayList<>();
             int interestsAsInt = interests.intValue();
 
-            for (EthTransaction transaction: transactions) {
+            for (EthTransaction transaction : transactions) {
 
-                boolean include = (0 != (interestsAsInt & (1 << 0)) && address.equals(transaction.getSourceAddr())) ||
-                        (0 != (interestsAsInt & (1 << 1)) && address.equals(transaction.getTargetAddr()));
+                boolean include = (0 != (interestsAsInt & (1 << 0)) && address.equalsIgnoreCase(transaction.getSourceAddr())) ||
+                        (0 != (interestsAsInt & (1 << 1)) && address.equalsIgnoreCase(transaction.getTargetAddr()));
                 if (include) {
                     try {
                         numbers.add(UnsignedLong.fromLongBits(UnsignedLongs.decode(transaction.getBlockNumber())));
@@ -173,11 +234,11 @@ public class EthTransferApi {
                 }
             }
 
-            for (EthLog log: logs) {
+            for (EthLog log : logs) {
                 List<String> topics = log.getTopics();
                 boolean include = topics.size() == 3 &&
-                        ((0 != (interestsAsInt & (1 << 2)) && address.equals(topics.get(1))) ||
-                                (0 != (interestsAsInt & (1 << 3)) && address.equals(topics.get(2))));
+                        ((0 != (interestsAsInt & (1 << 2)) && address.equalsIgnoreCase(topics.get(1))) ||
+                                (0 != (interestsAsInt & (1 << 3)) && address.equalsIgnoreCase(topics.get(2))));
                 if (include) {
                     try {
                         numbers.add(UnsignedLong.fromLongBits(UnsignedLongs.decode(log.getBlockNumber())));
@@ -189,6 +250,10 @@ public class EthTransferApi {
             }
 
             handler.handleData(numbers);
+        }
+
+        private void handleFailure(QueryError error) {
+            handler.handleError(error);
         }
     }
 }

@@ -365,6 +365,31 @@ public final class System {
         return managers.flatMap { $0.wallets }
     }
 
+    static func ensurePath (_ path: String) -> Bool {
+        // Apple on `fileExists`, `isWritableFile`
+        //    "The following methods are of limited utility. Attempting to predicate behavior
+        //     based on the current state of the filesystem or a particular file on the filesystem
+        //     is encouraging odd behavior in the face of filesystem race conditions. It's far
+        //     better to attempt an operation (like loading a file or creating a directory) and
+        //     handle the error gracefully than it is to try to figure out ahead of time whether
+        //     the operation will succeed."
+
+        do {
+            // Ensure that `storagePath` exists.  Seems the return value can be ignore:
+            //    "true if the directory was created, true if createIntermediates is set and the
+            //     directory already exists, or false if an error occurred."
+            // The `attributes` need not be provided as we have write permission :
+            //    "Permissions are set according to the umask of the current process"
+            try FileManager.default.createDirectory (atPath: path,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch { return false }
+
+        // Ensure `path` is writeable.
+        return FileManager.default.isWritableFile (atPath: path)
+    }
+
     ///
     /// Initialize System
     ///
@@ -384,16 +409,19 @@ public final class System {
     ///   - listenerQueue: The queue to use when performing listen event handler callbacks.  If a
     ///       queue is not specficied (default to `nil`), then one will be provided.
     ///
-    public init (listener: SystemListener,
-                 account: Account,
-                 onMainnet: Bool,
-                 path: String,
-                 query: BlockChainDB,
-                 listenerQueue: DispatchQueue? = nil) {
+    internal init (listener: SystemListener,
+                  account: Account,
+                  onMainnet: Bool,
+                  path: String,
+                  query: BlockChainDB,
+                  listenerQueue: DispatchQueue? = nil) {
+        let accounctSpecificPath = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
+        precondition (System.ensurePath(accounctSpecificPath))
+
         self.listener  = listener
         self.account   = account
         self.onMainnet = onMainnet
-        self.path  = path + (path.last == "/" ? "" : "/") + account.fileSystemIdentifier
+        self.path  = accounctSpecificPath
         self.query = query
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
@@ -512,10 +540,17 @@ public final class System {
     }
 
     ///
-    /// Stop the system.  All managers are disconnected.  Will inhibit `System` processing.
+    /// Disconnect all wallet managers
     ///
-    public func stop () {
+    public func disconnectAll () {
         managers.forEach { $0.disconnect() }
+    }
+
+    ///
+    /// Connect all wallet managers.  They will be connected w/o an explict NetworkPeer.
+    ///
+    public func connectAll () {
+        managers.forEach { $0.connect() }
     }
 
     ///
@@ -790,8 +825,8 @@ public final class System {
     /// A index to globally identify systems.
     static var systemIndex: Int32 = 0;
 
-    /// A dictionary mapping an index to a system weakly.
-    static var systemMapping: [Int32 : Weak<System>] = [:]
+    /// A dictionary mapping an index to a system.
+    static var systemMapping: [Int32 : System] = [:]
 
     ///
     /// Lookup a `System` from an `index
@@ -802,7 +837,26 @@ public final class System {
     ///
     static func systemLookup (index: Int32) -> System? {
         return systemQueue.sync {
-            return systemMapping[index]?.value
+            return systemMapping[index]
+        }
+    }
+
+    /// An array of removed systems.  This is a workaround for systems that have been destroyed.
+    /// We do not correctly handle 'release' and thus C-level memory issues are introduced; rather
+    /// than solving those memory issues now, we'll avoid 'release' by holding a reference.
+    private static var systemRemovedSystems = [System]()
+
+    /// If true, save removed system in the above array. Set to `false` for debugging 'release'.
+    private static var systemRemovedSystemsSave = true;
+
+    static func systemRemove (index: Int32) {
+        return systemQueue.sync {
+            systemMapping.removeValue(forKey: index)
+                .map {
+                    if systemRemovedSystemsSave {
+                        systemRemovedSystems.append ($0)
+                    }
+            }
         }
     }
 
@@ -817,7 +871,7 @@ public final class System {
         systemQueue.async (flags: .barrier) {
             systemIndex += 1
             system.index = systemIndex // Always 1 or more
-            systemMapping[system.index] = Weak (value: system)
+            systemMapping[system.index] = system
         }
     }
 
@@ -868,6 +922,84 @@ public final class System {
     var systemContext: BRCryptoCWMClientContext? {
         let index = Int(self.index)
         return UnsafeMutableRawPointer (bitPattern: index)
+    }
+
+    public static func create (listener: SystemListener,
+                               account: Account,
+                               onMainnet: Bool,
+                               path: String,
+                               query: BlockChainDB,
+                               listenerQueue: DispatchQueue? = nil) -> System {
+        return System (listener: listener,
+                       account: account,
+                       onMainnet: onMainnet,
+                       path: path,
+                       query: query,
+                       listenerQueue: listenerQueue)
+    }
+
+    static func destroy (system: System) {
+        // Stop all callbacks.  This might be inconsistent with 'deleted' events.
+        System.systemRemove (index: system.index)
+
+        // Disconnect all wallet managers
+        system.disconnectAll()
+
+        // Stop all the wallet managers.
+        system.managers.forEach { $0.stop() }
+    }
+
+    ///
+    /// Cease use of `system` and remove (aka 'wipe') its persistent storage.  Caution is highly
+    /// warranted; none of the System's references, be they Wallet Managers, Wallets, Transfers, etc
+    /// should be *touched* once the system is wiped.
+    ///
+    /// - Note: This function blocks until completed.  Be sure that all references are dereferenced
+    ///         *before* invoking this function and remove the reference to `system` after this
+    ///         returns.
+    ///
+    /// - Parameter system: the system to wipe
+    ///
+    public static func wipe (system: System) {
+        // Save the path to the persistent storage
+        let storagePath = system.path;
+
+        // Destroy the system.
+        destroy (system: system)
+
+        // Clear out persistent storage
+        do {
+            if FileManager.default.fileExists(atPath: storagePath) {
+                try FileManager.default.removeItem(atPath: storagePath)
+            }
+        }
+        catch let error as NSError {
+            print("Error: \(error.localizedDescription)")
+        }
+    }
+
+    ///
+    /// Remove (aka 'wipe') the persistent storage associated with any and all systems located
+    /// within `atPath` except for a specified array of systems to preserve.  Generally, this
+    /// function should be called on startup after all systems have been created.  When called at
+    ///  that time, any 'left over' systems will have their persistent storeage wiped.
+    ///
+    /// - Parameter atPath: the file system path where system data is persistently stored
+    /// - Parameter systems: the array of systems that shouldn not have their data wiped.
+    ///
+    public static func wipeAll (atPath: String, except systems: [System]) {
+        do {
+            try FileManager.default.contentsOfDirectory (atPath: atPath)
+                .map     { (path) in atPath + "/" + path }
+                .filter  { (path) in !systems.contains { path == $0.path } }
+                .forEach { (path) in
+                    do {
+                        try FileManager.default.removeItem (atPath: path)
+                    }
+                    catch {}
+            }
+        }
+        catch {}
     }
 }
 
