@@ -77,11 +77,13 @@ public interface System {
      *                   is safe to pass currencies not in "network" as they will be filtered (but bad form
      *                   to do so). The "primaryWallet", for the network's currency, is always created; if
      *                   the primaryWallet's currency is in `currencies` then it is effectively ignored.
+     *
+     * @return true on success; false on failure.
      */
-    void createWalletManager(Network network,
-                             WalletManagerMode mode,
-                             AddressScheme addressScheme,
-                             Set<Currency> currencies);
+    boolean createWalletManager(Network network,
+                                WalletManagerMode mode,
+                                AddressScheme addressScheme,
+                                Set<Currency> currencies);
 
     /**
      * Connect all wallet managers.

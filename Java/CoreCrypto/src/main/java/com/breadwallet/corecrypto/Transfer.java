@@ -127,7 +127,6 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public TransferState getState() {
-        // TODO(fix): Deal with memory management for the fee
         return Utilities.transferStateFromCrypto(core.getState());
     }
 

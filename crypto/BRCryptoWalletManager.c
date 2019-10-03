@@ -128,6 +128,10 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoAddressScheme scheme,
                            const char *path) {
 
+    // In rare cases a Wallet Manager cannot be created.  If not, we'll perform a 'goto' and, on
+    // `1 == error`, perform some cleanup actions.
+    int error = 0;
+
     // TODO: extend path... with network-type : network-name - or is that done by ewmCreate(), ...
     char *cwmPath = strdup (path);
 
@@ -156,6 +160,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network),
                                              cryptoNetworkGetConfirmationsUntilFinal (network));
+            if (NULL == cwm->u.btc) { error = 1; break ; }
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
@@ -181,6 +186,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network),
                                     cryptoNetworkGetConfirmationsUntilFinal (network));
+            if (NULL == cwm->u.eth) { error = 1; break; }
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet(cwm->u.eth));
@@ -209,7 +215,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // Create CWM as 'GEN' based on the network's base currency.
             const char *type = cryptoNetworkGetCurrencyCode (network);
 
-
             cwm->u.gen = gwmCreate (client,
                                     type,
                                     cryptoAccountAsGEN (account, type),
@@ -217,6 +222,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     cwmPath,
                                     GEN_DISPATCHER_PERIOD,
                                     cryptoNetworkGetHeight(network));
+            if (NULL == cwm->u.gen) { error = 1; break; }
 
             // ... and create the primary wallet
             cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, gwmCreatePrimaryWallet (cwm->u.gen));
@@ -269,6 +275,11 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
     }
 
+    if (error) {
+        cryptoWalletManagerGive (cwm);
+        cwm = NULL;
+    }
+
     cryptoUnitGive(unit);
     cryptoCurrencyGive(currency);
 
@@ -291,15 +302,19 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
         cryptoWalletGive (cwm->wallets[index]);
     array_free (cwm->wallets);
 
+    // Release the specific cwm type, if it exists.
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            BRWalletManagerFree (cwm->u.btc);
+            if (NULL != cwm->u.btc)
+                BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
-            ewmDestroy (cwm->u.eth);
+            if (NULL != cwm->u.eth)
+                ewmDestroy (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            gwmRelease (cwm->u.gen);
+            if (NULL != cwm->u.gen)
+                gwmRelease (cwm->u.gen);
             break;
     }
 
@@ -313,15 +328,19 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
 private_extern void
 cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
+    // Stop the specific cwm type, if it exists.
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            BRWalletManagerStop (cwm->u.btc);
+            if (NULL != cwm->u.btc)
+                BRWalletManagerStop (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
-            ewmStop (cwm->u.eth);
+            if (NULL != cwm->u.eth)
+                ewmStop (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            gwmStop (cwm->u.gen);
+            if (NULL != cwm->u.gen)
+                gwmStop (cwm->u.gen);
             break;
     }
 }

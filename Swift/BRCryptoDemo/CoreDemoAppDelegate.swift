@@ -310,7 +310,20 @@ extension UIApplication {
 
         app.summaryController.present (alert, animated: true) {}
     }
-    
+
+    static func doError (network: Network) {
+        DispatchQueue.main.async {
+            guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+            print ("APP: Error (network)")
+
+            let alert = UIAlertController (title: "Block Chain Access",
+                                           message: "Can't access '\(network.name)'",
+                preferredStyle: UIAlertController.Style.alert)
+            alert.addAction (UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel))
+                app.summaryController.present (alert, animated: true) {}
+            }
+    }
+
     static func peer (network: Network) -> NetworkPeer? {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return nil }
         guard Currency.codeAsBTC == network.currency.code else { return nil }

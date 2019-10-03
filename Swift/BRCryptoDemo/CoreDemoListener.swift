@@ -97,22 +97,23 @@ class CoreDemoListener: SystemListener {
             if isMainnet == network.isMainnet,
                 network.currencies.contains(where: { nil != networkCurrencyCodesToMode[$0.code] }),
                 let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
-                     // Get a valid mode, ideally from `currencyMode`
+                // Get a valid mode, ideally from `currencyMode`
 
-                    let mode = system.supportsMode (network: network, currencyMode)
-                        ? currencyMode
-                        : system.defaultMode(network: network)
+                let mode = system.supportsMode (network: network, currencyMode)
+                    ? currencyMode
+                    : system.defaultMode(network: network)
 
-                    let scheme = system.defaultAddressScheme(network: network)
+                let scheme = system.defaultAddressScheme(network: network)
 
-                    let currencies = network.currencies
-                        .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
+                let currencies = network.currencies
+                    .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
 
-                    let _ = system.createWalletManager (network: network,
-                                                        mode: mode,
-                                                        addressScheme: scheme,
-                                                        currencies: currencies)
-                }
+                let success = system.createWalletManager (network: network,
+                                                          mode: mode,
+                                                          addressScheme: scheme,
+                                                          currencies: currencies)
+                if !success { UIApplication.doError(network: network) }
+            }
 
         case .managerAdded (let manager):
             //TODO: Don't connect here. connect on touch...
