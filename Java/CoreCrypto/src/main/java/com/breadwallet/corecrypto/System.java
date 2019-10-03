@@ -44,13 +44,17 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
+import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.errors.NetworkFeeUpdateError;
+import com.breadwallet.crypto.errors.NetworkFeeUpdateFeesUnavailableError;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.network.NetworkEvent;
+import com.breadwallet.crypto.events.network.NetworkFeesUpdatedEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
 import com.breadwallet.crypto.events.system.SystemDiscoveredNetworksEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
@@ -95,6 +99,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -408,6 +413,49 @@ final class System implements com.breadwallet.crypto.System {
     @Override
     public void subscribe(String subscriptionToken) {
         // TODO(fix): Implement this!
+    }
+
+    @Override
+    public void updateNetworkFees(@Nullable CompletionHandler<List<com.breadwallet.crypto.Network>, NetworkFeeUpdateError> handler) {
+        query.getBlockchains(isMainnet, new CompletionHandler<List<Blockchain>, QueryError>() {
+            @Override
+            public void handleData(List<Blockchain> blockchainModels) {
+                Map<String, Network> networksByUuid = new HashMap<>();
+                for (Network network: getNetworks()) networksByUuid.put(network.getUids(), network);
+
+                List<com.breadwallet.crypto.Network> networks = new ArrayList<>();
+                for (Blockchain blockChainModel: blockchainModels) {
+                    Network network = networksByUuid.get(blockChainModel.getId());
+                    if (null == network) continue;
+
+                    // We always have a feeUnit for network
+                    Optional<Unit> maybeFeeUnit = network.baseUnitFor(network.getCurrency());
+                    checkState(maybeFeeUnit.isPresent());
+
+                    List<NetworkFee> fees = new ArrayList<>();
+                    for (BlockchainFee feeEstimate: blockChainModel.getFeeEstimates()) {
+                        // Well, quietly ignore a fee if we can't parse the amount.
+                        Optional<Amount> maybeFeeAmount = Amount.create(feeEstimate.getAmount(), false, maybeFeeUnit.get());
+                        if (!maybeFeeAmount.isPresent()) continue;
+
+                        fees.add(NetworkFee.create(feeEstimate.getConfirmationTimeInMilliseconds(), maybeFeeAmount.get()));
+                    }
+
+                    // The fees are unlikely to change; but we'll announce feesUpdated anyways.
+                    network.setFees(fees);
+                    announceNetworkEvent(network, new NetworkFeesUpdatedEvent());
+                    networks.add(network);
+                }
+
+                if (null != handler) handler.handleData(networks);
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                // On an error, just skip out; we'll query again later, presumably
+                if (null != handler) handler.handleError(new NetworkFeeUpdateFeesUnavailableError());
+            }
+        });
     }
 
     @Override

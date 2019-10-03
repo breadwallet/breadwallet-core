@@ -219,6 +219,10 @@ extern "C" {
     cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
                                   size_t index);
 
+    extern BRCryptoNetworkFee *
+    cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
+                                 size_t *count);
+
     extern BRCryptoAddress
     cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
                                           const char *string);
