@@ -538,7 +538,7 @@ cryptoNetworkAsBTC (BRCryptoNetwork network) {
 private_extern void *
 cryptoNetworkAsGEN (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_GEN == network->type);
-    return NULL;
+    return network->u.gen.net;
 }
 
 private_extern BRCryptoBlockChainType
