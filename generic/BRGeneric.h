@@ -30,7 +30,10 @@ extern "C" {
     gwmNetworkRelease(BRGenericNetwork network);
 
     extern BRGenericAddress
-    gwmNetworkCreateAddress(BRGenericNetwork network, const char * address);
+    gwmNetworkAddressCreate(BRGenericNetwork network, const char * address);
+
+    extern void
+    gwmNetworkAddressRelease(BRGenericNetwork network, BRGenericAddress address);
 
     // MARK: - Account
 

@@ -34,9 +34,15 @@ gwmNetworkGetHandlers(BRGenericNetwork network) {
 }
 
 extern BRGenericAddress
-gwmNetworkCreateAddress(BRGenericNetwork network, const char * address) {
+gwmNetworkAddressCreate(BRGenericNetwork network, const char * address) {
     BRGenericNetworkRecord * networkRecord = network;
-    return networkRecord->handlers->network.createAddress(address);
+    return networkRecord->handlers->network.networkAddressCreate(address);
+}
+
+extern void
+gwmNetworkAddressRelease(BRGenericNetwork network, BRGenericAddress address) {
+    BRGenericNetworkRecord * networkRecord = network;
+    return networkRecord->handlers->network.networkAddressFree(address);
 }
 
 // This is, admittedly, a little odd.

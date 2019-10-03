@@ -272,11 +272,17 @@ genericRippleFeeBasisFree (BRGenericFeeBasis feeBasis) {
 }
 
 static BRGenericAddress
-genericRippleNetworkCreateAddress(const char* address) {
+genericRippleNetworkAddressCreate(const char* address) {
     BRRippleAddress rippleAddress = rippleAddressCreate(address);
     BRRippleAddress *genericAddress = calloc(1, sizeof(BRRippleAddress));
     memcpy(genericAddress->bytes, rippleAddress.bytes, sizeof(rippleAddress.bytes));
     return genericAddress;
+}
+
+static void
+genericRippleNetworkAddressFree(BRGenericAddress address) {
+    BRRippleAddress *rippleAddress = address;
+    free(rippleAddress);
 }
 
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
@@ -327,7 +333,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     },
 
     { // Network
-        genericRippleNetworkCreateAddress,
+        genericRippleNetworkAddressCreate,
+        genericRippleNetworkAddressFree
     },
 };
 

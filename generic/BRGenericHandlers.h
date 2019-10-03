@@ -93,7 +93,8 @@ extern "C" {
 
     // MARK: - Network
 
-    typedef BRGenericAddress (*BRGenericNetworkCreateAddress) (const char * address);
+    typedef BRGenericAddress (*BRGenericNetworkAddressCreate) (const char * address);
+    typedef void (*BRGenericNetworkAddressFree) (BRGenericAddress address);
 
     // MARK: - Generic Handlers
 
@@ -150,7 +151,8 @@ extern "C" {
         } feebasis;
 
         struct {
-            BRGenericNetworkCreateAddress createAddress;
+            BRGenericNetworkAddressCreate networkAddressCreate;
+            BRGenericNetworkAddressFree networkAddressFree;
         } network;
     };
 
