@@ -677,8 +677,9 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
                               uint8_t *bytes,
                               uint32_t bytesCount) {
     size_t blockHeightSize = sizeof (uint32_t);
+    if (bytesCount < blockHeightSize) return NULL;
 
-    BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount);
+    BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount - blockHeightSize);
     if (NULL == block) return NULL;
 
     block->height = UInt32GetLE(&bytes[bytesCount - blockHeightSize]);
