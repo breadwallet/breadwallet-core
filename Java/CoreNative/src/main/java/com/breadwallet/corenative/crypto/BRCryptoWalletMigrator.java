@@ -59,34 +59,12 @@ public class BRCryptoWalletMigrator extends PointerType {
         );
     }
 
-    public boolean handleBlockAsBtc(byte[] hash,
-                                    UnsignedInteger height,
-                                    UnsignedInteger nonce,
-                                    UnsignedInteger target,
-                                    UnsignedInteger txCount,
-                                    UnsignedInteger version,
-                                    UnsignedInteger timestamp,
-                                    byte[] flags,
-                                    List<byte[]> hashes,
-                                    byte[] merkleRoot,
-                                    byte[] prevBlock) {
-        // convert to array of hashes
-        UInt256.ByValue[] uintHashes = new UInt256.ByValue[hash.length];
-        for (int i = 0; i < hashes.size(); i++) uintHashes[i] = new UInt256(hashes.get(i)).toByValue();
-
-        return CRYPTO_WALLET_MIGRATOR_SUCCESS == CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleBlockAsBTC(
+    public boolean handleBlockAsBtc(byte[] block,
+                                    UnsignedInteger height) {
+        return CRYPTO_WALLET_MIGRATOR_SUCCESS == CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleBlockBytesAsBTC(
                 this,
-                new UInt256(hash).toByValue(),
-                height.intValue(),
-                nonce.intValue(),
-                target.intValue(),
-                txCount.intValue(),
-                version.intValue(),
-                timestamp.intValue(),
-                flags, new SizeT(flags.length),
-                uintHashes, new SizeT(uintHashes .length),
-                new UInt256(merkleRoot).toByValue(),
-                new UInt256(prevBlock).toByValue()
+                block, new SizeT(block.length),
+                height.intValue()
         );
     }
 

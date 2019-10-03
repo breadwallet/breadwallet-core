@@ -94,7 +94,6 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletChangedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletDeletedEvent;
 import com.breadwallet.crypto.migration.BlockBlob;
-import com.breadwallet.crypto.migration.BlockHash;
 import com.breadwallet.crypto.migration.PeerBlob;
 import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
@@ -630,19 +629,40 @@ final class System implements com.breadwallet.crypto.System {
                                 List<TransactionBlob> transactionBlobs,
                                 List<BlockBlob> blockBlobs,
                                 List<PeerBlob> peerBlobs) throws MigrateError {
-        if (!migrateRequired(network)) throw new MigrateInvalidError();
+        if (!migrateRequired(network)) {
+            throw new MigrateInvalidError();
+        }
 
-        Network cryptoNetwork = Network.from(network);
-        Optional<BRCryptoWalletMigrator> maybeMigrator = BRCryptoWalletMigrator.create(cryptoNetwork.getCoreBRCryptoNetwork(), storagePath);
-        if (!maybeMigrator.isPresent()) throw new MigrateCreateError();
+        switch (network.getCurrency().getCode().toLowerCase()) {
+            case Currency.CODE_AS_BTC:
+            case Currency.CODE_AS_BCH:
+                migrateStorageAsBtc(network, transactionBlobs, blockBlobs, peerBlobs);
+                break;
+            default:
+                throw new MigrateInvalidError();
+        }
+    }
+
+    private void migrateStorageAsBtc (com.breadwallet.crypto.Network network,
+                                      List<TransactionBlob> transactionBlobs,
+                                      List<BlockBlob> blockBlobs,
+                                      List<PeerBlob> peerBlobs) throws MigrateError {
+        Optional<BRCryptoWalletMigrator> maybeMigrator = BRCryptoWalletMigrator.create(
+                Network.from(network).getCoreBRCryptoNetwork(), storagePath);
+        if (!maybeMigrator.isPresent()) {
+            throw new MigrateCreateError();
+        }
 
         BRCryptoWalletMigrator migrator = maybeMigrator.get();
 
         for (TransactionBlob blob: transactionBlobs) {
             Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) throw new MigrateTransactionError();
+            if (!maybeBtc.isPresent()) {
+                throw new MigrateTransactionError();
+            }
 
             TransactionBlob.Btc btc = maybeBtc.get();
+
             if (!migrator.handleTransactionAsBtc(
                     btc.bytes,
                     btc.blockHeight,
@@ -653,39 +673,26 @@ final class System implements com.breadwallet.crypto.System {
 
         for (BlockBlob blob: blockBlobs) {
             Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) throw new MigrateBlockError();
+            if (!maybeBtc.isPresent()) {
+                throw new MigrateBlockError();
+            }
 
             BlockBlob.Btc btc = maybeBtc.get();
 
-            // On a `nil` timestamp, by definition skip out, don't migrate this blob
-            if (btc.timestamp == null) continue;
-
-            // Convert to list of byte arrays
-            List<byte[]> hashBytes = new ArrayList<>(btc.hashes.size());
-            for (BlockHash hash: btc.hashes) hashBytes.add(hash.bytes);
-
             if (!migrator.handleBlockAsBtc(
-                    btc.hash.bytes,
-                    btc.height,
-                    btc.nonce,
-                    btc.target,
-                    btc.txCount,
-                    btc.version,
-                    btc.timestamp,
-                    btc.flags,
-                    hashBytes,
-                    btc.merkleRoot.bytes,
-                    btc.prevBlock.bytes)) {
+                    btc.block,
+                    btc.height)) {
                 throw new MigrateBlockError();
             }
         }
 
         for (PeerBlob blob: peerBlobs) {
             Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) throw new MigratePeerError();
+            if (!maybeBtc.isPresent()) {
+                throw new MigratePeerError();
+            }
 
             PeerBlob.Btc btc = maybeBtc.get();
-
             // On a `nil` timestamp, by definition skip out, don't migrate this blob
             if (btc.timestamp == null) continue;
 

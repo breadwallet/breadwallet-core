@@ -19,68 +19,22 @@ public final class BlockBlob {
 
     public static class Btc {
 
-        public final BlockHash hash;
+        public final byte[] block;
         public final UnsignedInteger height;
-        public final UnsignedInteger nonce;
-        public final UnsignedInteger target;
-        public final UnsignedInteger txCount;
-        public final UnsignedInteger version;
-        @Nullable
-        public final UnsignedInteger timestamp;
-        public final byte[] flags;
-        public final List<BlockHash> hashes;
-        public final BlockHash merkleRoot;
-        public final BlockHash prevBlock;
 
-        private Btc(BlockHash hash,
-                    UnsignedInteger height,
-                    UnsignedInteger nonce,
-                    UnsignedInteger target,
-                    UnsignedInteger txCount,
-                    UnsignedInteger version,
-                    @Nullable UnsignedInteger timestamp,
-                    byte[] flags,
-                    List<BlockHash> hashes,
-                    BlockHash merkleRoot,
-                    BlockHash prevBlock) {
-            this.hash = hash;
+        private Btc(byte[] block,
+                    UnsignedInteger height) {
+            this.block = block;
             this.height = height;
-            this.nonce = nonce;
-            this.target = target;
-            this.txCount = txCount;
-            this.version = version;
-            this.timestamp = timestamp;
-            this.flags = flags.clone();
-            this.hashes = new ArrayList<>(hashes);
-            this.merkleRoot = merkleRoot;
-            this.prevBlock = prevBlock;
         }
     }
 
-    public static BlockBlob BTC(BlockHash hash,
-                                UnsignedInteger height,
-                                UnsignedInteger nonce,
-                                UnsignedInteger target,
-                                UnsignedInteger txCount,
-                                UnsignedInteger version,
-                                @Nullable UnsignedInteger timestamp,
-                                byte[] flags,
-                                List<BlockHash> hashes,
-                                BlockHash merkleRoot,
-                                BlockHash prevBlock) {
+    public static BlockBlob BTC(byte[] block,
+                                UnsignedInteger height) {
         return new BlockBlob(
                 new Btc(
-                        hash,
-                        height,
-                        nonce,
-                        target,
-                        txCount,
-                        version,
-                        timestamp,
-                        flags,
-                        hashes,
-                        merkleRoot,
-                        prevBlock
+                        block,
+                        height
                 )
         );
     }

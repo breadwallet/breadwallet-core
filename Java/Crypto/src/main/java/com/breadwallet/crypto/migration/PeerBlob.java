@@ -15,12 +15,24 @@ import com.google.common.primitives.UnsignedLong;
 
 public final class PeerBlob {
 
+    // services value indicating a node carries full blocks, not just headers
+    public static final UnsignedLong SERVICES_NODE_NETWORK = UnsignedLong.valueOf(0x01);
+
+    // BIP111: https://github.com/bitcoin/bips/blob/master/bip-0111.mediawiki
+    public static final UnsignedLong SERVICES_NODE_BLOOM = UnsignedLong.valueOf(0x01);
+
+    // BIP144: https://github.com/bitcoin/bips/blob/master/bip-0144.mediawiki
+    public static final UnsignedLong SERVICES_NODE_WITNESS = UnsignedLong.valueOf(0x08);
+
+    // https://github.com/Bitcoin-UAHF/spec/blob/master/uahf-technical-spec.md
+    public static final UnsignedLong SERVICES_NODE_BCASH = UnsignedLong.valueOf(0x20);
+
     public static class Btc {
-        @Nullable
-        public final UnsignedInteger timestamp;
+
         public final UnsignedInteger address;
         public final UnsignedInteger port;
         public final UnsignedLong services;
+        @Nullable public final UnsignedInteger timestamp;
 
         private Btc(UnsignedInteger address,
                     UnsignedInteger port,
