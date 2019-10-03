@@ -132,7 +132,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             "ZLA",
             "ADT"]
 
-        print ("APP: CurrenciesToMode  : \(currencyCodesToMode)")
+        print ("APP: CurrenciesToMode  : \(currencyCodesToMode!)")
 
         // Create the listener
         listener = CoreDemoListener (networkCurrencyCodesToMode: currencyCodesToMode,

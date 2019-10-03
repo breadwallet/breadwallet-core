@@ -63,7 +63,7 @@
 		3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
 		3C69A0EB233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
 		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
-		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; };
+		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
 		3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B520AF595400C430F6 /* BREthereumGas.c */; };
@@ -182,6 +182,7 @@
 		3CA6396F2301FD97006DD57B /* BRSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA6396E2301FD97006DD57B /* BRSupportTests.swift */; };
 		3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
 		3CA639742305B4DF006DD57B /* BRCryptoDebugSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA639732305B4DF006DD57B /* BRCryptoDebugSupport.swift */; };
+		3CA8B7162346963A0076B8EB /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -1594,7 +1595,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1000;
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = "Breadwinner AG";
 				TargetAttributes = {
 					3C0EADEA2188D91F000577A6 = {
@@ -1926,6 +1927,7 @@
 				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
 				3C7BE5AB230EFD37005FD4CD /* BRCryptoWallet.c in Sources */,
 				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
+				3CA8B7162346963A0076B8EB /* BREthereumFeeBasis.c in Sources */,
 				3C6AE12D2329856F00016196 /* sqlite3.c in Sources */,
 				3C6B175E2131CE12003C313B /* BREthereumMessage.c in Sources */,
 				CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */,
@@ -2466,6 +2468,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2480,6 +2483,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2496,8 +2500,7 @@
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
-					"$(SRCROOT)/../ethereum",
-					"$(SRCROOT)/../secp256k1",
+					"$(SRCROOT)/../vendor/secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
@@ -2523,8 +2526,7 @@
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
-					"$(SRCROOT)/../ethereum",
-					"$(SRCROOT)/../secp256k1",
+					"$(SRCROOT)/../vendor/secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
@@ -2651,6 +2653,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -2667,6 +2670,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_FAST_MATH = YES;
