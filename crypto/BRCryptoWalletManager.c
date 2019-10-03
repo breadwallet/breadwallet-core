@@ -212,6 +212,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
             cwm->u.gen = gwmCreate (client,
                                     type,
+                                    cryptoNetworkAsGEN (network),
                                     cryptoAccountAsGEN (account, type),
                                     cryptoAccountGetTimestamp(account),
                                     cwmPath,

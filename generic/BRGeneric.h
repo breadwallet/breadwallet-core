@@ -66,11 +66,11 @@ extern "C" {
      // Address
 
     extern char *
-    gwmAddressAsString (BRGenericWalletManager gwm,
+    gwmAddressAsString (BRGenericNetwork nid,
                         BRGenericAddress aid);
 
     extern int
-    gwmAddressEqual (BRGenericWalletManager gwm,
+    gwmAddressEqual (BRGenericNetwork nid,
                      BRGenericAddress aid1,
                      BRGenericAddress aid2);
 

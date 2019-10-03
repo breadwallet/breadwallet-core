@@ -257,8 +257,9 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
     BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (gwm, tid); // Will give ownership
     transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, gwmFeeBasis);
 
-    transfer->sourceAddress = cryptoAddressCreateAsGEN(gwm, gwmTransferGetSourceAddress (gwm, tid));
-    transfer->targetAddress = cryptoAddressCreateAsGEN(gwm, gwmTransferGetTargetAddress (gwm, tid));
+    BRGenericNetwork nid = gwmGetNetwork(gwm);
+    transfer->sourceAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetSourceAddress (gwm, tid));
+    transfer->targetAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetTargetAddress (gwm, tid));
 
     return transfer;
 }

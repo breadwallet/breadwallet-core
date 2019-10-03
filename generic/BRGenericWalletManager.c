@@ -42,6 +42,7 @@ gwmInstallFileService (BRGenericWalletManager gwm,
 ///
 struct BRGenericWalletManagerRecord {
     BRGenericHandlers handlers;
+    BRGenericNetwork network;
     BRGenericAccount account;
     BRGenericClient client;
     char *storagePath;
@@ -86,6 +87,7 @@ struct BRGenericWalletManagerRecord {
 extern BRGenericWalletManager
 gwmCreate (BRGenericClient client,
            const char *type,
+           BRGenericNetwork network,
            BRGenericAccount account,
            uint64_t accountTimestamp,
            const char *storagePath,
@@ -96,6 +98,7 @@ gwmCreate (BRGenericClient client,
     gwm->handlers = genericHandlerLookup (type);
     assert (NULL != gwm->handlers);
 
+    gwm->network = network;
     gwm->account = account;
     gwm->client  = client;
     gwm->storagePath = strdup (storagePath);
@@ -160,6 +163,11 @@ extern void
 gwmStop (BRGenericWalletManager gwm) {
     eventHandlerStop (gwm->handler);
     fileServiceClose (gwm->fileService);
+}
+
+extern BRGenericNetwork
+gwmGetNetwork (BRGenericWalletManager gwm) {
+    return gwm->network;
 }
 
 extern BRGenericHandlers

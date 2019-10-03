@@ -516,7 +516,7 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
         case BLOCK_CHAIN_TYPE_GEN:
         {
             BRGenericAddress genericAddress = gwmNetworkCreateAddress(network->u.gen.net, string);
-            return cryptoAddressCreateAsGEN(NULL, genericAddress);
+            return cryptoAddressCreateAsGEN (network->u.gen.net, genericAddress);
         }
     }
 }

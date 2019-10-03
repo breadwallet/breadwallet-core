@@ -28,6 +28,11 @@ gwmNetworkRelease(BRGenericNetwork network) {
     free(networkToRelease);
 }
 
+extern BRGenericHandlers
+gwmNetworkGetHandlers(BRGenericNetwork network) {
+    return ((BRGenericNetworkRecord *) network)->handlers;
+}
+
 extern BRGenericAddress
 gwmNetworkCreateAddress(BRGenericNetwork network, const char * address) {
     BRGenericNetworkRecord * networkRecord = network;
@@ -112,16 +117,16 @@ gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount) {
 // MARK: - Address
 
 extern char *
-gwmAddressAsString (BRGenericWalletManager gwm,
+gwmAddressAsString (BRGenericNetwork nid,
                     BRGenericAddress aid) {
-    return gwmGetHandlers(gwm)->address.asString (aid);
+    return gwmNetworkGetHandlers(nid)->address.asString (aid);
 }
 
 extern int
-gwmAddressEqual (BRGenericWalletManager gwm,
+gwmAddressEqual (BRGenericNetwork nid,
                  BRGenericAddress aid1,
                  BRGenericAddress aid2) {
-    return gwmGetHandlers(gwm)->address.equal (aid1, aid2);
+    return gwmNetworkGetHandlers(nid)->address.equal (aid1, aid2);
 }
 
 // MARK: - Transfer
