@@ -152,6 +152,11 @@ eventHandlerThread (BREventHandler handler) {
     pthread_setname_np (handler->name);
 #endif
 
+    // We lock here to ensure that this function does not start until `eventHandlerStart()` has
+    // completed.  Doing this ensures that `handler` state is fully consistent.
+    pthread_mutex_lock(&handler->lock);
+    pthread_mutex_unlock(&handler->lock);
+
     int timeToQuit = 0;
 
     while (!timeToQuit) {
@@ -229,11 +234,15 @@ eventHandlerStart (BREventHandler handler) {
             pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
             pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
-            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
-            // "Before returning, a successful call to pthread_create() stores the ID of the new
-            // thread in the buffer pointed to by thread; this identifier is used to refer to the
-            // thread in subsequent calls to other pthreads functions."
+            // Note that eventHandlerThread() will not process events until this function,
+            // eventHandlerStart(), gives up the lock.
             //
+            // On pthread_create():
+            //   "Before returning, a successful call to pthread_create() stores the ID of the new
+            //    thread in the buffer pointed to by thread; this identifier is used to refer to the
+            //    thread in subsequent calls to other pthreads functions."
+            //
+            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
             // TODO: Handle an unsuccessfull call.
             // assert (NULL != handler->thread);
 
@@ -282,14 +291,18 @@ eventHandlerStop (BREventHandler handler) {
 
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
-    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
-    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
+    pthread_mutex_lock(&handler->lock);
+    int result = (pthread_self() == handler->thread);
+    pthread_mutex_unlock(&handler->lock);
+    return result;
 }
 
 extern int
 eventHandlerIsRunning (BREventHandler handler) {
-    return PTHREAD_NULL != handler->thread;
+    pthread_mutex_lock(&handler->lock);
+    int result = (PTHREAD_NULL != handler->thread);
+    pthread_mutex_unlock(&handler->lock);
+    return result;
 }
 
 extern BREventStatus
