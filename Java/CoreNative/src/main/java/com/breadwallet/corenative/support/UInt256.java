@@ -39,7 +39,7 @@ public class UInt256 extends Structure {
 
     public ByValue toByValue() {
         ByValue other = new ByValue();
-        other.u8 = this.u8;
+        System.arraycopy(other.u8, 0, this.u8, 0, this.u8.length);
         return other;
     }
 

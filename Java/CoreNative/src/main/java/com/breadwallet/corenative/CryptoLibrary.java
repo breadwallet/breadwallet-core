@@ -30,6 +30,7 @@ import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
+import com.breadwallet.corenative.crypto.BRCryptoWalletMigrator;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
@@ -303,6 +304,15 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletSweeperHandleTransactionAsBTC(BRCryptoWalletSweeper sweeper, byte[] transaction, SizeT transactionLen);
     int cryptoWalletSweeperValidate(BRCryptoWalletSweeper sweeper);
     void cryptoWalletSweeperRelease(BRCryptoWalletSweeper sweeper);
+
+    // crypto/BRCryptoWalletManager.h
+    BRCryptoWalletMigrator.OwnedBRCryptoWalletMigrator cryptoWalletMigratorCreate(BRCryptoNetwork network, String storagePath);
+    int cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator, byte[] bytes, SizeT bytesCount, int blockHeight, int timestamp);
+    int cryptoWalletMigratorHandleBlockAsBTC(BRCryptoWalletMigrator migrator, UInt256.ByValue hash, int height, int nonce, int target, int txCount,
+                                             int version, int timestamp, byte[] flags, SizeT flagsCount, UInt256.ByValue[] hashes, SizeT hashesCount,
+                                             UInt256.ByValue merkleRoot, UInt256.ByValue prevBlock);
+    int cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator, int address, short port, long services, int timestamp);
+    void cryptoWalletMigratorRelease(BRCryptoWalletMigrator migrator);
 
     // crypto/BRCryptoCoder.h
     BRCryptoCoder.OwnedBRCryptoCoder cryptoCoderCreate(int type);
