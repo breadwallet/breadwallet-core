@@ -181,7 +181,7 @@ public final class Network: CustomStringConvertible {
             }
 
         default:
-            core = cryptoNetworkCreateAsGEN (uids, name, (isMainnet ? 1 : 0))
+            core = cryptoNetworkCreateAsGEN (uids, name, currency.core, (isMainnet ? 1 : 0))
             break
         }
 

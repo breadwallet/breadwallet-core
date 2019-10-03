@@ -33,6 +33,10 @@ extern "C" {
         BRGenericAccount base;
     } *BRGenericAccountWithType;;
 
+    typedef struct {
+        BRGenericHandlers handlers;
+    } BRGenericNetworkRecord;
+
     // MARK: - Generic Account
 
     typedef void * (*BRGenericAccountCreate) (const char *type, UInt512 seed);
@@ -60,7 +64,7 @@ extern "C" {
     typedef void (*BRGenericWalletFree) (BRGenericWallet wallet);
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
 
-    // MAEK: - Generic Wallet Manager
+    // MARK: - Generic Wallet Manager
     // Create a transfer from the
     typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
                                                                         const char *from,
@@ -81,11 +85,15 @@ extern "C" {
 
     typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
 
-    // FeeBasis
+    // MARK: - FeeBasis
     typedef UInt256 (*BRGenericFeeBasisGetPricePerCostFactor) (BRGenericFeeBasis feeBasis);
     typedef double (*BRGenericFeeBasisGetCostFactor) (BRGenericFeeBasis feeBasis);
     typedef uint32_t (*BRGenericFeeBasisIsEqual) (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
     typedef void (*BRGenericFeeBasisFree) (BRGenericFeeBasis feeBasis);
+
+    // MARK: - Network
+
+    typedef BRGenericAddress (*BRGenericNetworkCreateAddress) (const char * address);
 
     // MARK: - Generic Handlers
 
@@ -140,6 +148,10 @@ extern "C" {
             BRGenericFeeBasisIsEqual feeBasisIsEqual;
             BRGenericFeeBasisFree free;
         } feebasis;
+
+        struct {
+            BRGenericNetworkCreateAddress createAddress;
+        } network;
     };
 
     extern void

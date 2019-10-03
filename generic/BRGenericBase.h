@@ -21,7 +21,7 @@ extern "C" {
     typedef void *BRGenericAddress;
     typedef void *BRGenericTransfer;
     typedef void *BRGenericWallet;
-
+    typedef void *BRGenericNetwork;
     typedef void *BRGenericFeeBasis;
 
     typedef struct {

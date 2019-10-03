@@ -21,8 +21,19 @@
 extern "C" {
 #endif
 
+    // MARK: - Network
+
+    extern BRGenericNetwork
+    gwmNetworkCreate(const char * type);
+
+    extern void
+    gwmNetworkRelease(BRGenericNetwork network);
+
+    extern BRGenericAddress
+    gwmNetworkCreateAddress(BRGenericNetwork network, const char * address);
+
     // MARK: - Account
-    
+
     extern BRGenericAccount
     gwmAccountCreate (const char *type,
                       UInt512 seed);

@@ -15,6 +15,25 @@
 #include "BRGeneric.h"
 #include "BRGenericHandlers.h"
 
+extern BRGenericNetwork
+gwmNetworkCreate(const char * type) {
+    BRGenericNetworkRecord * network = calloc(1, sizeof(BRGenericNetworkRecord));
+    network->handlers = genericHandlerLookup(type);
+    return network;
+}
+
+extern void
+gwmNetworkRelease(BRGenericNetwork network) {
+    BRGenericNetworkRecord * networkToRelease = network;
+    free(networkToRelease);
+}
+
+extern BRGenericAddress
+gwmNetworkCreateAddress(BRGenericNetwork network, const char * address) {
+    BRGenericNetworkRecord * networkRecord = network;
+    return networkRecord->handlers->network.createAddress(address);
+}
+
 // This is, admittedly, a little odd.
 
 static BRGenericAccount
