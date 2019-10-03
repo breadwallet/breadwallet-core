@@ -594,8 +594,9 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
                                     uint32_t bytesCount) {
     size_t txTimestampSize  = sizeof (uint32_t);
     size_t txBlockHeightSize = sizeof (uint32_t);
+    if (bytesCount < (txTimestampSize + txBlockHeightSize)) return NULL;
 
-    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount);
+    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount - txTimestampSize - txBlockHeightSize);
     if (NULL == transaction) return NULL;
 
     transaction->blockHeight = UInt32GetLE (&bytes[bytesCount - txTimestampSize - txBlockHeightSize]);
