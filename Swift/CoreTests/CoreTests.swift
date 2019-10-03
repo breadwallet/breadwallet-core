@@ -150,6 +150,7 @@ class CoreTests: XCTestCase {
     
     func testBitcoin () {
         XCTAssert(1 == BRRunTests())
+        XCTAssert(1 == BRRunTestsBWM (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0)));
     }
 
     //

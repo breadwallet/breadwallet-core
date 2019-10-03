@@ -33,6 +33,12 @@
 // default to TRUE in case client's don't bother updating this value
 #define DEFAULT_NETWORK_IS_REACHABLE             (1)
 
+#if defined (DEBUG)
+#define static_on_release
+#else
+#define static_on_release   static
+#endif
+
 /* Forward Declarations */
 static void
 bwmPeriodicDispatcher (BREventHandler handler,
@@ -594,8 +600,9 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
                                     uint32_t bytesCount) {
     size_t txTimestampSize  = sizeof (uint32_t);
     size_t txBlockHeightSize = sizeof (uint32_t);
+    if (bytesCount < (txTimestampSize + txBlockHeightSize)) return NULL;
 
-    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount);
+    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount - txTimestampSize - txBlockHeightSize);
     if (NULL == transaction) return NULL;
 
     transaction->blockHeight = UInt32GetLE (&bytes[bytesCount - txTimestampSize - txBlockHeightSize]);
@@ -677,8 +684,9 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
                               uint8_t *bytes,
                               uint32_t bytesCount) {
     size_t blockHeightSize = sizeof (uint32_t);
+    if (bytesCount < blockHeightSize) return NULL;
 
-    BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount);
+    BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount - blockHeightSize);
     if (NULL == block) return NULL;
 
     block->height = UInt32GetLE(&bytes[bytesCount - blockHeightSize]);
@@ -731,11 +739,25 @@ fileServiceTypePeerV1Writer (BRFileServiceContext context,
                              const void* entity,
                              uint32_t *bytesCount) {
     const BRPeer *peer = entity;
+    size_t offset = 0;
 
-    // long term, this is wrong
     *bytesCount = sizeof (BRPeer);
     uint8_t *bytes = malloc (*bytesCount);
-    memcpy (bytes, peer, *bytesCount);
+
+    memcpy (&bytes[offset], peer->address.u8, sizeof (UInt128));
+    offset += sizeof (UInt128);
+
+    UInt16SetBE (&bytes[offset], peer->port);
+    offset += sizeof (uint16_t);
+
+    UInt64SetBE (&bytes[offset], peer->services);
+    offset += sizeof (uint64_t);
+
+    UInt64SetBE (&bytes[offset], peer->timestamp);
+    offset += sizeof (uint64_t);
+
+    bytes[offset] = peer->flags;
+    offset += sizeof(uint8_t); (void) offset;
 
     return bytes;
 }
@@ -747,8 +769,24 @@ fileServiceTypePeerV1Reader (BRFileServiceContext context,
                              uint32_t bytesCount) {
     assert (bytesCount == sizeof (BRPeer));
 
-    BRPeer *peer = malloc (bytesCount);;
-    memcpy (peer, bytes, bytesCount);
+    size_t offset = 0;
+
+    BRPeer *peer = malloc (bytesCount);
+
+    memcpy (peer->address.u8, &bytes[offset], sizeof (UInt128));
+    offset += sizeof (UInt128);
+
+    peer->port = UInt16GetBE (&bytes[offset]);
+    offset += sizeof (uint16_t);
+
+    peer->services = UInt64GetBE(&bytes[offset]);
+    offset += sizeof (uint64_t);
+
+    peer->timestamp = UInt64GetBE(&bytes[offset]);
+    offset += sizeof (uint64_t);
+
+    peer->flags = bytes[offset];
+    offset += sizeof(uint8_t); (void) offset;
 
     return peer;
 }
@@ -805,8 +843,7 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
     //     BRPeerManagerRescan (bwm->peerManager);
 }
 
-#define fileServiceSpecificationsCount      (3)
-static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
+static_on_release BRFileServiceTypeSpecification fileServiceSpecifications[] = {
     {
         fileServiceTypeTransactions,
         WALLET_MANAGER_TRANSACTION_VERSION_1,
@@ -849,6 +886,9 @@ static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
         }
     }
 };
+static_on_release size_t fileServiceSpecificationsCount = (sizeof (fileServiceSpecifications) / sizeof (BRFileServiceTypeSpecification));
+
+
 
 /// MARK: - Wallet Manager
 
