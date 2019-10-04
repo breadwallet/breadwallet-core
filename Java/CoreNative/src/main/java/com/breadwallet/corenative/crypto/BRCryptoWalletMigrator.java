@@ -21,9 +21,6 @@ import java.util.List;
 
 public class BRCryptoWalletMigrator extends PointerType {
 
-    // these values must be in sync with the enum values for BRCryptoWalletMigratorStatusType
-    private static final int CRYPTO_WALLET_MIGRATOR_SUCCESS = 0;
-
     public BRCryptoWalletMigrator(Pointer address) {
         super(address);
     }
@@ -39,33 +36,33 @@ public class BRCryptoWalletMigrator extends PointerType {
     }
 
     public boolean handleTransactionAsBtc(byte[] bytes, UnsignedInteger blockHeight, UnsignedInteger timestamp) {
-        return CRYPTO_WALLET_MIGRATOR_SUCCESS == CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleTransactionAsBTC(
-                this,
-                bytes,
-                new SizeT(bytes.length),
-                blockHeight.intValue(),
-                timestamp.intValue()
+        BRCryptoWalletMigratorStatus status = CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleTransactionAsBTC(
+                this, bytes, new SizeT(bytes.length), blockHeight.intValue(), timestamp.intValue()
         );
+        return BRCryptoWalletMigratorStatus.CRYPTO_WALLET_MIGRATOR_SUCCESS == status.type;
     }
 
     public boolean handlePeerAsBtc(UnsignedInteger address, UnsignedInteger port, UnsignedLong services,
                                    UnsignedInteger timestamp) {
-        return CRYPTO_WALLET_MIGRATOR_SUCCESS == CryptoLibrary.INSTANCE.cryptoWalletMigratorHandlePeerAsBTC(
+        BRCryptoWalletMigratorStatus status = CryptoLibrary.INSTANCE.cryptoWalletMigratorHandlePeerAsBTC(
                 this,
                 address.intValue(),
                 port.shortValue(),
                 services.longValue(),
                 timestamp.intValue()
         );
+        return BRCryptoWalletMigratorStatus.CRYPTO_WALLET_MIGRATOR_SUCCESS == status.type;
     }
 
     public boolean handleBlockAsBtc(byte[] block,
                                     UnsignedInteger height) {
-        return CRYPTO_WALLET_MIGRATOR_SUCCESS == CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleBlockBytesAsBTC(
+        BRCryptoWalletMigratorStatus status = CryptoLibrary.INSTANCE.cryptoWalletMigratorHandleBlockBytesAsBTC(
                 this,
-                block, new SizeT(block.length),
+                block,
+                new SizeT(block.length),
                 height.intValue()
         );
+        return BRCryptoWalletMigratorStatus.CRYPTO_WALLET_MIGRATOR_SUCCESS == status.type;
     }
 
     public static class OwnedBRCryptoWalletMigrator extends BRCryptoWalletMigrator {

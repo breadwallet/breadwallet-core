@@ -15,24 +15,40 @@ import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
+import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent;
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import okhttp3.OkHttpClient;
 
 /* package */
 class HelpersAIT {
+
+    // Filesystem
 
     /* package */
     static File generateCoreDataDir() {
@@ -62,10 +78,59 @@ class HelpersAIT {
         return file.delete();
     }
 
+    // System
+
     /* package */
-    static Account defaultAccount() {
-        return Account.createFromPhrase(DEFAULT_ACCOUNT_KEY, DEFAULT_ACCOUNT_TIMESTAMP, DEFAULT_ACCOUNT_UIDS);
+    static System createAndConfigureSystem(File dataDir, SystemListener listener) {
+        String storagePath = dataDir.getAbsolutePath();
+        Account account = HelpersAIT.createDefaultAccount();
+        BlockchainDb query = HelpersAIT.createDefaultBlockchainDb();
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        com.breadwallet.corecrypto.System system = com.breadwallet.corecrypto.System.create(executor, listener, account, false, storagePath, query);
+
+        system.configure(Collections.emptyList());
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+
+        return system;
     }
+
+    /* package */
+    static Optional<Network> getNetworkByCurrencyCode(Collection<Network> networks, String code) {
+        Network out = null;
+        for (Network network: networks) {
+            if (code.equals(network.getCurrency().getCode().toLowerCase())) {
+                out = network;
+                break;
+            }
+        }
+        return Optional.fromNullable(out);
+    }
+
+    /* package */
+    static Optional<WalletManager> getManagerByCode(Collection<WalletManager> managers, String code) {
+        WalletManager out = null;
+        for (WalletManager manager: managers) {
+            if (code.equals(manager.getCurrency().getCode().toLowerCase())) {
+                out = manager;
+                break;
+            }
+        }
+        return Optional.fromNullable(out);
+    }
+
+    /* package */
+    static Optional<Wallet> getWalletByCode(Collection<Wallet> wallets, String code) {
+        Wallet out = null;
+        for (Wallet wallet: wallets) {
+            if (code.equals(wallet.getCurrency().getCode().toLowerCase())) {
+                out = wallet;
+                break;
+            }
+        }
+        return Optional.fromNullable(out);
+    }
+
+    // Accounts
 
     private static final byte[] DEFAULT_ACCOUNT_KEY = "ginger settle marine tissue robot crane night number ramp coast roast critic"
             .getBytes(StandardCharsets.UTF_8);
@@ -74,13 +139,35 @@ class HelpersAIT {
 
     private static final String DEFAULT_ACCOUNT_UIDS = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
 
-    private HelpersAIT() {}
+    /* package */
+    static Account createDefaultAccount() {
+        return Account.createFromPhrase(DEFAULT_ACCOUNT_KEY, DEFAULT_ACCOUNT_TIMESTAMP, DEFAULT_ACCOUNT_UIDS);
+    }
 
-    private static RecordingSystemListener createRecordingListener() {
+    // BlockchainDB
+
+    private static final OkHttpClient DEFAULT_HTTP_CLIENT = new OkHttpClient();
+
+    private static String DEFAULT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9." +
+            "eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ" +
+            "6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0." +
+            "FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
+
+    /* package */
+    static BlockchainDb createDefaultBlockchainDb() {
+        return BlockchainDb.createForTest(DEFAULT_HTTP_CLIENT, DEFAULT_TOKEN);
+    }
+
+    // Listeners
+
+    /* package */
+    static RecordingSystemListener createRecordingListener() {
         return new RecordingSystemListener();
     }
 
-    private static class RecordingSystemListener implements SystemListener {
+    private HelpersAIT() {}
+
+    public static class RecordingSystemListener implements SystemListener {
 
         private static class CryptoEvent {
 
@@ -137,7 +224,7 @@ class HelpersAIT {
             }
         }
 
-        private final List<Object> events = new CopyOnWriteArrayList<>();
+        private final List<CryptoEvent> events = new CopyOnWriteArrayList<>();
 
         @Override
         public void handleSystemEvent(System system, SystemEvent event) {
@@ -163,6 +250,42 @@ class HelpersAIT {
         public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer,
                                         TranferEvent event) {
             events.add(new CryptoEvent(system, manager, wallet, transfer, event));
+        }
+
+        /* package */
+        Collection<Network> getAddedNetworks() {
+            Set<Network> networks = new HashSet<>();
+            for (CryptoEvent event: events) {
+                if (event.event instanceof SystemNetworkAddedEvent) {
+                    SystemNetworkAddedEvent e = (SystemNetworkAddedEvent) event.event;
+                    networks.add(e.getNetwork());
+                }
+            }
+            return networks;
+        }
+
+        /* package */
+        Collection<WalletManager> getAddedManagers() {
+            Set<WalletManager> managers = new HashSet<>();
+            for (CryptoEvent event: events) {
+                if (event.event instanceof SystemManagerAddedEvent) {
+                    SystemManagerAddedEvent e = (SystemManagerAddedEvent) event.event;
+                    managers.add(e.getWalletManager());
+                }
+            }
+            return managers;
+        }
+
+        /* package */
+        Collection<Wallet> getAddedWallets() {
+            Set<Wallet> managers = new HashSet<>();
+            for (CryptoEvent event: events) {
+                if (event.event instanceof WalletManagerWalletAddedEvent) {
+                    WalletManagerWalletAddedEvent e = (WalletManagerWalletAddedEvent) event.event;
+                    managers.add(e.getWallet());
+                }
+            }
+            return managers;
         }
     }
 
