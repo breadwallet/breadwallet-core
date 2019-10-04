@@ -135,7 +135,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerETH () {
         isMainnet = false
-        registerCurrencyCodes = ["brd"]
+        registerCurrencyCodes = ["BRD"]
         currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount()
 
@@ -171,7 +171,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (manager)
 
         let walletETH = manager.primaryWallet
-        wait (for: [walletBRDExpectation], timeout: 10)
+        wait (for: [walletBRDExpectation], timeout: 30)
 
         // Events
 

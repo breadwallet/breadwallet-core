@@ -340,7 +340,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         XCTAssertEqual(TransferDirection.received,  TransferDirection (core: TransferDirection.received.core))
         XCTAssertEqual(TransferDirection.recovered, TransferDirection (core: TransferDirection.recovered.core))
     }
-
+    #if false
     func testTransferHash () {
     }
 
@@ -351,5 +351,5 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         // XCTAssertEqual (TransferState.created, TransferState(core: CRYPTO_TRANSFER_STATE_CREATED))
         // ...
     }
-
+    #endif
 }

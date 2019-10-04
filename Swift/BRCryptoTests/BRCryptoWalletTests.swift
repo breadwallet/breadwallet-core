@@ -219,6 +219,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
     func testWalletETH() {
         isMainnet = false
+        registerCurrencyCodes = ["BRD"]
         currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
