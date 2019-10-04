@@ -31,8 +31,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
     func runWalletBTCTest (mode: WalletManagerMode) {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":mode]
+        currencyCodesToMode = ["btc":mode]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
@@ -187,8 +186,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
     func testWalletBCH() {
         isMainnet = false
-        currencyCodesNeeded = ["bch"]
-        modeMap = ["bch":WalletManagerMode.p2p_only]
+        currencyCodesToMode = ["bch":WalletManagerMode.p2p_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
@@ -221,17 +219,16 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
     func testWalletETH() {
         isMainnet = false
-        currencyCodesNeeded = ["eth"]
-        modeMap = ["eth":WalletManagerMode.api_only]
+        currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
             "timestamp":  "2018-01-01",
             "network":    (isMainnet ? "mainnet" : "testnet")
             ]))
-        let listener = CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded,
-                                                 isMainnet: isMainnet,
-                                                 modeMap: modeMap)
+        let listener = CryptoTestSystemListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                                  registerCurrencyCodes: registerCurrencyCodes,
+                                                  isMainnet: isMainnet)
 
         // Connect and wait for a number of transfers
         var walletCount: Int = 2

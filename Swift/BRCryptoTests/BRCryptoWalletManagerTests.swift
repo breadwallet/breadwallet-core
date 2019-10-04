@@ -39,8 +39,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerBTC() {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        currencyCodesToMode = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
@@ -136,13 +135,13 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerETH () {
         isMainnet = false
-        currencyCodesNeeded = ["eth", "brd"]
-        modeMap = ["eth":WalletManagerMode.api_only]
+        registerCurrencyCodes = ["brd"]
+        currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount()
 
-        let listener = CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded,
-                                                 isMainnet: isMainnet,
-                                                 modeMap: modeMap)
+        let listener = CryptoTestSystemListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                                 registerCurrencyCodes: registerCurrencyCodes,
+                                                 isMainnet: isMainnet)
 
         // Listen for a non-primary wallet - specifically the BRD wallet
         var walletBRD: Wallet! = nil
@@ -231,8 +230,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerMigrateBTC () {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        currencyCodesToMode = ["btc":WalletManagerMode.api_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",

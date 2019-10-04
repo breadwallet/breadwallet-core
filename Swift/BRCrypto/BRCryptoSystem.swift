@@ -797,7 +797,7 @@ public final class System {
             .map {
                 let code         = code.uppercased()
                 let blockchainID = uids.prefix(upTo: $0).description
-                let address      = uids.suffix(from: $0).description
+                let address      = uids.suffix(from: uids.index (after: $0)).description
 
                 return (id:   uids,
                         name: name,
