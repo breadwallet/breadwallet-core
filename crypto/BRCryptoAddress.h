@@ -54,14 +54,6 @@ extern "C" {
     cryptoAddressCreateFromStringAsETH (const char *address);
 
     /**
-     * ASSERT currently
-     *
-     * @return An address or NULL if the address string is invalid.
-     */
-    extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
-
-    /**
      * Returns the address' string representation which is suitable for display.  Note that an
      * address representing BCH will have a prefix included, typically one of 'bitcoincash' or
      * 'bchtest'.  And, there is not the reverse function of `cryptoAddressCreateFromString()`

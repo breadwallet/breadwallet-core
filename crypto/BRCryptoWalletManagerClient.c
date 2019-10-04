@@ -1760,6 +1760,9 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
                            BRGenericWalletManager manager,
                            BRGenericWallet wallet,
                            BRGenericTransfer transfer,
+                           uint8_t *tx,
+                           size_t txLength,
+                           BRGenericHash hash,
                            int rid) {
     // Extract CWM, checking to make sure it still lives
     BRCryptoWalletManager cwm = cryptoWalletManagerTakeWeak(context);
@@ -1771,15 +1774,7 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
     callbackState->u.genWithTransaction.tid = transfer;
     callbackState->rid = rid;
 
-    BRGenericHash hash = gwmTransferGetHash (cwm->u.gen, transfer);
     char *hashAsHex = genericHashAsString (hash);
-//    UInt256 txHash = UInt256Reverse (transaction->txHash);
-//    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
-
-
-    size_t txLength = 0; // BRTransactionSerialize (transaction, NULL, 0);
-    uint8_t *tx = calloc (txLength, sizeof(uint8_t));
-    // BRTransactionSerialize(transaction, tx, txLength);
 
     cwm->client.gen.funcSubmitTransaction (cwm->client.context,
                                            cryptoWalletManagerTake (cwm),

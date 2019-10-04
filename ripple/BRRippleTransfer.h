@@ -12,8 +12,13 @@
 #define BRRipple_transfer_h
 
 #include "BRRippleBase.h"
+#include "BRRippleTransaction.h"
 
 typedef struct BRRippleTransferRecord *BRRippleTransfer;
+
+// Create a new transfer for submitting
+extern BRRippleTransfer /* caller must free - rippleTransferFree */
+rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to, BRRippleUnitDrops amount);
 
 extern BRRippleTransfer /* caller must free - rippleTransferFree */
 rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
@@ -30,5 +35,7 @@ extern BRRippleUnitDrops rippleTransferGetAmount(BRRippleTransfer transfer);
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer);
 extern BRRippleAddress rippleTransferGetSource(BRRippleTransfer transfer);
 extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer);
+
+extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfer);
 
 #endif

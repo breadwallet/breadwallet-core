@@ -9,7 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRGenericRipple.h"
-
+#include "BRGenericWalletManager.h"
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
 #include "ripple/BRRippleFeeBasis.h"
@@ -54,6 +54,16 @@ genericRippleAccountGetSerialization (void *account, size_t *bytesCount) {
     return rippleAccountGetSerialization (ripple, bytesCount);
 }
 
+static void
+genericRippleAccountSerializeTransfer(BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
+{
+    // Get the transaction pointer from this transfer
+    BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
+    if (transaction) {
+        rippleAccountSignTransaction(account, transaction, seed);
+    }
+}
+
 // Address
 static char *
 genericRippleAddressAsString (BRGenericAddress address) {
@@ -68,7 +78,23 @@ genericRippleAddressEqual (BRGenericAddress address1,
     BRRippleAddress *ripple2 = address2;
     return rippleAddressEqual (*ripple1, *ripple2);
 }
+
 // Transfer
+
+static BRGenericTransfer
+genericRippleTransferCreate(BRGenericAddress source, BRGenericAddress target, UInt256 amount)
+{
+    BRRippleUnitDrops amountDrops = UInt64GetBE(amount.u8);
+    BRRippleAddress *from = source;
+    BRRippleAddress *to = target;
+    BRRippleTransfer transfer = rippleTransferCreateNew(*from, *to, amountDrops);
+    return transfer;
+}
+
+static void
+genericRippleTransferFree (BRGenericTransfer transfer) {
+    rippleTransferFree(transfer);
+}
 
 static BRGenericAddress
 genericRippleTransferGetSourceAddress (BRGenericTransfer transfer) {
@@ -114,6 +140,17 @@ static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {
     UInt256 value;
     memcpy (value.u8, hash.bytes, 32);
     return (BRGenericHash) { value };
+}
+
+static uint8_t * genericRippleTransferGetSerialization(BRGenericTransfer transfer, size_t *bytesCount)
+{
+    uint8_t * result = NULL;
+    *bytesCount = 0;
+    BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
+    if (transaction) {
+        result = rippleTransactionSerialize(transaction, bytesCount);
+    }
+    return result;
 }
 
 // Wallet
@@ -248,8 +285,6 @@ static UInt256
 genericRippleFeeBasisGetPricePerCostFactor (BRGenericFeeBasis feeBasis)
 {
     BRRippleUnitDrops pricePerCostFactor = rippleFeeBasisGetPricePerCostFactor(feeBasis);
-    printf("pricePerCostFactor: %llu\n", pricePerCostFactor);
-
     return createUInt256(pricePerCostFactor);
 }
 
@@ -293,7 +328,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleAccountCreateWithSerialization,
         genericRippleAccountFree,
         genericRippleAccountGetAddress,
-        genericRippleAccountGetSerialization
+        genericRippleAccountGetSerialization,
+        genericRippleAccountSerializeTransfer,
     },
 
     {    // Address
@@ -302,12 +338,15 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     },
 
     {    // Transfer
+        genericRippleTransferCreate,
+        genericRippleTransferFree,
         genericRippleTransferGetSourceAddress,
         genericRippleTransferGetTargetAddress,
         genericRippleTransferGetAmount,
         genericRippleTransferGetFee,
         genericRippleTransferGetFeeBasis,
-        genericRippleTransferGetHash
+        genericRippleTransferGetHash,
+        genericRippleTransferGetSerialization,
     },
 
     {   // Wallet

@@ -246,14 +246,12 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey *privat
                                   BRKey *publicKey, uint32_t sequence, uint32_t lastLedgerSequence);
 
 extern size_t
-rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey)
+rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, UInt512 seed)
 {
     assert(account);
     assert(transaction);
-    assert(paperKey);
 
     // Create the private key from the paperKey
-    UInt512 seed = getSeed(paperKey);
     BRKey key = deriveRippleKeyFromSeed (seed, 0, false);
 
     size_t tx_size =

@@ -1739,9 +1739,9 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: GEN: GetTransfers: Missed {cwm}"); return }
                 print ("SYS: GEN: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
-
+                let accountAddress = asUTF8String(address!)
                 manager.query.getTransactions (blockchainId: manager.network.uids,
-                                               addresses: [asUTF8String(address!)],
+                                               addresses: [accountAddress],
                                                begBlockNumber: begBlockNumber,
                                                endBlockNumber: endBlockNumber,
                                                includeRaw: false) {
@@ -1753,11 +1753,14 @@ extension System {
                                                             let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = transaction.blockHeight ?? 0
                                                             transaction.transfers.forEach { (transfer: BlockChainDB.Model.Transfer) in
-                                                                cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
-                                                                                              transfer.source, transfer.target,
-                                                                                              transfer.amountValue,
-                                                                                              transfer.amountCurrency,
-                                                                                              timestamp, height)
+                                                                if (accountAddress == transfer.source ||
+                                                                    accountAddress == transfer.target) {
+                                                                    cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                                                                  transfer.source, transfer.target,
+                                                                                                  transfer.amountValue,
+                                                                                                  transfer.amountCurrency,
+                                                                                                  timestamp, height)
+                                                                }
                                                             }
                                                         }
                                                         cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
@@ -1765,7 +1768,7 @@ extension System {
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
-                precondition (nil != context  && nil != cwm)
+                //precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: GEN: SubmitTransaction: Missed {cwm}"); return }

@@ -13,6 +13,7 @@
 #include "BRRippleAccount.h"
 #include "BRRippleUtils.h"
 #include "BRRipplePrivateStructs.h"
+#include "BRRippleTransaction.h"
 #include "BRRippleFeeBasis.h"
 #include <stdlib.h>
 
@@ -31,12 +32,31 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
     transfer->transactionId = hash;
     transfer->timestamp = timestamp;
     transfer->blockHeight = blockHeight;
+    transfer->transaction = NULL;
+    return transfer;
+}
+
+extern BRRippleTransfer /* caller must free - rippleTransferFree */
+rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
+                     BRRippleUnitDrops amount)
+{
+    BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
+    transfer->sourceAddress = from;
+    transfer->targetAddress = to;
+    transfer->amount = amount;
+    BRRippleFeeBasis feeBasis; // NOTE - hard code for DEMO purposes
+    feeBasis.pricePerCostFactor = 10;
+    feeBasis.costFactor = 1;
+    transfer->transaction = rippleTransactionCreate(from, to, amount, feeBasis);
     return transfer;
 }
 
 extern void rippleTransferFree(BRRippleTransfer transfer)
 {
     assert(transfer);
+    if (transfer->transaction) {
+        rippleTransactionFree(transfer->transaction);
+    }
     free(transfer);
 }
 
@@ -44,7 +64,13 @@ extern void rippleTransferFree(BRRippleTransfer transfer)
 extern BRRippleTransactionHash rippleTransferGetTransactionId(BRRippleTransfer transfer)
 {
     assert(transfer);
-    return transfer->transactionId;
+    if (transfer->transaction) {
+        // If we have an embedded transaction that means that we created a new tx
+        // which by now should have been serialized
+        return rippleTransactionGetHash(transfer->transaction);
+    } else {
+        return transfer->transactionId;
+    }
 }
 extern BRRippleUnitDrops rippleTransferGetAmount(BRRippleTransfer transfer)
 {
@@ -74,4 +100,11 @@ extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
         return (BRRippleUnitDrops)0L;
     }
 }
+
+extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfer)
+{
+    assert(transfer);
+    return transfer->transaction;
+}
+
 

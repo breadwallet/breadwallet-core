@@ -334,7 +334,9 @@ testSerializeWithSignature () {
     rippleAccountSetSequence(account, sequence_number);
 
     // Serialize and sign
-    size_t s_size = rippleAccountSignTransaction(account, transaction, paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL);
+    size_t s_size = rippleAccountSignTransaction(account, transaction, seed);
     size_t signed_size;
     uint8_t *signed_bytes = rippleTransactionSerialize(transaction, &signed_size);
     assert(s_size == signed_size);
@@ -670,7 +672,9 @@ testTransactionId (void /* ... */) {
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
-    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, source_paper_key, NULL);
+    rippleAccountSignTransaction(sourceAccount, transaction, seed);
 
     // Compare the transaction hash
     const char * expected_hash = "0422880D4F88A7DE9A586D536119CAD2DEBFEACDAEA850E10A8E7155FF8DB2C6";
@@ -807,7 +811,9 @@ createSubmittableTransaction (void /* ... */) {
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
-    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, source_paper_key, NULL);
+    rippleAccountSignTransaction(sourceAccount, transaction, seed);
 
     // Sign the transaction
     size_t signedBytesSize = 0;

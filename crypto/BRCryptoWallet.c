@@ -681,20 +681,18 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            //            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            //            BRGenericWallet wid = wallet->u.gen.wid;
-            //
-            //            UInt256 genValue = cryptoAmountGetValue(amount);
+            // TOTO - get the estimated fee basis
+            /*
+            BRGenericWalletManager gwm = wallet->u.gen.gwm;
+            BRGenericWallet wid = wallet->u.gen.wid;
+            UInt256 genValue = cryptoAmountGetValue(amount);
 
-            // TODO: Generic EstimateFee
-            assert (0);
-            //            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (feeBasis);
-            //
-            //            int overflow = 0;
-            //            UInt256 genFee = gwmWalletEstimateTransferFee (gwm, wid, genValue, genFeeBasis, &overflow);
-            //            assert (!overflow);
-            //
-            //            feeValue = genFee;
+            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (feeBasis);
+            int overflow = 0;
+            UInt256 genFee = gwmWalletEstimateTransferFee (gwm, wid, genValue, genFeeBasis, &overflow);
+            assert (!overflow);
+            feeValue = genFee;
+             */
         }
     }
 }

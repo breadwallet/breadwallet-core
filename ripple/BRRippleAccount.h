@@ -102,7 +102,7 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
  * @return size           size of serialized/siged bytes
  */
 extern size_t
-rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey);
+rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, UInt512 seed);
 
 // Accessor function for the account address (Ripple ID)
 extern BRRippleAddress

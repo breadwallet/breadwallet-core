@@ -45,6 +45,7 @@ extern "C" {
     typedef void (*BRGenericAccountFree) (BRGenericAccount account);
     typedef BRGenericAddress (*BRGenericAccountGetAddress) (BRGenericAccount account);
     typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccount account, size_t *bytesCount);
+    typedef void (*BRGenericAccountSerializeTransfer) (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed);
 
     // MARK: - Generic Address
     typedef char * (*BRGenericAddressAsString) (BRGenericAddress address);
@@ -52,12 +53,17 @@ extern "C" {
                                           BRGenericAddress address2);
 
     // MARK: - Generic Treansfer
+    typedef BRGenericTransfer (*BRGenericTransferCreate) (BRGenericAddress source,
+                                                          BRGenericAddress target,
+                                                          UInt256 amount);
+    typedef void (*BRGenericTransferFree) (BRGenericTransfer transfer);
     typedef BRGenericAddress (*BRGenericTransferGetSourceAddress) (BRGenericTransfer transfer);
     typedef BRGenericAddress (*BRGenericTransferGetTargetAddress) (BRGenericTransfer transfer);
     typedef UInt256 (*BRGenericTransferGetAmount) (BRGenericTransfer transfer);
     typedef UInt256 (*BRGenericTransferGetFee) (BRGenericTransfer transfer);
     typedef BRGenericFeeBasis (*BRGenericTransferGetFeeBasis) (BRGenericTransfer transfer);
     typedef BRGenericHash (*BRGenericTransferGetHash) (BRGenericTransfer transfer);
+    typedef uint8_t * (*BRGenericTransferGetSerialization) (BRGenericTransfer transfer, size_t *bytesCount);
 
     // MARK: - Generic Wallet
     typedef BRGenericWallet (*BRGenericWalletCreate) (BRGenericAccount account);
@@ -107,6 +113,7 @@ extern "C" {
             BRGenericAccountFree free;
             BRGenericAccountGetAddress getAddress;
             BRGenericAccountGetSerialization getSerialization;
+            BRGenericAccountSerializeTransfer serializeTransfer;
         } account;
 
         struct {
@@ -115,15 +122,15 @@ extern "C" {
         } address;
         
         struct {
-            // create
-            // free
-            // ...
+            BRGenericTransferCreate create;
+            BRGenericTransferFree   free;
             BRGenericTransferGetSourceAddress sourceAddress;
             BRGenericTransferGetTargetAddress targetAddress;
             BRGenericTransferGetAmount amount;
             BRGenericTransferGetFee fee;
             BRGenericTransferGetFeeBasis feeBasis;
             BRGenericTransferGetHash hash;
+            BRGenericTransferGetSerialization getSerialization;
         } transfer;
 
         struct {

@@ -137,12 +137,6 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     return address;
 }
 
-extern BRCryptoAddress
-cryptoAddressCreateFromStringAsGEN (const char *ethAddress) {
-    assert (0);
-    return NULL;
-}
-
 extern char *
 cryptoAddressAsString (BRCryptoAddress address) {
     switch (address->type) {
