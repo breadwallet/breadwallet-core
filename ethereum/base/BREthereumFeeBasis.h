@@ -32,6 +32,12 @@ extern BREthereumFeeBasis
 feeBasisCreate (BREthereumGas limit,
                 BREthereumGasPrice price);
 
+extern BREthereumGas
+feeBasisGetGasLimit (BREthereumFeeBasis basis);
+
+extern BREthereumGasPrice
+feeBasisGetGasPrice (BREthereumFeeBasis basis);
+
 extern BREthereumEther
 feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow);
 

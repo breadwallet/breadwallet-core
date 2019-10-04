@@ -28,6 +28,11 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
                                        int isBTC,
                                        int isMainnet);
 
+extern int BRRunTestsBWM (const char *paperKey,
+                          const char *storagePath,
+                          int isBTC,
+                          int isMainnet);
+
 extern void BRRandInit (void);
 
 // testCrypto.c

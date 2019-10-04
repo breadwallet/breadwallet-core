@@ -25,16 +25,6 @@ extern "C" {
 
 #define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
 
-static inline BREthereumGas
-feeBasisGetGasLimit (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
-}
-
-static inline BREthereumGasPrice
-feeBasisGetGasPrice (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
-}
-
 typedef enum  {
     TRANSFER_BASIS_TRANSACTION,
     TRANSFER_BASIS_LOG

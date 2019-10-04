@@ -36,6 +36,8 @@ typedef enum {
 (CLIENT_CHANGE_ADD == (ev) ? "Add" \
 : (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
 
+#define EWM_REQUEST_ID_UNKNOWN    (UINT_MAX)
+
 //
 // EWM
 //
@@ -49,6 +51,10 @@ typedef enum {
 extern void
 ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet);
+
+extern void
+ewmUpdateBlockHeight(BREthereumEWM ewm,
+                     uint64_t blockHeight);
 
 //
 // EWM
@@ -146,11 +152,11 @@ struct BREthereumEWMRecord {
         uint64_t begBlockNumber;
         uint64_t endBlockNumber;
 
-        int ridTransaction;
-        int ridLog;
+        unsigned int ridTransaction;
+        unsigned int ridLog;
 
-        int completedTransaction:1;
-        int completedLog:1;
+        unsigned int completedTransaction:1;
+        unsigned int completedLog:1;
     } brdSync;
 };
 
@@ -325,6 +331,16 @@ ewmSignalSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop);
+
+//
+// Signal/Handle Sync (BCS Callback)
+//
+extern void
+ewmHandleSyncAPI (BREthereumEWM ewm);
+
+extern void
+ewmSignalSyncAPI (BREthereumEWM ewm,
+                  BREthereumBoolean OOB);
 
 //
 // Signal/Handle Get Blocks (BCS Callback)

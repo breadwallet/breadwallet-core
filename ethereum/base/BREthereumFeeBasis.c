@@ -19,6 +19,16 @@ feeBasisCreate (BREthereumGas limit,
     };
 }
 
+extern BREthereumGas
+feeBasisGetGasLimit (BREthereumFeeBasis basis) {
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
+}
+
+extern BREthereumGasPrice
+feeBasisGetGasPrice (BREthereumFeeBasis basis) {
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
+}
+
 extern BREthereumEther
 feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBoolean
     *overflow = 0;

@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
@@ -21,6 +22,8 @@ import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.errors.WalletSweeperError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -33,8 +36,10 @@ import static com.google.common.base.Preconditions.checkState;
 /* package */
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
+    private static final String TAG = WalletManager.class.getName();
+
     /* package */
-    static WalletManager create(BRCryptoCWMListener listener,
+    static Optional<WalletManager> create(BRCryptoCWMListener listener,
                                 BRCryptoCWMClient client,
                                 Account account,
                                 Network network,
@@ -43,18 +48,16 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String storagePath,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        return new WalletManager(
-                CoreBRCryptoWalletManager.create(
-                        listener,
-                        client,
-                        account.getCoreBRCryptoAccount(),
-                        network.getCoreBRCryptoNetwork(),
-                        Utilities.walletManagerModeToCrypto(mode),
-                        Utilities.addressSchemeToCrypto(addressScheme),
-                        storagePath
-                ),
-                system,
-                callbackCoordinator
+        return CoreBRCryptoWalletManager.create(
+                listener,
+                client,
+                account.getCoreBRCryptoAccount(),
+                network.getCoreBRCryptoNetwork(),
+                Utilities.walletManagerModeToCrypto(mode),
+                Utilities.addressSchemeToCrypto(addressScheme),
+                storagePath
+        ).transform(
+                cwm -> new WalletManager(cwm, system, callbackCoordinator)
         );
     }
 
@@ -67,28 +70,28 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final System system;
     private final SystemCallbackCoordinator callbackCoordinator;
 
-    private final Account account;
-    private final Network network;
-    private final Currency networkCurrency;
-    private final Unit networkBaseUnit;
-    private final Unit networkDefaultUnit;
-    private final String path;
-    private final NetworkFee networkFee;
+    private final Supplier<Account> accountSupplier;
+    private final Supplier<Network> networkSupplier;
+    private final Supplier<Currency> networkCurrencySupplier;
+    private final Supplier<String> pathSupplier;
+    private final Supplier<NetworkFee> networkFeeSupplier;
+    private final Supplier<Unit> networkBaseUnitSupplier;
+    private final Supplier<Unit> networkDefaultUnitSupplier;
 
     private WalletManager(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.system = system;
         this.callbackCoordinator = callbackCoordinator;
 
-        this.account = Account.create(core.getAccount());
-        this.network = Network.create(core.getNetwork());
-        this.networkCurrency = network.getCurrency();
-        this.path = core.getPath();
+        this.accountSupplier = Suppliers.memoize(() -> Account.create(core.getAccount()));
+        this.networkSupplier = Suppliers.memoize(() -> Network.create(core.getNetwork()));
+        this.networkCurrencySupplier = Suppliers.memoize(() -> getNetwork().getCurrency());
+        this.pathSupplier = Suppliers.memoize(core::getPath);
 
         // TODO(fix): Unchecked get here
-        this.networkBaseUnit = network.baseUnitFor(networkCurrency).get();
-        this.networkDefaultUnit = network.defaultUnitFor(networkCurrency).get();
-        this.networkFee = network.getMinimumFee();
+        this.networkFeeSupplier = Suppliers.memoize(() -> getNetwork().getMinimumFee());
+        this.networkBaseUnitSupplier = Suppliers.memoize(() -> getNetwork().baseUnitFor(getCurrency()).get());
+        this.networkDefaultUnitSupplier = Suppliers.memoize(() -> getNetwork().defaultUnitFor(getCurrency()).get());
     }
 
     @Override
@@ -100,7 +103,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public void connect(@Nullable com.breadwallet.crypto.NetworkPeer peer) {
-        checkState(null == peer || network.equals(peer.getNetwork()));
+        checkState(null == peer || getNetwork().equals(peer.getNetwork()));
         core.connect(peer == null ? null : NetworkPeer.from(peer).getBRCryptoPeer());
     }
 
@@ -152,12 +155,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public Account getAccount() {
-        return account;
+        return accountSupplier.get();
     }
 
     @Override
     public Network getNetwork() {
-        return network;
+        return networkSupplier.get();
     }
 
     @Override
@@ -178,7 +181,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public Optional<Wallet> registerWalletFor(com.breadwallet.crypto.Currency currency) {
-        checkState(network.hasCurrency(currency));
+        checkState(getNetwork().hasCurrency(currency));
         return core
                 .registerWallet(Currency.from(currency).getCoreBRCryptoCurrency())
                 .transform(w -> Wallet.create(w, this, callbackCoordinator));
@@ -196,32 +199,32 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public String getPath() {
-        return path;
+        return pathSupplier.toString();
     }
 
     @Override
     public Currency getCurrency() {
-        return networkCurrency;
+        return networkCurrencySupplier.get();
     }
 
     @Override
     public String getName() {
-        return networkCurrency.getCode();
+        return getCurrency().getCode();
     }
 
     @Override
     public Unit getBaseUnit() {
-        return networkBaseUnit;
+        return networkBaseUnitSupplier.get();
     }
 
     @Override
     public Unit getDefaultUnit() {
-        return networkDefaultUnit;
+        return networkDefaultUnitSupplier.get();
     }
 
     @Override
     public NetworkFee getDefaultNetworkFee() {
-        return networkFee;
+        return networkFeeSupplier.get();
     }
 
     @Override
@@ -231,7 +234,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public void setAddressScheme(AddressScheme scheme) {
-        checkState(system.supportsAddressScheme(network, scheme));
+        checkState(system.supportsAddressScheme(getNetwork(), scheme));
         core.setAddressScheme(Utilities.addressSchemeToCrypto(scheme));
     }
 
@@ -283,6 +286,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             return optional;
 
         } else {
+            Log.d(TAG, "Wallet not found, creating wrapping instance");
             return Optional.of(Wallet.create(wallet, this, callbackCoordinator));
         }
     }

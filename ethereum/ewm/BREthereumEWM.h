@@ -121,12 +121,6 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 BREthereumBoolean pendExistingTransfers,
                 BRSyncDepth depth);
 
-extern void
-ewmLock (BREthereumEWM ewm);
-
-extern void
-ewmUnlock (BREthereumEWM ewm);
-
 extern BRSyncMode
 ewmGetMode (BREthereumEWM ewm);
 
@@ -137,16 +131,12 @@ ewmUpdateMode (BREthereumEWM ewm,
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
 
-extern void
-ewmUpdateBlockHeight(BREthereumEWM ewm,
-                     uint64_t blockHeight);
-
 /// MARK: - Wallets
 
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm);
 
-extern unsigned int
+extern size_t
 ewmGetWalletsCount (BREthereumEWM ewm);
 
 extern BREthereumWallet
@@ -165,10 +155,6 @@ ewmWalletGetToken (BREthereumEWM ewm,
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet);
-
-extern void
-ewmUpdateWalletBalance(BREthereumEWM ewm,
-                       BREthereumWallet wallet);
 
 extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
@@ -335,6 +321,10 @@ extern BREthereumGas
 ewmTransferGetGasLimit(BREthereumEWM ewm,
                        BREthereumTransfer transfer);
 
+extern BREthereumFeeBasis
+ewmTransferGetFeeBasis (BREthereumEWM ewm,
+                        BREthereumTransfer transfer);
+
 extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer);
@@ -489,10 +479,6 @@ ewmCreateToken (BREthereumEWM ewm,
 //
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm);
-
-extern void
-ewmUpdateBlockHeight(BREthereumEWM ewm,
-                     uint64_t blockHeight);
 
 extern const char *
 ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,

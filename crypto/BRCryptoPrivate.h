@@ -282,6 +282,11 @@ extern "C" {
     cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                                 BRCryptoNetworkFee fee);
 
+    private_extern void
+    cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
+                                 const BRCryptoNetworkFee *fees,
+                                 size_t count);
+
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
 

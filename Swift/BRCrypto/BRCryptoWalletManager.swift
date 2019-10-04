@@ -253,23 +253,26 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     }
 
 
-    internal convenience init (system: System,
-                               callbackCoordinator: SystemCallbackCoordinator,
-                               account: Account,
-                               network: Network,
-                               mode: WalletManagerMode,
-                               addressScheme: AddressScheme,
-                               currencies: Set<Currency>,
-                               storagePath: String,
-                               listener: BRCryptoCWMListener,
-                               client: BRCryptoCWMClient) {
-        self.init (core: cryptoWalletManagerCreate (listener,
+    internal convenience init? (system: System,
+                                callbackCoordinator: SystemCallbackCoordinator,
+                                account: Account,
+                                network: Network,
+                                mode: WalletManagerMode,
+                                addressScheme: AddressScheme,
+                                currencies: Set<Currency>,
+                                storagePath: String,
+                                listener: BRCryptoCWMListener,
+                                client: BRCryptoCWMClient) {
+        guard let core = cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
                                                     network.core,
                                                     mode.core,
                                                     addressScheme.core,
-                                                    storagePath),
+                                                    storagePath)
+            else { return nil }
+
+        self.init (core: core,
                    system: system,
                    callbackCoordinator: callbackCoordinator,
                    take: false)

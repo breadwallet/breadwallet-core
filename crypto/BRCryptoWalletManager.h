@@ -129,6 +129,7 @@ extern "C" {
 
     /// MARK: Wallet Manager
 
+    /// Can return NULL
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                BRCryptoCWMClient client,
