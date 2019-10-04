@@ -39,8 +39,8 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     private final CoreBRCryptoTransfer core;
     private final Wallet wallet;
-    private final Unit unit;
 
+    private final Supplier<Unit> unitSupplier;
     private final Supplier<Unit> unitForFeeSupplier;
     private final Supplier<Optional<TransferFeeBasis>> estimatedFeeBasisSupplier;
     private final Supplier<Optional<Address>> sourceSupplier;
@@ -53,7 +53,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
         this.core = core;
         this.wallet = wallet;
 
-        this.unit = Unit.create(core.getUnitForAmount());
+        this.unitSupplier = Suppliers.memoize(() -> Unit.create(core.getUnitForAmount()));
         this.unitForFeeSupplier = Suppliers.memoize(() -> Unit.create(core.getUnitForFee()));
         this.estimatedFeeBasisSupplier = Suppliers.memoize(() -> core.getEstimatedFeeBasis().transform(TransferFeeBasis::create));
 
@@ -117,7 +117,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public com.breadwallet.crypto.Unit getUnit() {
-        return unit;
+        return unitSupplier.get();
     }
 
     @Override

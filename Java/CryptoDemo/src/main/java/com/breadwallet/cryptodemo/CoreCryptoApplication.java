@@ -151,7 +151,7 @@ public class CoreCryptoApplication extends Application {
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
-            executor = Executors.newSingleThreadScheduledExecutor();
+            executor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
             system = System.create(executor, systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
