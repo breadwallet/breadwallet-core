@@ -9,12 +9,19 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
+import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.ptr.PointerByReference;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork {
 
@@ -53,14 +60,30 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public UnsignedLong getFeeCount() {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeCount(this).longValue());
+    public List<CoreBRCryptoNetworkFee> getFees() {
+        List<CoreBRCryptoNetworkFee> fees = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer feesPtr = CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFees(this, count);
+        if (null != feesPtr) {
+            try {
+                int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
+                    fees.add(new OwnedBRCryptoNetworkFee(new BRCryptoNetworkFee(feePtr)));
+                }
+
+            } finally {
+                Native.free(Pointer.nativeValue(feesPtr));
+            }
+        }
+        return fees;
     }
 
     @Override
-    public CoreBRCryptoNetworkFee getFee(UnsignedLong index) {
-        return new OwnedBRCryptoNetworkFee(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeAt(this,
-                new SizeT(index.longValue())));
+    public void setFees(List<CoreBRCryptoNetworkFee> fees) {
+        BRCryptoNetworkFee[] cryptoFees = new BRCryptoNetworkFee[fees.size()];
+        for (int i = 0; i < fees.size(); i++) cryptoFees[i] = fees.get(i).asBRCryptoNetworkFee();
+
+        CryptoLibrary.INSTANCE.cryptoNetworkSetNetworkFees(this, cryptoFees, new SizeT(cryptoFees.length));
     }
 
     @Override

@@ -132,7 +132,7 @@ class TransferCreateSweepController: TransferCreateController {
 
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             print ("APP: TCSC: Will Submit" )
-            self.walletSweeper.submit(estimatedFeeBasis: self.walletSweeperFeeBasis)
+            let _ = self.walletSweeper.submit(estimatedFeeBasis: self.walletSweeperFeeBasis)
             self.dismiss(animated: true) {}
         })
 

@@ -474,25 +474,39 @@ cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
 private_extern void
 cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                             BRCryptoNetworkFee fee) {
+    pthread_mutex_lock (&network->lock);
     array_add (network->fees, cryptoNetworkFeeTake (fee));
+    pthread_mutex_unlock (&network->lock);
 }
 
-extern size_t
-cryptoNetworkGetNetworkFeeCount (BRCryptoNetwork network) {
+private_extern void
+cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
+                             const BRCryptoNetworkFee *fees,
+                             size_t count) {
+    assert (0 != count);
     pthread_mutex_lock (&network->lock);
-    size_t count = array_count(network->fees);
+    array_apply (network->fees, cryptoNetworkFeeGive);
+    array_clear (network->fees);
+    for (size_t idx = 0; idx < count; idx++) {
+        array_add (network->fees, cryptoNetworkFeeTake (fees[idx]));
+    }
     pthread_mutex_unlock (&network->lock);
-    return count;
 }
 
-extern BRCryptoNetworkFee
-cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
-                            size_t index) {
+extern BRCryptoNetworkFee *
+cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
+                             size_t *count) {
     pthread_mutex_lock (&network->lock);
-    assert (index < array_count(network->fees));
-    BRCryptoNetworkFee fee = cryptoNetworkFeeTake (network->fees[index]);
+    *count = array_count (network->fees);
+    BRCryptoNetworkFee *fees = NULL;
+    if (0 != *count) {
+        fees = calloc (*count, sizeof(BRCryptoNetworkFee));
+        for (size_t index = 0; index < *count; index++) {
+            fees[index] = cryptoNetworkFeeTake(network->fees[index]);
+        }
+    }
     pthread_mutex_unlock (&network->lock);
-    return fee;
+    return fees;
 }
 
 extern BRCryptoAddress

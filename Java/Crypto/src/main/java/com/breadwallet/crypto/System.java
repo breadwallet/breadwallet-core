@@ -9,8 +9,12 @@
  */
 package com.breadwallet.crypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.errors.NetworkFeeUpdateError;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.utility.CompletionHandler;
 
 import java.util.List;
 import java.util.Set;
@@ -73,11 +77,13 @@ public interface System {
      *                   is safe to pass currencies not in "network" as they will be filtered (but bad form
      *                   to do so). The "primaryWallet", for the network's currency, is always created; if
      *                   the primaryWallet's currency is in `currencies` then it is effectively ignored.
+     *
+     * @return true on success; false on failure.
      */
-    void createWalletManager(Network network,
-                             WalletManagerMode mode,
-                             AddressScheme addressScheme,
-                             Set<Currency> currencies);
+    boolean createWalletManager(Network network,
+                                WalletManagerMode mode,
+                                AddressScheme addressScheme,
+                                Set<Currency> currencies);
 
     /**
      * Connect all wallet managers.
@@ -92,6 +98,22 @@ public interface System {
     void disconnectAll();
 
     void subscribe(String subscriptionToken);
+
+    /**
+     * Update the NetworkFees for all known networks.  This will query the `BlockChainDB` to
+     * acquire the fee information and then update each of system's networks with the new fee
+     * structure.  Each updated network will generate a NetworkEvent.feesUpdated event (even if
+     * the actual fees did not change).
+     *
+     * And optional completion handler can be provided.  If provided the completion handler is
+     * invoked with an array of the networks that were updated or with an error.
+     *
+     * It is appropriate to call this function anytime a network's fees are to be used, such as
+     * when a transfer is created and the User can choose among the different fees.
+     *
+     * @param completion An optional completion handler
+     */
+    void updateNetworkFees(@Nullable CompletionHandler<List<Network>, NetworkFeeUpdateError> completion);
 
     /**
      * Set the network reachable flag for all managers.

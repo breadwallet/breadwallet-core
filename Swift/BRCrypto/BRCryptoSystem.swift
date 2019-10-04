@@ -318,7 +318,7 @@ public final class System {
     }
 
     ///
-    /// Create a wallet manager for `network` using `mode`, `addressScheme`, and `currencies.  A
+    /// Create a wallet manager for `network` using `mode`, `addressScheme`, and `currencies`.  A
     /// wallet will be 'registered' for each of:
     ///    a) the network's currency - this is the primaryWallet
     ///    b) for each of `currences` that are in `network`.
@@ -336,28 +336,33 @@ public final class System {
     ///       to do so).  The 'primaryWallet', for the network's currency, is always created; if
     ///       the primaryWallet's currency is in `currencies` then it is effectively ignored.
     ///
+    /// - Returns: `true` on success; `false` on failure.
+    ///
     /// - Note: There are two preconditions - `network` must support `mode` and `addressScheme`.
     ///     Thus a fatal error arises if, for example, the network is BTC and the scheme is ETH.
     ///
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme,
-                                     currencies: Set<Currency>) {
+                                     currencies: Set<Currency>) -> Bool {
         precondition (supportsMode(network: network, mode))
         precondition (supportsAddressScheme(network: network, addressScheme))
 
-        let manager = WalletManager (system: self,
-                                     callbackCoordinator: callbackCoordinator,
-                                     account: account,
-                                     network: network,
-                                     mode: mode,
-                                     addressScheme: addressScheme,
-                                     currencies: currencies,
-                                     storagePath: path,
-                                     listener: cryptoListener,
-                                     client: cryptoClient)
+        guard let manager = WalletManager (system: self,
+                                           callbackCoordinator: callbackCoordinator,
+                                           account: account,
+                                           network: network,
+                                           mode: mode,
+                                           addressScheme: addressScheme,
+                                           currencies: currencies,
+                                           storagePath: path,
+                                           listener: cryptoListener,
+                                           client: cryptoClient)
+            else { return false }
+        
         manager.setNetworkReachable(isNetworkReachable)
         self.add (manager: manager)
+        return true
     }
 
     // Wallets - derived as a 'flatMap' of the managers' wallets.

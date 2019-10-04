@@ -36,7 +36,8 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     private final CoreBRCryptoFeeBasis core;
 
-    private final Unit unit;
+    private final Supplier<Unit> unitSupplier;
+    private final Supplier<Currency> currencySupplier;
     private final Supplier<Amount> feeSupplier;
     private final Supplier<Double> costFactorSupplier;
     private final Supplier<Amount> pricePerCostFactorSupplier;
@@ -44,7 +45,8 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
     private TransferFeeBasis(CoreBRCryptoFeeBasis core) {
         this.core = core;
 
-        this.unit= Unit.create(core.getPricePerCostFactorUnit());
+        this.unitSupplier = Suppliers.memoize(() -> Unit.create(core.getPricePerCostFactorUnit()));
+        this.currencySupplier = Suppliers.memoize(() -> getUnit().getCurrency());
         this.costFactorSupplier = Suppliers.memoize(core::getCostFactor);
         this.pricePerCostFactorSupplier = Suppliers.memoize(() -> Amount.create(core.getPricePerCostFactor()));
 
@@ -54,12 +56,12 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     @Override
     public Unit getUnit() {
-        return unit;
+        return unitSupplier.get();
     }
 
     @Override
     public Currency getCurrency() {
-        return unit.getCurrency();
+        return currencySupplier.get();
     }
 
     @Override

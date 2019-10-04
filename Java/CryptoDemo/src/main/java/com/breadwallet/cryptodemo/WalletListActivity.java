@@ -141,6 +141,9 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             case R.id.action_disconnect:
                 CoreCryptoApplication.getSystem().disconnectAll();
                 return true;
+            case R.id.action_update_fees:
+                CoreCryptoApplication.getSystem().updateNetworkFees(null);
+                return true;
             case R.id.action_reset:
                 CoreCryptoApplication.resetSystem();
                 walletsAdapter.clear();

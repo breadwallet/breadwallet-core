@@ -35,9 +35,29 @@ public final class Network: CustomStringConvertible {
         set { cryptoNetworkSetHeight (core, newValue) }
     }
 
-     /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
+    /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
-    public internal(set) var fees: [NetworkFee]
+    public internal(set) var fees: [NetworkFee] {
+        get {
+            var count: size_t = 0
+            let ptr = cryptoNetworkGetNetworkFees(core, &count);
+            defer { if let p = ptr { free (p) } }
+
+            let items = ptr?.withMemoryRebound(to: BRCryptoNetworkFee.self, capacity: count) {
+                Array(UnsafeBufferPointer (start: $0, count: count))
+            } ?? []
+
+            return items.map { NetworkFee (core: $0, take: false) }
+        }
+        set {
+            precondition(0 != newValue.count)
+
+            let feeCores: [BRCryptoNetworkFee?] = newValue.map { $0.core }
+            feeCores.withUnsafeBufferPointer { (buffer: UnsafeBufferPointer<BRCryptoNetworkFee?>) -> Void in
+                cryptoNetworkSetNetworkFees(core, buffer.baseAddress!, feeCores.count)
+            }
+        }
+    }
 
     /// Return the minimum fee which should be the fee with the largest confirmation time
     public var minimumFee: NetworkFee {
@@ -127,9 +147,6 @@ public final class Network: CustomStringConvertible {
         self.currencies = Set ((0..<cryptoNetworkGetCurrencyCount(core))
             .map { cryptoNetworkGetCurrencyAt (core, $0) }
             .map { Currency (core: $0, take: false)})
-        self.fees = Array ((0..<cryptoNetworkGetNetworkFeeCount(core))
-            .map { cryptoNetworkGetNetworkFeeAt (core, $0)}
-            .map { NetworkFee (core: $0, take: false) })
     }
 
     /// Create a Network

@@ -11,7 +11,7 @@
 #include <math.h>
 
 #include "BRCryptoFeeBasis.h"
-#include "ethereum/ewm/BREthereumBase.h"
+#include "ethereum/BREthereum.h"
 #include "generic/BRGeneric.h"
 #include "BRCryptoPrivate.h"
 
