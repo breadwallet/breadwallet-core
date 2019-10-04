@@ -139,6 +139,7 @@ struct BRCryptoNetworkRecord {
 
         struct {
             // TODO: TBD
+            BRGenericNetwork net;
             uint8_t mainnet;
         } gen;
     } u;
@@ -203,10 +204,13 @@ cryptoNetworkCreateAsETH (const char *uids,
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsGEN (const char *uids,
                           const char *name,
+                          BRCryptoCurrency currency,
                           uint8_t isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
     network->u.gen.mainnet = isMainnet;
+    network->u.gen.net = gwmNetworkCreate(cryptoCurrencyGetCode(currency));
+    network->currency = cryptoCurrencyTake(currency);
     return network;
 }
 
@@ -241,6 +245,7 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
             break;
     }
 
+    if (network->currency) cryptoCurrencyGive(network->currency);
     free (network->name);
     free (network->uids);
     if (NULL != network->currency) cryptoCurrencyGive (network->currency);
@@ -509,7 +514,10 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
             return cryptoAddressCreateFromStringAsETH (string);
 
         case BLOCK_CHAIN_TYPE_GEN:
-            return cryptoAddressCreateFromStringAsGEN (string);
+        {
+            BRGenericAddress genericAddress = gwmNetworkAddressCreate(network->u.gen.net, string);
+            return cryptoAddressCreateAsGEN (network->u.gen.net, genericAddress);
+        }
     }
 }
 
@@ -530,7 +538,7 @@ cryptoNetworkAsBTC (BRCryptoNetwork network) {
 private_extern void *
 cryptoNetworkAsGEN (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_GEN == network->type);
-    return NULL;
+    return network->u.gen.net;
 }
 
 private_extern BRCryptoBlockChainType

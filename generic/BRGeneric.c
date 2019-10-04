@@ -15,6 +15,36 @@
 #include "BRGeneric.h"
 #include "BRGenericHandlers.h"
 
+extern BRGenericNetwork
+gwmNetworkCreate(const char * type) {
+    BRGenericNetworkRecord * network = calloc(1, sizeof(BRGenericNetworkRecord));
+    network->handlers = genericHandlerLookup(type);
+    return network;
+}
+
+extern void
+gwmNetworkRelease(BRGenericNetwork network) {
+    BRGenericNetworkRecord * networkToRelease = network;
+    free(networkToRelease);
+}
+
+extern BRGenericHandlers
+gwmNetworkGetHandlers(BRGenericNetwork network) {
+    return ((BRGenericNetworkRecord *) network)->handlers;
+}
+
+extern BRGenericAddress
+gwmNetworkAddressCreate(BRGenericNetwork network, const char * address) {
+    BRGenericNetworkRecord * networkRecord = network;
+    return networkRecord->handlers->network.networkAddressCreate(address);
+}
+
+extern void
+gwmNetworkAddressRelease(BRGenericNetwork network, BRGenericAddress address) {
+    BRGenericNetworkRecord * networkRecord = network;
+    return networkRecord->handlers->network.networkAddressFree(address);
+}
+
 // This is, admittedly, a little odd.
 
 static BRGenericAccount
@@ -93,16 +123,16 @@ gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount) {
 // MARK: - Address
 
 extern char *
-gwmAddressAsString (BRGenericWalletManager gwm,
+gwmAddressAsString (BRGenericNetwork nid,
                     BRGenericAddress aid) {
-    return gwmGetHandlers(gwm)->address.asString (aid);
+    return gwmNetworkGetHandlers(nid)->address.asString (aid);
 }
 
 extern int
-gwmAddressEqual (BRGenericWalletManager gwm,
+gwmAddressEqual (BRGenericNetwork nid,
                  BRGenericAddress aid1,
                  BRGenericAddress aid2) {
-    return gwmGetHandlers(gwm)->address.equal (aid1, aid2);
+    return gwmNetworkGetHandlers(nid)->address.equal (aid1, aid2);
 }
 
 // MARK: - Transfer

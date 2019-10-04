@@ -86,6 +86,7 @@ extern "C" {
     extern BRGenericWalletManager
     gwmCreate (BRGenericClient client,
                const char *type,
+               BRGenericNetwork network,
                BRGenericAccount account,
                uint64_t accountTimestamp,
                const char *storagePath,
@@ -126,6 +127,9 @@ extern "C" {
 
     extern BRGenericAccount
     gwmGetAccount (BRGenericWalletManager gwm);
+
+    extern BRGenericNetwork
+    gwmGetNetwork (BRGenericWalletManager gwm);
 
     extern BRGenericTransfer
     gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,

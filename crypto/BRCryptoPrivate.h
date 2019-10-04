@@ -119,7 +119,7 @@ extern "C" {
     cryptoAddressCreateAsETH (BREthereumAddress eth);
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
+    cryptoAddressCreateAsGEN (BRGenericNetwork nid,
                               BRGenericAddress aid);
 
     private_extern BRCryptoBlockChainType
@@ -306,6 +306,7 @@ extern "C" {
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsGEN (const char *uids,
                               const char *name,
+                              BRCryptoCurrency currency,
                               uint8_t isMainnet);
 
     private_extern BRCryptoBlockChainType

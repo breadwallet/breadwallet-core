@@ -21,8 +21,22 @@
 extern "C" {
 #endif
 
+    // MARK: - Network
+
+    extern BRGenericNetwork
+    gwmNetworkCreate(const char * type);
+
+    extern void
+    gwmNetworkRelease(BRGenericNetwork network);
+
+    extern BRGenericAddress
+    gwmNetworkAddressCreate(BRGenericNetwork network, const char * address);
+
+    extern void
+    gwmNetworkAddressRelease(BRGenericNetwork network, BRGenericAddress address);
+
     // MARK: - Account
-    
+
     extern BRGenericAccount
     gwmAccountCreate (const char *type,
                       UInt512 seed);
@@ -55,11 +69,11 @@ extern "C" {
      // Address
 
     extern char *
-    gwmAddressAsString (BRGenericWalletManager gwm,
+    gwmAddressAsString (BRGenericNetwork nid,
                         BRGenericAddress aid);
 
     extern int
-    gwmAddressEqual (BRGenericWalletManager gwm,
+    gwmAddressEqual (BRGenericNetwork nid,
                      BRGenericAddress aid1,
                      BRGenericAddress aid2);
 

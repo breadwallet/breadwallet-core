@@ -357,7 +357,8 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             BRGenericWallet wid = wallet->u.gen.wid;
 
             BRGenericAddress genAddress = gwmWalletGetAddress (gwm, wid);
-            return cryptoAddressCreateAsGEN (gwm, genAddress);
+            BRGenericNetwork genNetwork = gwmGetNetwork(gwm);
+            return cryptoAddressCreateAsGEN (genNetwork, genAddress);
         }
     }
 }
