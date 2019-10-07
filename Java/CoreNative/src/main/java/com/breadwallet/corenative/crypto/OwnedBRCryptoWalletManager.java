@@ -40,7 +40,7 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public CoreBRCryptoNetwork getNetwork() {
+    public BRCryptoNetwork getNetwork() {
         return core.getNetwork();
     }
 

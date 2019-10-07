@@ -149,11 +149,10 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
     Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
     BRCryptoAddress.OwnedBRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
-    BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
     BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
-    BRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
+    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
     Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
     Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
     short cryptoPeerGetPort(BRCryptoPeer peer);
@@ -168,9 +167,9 @@ public interface CryptoLibrary extends Library {
     BRCryptoCurrency.OwnedBRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
-    BRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
-    BRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
+    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
+    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
+    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
     void cryptoNetworkAddCurrency(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
     void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);
@@ -227,7 +226,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
                                                     BRCryptoCWMClient.ByValue client, BRCryptoAccount account,
                                                     BRCryptoNetwork network, int mode, int addressScheme, String path);
-    BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
+    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount.OwnedBRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);

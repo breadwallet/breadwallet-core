@@ -32,24 +32,24 @@ public class BRCryptoWalletSweeper extends PointerType {
         super();
     }
 
-    public static BRCryptoWalletSweeperStatus validateSupported(CoreBRCryptoNetwork network,
+    public static BRCryptoWalletSweeperStatus validateSupported(BRCryptoNetwork network,
                                                                 BRCryptoCurrency currency,
                                                                 BRCryptoKey key,
                                                                 CoreBRCryptoWallet wallet) {
         return BRCryptoWalletSweeperStatus.fromNative(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperValidateSupported(
-                        network.asBRCryptoNetwork(),
+                        network,
                         currency,
                         key,
                         wallet.asBRCryptoWallet())
         );
     }
 
-    public static BRCryptoWalletSweeper createAsBtc(CoreBRCryptoNetwork network,
+    public static BRCryptoWalletSweeper createAsBtc(BRCryptoNetwork network,
                                                     BRCryptoCurrency currency,
                                                     BRCryptoKey key,
                                                     int scheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network.asBRCryptoNetwork(),
+        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network,
                 currency, key, scheme);
     }
 

@@ -42,8 +42,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public CoreBRCryptoNetwork getNetwork() {
-        return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoWalletManagerGetNetwork(this));
+    public BRCryptoNetwork getNetwork() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetNetwork(this);
     }
 
     @Override

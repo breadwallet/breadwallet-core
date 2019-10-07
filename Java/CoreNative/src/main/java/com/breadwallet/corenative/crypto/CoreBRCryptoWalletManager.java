@@ -20,7 +20,7 @@ public interface CoreBRCryptoWalletManager {
     static Optional<CoreBRCryptoWalletManager> create(BRCryptoCWMListener listener,
                                                       BRCryptoCWMClient client,
                                                       BRCryptoAccount account,
-                                                      CoreBRCryptoNetwork network,
+                                                      BRCryptoNetwork network,
                                                       int mode,
                                                       int scheme,
                                                       String path) {
@@ -29,7 +29,7 @@ public interface CoreBRCryptoWalletManager {
                         listener.toByValue(),
                         client.toByValue(),
                         account,
-                        network.asBRCryptoNetwork(),
+                        network,
                         mode,
                         scheme,
                         path
@@ -45,7 +45,7 @@ public interface CoreBRCryptoWalletManager {
 
     BRCryptoAccount getAccount();
 
-    CoreBRCryptoNetwork getNetwork();
+    BRCryptoNetwork getNetwork();
 
     CoreBRCryptoWallet getWallet();
 
