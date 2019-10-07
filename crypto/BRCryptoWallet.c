@@ -681,9 +681,13 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            // TOTO - get the estimated fee basis
+            // TODO - get the estimated fee basis.  For now just do nothing
+            // so that the demo can run (with a hacked in feeBasis)
+            // CORE-622 is the JIRA item for this.
+            //BRGenericWalletManager gwm = wallet->u.gen.gwm;
+
             /*
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
+
             BRGenericWallet wid = wallet->u.gen.wid;
             UInt256 genValue = cryptoAmountGetValue(amount);
 

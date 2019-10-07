@@ -137,9 +137,14 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
             print ("APP: TVV: Submit \(self.isBitCurrency ? "BTC/BCH" : "ETH") Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
+            var transferFeeBasis = self.feeBasis
+            // TODO remove this code once we get an actual fee basis from GEN: CORE-650
+            if self.wallet.currency.code == "xrp" {
+                transferFeeBasis = self.wallet.createTransferFeeBasis(pricePerCostFactor: Amount.create(integer: 10, unit: unit), costFactor: 1.0)
+            }
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             estimatedFeeBasis: self.feeBasis!)
+                                                             estimatedFeeBasis: transferFeeBasis!)
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",
                                                message: "Failed to create transfer - balance too low?",

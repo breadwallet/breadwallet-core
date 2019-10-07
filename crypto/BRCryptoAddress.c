@@ -14,7 +14,6 @@
 #include "bcash/BRBCashAddr.h"
 #include "support/BRAddress.h"
 #include "ethereum/BREthereum.h"
-#include "generic/BRGeneric.h"
 
 static void
 cryptoAddressRelease (BRCryptoAddress address);
@@ -135,6 +134,16 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
         address->u.eth = addressCreate (ethAddress);
     }
     return address;
+}
+
+extern BRCryptoAddress
+cryptoAddressCreateFromStringAsGEN (BRGenericNetwork network, const char *genAddress) {
+    BRGenericAddress genericAddress = gwmNetworkAddressCreate(network, genAddress);
+    if (genericAddress) {
+        return cryptoAddressCreateAsGEN (network, genericAddress);
+    } else {
+        return NULL;
+    }
 }
 
 extern char *

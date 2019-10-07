@@ -158,4 +158,13 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
 
+/**
+ * Attempt to create a BRRippleAddress from this string
+ *
+ * @param input    the string address
+ * @param address  pointer to a BRRippleAddress
+ * @return the number of bytes written to "address"
+ */
+extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address);
+
 #endif

@@ -1753,6 +1753,8 @@ extension System {
                                                             let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = transaction.blockHeight ?? 0
                                                             transaction.transfers.forEach { (transfer: BlockChainDB.Model.Transfer) in
+                                                                // TODO - see the note in JIRA item CORE-648 about what we do with
+                                                                // the following check (remove or assert)
                                                                 if (accountAddress == transfer.source ||
                                                                     accountAddress == transfer.target) {
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
@@ -1768,6 +1770,8 @@ extension System {
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
+                // TODO - figure out why this precondition failes - or just remove it since systemExtract
+                // does the exact same precondition: JIRA CORE-649
                 //precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
