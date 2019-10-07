@@ -23,13 +23,13 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public Optional<CoreBRCryptoAddress> getSourceAddress() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this)).transform(OwnedBRCryptoAddress::new);
+    public Optional<BRCryptoAddress> getSourceAddress() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this));
     }
 
     @Override
-    public Optional<CoreBRCryptoAddress> getTargetAddress() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this)).transform(OwnedBRCryptoAddress::new);
+    public Optional<BRCryptoAddress> getTargetAddress() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this));
     }
 
     @Override

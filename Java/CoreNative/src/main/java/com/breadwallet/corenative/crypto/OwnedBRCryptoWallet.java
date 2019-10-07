@@ -83,17 +83,17 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
+    public BRCryptoAddress getSourceAddress(int addressScheme) {
         return core.getSourceAddress(addressScheme);
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
+    public BRCryptoAddress getTargetAddress(int addressScheme) {
         return core.getTargetAddress(addressScheme);
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
         return core.createTransfer(target, amount, estimatedFeeBasis);
     }
 
@@ -103,7 +103,7 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public void estimateFeeBasis(Pointer cookie, CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+    public void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
         core.estimateFeeBasis(cookie, target, amount, fee);
     }
 

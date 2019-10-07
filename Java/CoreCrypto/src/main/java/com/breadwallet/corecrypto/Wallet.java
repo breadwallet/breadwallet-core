@@ -9,8 +9,8 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
+import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
@@ -73,7 +73,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
-        CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
+        BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         return Optional.of(Transfer.create(core.createTransfer(coreAddress, coreAmount, coreFeeBasis), this));
@@ -89,7 +89,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
                             com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
-        CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
+        BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
         core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);

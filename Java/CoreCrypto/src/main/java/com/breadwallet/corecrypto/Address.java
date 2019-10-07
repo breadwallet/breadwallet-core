@@ -7,8 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
-import com.google.common.base.Optional;
+import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
@@ -18,7 +17,7 @@ import java.util.Objects;
 final class Address implements com.breadwallet.crypto.Address {
 
     /* package */
-    static Address create(CoreBRCryptoAddress core) {
+    static Address create(BRCryptoAddress core) {
         return new Address(core);
     }
 
@@ -30,11 +29,11 @@ final class Address implements com.breadwallet.crypto.Address {
         throw new IllegalArgumentException("Unsupported address instance");
     }
 
-    private final CoreBRCryptoAddress core;
+    private final BRCryptoAddress core;
 
     private final Supplier<String> toStringSupplier;
 
-    private Address(CoreBRCryptoAddress core) {
+    private Address(BRCryptoAddress core) {
         this.core = core;
 
         this.toStringSupplier = Suppliers.memoize(core::toString);
@@ -65,7 +64,7 @@ final class Address implements com.breadwallet.crypto.Address {
     }
 
     /* package */
-    CoreBRCryptoAddress getCoreBRCryptoAddress() {
+    BRCryptoAddress getCoreBRCryptoAddress() {
         return core;
     }
 }

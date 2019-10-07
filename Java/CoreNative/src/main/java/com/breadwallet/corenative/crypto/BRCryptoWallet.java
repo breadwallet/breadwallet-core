@@ -94,21 +94,21 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
+    public BRCryptoAddress getSourceAddress(int addressScheme) {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
+    public BRCryptoAddress getTargetAddress(int addressScheme) {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
+    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount,
                                                CoreBRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), estimatedFeeBasis.asBRCryptoFeeBasis()));
+                target, amount.asBRCryptoAmount(), estimatedFeeBasis.asBRCryptoFeeBasis()));
     }
 
     @Override
@@ -119,11 +119,11 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public void estimateFeeBasis(Pointer cookie,
-                                 CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+                                 BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
                 this,
                 cookie,
-                target.asBRCryptoAddress(),
+                target,
                 amount.asBRCryptoAmount(),
                 fee.asBRCryptoNetworkFee());
     }

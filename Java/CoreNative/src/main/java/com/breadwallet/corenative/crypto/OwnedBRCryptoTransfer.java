@@ -31,12 +31,12 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public Optional<CoreBRCryptoAddress> getSourceAddress() {
+    public Optional<BRCryptoAddress> getSourceAddress() {
         return core.getSourceAddress();
     }
 
     @Override
-    public Optional<CoreBRCryptoAddress> getTargetAddress() {
+    public Optional<BRCryptoAddress> getTargetAddress() {
         return core.getTargetAddress();
     }
 

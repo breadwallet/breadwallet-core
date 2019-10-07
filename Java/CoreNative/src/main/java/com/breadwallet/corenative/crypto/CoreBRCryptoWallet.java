@@ -38,15 +38,15 @@ public interface CoreBRCryptoWallet {
 
     void setDefaultFeeBasis(CoreBRCryptoFeeBasis feeBasis);
 
-    CoreBRCryptoAddress getSourceAddress(int addressScheme);
+    BRCryptoAddress getSourceAddress(int addressScheme);
 
-    CoreBRCryptoAddress getTargetAddress(int addressScheme);
+    BRCryptoAddress getTargetAddress(int addressScheme);
 
-    CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
+    CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
 
     Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis);
 
-    void estimateFeeBasis(Pointer cookie, CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
+    void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
 
     void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper, CoreBRCryptoNetworkFee fee);
 
