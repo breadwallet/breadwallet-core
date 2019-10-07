@@ -33,9 +33,9 @@ public interface CoreBRCryptoTransfer {
 
     Optional<BRCryptoFeeBasis> getConfirmedFeeBasis();
 
-    CoreBRCryptoUnit getUnitForFee();
-    
-    CoreBRCryptoUnit getUnitForAmount();
+    BRCryptoUnit getUnitForFee();
+
+    BRCryptoUnit getUnitForAmount();
 
     boolean isIdentical(CoreBRCryptoTransfer other);
 

@@ -20,20 +20,20 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class BRCryptoAmount extends PointerType {
 
-    public static BRCryptoAmount create(double value, CoreBRCryptoUnit unit) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit.asBRCryptoUnit());
+    public static BRCryptoAmount create(double value, BRCryptoUnit unit) {
+        return CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit);
     }
 
-    public static BRCryptoAmount create(long value, CoreBRCryptoUnit unit) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit.asBRCryptoUnit());
+    public static BRCryptoAmount create(long value, BRCryptoUnit unit) {
+        return CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit);
     }
 
-    public static Optional<BRCryptoAmount> create(String value, boolean isNegative, CoreBRCryptoUnit unit) {
+    public static Optional<BRCryptoAmount> create(String value, boolean isNegative, BRCryptoUnit unit) {
         return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoAmountCreateString(
                         value,
                         isNegative ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
-                        unit.asBRCryptoUnit())
+                        unit)
         );
     }
 
@@ -55,14 +55,13 @@ public class BRCryptoAmount extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this);
     }
 
-    public CoreBRCryptoUnit getUnit() {
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this));
+    public BRCryptoUnit getUnit() {
+        return CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this);
     }
 
-    public Optional<Double> getDouble(CoreBRCryptoUnit unit) {
-        BRCryptoUnit unitCore = unit.asBRCryptoUnit();
+    public Optional<Double> getDouble(BRCryptoUnit unit) {
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(this, unitCore, overflowRef);
+        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(this, unit, overflowRef);
         return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
     }
 
@@ -78,8 +77,8 @@ public class BRCryptoAmount extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoAmountNegate(this);
     }
 
-    public Optional<BRCryptoAmount> convert(CoreBRCryptoUnit toUnit) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit.asBRCryptoUnit()));
+    public Optional<BRCryptoAmount> convert(BRCryptoUnit toUnit) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit));
     }
 
     public boolean isNegative() {

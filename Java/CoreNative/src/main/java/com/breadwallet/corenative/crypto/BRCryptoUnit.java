@@ -14,7 +14,16 @@ import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
+public class BRCryptoUnit extends PointerType {
+
+    public static BRCryptoUnit createAsBase(BRCryptoCurrency currency, String uids, String name, String symbol) {
+        return CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(currency, uids, name, symbol);
+    }
+
+    public static BRCryptoUnit create(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, UnsignedInteger decimals) {
+        byte decimalsAsByte = UnsignedBytes.checkedCast(decimals.longValue());
+        return CryptoLibrary.INSTANCE.cryptoUnitCreate(currency, uids, name, symbol, base, decimalsAsByte);
+    }
 
     public BRCryptoUnit(Pointer address) {
         super(address);
@@ -24,55 +33,57 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
         super();
     }
 
-    @Override
-    public BRCryptoUnit asBRCryptoUnit() {
-        return this;
-    }
-
-    @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoUnitGetUids(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getName() {
         return CryptoLibrary.INSTANCE.cryptoUnitGetName(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getSymbol() {
         return CryptoLibrary.INSTANCE.cryptoUnitGetSymbol(this).getString(0, "UTF-8");
     }
 
-    @Override
     public UnsignedInteger getDecimals() {
         return UnsignedInteger.fromIntBits(UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(this)));
     }
 
-    @Override
-    public CoreBRCryptoUnit getBaseUnit() {
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this));
+    public BRCryptoUnit getBaseUnit() {
+        return CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this);
     }
 
-    @Override
-    public boolean isCompatible(CoreBRCryptoUnit other) {
-        BRCryptoUnit otherCore = other.asBRCryptoUnit();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this, otherCore);
+    public boolean isCompatible(BRCryptoUnit other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this, other);
     }
 
-    @Override
     public BRCryptoCurrency getCurrency() {
         return CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this);
     }
 
-    @Override
     public boolean hasCurrency(BRCryptoCurrency currency) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitHasCurrency(this,  currency);
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoUnit other) {
-        BRCryptoUnit otherCore = other.asBRCryptoUnit();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsIdentical(this, otherCore);
+    public boolean isIdentical(BRCryptoUnit other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsIdentical(this, other);
+    }
+
+    public static class OwnedBRCryptoUnit extends BRCryptoUnit {
+
+        public OwnedBRCryptoUnit(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoUnit() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoUnitGive(this);
+            }
+        }
     }
 }

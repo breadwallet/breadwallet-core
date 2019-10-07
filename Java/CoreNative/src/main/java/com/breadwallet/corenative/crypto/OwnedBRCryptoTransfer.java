@@ -76,12 +76,12 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForFee() {
+    public BRCryptoUnit getUnitForFee() {
         return core.getUnitForFee();
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForAmount() {
+    public BRCryptoUnit getUnitForAmount() {
         return core.getUnitForAmount();
     }
 

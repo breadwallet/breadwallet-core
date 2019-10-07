@@ -127,22 +127,22 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrency(this, currency, baseUnit.asBRCryptoUnit(), defaultUnit.asBRCryptoUnit());
+    public void addCurrency(BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrency(this, currency, baseUnit, defaultUnit);
     }
 
     @Override
-    public void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrencyUnit(this, currency, unit.asBRCryptoUnit());
+    public void addCurrencyUnit(BRCryptoCurrency currency, BRCryptoUnit unit) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrencyUnit(this, currency, unit);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
+    public Optional<BRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsBase(this, currency));
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
+    public Optional<BRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsDefault(this, currency));
     }
 
@@ -152,7 +152,7 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
+    public Optional<BRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAt(this, currency, new SizeT(index.longValue())));
     }
 

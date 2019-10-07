@@ -68,12 +68,12 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForFee() {
+    public BRCryptoUnit getUnitForFee() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForFee(this);
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForAmount() {
+    public BRCryptoUnit getUnitForAmount() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForAmount(this);
     }
 

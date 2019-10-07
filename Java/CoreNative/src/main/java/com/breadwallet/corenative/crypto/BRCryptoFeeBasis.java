@@ -32,7 +32,7 @@ public class BRCryptoFeeBasis extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetCostFactor(this);
     }
 
-    public CoreBRCryptoUnit getPricePerCostFactorUnit() {
+    public BRCryptoUnit getPricePerCostFactorUnit() {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactorUnit(this);
     }
 

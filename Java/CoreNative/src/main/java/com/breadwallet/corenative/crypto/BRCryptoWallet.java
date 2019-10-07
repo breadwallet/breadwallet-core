@@ -64,13 +64,13 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForFee() {
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this));
+    public BRCryptoUnit getUnitForFee() {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this);
     }
 
     @Override
-    public CoreBRCryptoUnit getUnit() {
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this));
+    public BRCryptoUnit getUnit() {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this);
     }
 
     @Override

@@ -109,22 +109,22 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
+    public void addCurrency(BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit) {
         core.addCurrency(currency, baseUnit, defaultUnit);
     }
 
     @Override
-    public void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit) {
+    public void addCurrencyUnit(BRCryptoCurrency currency, BRCryptoUnit unit) {
         core.addCurrencyUnit(currency, unit);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
+    public Optional<BRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
         return core.getUnitAsBase(currency);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
+    public Optional<BRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
         return core.getUnitAsDefault(currency);
     }
 
@@ -134,7 +134,7 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
+    public Optional<BRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
         return core.getUnitAt(currency, index);
     }
 

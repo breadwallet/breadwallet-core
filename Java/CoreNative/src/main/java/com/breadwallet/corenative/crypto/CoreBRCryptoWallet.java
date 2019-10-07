@@ -26,9 +26,9 @@ public interface CoreBRCryptoWallet {
 
     BRCryptoCurrency getCurrency();
 
-    CoreBRCryptoUnit getUnitForFee();
+    BRCryptoUnit getUnitForFee();
 
-    CoreBRCryptoUnit getUnit();
+    BRCryptoUnit getUnit();
 
     int getState();
 

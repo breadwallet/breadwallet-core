@@ -79,17 +79,17 @@ public interface CoreBRCryptoNetwork {
 
     void addFee(BRCryptoNetworkFee fee);
 
-    void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit);
+    void addCurrency(BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
 
-    void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit);
+    void addCurrencyUnit(BRCryptoCurrency currency, BRCryptoUnit unit);
 
-    Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency);
+    Optional<BRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency);
 
-    Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency);
+    Optional<BRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency);
 
     UnsignedLong getUnitCount(BRCryptoCurrency currency);
 
-    Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index);
+    Optional<BRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index);
 
     Optional<BRCryptoAddress> addressFor(String address);
 

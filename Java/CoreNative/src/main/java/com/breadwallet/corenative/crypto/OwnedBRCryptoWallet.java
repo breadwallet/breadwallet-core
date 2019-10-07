@@ -53,12 +53,12 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoUnit getUnitForFee() {
+    public BRCryptoUnit getUnitForFee() {
         return core.getUnitForFee();
     }
 
     @Override
-    public CoreBRCryptoUnit getUnit() {
+    public BRCryptoUnit getUnit() {
         return core.getUnit();
     }
 

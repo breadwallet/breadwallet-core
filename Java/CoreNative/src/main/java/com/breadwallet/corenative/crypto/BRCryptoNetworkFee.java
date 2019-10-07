@@ -16,11 +16,11 @@ public class BRCryptoNetworkFee extends PointerType {
 
     public static BRCryptoNetworkFee create(UnsignedLong timeIntervalInMilliseconds,
                                             BRCryptoAmount pricePerCostFactor,
-                                            CoreBRCryptoUnit pricePerCostFactorUnit) {
+                                            BRCryptoUnit pricePerCostFactorUnit) {
         return CryptoLibrary.INSTANCE.cryptoNetworkFeeCreate(
                         timeIntervalInMilliseconds.longValue(),
                         pricePerCostFactor,
-                        pricePerCostFactorUnit.asBRCryptoUnit());
+                        pricePerCostFactorUnit);
     }
 
     public BRCryptoNetworkFee(Pointer address) {
