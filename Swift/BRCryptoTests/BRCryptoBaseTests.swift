@@ -312,9 +312,73 @@ class CryptoTestSystemListener: SystemListener {
         return networkEvents.match(matchers)
     }
 
+    //
+    // Common Sequences
+    //
 
+    func checkSystemEventsCommonlyWith (network: Network, manager: WalletManager) -> Bool {
+        return checkSystemEvents(
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+        ])
+    }
+
+    func checkManagerEventsCommonlyWith (mode: WalletManagerMode,
+                                         wallet: Wallet,
+                                         lenientDisconnect: Bool = false) -> Bool {
+        let disconnectReason = (mode == WalletManagerMode.api_only
+            ? WalletManagerDisconnectReason.requested
+            : (mode == WalletManagerMode.p2p_only
+                ? WalletManagerDisconnectReason.posix (errno: 54, message: "Connection reset by peer")
+                : WalletManagerDisconnectReason.unknown))
+        
+        let disconnectEventMatcher =
+            EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: disconnectReason)),
+                          strict: !lenientDisconnect,
+                          scan: false)
+
+        return checkManagerEvents(
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded (wallet: wallet)),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.created,
+                                                              newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                              newState: WalletManagerState.syncing)),
+
+             // On API_ONLY here is no .syncProgress: timestamp: nil, percentComplete: 0
+                EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
+
+                EventMatcher (event: WalletManagerEvent.syncEnded (reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
+                EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.syncing,
+                                                                 newState: WalletManagerState.connected)),
+                disconnectEventMatcher
+        ])
+    }
+    
+    func checkWalletEventsCommonlyWith (mode: WalletManagerMode, balance: Amount, transfer: Transfer) -> Bool {
+        switch mode {
+        case .p2p_only:
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+            ])
+        case .api_only:
+            // Balance before transfer... doesn't seem right. But worse, all balance events arrive
+            // before all transfer events.
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+            ])
+        default:
+            return false
+        }
+    }
 }
-
 
 class BRCryptoSystemBaseTests: BRCryptoBaseTests {
 

@@ -152,48 +152,19 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (wallet.transferBy(core: transfer.core))
 
         // Events
-        
-        let selfListener = listener!
 
-        XCTAssertTrue (selfListener.checkSystemEvents(
-            [EventMatcher (event: SystemEvent.created),
-             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
-             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
-        ]))
+        XCTAssertTrue (listener.checkSystemEventsCommonlyWith (network: network,
+                                                               manager: manager))
 
-        XCTAssertTrue (listener.checkManagerEvents(
-            [EventMatcher (event: WalletManagerEvent.created),
-             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: wallet)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.syncStarted),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             
-             // Not in API_MODE
-                // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false
-                EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
+        // The disconnect reason varies in P2P mode, hence lenient.
+        XCTAssertTrue (listener.checkManagerEventsCommonlyWith (mode: mode,
+                                                                wallet: wallet,
+                                                                lenientDisconnect: (mode == .p2p_only)))
 
-                EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
-                EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-
-                // misses disconnect reason.
-                //             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
-                //                                                             newState: WalletManagerState.disconnected(reason: WalletManagerDisconnectReason.requested)))
-        ]))
-        
-        XCTAssertTrue (
-            listener.checkWalletEvents ([EventMatcher (event: WalletEvent.created),
-                                         EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
-                                         EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)])
-                || listener.checkWalletEvents ([EventMatcher (event: WalletEvent.created),
-                                                EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true),
-                                                EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true)])
-        )
-
-        XCTAssertTrue (listener.checkTransferEvents(
-            [EventMatcher (event: TransferEvent.created),
-             EventMatcher (event: TransferEvent.changed(old: TransferState.created,
-                                                        new: TransferState.included(confirmation: transfer.confirmation!)))
-        ]))
+        // The wallet events have a balance evnet with 0.0 in P2P mode. Expect failure.
+        XCTAssertTrue (listener.checkWalletEventsCommonlyWith (mode: mode,
+                                                               balance: wallet.balance,
+                                                               transfer: transfer))
     }
 
     func testTransferBTC_API() {

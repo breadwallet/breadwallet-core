@@ -21,14 +21,6 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
     override func tearDown() {
     }
 
-    func testWalletBTC_API() {
-        runWalletBTCTest(mode: WalletManagerMode.api_only)
-    }
-
-    func testWalletBTC_P2P() {
-        runWalletBTCTest(mode: WalletManagerMode.p2p_only)
-    }
-
     func runWalletBTCTest (mode: WalletManagerMode) {
         isMainnet = false
         currencyCodesToMode = ["btc":mode]
@@ -101,33 +93,41 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         // Connect and wait for a number of transfers
         listener.transferCount = 10
         manager.connect()
-        wait (for: [listener.transferExpectation], timeout: 70)
+        // In P2P mode we should get 10 transfers in much less than 360 seconds.
+        wait (for: [listener.transferExpectation], timeout: (mode == .p2p_only ? 360 : 10))
 
         // Try again
         transfer = wallet.createTransfer (target: transferTargetAddress,
                                           amount: transferAmount,
                                           estimatedFeeBasis: feeBasis)
-        XCTAssertNotNil(transfer)
-        XCTAssertEqual (transfer.wallet,  wallet)
-        XCTAssertEqual (transfer.manager, manager)
-        XCTAssertNotNil(transfer.estimatedFeeBasis)
-        // the transfer's estimatedFeeBasis is the original feeBasis but w/ a correct cost factor
-        XCTAssertNotEqual (transfer.estimatedFeeBasis!.fee, feeBasis.fee)
-        XCTAssertNotEqual (transfer.fee, feeBasis.fee)
-        XCTAssertEqual (transfer.target, transferTargetAddress)
-        XCTAssertEqual (transfer.unit, wallet.unit)
-        XCTAssertEqual (transfer.amount, transferAmount)
-        // We sent `transferAmount` -> directed amount is negative.
-        XCTAssertEqual (transfer.amountDirected, transferAmount.negate)
 
-        XCTAssertNil   (transfer.confirmedFeeBasis)
-        XCTAssertNil   (transfer.confirmation)
-        XCTAssertNil   (transfer.confirmations)
-        XCTAssertNil   (transfer.confirmationsAt(blockHeight: 10))
+        // This transfer might fail if 'ginger' has no balance.
+        if let transfer = transfer {
+            XCTAssertNotNil(transfer)
+            XCTAssertEqual (transfer.wallet,  wallet)
+            XCTAssertEqual (transfer.manager, manager)
+            XCTAssertNotNil(transfer.estimatedFeeBasis)
+            // the transfer's estimatedFeeBasis is the original feeBasis but w/ a correct cost factor
+            XCTAssertNotEqual (transfer.estimatedFeeBasis!.fee, feeBasis.fee)
+            XCTAssertNotEqual (transfer.fee, feeBasis.fee)
+            XCTAssertEqual (transfer.target, transferTargetAddress)
+            XCTAssertEqual (transfer.unit, wallet.unit)
+            XCTAssertEqual (transfer.amount, transferAmount)
+            // We sent `transferAmount` -> directed amount is negative.
+            XCTAssertEqual (transfer.amountDirected, transferAmount.negate)
 
-        XCTAssertNil   (transfer.hash)
-        if case .created = transfer.state {} else { XCTAssertTrue (false ) }
-        XCTAssertEqual (transfer.direction, TransferDirection.sent)
+            XCTAssertNil   (transfer.confirmedFeeBasis)
+            XCTAssertNil   (transfer.confirmation)
+            XCTAssertNil   (transfer.confirmations)
+            XCTAssertNil   (transfer.confirmationsAt(blockHeight: 10))
+
+            XCTAssertNil   (transfer.hash)
+            if case .created = transfer.state {} else { XCTAssertTrue (false ) }
+            XCTAssertEqual (transfer.direction, TransferDirection.sent)
+        }
+        else {
+            XCTAssertTrue (false, "No balance on 'ginger'")
+        }
 
         // Estiamte the fee
         let feeEstimateExpectation = XCTestExpectation (description: "FeeEstimate")
@@ -147,41 +147,25 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         // Events
 
-        XCTAssertTrue (listener.checkSystemEvents(
-            [EventMatcher (event: SystemEvent.created),
-             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
-             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
-            ]))
+        XCTAssertTrue (listener.checkSystemEventsCommonlyWith (network: network,
+                                                               manager: manager))
 
-        XCTAssertTrue (listener.checkManagerEvents(
-            [EventMatcher (event: WalletManagerEvent.created),
-             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: wallet)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.syncStarted),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
+        // The disconnect reason varies in P2P mode, hence lenient.
+        XCTAssertTrue (listener.checkManagerEventsCommonlyWith (mode: mode,
+                                                                wallet: wallet,
+                                                                lenientDisconnect: (mode == .p2p_only)))
 
-             // On API_ONLY here is no .syncProgress
-             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
-             EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
-             
-             EventMatcher (event: WalletManagerEvent.syncEnded(reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected,
-                                                             newState: WalletManagerState.disconnected (reason: WalletManagerDisconnectReason.requested)))
-            ]))
+        XCTAssertTrue (listener.checkWalletEventsCommonlyWith (mode: mode,
+                                                               balance: wallet.balance,
+                                                               transfer: wallet.transfers[0]))
+   }
 
-        // It seems `balanceUpdated` may occur before `transferAdded`
-        XCTAssertTrue (listener.checkWalletEvents(
-            [EventMatcher (event: WalletEvent.created),
-             EventMatcher (event: WalletEvent.transferAdded(transfer: wallet.transfers[0]), strict: true, scan: true),
-             EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)
-            ])
-            || listener.checkWalletEvents(
-                [EventMatcher (event: WalletEvent.created),
-                 EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true),
-                 EventMatcher (event: WalletEvent.transferAdded(transfer: wallet.transfers[0]), strict: true, scan: true)
-                ]))
+    func testWalletBTC_API() {
+        runWalletBTCTest(mode: WalletManagerMode.api_only)
+    }
 
+    func testWalletBTC_P2P() {
+        runWalletBTCTest(mode: WalletManagerMode.p2p_only)
     }
 
     func testWalletBCH() {
@@ -271,12 +255,9 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil(walletETH)
         let walletBRD = (manager.wallets[0] == manager.primaryWallet ? manager.wallets[1] : manager.wallets[0])
         XCTAssertNotNil(walletBRD)
-
-        XCTAssertTrue (listener.checkSystemEvents(
-            [EventMatcher (event: SystemEvent.created),
-             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
-             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
-            ]))
+        
+        XCTAssertTrue (listener.checkSystemEventsCommonlyWith (network: network,
+                                                               manager: manager))
 
         XCTAssertTrue (listener.checkManagerEvents(
             [WalletManagerEvent.created,
