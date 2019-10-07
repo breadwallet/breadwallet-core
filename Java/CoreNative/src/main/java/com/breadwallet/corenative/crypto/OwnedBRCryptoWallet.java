@@ -33,7 +33,7 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAmount getBalance() {
+    public BRCryptoAmount getBalance() {
         return core.getBalance();
     }
 
@@ -93,7 +93,7 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
         return core.createTransfer(target, amount, estimatedFeeBasis);
     }
 
@@ -103,7 +103,7 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+    public void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
         core.estimateFeeBasis(cookie, target, amount, fee);
     }
 

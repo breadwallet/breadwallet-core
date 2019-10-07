@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientBtc;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
@@ -29,7 +30,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
@@ -1236,7 +1236,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletBalanceUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletBalanceUpdated");
 
-        CoreBRCryptoAmount coreAmount = CoreBRCryptoAmount.createOwned(event.u.balanceUpdated.amount);
+        BRCryptoAmount coreAmount = BRCryptoAmount.createOwned(event.u.balanceUpdated.amount);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {

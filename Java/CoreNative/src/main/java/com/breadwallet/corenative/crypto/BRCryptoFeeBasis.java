@@ -33,12 +33,12 @@ public class BRCryptoFeeBasis extends PointerType implements CoreBRCryptoFeeBasi
     }
 
     @Override
-    public CoreBRCryptoAmount getPricePerCostFactor() {
+    public BRCryptoAmount getPricePerCostFactor() {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactor(this);
     }
 
     @Override
-    public Optional<CoreBRCryptoAmount> getFee() {
+    public Optional<BRCryptoAmount> getFee() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoFeeBasisGetFee(this));
     }
 

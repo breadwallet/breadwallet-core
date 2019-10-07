@@ -41,12 +41,12 @@ class OwnedBRCryptoFeeBasis implements CoreBRCryptoFeeBasis {
     }
 
     @Override
-    public CoreBRCryptoAmount getPricePerCostFactor() {
+    public BRCryptoAmount getPricePerCostFactor() {
         return core.getPricePerCostFactor();
     }
 
     @Override
-    public Optional<CoreBRCryptoAmount> getFee() {
+    public Optional<BRCryptoAmount> getFee() {
         return core.getFee();
     }
 

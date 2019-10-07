@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
@@ -15,7 +16,6 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
@@ -163,7 +163,7 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.fee)
-                                    .transform(CoreBRCryptoAmount::createOwned)
+                                    .transform(BRCryptoAmount::createOwned)
                                     .transform(Amount::create)
                     )
             );

@@ -19,9 +19,9 @@ public interface CoreBRCryptoFeeBasis {
     
     CoreBRCryptoUnit getPricePerCostFactorUnit();
 
-    CoreBRCryptoAmount getPricePerCostFactor();
+    BRCryptoAmount getPricePerCostFactor();
 
-    Optional<CoreBRCryptoAmount> getFee();
+    Optional<BRCryptoAmount> getFee();
 
     boolean isIdentical(CoreBRCryptoFeeBasis core);
 

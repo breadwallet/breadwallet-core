@@ -18,7 +18,7 @@ public interface CoreBRCryptoWallet {
         return new OwnedBRCryptoWallet(wallet);
     }
 
-    CoreBRCryptoAmount getBalance();
+    BRCryptoAmount getBalance();
 
     List<CoreBRCryptoTransfer> getTransfers();
 
@@ -42,11 +42,11 @@ public interface CoreBRCryptoWallet {
 
     BRCryptoAddress getTargetAddress(int addressScheme);
 
-    CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
+    CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
 
     Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis);
 
-    void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
+    void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
 
     void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper, CoreBRCryptoNetworkFee fee);
 

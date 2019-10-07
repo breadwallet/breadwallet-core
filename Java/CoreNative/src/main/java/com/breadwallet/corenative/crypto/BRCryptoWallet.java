@@ -29,8 +29,8 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAmount getBalance() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this));
+    public BRCryptoAmount getBalance() {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this);
     }
 
     @Override
@@ -104,11 +104,11 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, CoreBRCryptoAmount amount,
+    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
                                                CoreBRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target, amount.asBRCryptoAmount(), estimatedFeeBasis.asBRCryptoFeeBasis()));
+                target, amount, estimatedFeeBasis.asBRCryptoFeeBasis()));
     }
 
     @Override
@@ -119,12 +119,12 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public void estimateFeeBasis(Pointer cookie,
-                                 BRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+                                 BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
                 this,
                 cookie,
                 target,
-                amount.asBRCryptoAmount(),
+                amount,
                 fee.asBRCryptoNetworkFee());
     }
 

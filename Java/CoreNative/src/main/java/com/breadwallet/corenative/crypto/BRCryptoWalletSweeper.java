@@ -57,9 +57,8 @@ public class BRCryptoWalletSweeper extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoWalletSweeperGetKey(this);
     }
 
-    public Optional<CoreBRCryptoAmount> getBalance() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this))
-                .transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> getBalance() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this));
     }
 
     public Optional<String> getAddress() {

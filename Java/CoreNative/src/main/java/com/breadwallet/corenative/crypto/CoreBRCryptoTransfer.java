@@ -19,9 +19,9 @@ public interface CoreBRCryptoTransfer {
 
     Optional<BRCryptoAddress> getTargetAddress();
 
-    CoreBRCryptoAmount getAmount();
+    BRCryptoAmount getAmount();
 
-    CoreBRCryptoAmount getAmountDirected();
+    BRCryptoAmount getAmountDirected();
 
     Optional<CoreBRCryptoHash> getHash();
 

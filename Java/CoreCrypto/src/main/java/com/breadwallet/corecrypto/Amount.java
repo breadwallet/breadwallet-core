@@ -9,9 +9,9 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.crypto.CurrencyPair;
 import com.breadwallet.corenative.crypto.BRCryptoComparison;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -30,23 +30,23 @@ final class Amount implements com.breadwallet.crypto.Amount {
     /* package */
     static Amount create(double value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
+        return new Amount(BRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
     }
 
     /* package */
     static Amount create(long value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
+        return new Amount(BRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
     }
 
     /* package */
     static Optional<Amount> create(String value, boolean isNegative, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, isNegative, cryptoUnit.getCoreBRCryptoUnit()).transform(Amount::new);
+        return BRCryptoAmount.create(value, isNegative, cryptoUnit.getCoreBRCryptoUnit()).transform(Amount::new);
     }
 
     /* package */
-    static Amount create(CoreBRCryptoAmount core) {
+    static Amount create(BRCryptoAmount core) {
         return new Amount(core);
     }
 
@@ -79,13 +79,13 @@ final class Amount implements com.breadwallet.crypto.Amount {
         return formatter;
     }
 
-    private final CoreBRCryptoAmount core;
+    private final BRCryptoAmount core;
 
     private final Supplier<Unit> unitSupplier;
     private final Supplier<Currency> currencySupplier;
     private final Supplier<String> toStringSupplier;
 
-    private Amount(CoreBRCryptoAmount core) {
+    private Amount(BRCryptoAmount core) {
         this.core = core;
 
         this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
@@ -217,7 +217,7 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     /* package */
-    CoreBRCryptoAmount getCoreBRCryptoAmount() {
+    BRCryptoAmount getCoreBRCryptoAmount() {
         return core;
     }
 }

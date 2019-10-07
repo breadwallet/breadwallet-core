@@ -33,13 +33,13 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public CoreBRCryptoAmount getAmount() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this));
+    public BRCryptoAmount getAmount() {
+        return CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this);
     }
 
     @Override
-    public CoreBRCryptoAmount getAmountDirected() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoTransferGetAmountDirected(this));
+    public BRCryptoAmount getAmountDirected() {
+        return CryptoLibrary.INSTANCE.cryptoTransferGetAmountDirected(this);
     }
 
     @Override
