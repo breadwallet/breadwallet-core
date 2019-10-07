@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoHash;
+import com.breadwallet.corenative.crypto.BRCryptoHash;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
@@ -17,16 +17,16 @@ import java.util.Objects;
 final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     /* package */
-    static TransferHash create(CoreBRCryptoHash hash) {
+    static TransferHash create(BRCryptoHash hash) {
         return new TransferHash(hash);
     }
 
-    private final CoreBRCryptoHash core;
+    private final BRCryptoHash core;
 
     private final int value;
     private final Supplier<String> toStringSupplier;
 
-    private TransferHash(CoreBRCryptoHash core) {
+    private TransferHash(BRCryptoHash core) {
         this.core = core;
 
         this.value = core.getValue();

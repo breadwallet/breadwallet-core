@@ -43,8 +43,8 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public Optional<CoreBRCryptoHash> getHash() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetHash(this)).transform(OwnedBRCryptoHash::new);
+    public Optional<BRCryptoHash> getHash() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetHash(this));
     }
 
     @Override

@@ -129,7 +129,6 @@ public interface CryptoLibrary extends Library {
     int cryptoHashEqual(BRCryptoHash h1, BRCryptoHash h2);
     Pointer cryptoHashString(BRCryptoHash hash);
     int cryptoHashGetHashValue(BRCryptoHash hash);
-    BRCryptoHash cryptoHashTake(BRCryptoHash obj);
     void cryptoHashGive(BRCryptoHash obj);
 
     // crypto/BRCryptoNetwork.h
@@ -186,7 +185,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount.OwnedBRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
     BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
-    BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
+    BRCryptoHash.OwnedBRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
     BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);

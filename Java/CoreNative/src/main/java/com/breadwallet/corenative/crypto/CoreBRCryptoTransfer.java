@@ -23,7 +23,7 @@ public interface CoreBRCryptoTransfer {
 
     BRCryptoAmount getAmountDirected();
 
-    Optional<CoreBRCryptoHash> getHash();
+    Optional<BRCryptoHash> getHash();
 
     int getDirection();
 

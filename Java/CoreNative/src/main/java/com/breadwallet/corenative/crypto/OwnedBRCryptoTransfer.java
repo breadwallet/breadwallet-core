@@ -51,7 +51,7 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public Optional<CoreBRCryptoHash> getHash() {
+    public Optional<BRCryptoHash> getHash() {
         return core.getHash();
     }
 
