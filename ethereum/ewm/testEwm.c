@@ -63,6 +63,8 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
     if (!needInstall) return;
     needInstall = 0;
 
+    tokens = tokenSetCreate(10);
+
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 

@@ -23,8 +23,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
 
     func testSystemBTC() {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        currencyCodesToMode = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
@@ -68,18 +67,19 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
 
     func testSystemAppCurrencies() {
         isMainnet = false
-        currencyCodesNeeded = ["eth"]
-        modeMap = ["eth":WalletManagerMode.api_only]
+        currencyCodesToMode = ["eth":WalletManagerMode.api_only]
 
-        currencyModels = [System.asBlockChainDBModelCurrency (uids: "ethereum-ropsten:0xffff",
+        // We need the UIDS to contain a valid ETH address BUT not be a default.  Since we are
+        // using `isMainnet = false` use a mainnet address.
+        currencyModels = [System.asBlockChainDBModelCurrency (uids: "ethereum-ropsten" + ":" + BlockChainDB.Model.addressBRDMainnet,
                                                               name: "FOO Token",
                                                               code: "FOO",
                                                               type: "ERC20",
                                                               decimals: 10)!]
 
         prepareAccount()
-        // Create a query that fails (no authentication)
 
+        // Create a query that fails (no authentication)
         prepareSystem (query: BlockChainDB())
 
         XCTAssertTrue (system.networks.count >= 1)
@@ -105,8 +105,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
 
     func testSystemModes () {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        currencyCodesToMode = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
@@ -129,8 +128,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
 
     func testSystemAddressSchemes () {
         isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        currencyCodesToMode = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
