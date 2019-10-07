@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
+import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
@@ -17,7 +17,7 @@ import java.util.Objects;
 class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     /* package */
-    static TransferFeeBasis create(CoreBRCryptoFeeBasis core) {
+    static TransferFeeBasis create(BRCryptoFeeBasis core) {
         return new TransferFeeBasis(core);
     }
 
@@ -34,7 +34,7 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
         throw new IllegalArgumentException("Unsupported fee basis instance");
     }
 
-    private final CoreBRCryptoFeeBasis core;
+    private final BRCryptoFeeBasis core;
 
     private final Supplier<Unit> unitSupplier;
     private final Supplier<Currency> currencySupplier;
@@ -42,7 +42,7 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
     private final Supplier<Double> costFactorSupplier;
     private final Supplier<Amount> pricePerCostFactorSupplier;
 
-    private TransferFeeBasis(CoreBRCryptoFeeBasis core) {
+    private TransferFeeBasis(BRCryptoFeeBasis core) {
         this.core = core;
 
         this.unitSupplier = Suppliers.memoize(() -> Unit.create(core.getPricePerCostFactorUnit()));
@@ -101,7 +101,7 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
     }
 
     /* package */
-    CoreBRCryptoFeeBasis getCoreBRFeeBasis() {
+    BRCryptoFeeBasis getCoreBRFeeBasis() {
         return core;
     }
 }

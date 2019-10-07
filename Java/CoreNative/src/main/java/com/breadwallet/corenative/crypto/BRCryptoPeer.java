@@ -15,9 +15,9 @@ import com.sun.jna.PointerType;
 
 public class BRCryptoPeer extends PointerType {
 
-    public static Optional<BRCryptoPeer> create(CoreBRCryptoNetwork network, String address, UnsignedInteger port, String publicKey) {
+    public static Optional<BRCryptoPeer> create(BRCryptoNetwork network, String address, UnsignedInteger port, String publicKey) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoPeerCreate(network.asBRCryptoNetwork(), address, port.shortValue(), publicKey)
+                CryptoLibrary.INSTANCE.cryptoPeerCreate(network, address, port.shortValue(), publicKey)
         );
     }
 
@@ -29,8 +29,8 @@ public class BRCryptoPeer extends PointerType {
         super();
     }
 
-    public CoreBRCryptoNetwork getNetwork() {
-        return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoPeerGetNetwork(this));
+    public BRCryptoNetwork getNetwork() {
+        return CryptoLibrary.INSTANCE.cryptoPeerGetNetwork(this);
     }
 
     public String getAddress() {

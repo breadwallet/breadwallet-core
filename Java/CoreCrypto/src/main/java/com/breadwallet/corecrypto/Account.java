@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
+import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.google.common.base.Optional;
 
 import java.util.Date;
@@ -29,7 +29,7 @@ final class Account implements com.breadwallet.crypto.Account {
      * @param uids The unique identifier of this account
      */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp)));
+        return new Account(BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp)));
     }
 
     /**
@@ -46,7 +46,7 @@ final class Account implements com.breadwallet.crypto.Account {
      *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
      */
     static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
-        return CoreBRCryptoAccount.createFromSerialization(serialization).transform(Account::new);
+        return BRCryptoAccount.createFromSerialization(serialization).transform(Account::new);
     }
 
     /**
@@ -57,7 +57,7 @@ final class Account implements com.breadwallet.crypto.Account {
      * @return A UTF-8 NFKD normalized BIP-39 paper key
      */
     static byte[] generatePhrase(List<String> words) {
-        return CoreBRCryptoAccount.generatePhrase(words);
+        return BRCryptoAccount.generatePhrase(words);
     }
 
     /**
@@ -69,10 +69,10 @@ final class Account implements com.breadwallet.crypto.Account {
      * @return true is a valid paper key; false otherwise
      */
     static boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
-        return CoreBRCryptoAccount.validatePhrase(phraseUtf8, words);
+        return BRCryptoAccount.validatePhrase(phraseUtf8, words);
     }
 
-    static Account create(CoreBRCryptoAccount core) {
+    static Account create(BRCryptoAccount core) {
         return new Account(core);
     }
 
@@ -89,9 +89,9 @@ final class Account implements com.breadwallet.crypto.Account {
         throw new IllegalArgumentException("Unsupported account instance");
     }
 
-    private final CoreBRCryptoAccount core;
+    private final BRCryptoAccount core;
 
-    private Account(CoreBRCryptoAccount core) {
+    private Account(BRCryptoAccount core) {
         this.core = core;
     }
 
@@ -116,7 +116,7 @@ final class Account implements com.breadwallet.crypto.Account {
     }
 
     /* package */
-    CoreBRCryptoAccount getCoreBRCryptoAccount() {
+    BRCryptoAccount getCoreBRCryptoAccount() {
         return core;
     }
 }

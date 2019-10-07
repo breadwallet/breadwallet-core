@@ -4,20 +4,17 @@ import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
-import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoBoolean;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
-import com.breadwallet.corenative.support.BRSyncMode;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
@@ -160,9 +157,8 @@ public class CryptoLibraryAIT {
     public void testCryptoWithAccountAndNetwork() {
         boolean success;
 
-        BRCryptoAccount account = CoreBRCryptoAccount
-                .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), UnsignedLong.valueOf(epoch))
-                .asBRCryptoAccount();
+        BRCryptoAccount account = BRCryptoAccount
+                .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), UnsignedLong.valueOf(epoch));
 
         //
         // BTC

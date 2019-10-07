@@ -12,7 +12,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoAddress extends PointerType implements CoreBRCryptoAddress {
+public class BRCryptoAddress extends PointerType {
 
     public BRCryptoAddress(Pointer address) {
         super(address);
@@ -22,13 +22,8 @@ public class BRCryptoAddress extends PointerType implements CoreBRCryptoAddress 
         super();
     }
 
-    public boolean isIdentical(CoreBRCryptoAddress o) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAddressIsIdentical(this, o.asBRCryptoAddress());
-    }
-
-    @Override
-    public BRCryptoAddress asBRCryptoAddress() {
-        return this;
+    public boolean isIdentical(BRCryptoAddress o) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAddressIsIdentical(this, o);
     }
 
     @Override
@@ -38,6 +33,24 @@ public class BRCryptoAddress extends PointerType implements CoreBRCryptoAddress 
             return addressPtr.getString(0, "UTF-8");
         } finally {
             Native.free(Pointer.nativeValue(addressPtr));
+        }
+    }
+
+    public static class OwnedBRCryptoAddress extends BRCryptoAddress {
+
+        public OwnedBRCryptoAddress(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoAddress() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoAddressGive(this);
+            }
         }
     }
 }

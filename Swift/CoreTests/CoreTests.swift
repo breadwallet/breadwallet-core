@@ -256,7 +256,50 @@ class CoreTests: XCTestCase {
         coreDirClear()
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));
-   }
+    }
+
+    func testBitcoinWalletManagerSyncModes() {
+        var success: Int32 = 0
+        var mainnet: Int32 = 0
+        var btc: Int32 = 0
+        var blockHeight: UInt64 = 0
+
+        // BTC mainnet
+        btc = 1
+        mainnet = 1;
+        blockHeight = 500000;
+
+        coreDirClear();
+        success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, btc, mainnet);
+        XCTAssertEqual(1, success)
+
+        // BTC testnet
+        btc = 1
+        mainnet = 0;
+        blockHeight = 1500000;
+
+        coreDirClear();
+        success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, btc, mainnet);
+        XCTAssertEqual(1, success)
+
+        // BCH mainnet
+        btc = 0
+        mainnet = 1;
+        blockHeight = 500000;
+
+        coreDirClear();
+        success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, btc, mainnet);
+        XCTAssertEqual(1, success)
+
+        // BCH testnet
+        btc = 0
+        mainnet = 0;
+        blockHeight = 1500000;
+
+        coreDirClear();
+        success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, btc, mainnet);
+        XCTAssertEqual(1, success)
+    }
 
     func testPerformanceExample() {
 //        runTests(0);
