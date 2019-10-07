@@ -35,7 +35,7 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public CoreBRCryptoAccount getAccount() {
+    public BRCryptoAccount getAccount() {
         return core.getAccount();
     }
 

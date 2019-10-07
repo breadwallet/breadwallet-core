@@ -19,7 +19,7 @@ public interface CoreBRCryptoWalletManager {
 
     static Optional<CoreBRCryptoWalletManager> create(BRCryptoCWMListener listener,
                                                       BRCryptoCWMClient client,
-                                                      CoreBRCryptoAccount account,
+                                                      BRCryptoAccount account,
                                                       CoreBRCryptoNetwork network,
                                                       int mode,
                                                       int scheme,
@@ -28,7 +28,7 @@ public interface CoreBRCryptoWalletManager {
                 CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
                         listener.toByValue(),
                         client.toByValue(),
-                        account.asBRCryptoAccount(),
+                        account,
                         network.asBRCryptoNetwork(),
                         mode,
                         scheme,
@@ -43,7 +43,7 @@ public interface CoreBRCryptoWalletManager {
         return new OwnedBRCryptoWalletManager(manager);
     }
 
-    CoreBRCryptoAccount getAccount();
+    BRCryptoAccount getAccount();
 
     CoreBRCryptoNetwork getNetwork();
 
