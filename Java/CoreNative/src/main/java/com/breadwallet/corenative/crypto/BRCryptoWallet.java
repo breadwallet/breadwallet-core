@@ -18,7 +18,13 @@ import com.sun.jna.PointerType;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
+public class BRCryptoWallet extends PointerType {
+
+    public static BRCryptoWallet createOwned(BRCryptoWallet wallet) {
+        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
+        //            have BRCryptoWallet.OwnedBRCryptoWallet as its field, instead of BRCryptoWallet?
+        return new OwnedBRCryptoWallet(wallet.getPointer());
+    }
 
     public BRCryptoWallet(Pointer address) {
         super(address);
@@ -28,12 +34,10 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
         super();
     }
 
-    @Override
     public BRCryptoAmount getBalance() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this);
     }
 
-    @Override
     public List<BRCryptoTransfer> getTransfers() {
         List<BRCryptoTransfer> transfers = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
@@ -58,52 +62,42 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
                 transfer);
     }
 
-    @Override
     public BRCryptoCurrency getCurrency() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this);
     }
 
-    @Override
     public BRCryptoUnit getUnitForFee() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this);
     }
 
-    @Override
     public BRCryptoUnit getUnit() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this);
     }
 
-    @Override
     public int getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetState(this);
     }
 
-    @Override
     public void setState(int state) {
         CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state);
     }
 
-    @Override
     public BRCryptoFeeBasis getDefaultFeeBasis() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
     }
 
-    @Override
     public void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis) {
         CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis);
     }
 
-    @Override
     public BRCryptoAddress getSourceAddress(int addressScheme) {
         return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
     }
 
-    @Override
     public BRCryptoAddress getTargetAddress(int addressScheme) {
         return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
     }
 
-    @Override
     public BRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
                                                BRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
@@ -111,13 +105,11 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
                 target, amount, estimatedFeeBasis);
     }
 
-    @Override
     public Optional<BRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransferForWalletSweep(this,
                 sweeper, estimatedFeeBasis));
     }
 
-    @Override
     public void estimateFeeBasis(Pointer cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
@@ -128,7 +120,6 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
                 fee);
     }
 
-    @Override
     public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
                                                BRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasisForWalletSweep(
@@ -138,8 +129,21 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
                 fee);
     }
 
-    @Override
-    public BRCryptoWallet asBRCryptoWallet() {
-        return this;
+    public static class OwnedBRCryptoWallet extends BRCryptoWallet {
+
+        public OwnedBRCryptoWallet(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoWallet() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoWalletGive(this);
+            }
+        }
     }
 }

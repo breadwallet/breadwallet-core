@@ -47,21 +47,21 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public CoreBRCryptoWallet getWallet() {
-        return new OwnedBRCryptoWallet(CryptoLibrary.INSTANCE.cryptoWalletManagerGetWallet(this));
+    public BRCryptoWallet getWallet() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetWallet(this);
     }
 
 
     @Override
-    public List<CoreBRCryptoWallet> getWallets() {
-        List<CoreBRCryptoWallet> wallets = new ArrayList<>();
+    public List<BRCryptoWallet> getWallets() {
+        List<BRCryptoWallet> wallets = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
         Pointer walletsPtr = CryptoLibrary.INSTANCE.cryptoWalletManagerGetWallets(this, count);
         if (null != walletsPtr) {
             try {
                 int walletsSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
-                    wallets.add(new OwnedBRCryptoWallet(new BRCryptoWallet(walletPtr)));
+                    wallets.add(new BRCryptoWallet.OwnedBRCryptoWallet(walletPtr));
                 }
 
             } finally {
@@ -72,16 +72,14 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public boolean containsWallet(CoreBRCryptoWallet wallet) {
-        return  BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletManagerHasWallet(this, wallet.asBRCryptoWallet());
+    public boolean containsWallet(BRCryptoWallet wallet) {
+        return  BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletManagerHasWallet(this, wallet);
     }
 
     @Override
-    public Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
+    public Optional<BRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
         return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoWalletManagerRegisterWallet(this, currency)
-        ).transform(
-                OwnedBRCryptoWallet::new
         );
     }
 
@@ -149,7 +147,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
+    public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
         // ensure string is null terminated
         phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
         try {
@@ -158,7 +156,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer, phraseBuffer);
+                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet, transfer, phraseBuffer);
             } finally {
                 phraseMemory.clear();
             }
@@ -169,8 +167,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer, key);
+    public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet, transfer, key);
     }
 
     @Override

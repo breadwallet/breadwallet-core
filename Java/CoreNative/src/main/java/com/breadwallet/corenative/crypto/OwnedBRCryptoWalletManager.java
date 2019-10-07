@@ -45,22 +45,22 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public CoreBRCryptoWallet getWallet() {
+    public BRCryptoWallet getWallet() {
         return core.getWallet();
     }
 
     @Override
-    public List<CoreBRCryptoWallet> getWallets() {
+    public List<BRCryptoWallet> getWallets() {
         return core.getWallets();
     }
 
     @Override
-    public boolean containsWallet(CoreBRCryptoWallet wallet) {
+    public boolean containsWallet(BRCryptoWallet wallet) {
         return core.containsWallet(wallet);
     }
 
     @Override
-    public Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
+    public Optional<BRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
         return core.registerWallet(currency);
     }
 
@@ -125,12 +125,12 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
+    public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
         core.submit(wallet, transfer, phraseUtf8);
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
+    public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
         core.submit(wallet, transfer, key);
     }
 

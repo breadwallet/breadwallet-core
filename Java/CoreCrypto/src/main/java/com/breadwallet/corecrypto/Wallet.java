@@ -14,8 +14,8 @@ import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
-import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
@@ -34,7 +34,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private static final String TAG = Wallet.class.getName();
 
     /* package */
-    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+    static Wallet create(BRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         return new Wallet(wallet, walletManager, callbackCoordinator);
     }
 
@@ -51,7 +51,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         throw new IllegalArgumentException("Unsupported wallet instance");
     }
 
-    private final CoreBRCryptoWallet core;
+    private final BRCryptoWallet core;
     private final WalletManager walletManager;
     private final SystemCallbackCoordinator callbackCoordinator;
 
@@ -59,7 +59,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private final Supplier<Unit> unitForFeeSupplier;
     private final Supplier<Currency> defaultUnitCurrencySupplier;
 
-    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+    private Wallet(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.walletManager = walletManager;
         this.callbackCoordinator = callbackCoordinator;
@@ -225,7 +225,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    CoreBRCryptoWallet getCoreBRCryptoWallet() {
+    BRCryptoWallet getCoreBRCryptoWallet() {
         return core;
     }
 }

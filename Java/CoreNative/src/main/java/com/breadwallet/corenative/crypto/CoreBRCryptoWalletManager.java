@@ -47,13 +47,13 @@ public interface CoreBRCryptoWalletManager {
 
     BRCryptoNetwork getNetwork();
 
-    CoreBRCryptoWallet getWallet();
+    BRCryptoWallet getWallet();
 
-    List<CoreBRCryptoWallet> getWallets();
+    List<BRCryptoWallet> getWallets();
 
-    boolean containsWallet(CoreBRCryptoWallet wallet);
+    boolean containsWallet(BRCryptoWallet wallet);
 
-    Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency);
+    Optional<BRCryptoWallet> registerWallet(BRCryptoCurrency currency);
 
     void setNetworkReachable(boolean isNetworkReachable);
 
@@ -79,9 +79,9 @@ public interface CoreBRCryptoWalletManager {
 
     void syncToDepth(BRSyncDepth depth);
 
-    void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8);
+    void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8);
 
-    void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key);
+    void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key);
 
     void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 

@@ -217,8 +217,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);
     void cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
     void cryptoWalletEstimateFeeBasisForWalletSweep(BRCryptoWallet wallet, Pointer cookie, BRCryptoWalletSweeper sweeper, BRCryptoNetworkFee fee);
-    int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
-    BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
     void cryptoWalletGive(BRCryptoWallet obj);
 
     // crypto/BRCryptoWalletManager.h
@@ -237,10 +235,10 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetNetworkReachable(BRCryptoWalletManager manager, int isNetworkReachable);
-    BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
+    BRCryptoWallet.OwnedBRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-    BRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
+    BRCryptoWallet.OwnedBRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm, BRCryptoPeer peer);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);

@@ -35,13 +35,13 @@ public class BRCryptoWalletSweeper extends PointerType {
     public static BRCryptoWalletSweeperStatus validateSupported(BRCryptoNetwork network,
                                                                 BRCryptoCurrency currency,
                                                                 BRCryptoKey key,
-                                                                CoreBRCryptoWallet wallet) {
+                                                                BRCryptoWallet wallet) {
         return BRCryptoWalletSweeperStatus.fromNative(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperValidateSupported(
                         network,
                         currency,
                         key,
-                        wallet.asBRCryptoWallet())
+                        wallet)
         );
     }
 
