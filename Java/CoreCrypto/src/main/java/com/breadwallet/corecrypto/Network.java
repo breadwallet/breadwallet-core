@@ -281,12 +281,12 @@ final class Network implements com.breadwallet.crypto.Network {
         }
 
         Network network = (Network) object;
-        return core.equals(network.core);
+        return getUids().equals(network.getUids());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(core);
+        return Objects.hash(getUids());
     }
 
     /* package */
