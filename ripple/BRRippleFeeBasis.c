@@ -15,14 +15,12 @@
 
 extern BRRippleUnitDrops rippleFeeBasisGetPricePerCostFactor(BRRippleFeeBasis *feeBasis)
 {
-    assert(feeBasis);
-    return feeBasis->pricePerCostFactor;
+    return feeBasis ? feeBasis->pricePerCostFactor : 10;
 }
 
 extern uint32_t rippleFeeBasisGetCostFactor(BRRippleFeeBasis *feeBasis)
 {
-    assert(feeBasis);
-    return feeBasis->costFactor;
+    return feeBasis ? feeBasis->costFactor : 1;
 }
 
 extern uint32_t rippleFeeBasisIsEqual(BRRippleFeeBasis *fb1, BRRippleFeeBasis *fb2)

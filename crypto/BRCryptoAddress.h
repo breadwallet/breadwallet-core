@@ -13,6 +13,7 @@
 
 #include "BRCryptoBase.h"
 #include "support/BRAddress.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,12 +55,12 @@ extern "C" {
     cryptoAddressCreateFromStringAsETH (const char *address);
 
     /**
-     * ASSERT currently
+     * Create an address from a NULL terminated GEN address string.
      *
      * @return An address or NULL if the address string is invalid.
      */
     extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
+    cryptoAddressCreateFromStringAsGEN (BRGenericNetwork network, const char *address);
 
     /**
      * Returns the address' string representation which is suitable for display.  Note that an

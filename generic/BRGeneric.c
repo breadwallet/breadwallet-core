@@ -214,7 +214,9 @@ gwmWalletCreateTransfer (BRGenericWalletManager gwm,
                          BRGenericWallet wid,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount) {
-    return NULL;
+    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
+    BRGenericAddress accountAddress = accountWithType->handlers->account.getAddress(accountWithType->base);
+    return gwmGetHandlers(gwm)->transfer.create(accountAddress, target, amount);
 }
 
 extern UInt256
@@ -231,6 +233,16 @@ gwmWalletSubmitTransfer (BRGenericWalletManager gwm,
                          BRGenericWallet wid,
                          BRGenericTransfer tid,
                          UInt512 seed) {
-    return;
+    // Sign and serialize
+    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
+    accountWithType->handlers->account.serializeTransfer(accountWithType->base, tid, seed);
+
+    // Get the raw bytes
+    size_t txSize = 0;
+    uint8_t * tx = gwmGetHandlers(gwm)->transfer.getSerialization(tid, &txSize);
+    // Get the hash
+    BRGenericHash hash = gwmGetHandlers(gwm)->transfer.hash(tid);
+    BRGenericClient client = gwmGetClient(gwm);
+    client.submitTransaction(client.context, gwm, wid, tid, tx, txSize, hash, 0);
 }
 

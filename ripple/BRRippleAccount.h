@@ -102,7 +102,7 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
  * @return size           size of serialized/siged bytes
  */
 extern size_t
-rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey);
+rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, UInt512 seed);
 
 // Accessor function for the account address (Ripple ID)
 extern BRRippleAddress
@@ -157,5 +157,14 @@ rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2);
 extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
+
+/**
+ * Attempt to create a BRRippleAddress from this string
+ *
+ * @param input    the string address
+ * @param address  pointer to a BRRippleAddress
+ * @return the number of bytes written to "address"
+ */
+extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address);
 
 #endif

@@ -13,6 +13,7 @@
 
 #include <stdbool.h>
 #include "BRRippleBase.h"
+#include "BRRippleTransaction.h"
 #include "BRKey.h"
 
 // A structure to hold some bytes and a length
@@ -110,6 +111,7 @@ struct BRRippleTransferRecord {
     BRRippleTransactionHash transactionId;
     uint64_t timestamp;
     uint64_t blockHeight;
+    BRRippleTransaction transaction;
 };
 
 #endif

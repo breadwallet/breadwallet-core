@@ -180,6 +180,11 @@ gwmGetAccount (BRGenericWalletManager gwm) {
     return gwm->account;
 }
 
+extern BRGenericClient
+gwmGetClient (BRGenericWalletManager gwm) {
+    return gwm->client;
+}
+
 extern void
 gwmConnect (BRGenericWalletManager gwm) {
     eventHandlerStart (gwm->handler);

@@ -65,13 +65,8 @@ extern "C" {
                                            BRGenericWalletManager manager,
                                            BRGenericWallet wallet,
                                            BRGenericTransfer transfer,
+                                           uint8_t * txBytes, size_t txSize, BRGenericHash hash,
                                            int rid);
-
-    extern void
-    gwmAnnounceSubmit (BRGenericWalletManager manager,
-                       int rid,
-                       BRGenericTransfer transfer,
-                       int error);
 
     typedef struct {
         BRGenericClientContext context;
@@ -80,6 +75,12 @@ extern "C" {
         BRGenericGetTransfersCallback getTransfers;
         BRGenericSubmitTransactionCallback submitTransaction;
     } BRGenericClient;
+
+    extern void
+    gwmAnnounceSubmit (BRGenericWalletManager manager,
+                       int rid,
+                       BRGenericTransfer transfer,
+                       int error);
 
     // Add: NAME (as Currency Code) for pthread name
     // Add: period for query rate.
@@ -130,6 +131,9 @@ extern "C" {
 
     extern BRGenericNetwork
     gwmGetNetwork (BRGenericWalletManager gwm);
+
+    extern BRGenericClient
+    gwmGetClient(BRGenericWalletManager gwm);
 
     extern BRGenericTransfer
     gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
