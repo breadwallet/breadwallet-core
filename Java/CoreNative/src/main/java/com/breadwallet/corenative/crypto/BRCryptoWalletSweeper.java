@@ -32,34 +32,33 @@ public class BRCryptoWalletSweeper extends PointerType {
         super();
     }
 
-    public static BRCryptoWalletSweeperStatus validateSupported(CoreBRCryptoNetwork network,
-                                                                CoreBRCryptoCurrency currency,
+    public static BRCryptoWalletSweeperStatus validateSupported(BRCryptoNetwork network,
+                                                                BRCryptoCurrency currency,
                                                                 BRCryptoKey key,
-                                                                CoreBRCryptoWallet wallet) {
+                                                                BRCryptoWallet wallet) {
         return BRCryptoWalletSweeperStatus.fromNative(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperValidateSupported(
-                        network.asBRCryptoNetwork(),
-                        currency.asBRCryptoCurrency(),
+                        network,
+                        currency,
                         key,
-                        wallet.asBRCryptoWallet())
+                        wallet)
         );
     }
 
-    public static BRCryptoWalletSweeper createAsBtc(CoreBRCryptoNetwork network,
-                                                    CoreBRCryptoCurrency currency,
+    public static BRCryptoWalletSweeper createAsBtc(BRCryptoNetwork network,
+                                                    BRCryptoCurrency currency,
                                                     BRCryptoKey key,
                                                     int scheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network.asBRCryptoNetwork(),
-                currency.asBRCryptoCurrency(), key, scheme);
+        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network,
+                currency, key, scheme);
     }
 
     public BRCryptoKey getKey() {
         return CryptoLibrary.INSTANCE.cryptoWalletSweeperGetKey(this);
     }
 
-    public Optional<CoreBRCryptoAmount> getBalance() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this))
-                .transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> getBalance() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this));
     }
 
     public Optional<String> getAddress() {

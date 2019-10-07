@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
@@ -18,14 +18,14 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
     /* package */
     static NetworkFee create(UnsignedLong timeIntervalInMilliseconds,
                              Amount pricePerCostFactor) {
-        return new NetworkFee(CoreBRCryptoNetworkFee.create(
+        return new NetworkFee(BRCryptoNetworkFee.create(
                 timeIntervalInMilliseconds,
                 pricePerCostFactor.getCoreBRCryptoAmount(),
                 pricePerCostFactor.getUnit().getCoreBRCryptoUnit()));
     }
 
     /* package */
-    static NetworkFee create(CoreBRCryptoNetworkFee core) {
+    static NetworkFee create(BRCryptoNetworkFee core) {
         return new NetworkFee(core);
     }
 
@@ -42,9 +42,9 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
         throw new IllegalArgumentException("Unsupported network fee instance");
     }
 
-    private final CoreBRCryptoNetworkFee core;
+    private final BRCryptoNetworkFee core;
 
-    private NetworkFee(CoreBRCryptoNetworkFee core) {
+    private NetworkFee(BRCryptoNetworkFee core) {
         this.core = core;
     }
 
@@ -75,7 +75,7 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
     }
 
     /* package */
-    CoreBRCryptoNetworkFee getCoreBRCryptoNetworkFee() {
+    BRCryptoNetworkFee getCoreBRCryptoNetworkFee() {
         return core;
     }
 }

@@ -29,9 +29,9 @@ public class BRCryptoWalletMigrator extends PointerType {
         super();
     }
 
-    public static Optional<BRCryptoWalletMigrator> create(CoreBRCryptoNetwork network, String storagePath) {
+    public static Optional<BRCryptoWalletMigrator> create(BRCryptoNetwork network, String storagePath) {
         return Optional.fromNullable(
-            CryptoLibrary.INSTANCE.cryptoWalletMigratorCreate(network.asBRCryptoNetwork(), storagePath)
+            CryptoLibrary.INSTANCE.cryptoWalletMigratorCreate(network, storagePath)
         );
     }
 

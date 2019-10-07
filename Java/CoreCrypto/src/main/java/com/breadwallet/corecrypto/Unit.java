@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
+import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.UnsignedInteger;
@@ -18,18 +18,18 @@ import java.util.Objects;
 final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
-    static Unit create(CoreBRCryptoUnit core) {
+    static Unit create(BRCryptoUnit core) {
         return new Unit(core);
     }
 
     /* package */
     static Unit create(Currency currency, String uids, String name, String symbol) {
-        return new Unit(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol));
+        return new Unit(BRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol));
     }
 
     /* package */
     static Unit create(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
-        return new Unit(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals));
+        return new Unit(BRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals));
     }
 
     /* package */
@@ -45,7 +45,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
         throw new IllegalArgumentException("Unsupported unit instance");
     }
 
-    private final CoreBRCryptoUnit core;
+    private final BRCryptoUnit core;
 
     private final Supplier<Currency> currencySupplier;
     private final Supplier<String> nameSupplier;
@@ -53,7 +53,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
     private final Supplier<String> uidsSupplier;
     private final Supplier<UnsignedInteger> decimalsSupplier;
 
-    private Unit(CoreBRCryptoUnit core) {
+    private Unit(BRCryptoUnit core) {
         this.core = core;
 
         // don't cache base unit to avoid recursion; cost of get is cheap
@@ -120,7 +120,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
     }
 
     /* package */
-    CoreBRCryptoUnit getCoreBRCryptoUnit() {
+    BRCryptoUnit getCoreBRCryptoUnit() {
         return core;
     }
 }

@@ -12,7 +12,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoHash extends PointerType implements CoreBRCryptoHash {
+public class BRCryptoHash extends PointerType {
 
     public BRCryptoHash(Pointer address) {
         super(address);
@@ -22,14 +22,12 @@ public class BRCryptoHash extends PointerType implements CoreBRCryptoHash {
         super();
     }
 
-    @Override
     public int getValue() {
         return CryptoLibrary.INSTANCE.cryptoHashGetHashValue(this);
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoHash other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoHashEqual(this, other.asBRCryptoHash());
+    public boolean isIdentical(BRCryptoHash other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoHashEqual(this, other);
     }
 
     @Override
@@ -42,8 +40,21 @@ public class BRCryptoHash extends PointerType implements CoreBRCryptoHash {
         }
     }
 
-    @Override
-    public BRCryptoHash asBRCryptoHash() {
-        return this;
+    public static class OwnedBRCryptoHash extends BRCryptoHash {
+
+        public OwnedBRCryptoHash(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoHash() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoHashGive(this);
+            }
+        }
     }
 }
