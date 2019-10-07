@@ -280,25 +280,16 @@ eventHandlerStop (BREventHandler handler) {
     pthread_mutex_unlock(&handler->lock);
 }
 
-static pthread_t
-eventHandlerGetThread (BREventHandler handler) {
-    // Retrieve the `handler->thread` under lock so that we can be
-    // sure that it has been set via pthread_create as that
-    // function call also occurs under this lock.
-    pthread_mutex_lock(&handler->lock);
-    pthread_t handlerThread = handler->thread;
-    pthread_mutex_unlock(&handler->lock);
-    return handlerThread;
-}
-
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    return pthread_self() == eventHandlerGetThread (handler);
+    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
+    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
+    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
 }
 
 extern int
 eventHandlerIsRunning (BREventHandler handler) {
-    return PTHREAD_NULL != eventHandlerGetThread (handler);
+    return PTHREAD_NULL != handler->thread;
 }
 
 extern BREventStatus
