@@ -28,6 +28,13 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
                                        int isBTC,
                                        int isMainnet);
 
+extern int BRRunTestWalletManagerSyncStress(const char *paperKey,
+                                            const char *storagePath,
+                                            uint32_t earliestKeyTime,
+                                            uint64_t blockHeight,
+                                            int isBTC,
+                                            int isMainnet);
+
 extern int BRRunTestsBWM (const char *paperKey,
                           const char *storagePath,
                           int isBTC,

@@ -1149,7 +1149,9 @@ extern void
 BRWalletManagerSetFixedPeer (BRWalletManager manager,
                              UInt128 address,
                              uint16_t port) {
+    pthread_mutex_lock (&manager->lock);
     BRSyncManagerSetFixedPeer (manager->syncManager, address, port);
+    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
