@@ -77,9 +77,9 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+    public Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoWalletManagerRegisterWallet(this, currency.asBRCryptoCurrency())
+                CryptoLibrary.INSTANCE.cryptoWalletManagerRegisterWallet(this, currency)
         ).transform(
                 OwnedBRCryptoWallet::new
         );

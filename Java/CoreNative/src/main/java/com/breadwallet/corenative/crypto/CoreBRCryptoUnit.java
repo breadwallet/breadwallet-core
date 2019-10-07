@@ -16,16 +16,14 @@ import java.util.BitSet;
 
 public interface CoreBRCryptoUnit {
 
-    static CoreBRCryptoUnit createAsBase(CoreBRCryptoCurrency currency, String uids, String name, String symbol) {
-        BRCryptoCurrency coreCurrency = currency.asBRCryptoCurrency();
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(coreCurrency, uids, name, symbol));
+    static CoreBRCryptoUnit createAsBase(BRCryptoCurrency currency, String uids, String name, String symbol) {
+        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(currency, uids, name, symbol));
     }
 
-    static CoreBRCryptoUnit create(CoreBRCryptoCurrency currency, String uids, String name, String symbol, CoreBRCryptoUnit base, UnsignedInteger decimals) {
-        BRCryptoCurrency coreCurrency = currency.asBRCryptoCurrency();
+    static CoreBRCryptoUnit create(BRCryptoCurrency currency, String uids, String name, String symbol, CoreBRCryptoUnit base, UnsignedInteger decimals) {
         BRCryptoUnit coreBaseUnit = base.asBRCryptoUnit();
         byte decimalsAsByte = UnsignedBytes.checkedCast(decimals.longValue());
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreate(coreCurrency, uids, name, symbol, coreBaseUnit, decimalsAsByte));
+        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency, uids, name, symbol, coreBaseUnit, decimalsAsByte));
     }
 
     String getUids();
@@ -40,9 +38,9 @@ public interface CoreBRCryptoUnit {
 
     boolean isCompatible(CoreBRCryptoUnit other);
 
-    CoreBRCryptoCurrency getCurrency();
+    BRCryptoCurrency getCurrency();
 
-    boolean hasCurrency(CoreBRCryptoCurrency currency);
+    boolean hasCurrency(BRCryptoCurrency currency);
 
     boolean isIdentical(CoreBRCryptoUnit other);
 

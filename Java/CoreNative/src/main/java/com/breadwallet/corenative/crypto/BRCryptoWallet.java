@@ -59,8 +59,8 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this));
+    public BRCryptoCurrency getCurrency() {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this);
     }
 
     @Override

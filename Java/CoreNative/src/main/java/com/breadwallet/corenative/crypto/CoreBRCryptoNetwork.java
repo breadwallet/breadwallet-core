@@ -49,15 +49,15 @@ public interface CoreBRCryptoNetwork {
         return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name, isMainnet ? (byte) 1 : 0));
     }
 
-    CoreBRCryptoCurrency getCurrency();
+    BRCryptoCurrency getCurrency();
 
-    void setCurrency(CoreBRCryptoCurrency currency);
+    void setCurrency(BRCryptoCurrency currency);
 
-    boolean hasCurrency(CoreBRCryptoCurrency currency);
+    boolean hasCurrency(BRCryptoCurrency currency);
 
     UnsignedLong getCurrencyCount();
 
-    CoreBRCryptoCurrency getCurrency(UnsignedLong index);
+    BRCryptoCurrency getCurrency(UnsignedLong index);
 
     List<CoreBRCryptoNetworkFee> getFees();
 
@@ -79,17 +79,17 @@ public interface CoreBRCryptoNetwork {
 
     void addFee(CoreBRCryptoNetworkFee fee);
 
-    void addCurrency(CoreBRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit);
+    void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit);
 
-    void addCurrencyUnit(CoreBRCryptoCurrency currency, CoreBRCryptoUnit unit);
+    void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit);
 
-    Optional<CoreBRCryptoUnit> getUnitAsBase(CoreBRCryptoCurrency currency);
+    Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency);
 
-    Optional<CoreBRCryptoUnit> getUnitAsDefault(CoreBRCryptoCurrency currency);
+    Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency);
 
-    UnsignedLong getUnitCount(CoreBRCryptoCurrency currency);
+    UnsignedLong getUnitCount(BRCryptoCurrency currency);
 
-    Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index);
+    Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index);
 
     Optional<BRCryptoAddress> addressFor(String address);
 

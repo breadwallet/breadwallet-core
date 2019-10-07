@@ -60,7 +60,7 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency) {
+    public Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency) {
         return core.registerWallet(currency);
     }
 

@@ -48,7 +48,7 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
+    public BRCryptoCurrency getCurrency() {
         return core.getCurrency();
     }
 

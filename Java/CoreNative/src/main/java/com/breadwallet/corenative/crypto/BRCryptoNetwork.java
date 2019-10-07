@@ -34,18 +34,18 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoNetworkGetCurrency(this));
+    public BRCryptoCurrency getCurrency() {
+        return CryptoLibrary.INSTANCE.cryptoNetworkGetCurrency(this);
     }
 
     @Override
-    public void setCurrency(CoreBRCryptoCurrency currency) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetCurrency(this, currency.asBRCryptoCurrency());
+    public void setCurrency(BRCryptoCurrency currency) {
+        CryptoLibrary.INSTANCE.cryptoNetworkSetCurrency(this, currency);
     }
 
     @Override
-    public boolean hasCurrency(CoreBRCryptoCurrency currency) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkHasCurrency(this, currency.asBRCryptoCurrency());
+    public boolean hasCurrency(BRCryptoCurrency currency) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkHasCurrency(this, currency);
     }
 
     @Override
@@ -54,9 +54,9 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency(UnsignedLong index) {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyAt(this,
-                new SizeT(index.longValue())));
+    public BRCryptoCurrency getCurrency(UnsignedLong index) {
+        return CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyAt(this,
+                new SizeT(index.longValue()));
     }
 
     @Override
@@ -127,33 +127,33 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public void addCurrency(CoreBRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrency(this, currency.asBRCryptoCurrency(), baseUnit.asBRCryptoUnit(), defaultUnit.asBRCryptoUnit());
+    public void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrency(this, currency, baseUnit.asBRCryptoUnit(), defaultUnit.asBRCryptoUnit());
     }
 
     @Override
-    public void addCurrencyUnit(CoreBRCryptoCurrency currency, CoreBRCryptoUnit unit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrencyUnit(this, currency.asBRCryptoCurrency(), unit.asBRCryptoUnit());
+    public void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrencyUnit(this, currency, unit.asBRCryptoUnit());
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsBase(CoreBRCryptoCurrency currency) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsBase(this, currency.asBRCryptoCurrency()));
+    public Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsBase(this, currency));
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsDefault(CoreBRCryptoCurrency currency) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsDefault(this, currency.asBRCryptoCurrency()));
+    public Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsDefault(this, currency));
     }
 
     @Override
-    public UnsignedLong getUnitCount(CoreBRCryptoCurrency currency) {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitCount(this, currency.asBRCryptoCurrency()).longValue());
+    public UnsignedLong getUnitCount(BRCryptoCurrency currency) {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitCount(this, currency).longValue());
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAt(this, currency.asBRCryptoCurrency(), new SizeT(index.longValue())));
+    public Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAt(this, currency, new SizeT(index.longValue())));
     }
 
     @Override

@@ -34,17 +34,17 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
+    public BRCryptoCurrency getCurrency() {
         return core.getCurrency();
     }
 
     @Override
-    public void setCurrency(CoreBRCryptoCurrency other) {
+    public void setCurrency(BRCryptoCurrency other) {
         core.setCurrency(other);
     }
 
     @Override
-    public boolean hasCurrency(CoreBRCryptoCurrency currency) {
+    public boolean hasCurrency(BRCryptoCurrency currency) {
         return core.hasCurrency(currency);
     }
 
@@ -54,7 +54,7 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency(UnsignedLong index) {
+    public BRCryptoCurrency getCurrency(UnsignedLong index) {
         return core.getCurrency(index);
     }
 
@@ -109,32 +109,32 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public void addCurrency(CoreBRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
+    public void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit) {
         core.addCurrency(currency, baseUnit, defaultUnit);
     }
 
     @Override
-    public void addCurrencyUnit(CoreBRCryptoCurrency currency, CoreBRCryptoUnit unit) {
+    public void addCurrencyUnit(BRCryptoCurrency currency, CoreBRCryptoUnit unit) {
         core.addCurrencyUnit(currency, unit);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsBase(CoreBRCryptoCurrency currency) {
+    public Optional<CoreBRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
         return core.getUnitAsBase(currency);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAsDefault(CoreBRCryptoCurrency currency) {
+    public Optional<CoreBRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
         return core.getUnitAsDefault(currency);
     }
 
     @Override
-    public UnsignedLong getUnitCount(CoreBRCryptoCurrency currency) {
+    public UnsignedLong getUnitCount(BRCryptoCurrency currency) {
         return core.getUnitCount(currency);
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index) {
+    public Optional<CoreBRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
         return core.getUnitAt(currency, index);
     }
 

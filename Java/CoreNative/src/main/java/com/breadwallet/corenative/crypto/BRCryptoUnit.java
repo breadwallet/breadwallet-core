@@ -61,14 +61,13 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this));
+    public BRCryptoCurrency getCurrency() {
+        return CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this);
     }
 
     @Override
-    public boolean hasCurrency(CoreBRCryptoCurrency currency) {
-        BRCryptoCurrency otherCore = currency.asBRCryptoCurrency();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitHasCurrency(this,  otherCore);
+    public boolean hasCurrency(BRCryptoCurrency currency) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitHasCurrency(this,  currency);
     }
 
     @Override

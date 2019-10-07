@@ -7,10 +7,10 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeperStatus;
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.NetworkFee;
@@ -66,7 +66,7 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
 
         BRCryptoKey coreKey = key.getBRCryptoKey();
         CoreBRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
-        CoreBRCryptoCurrency coreCurrency = coreWallet.getCurrency();
+        BRCryptoCurrency coreCurrency = coreWallet.getCurrency();
         CoreBRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
 
         return statusToError(BRCryptoWalletSweeper.validateSupported(coreNetwork, coreCurrency, coreKey, coreWallet));
@@ -79,7 +79,7 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
 
         BRCryptoKey coreKey = key.getBRCryptoKey();
         CoreBRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
-        CoreBRCryptoCurrency coreCurrency = coreWallet.getCurrency();
+        BRCryptoCurrency coreCurrency = coreWallet.getCurrency();
         CoreBRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
 
         int coreScheme = Utilities.addressSchemeToCrypto(manager.getAddressScheme());

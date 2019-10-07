@@ -61,12 +61,12 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
-    public CoreBRCryptoCurrency getCurrency() {
+    public BRCryptoCurrency getCurrency() {
         return core.getCurrency();
     }
 
     @Override
-    public boolean hasCurrency(CoreBRCryptoCurrency currency) {
+    public boolean hasCurrency(BRCryptoCurrency currency) {
         return core.hasCurrency(currency);
     }
 

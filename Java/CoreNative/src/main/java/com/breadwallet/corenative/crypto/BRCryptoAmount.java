@@ -51,8 +51,8 @@ public class BRCryptoAmount extends PointerType {
         super();
     }
 
-    public CoreBRCryptoCurrency getCurrency() {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this));
+    public BRCryptoCurrency getCurrency() {
+        return CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this);
     }
 
     public CoreBRCryptoUnit getUnit() {
@@ -94,9 +94,8 @@ public class BRCryptoAmount extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, o);
     }
 
-    public boolean hasCurrency(CoreBRCryptoCurrency o) {
-        BRCryptoCurrency otherCore = o.asBRCryptoCurrency();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, otherCore);
+    public boolean hasCurrency(BRCryptoCurrency o) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, o);
     }
 
     public String toStringWithBase(int base, String preface) {

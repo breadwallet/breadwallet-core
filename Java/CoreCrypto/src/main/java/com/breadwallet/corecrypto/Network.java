@@ -9,7 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
+import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.google.common.base.Optional;
@@ -240,7 +240,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
         Set<Unit> units = new HashSet<>();
 
-        CoreBRCryptoCurrency currencyCore = Currency.from(currency).getCoreBRCryptoCurrency();
+        BRCryptoCurrency currencyCore = Currency.from(currency).getCoreBRCryptoCurrency();
         UnsignedLong count = core.getUnitCount(currencyCore);
 
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {

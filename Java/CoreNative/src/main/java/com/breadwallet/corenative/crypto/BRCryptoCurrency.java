@@ -11,7 +11,11 @@ import com.breadwallet.corenative.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoCurrency extends PointerType implements CoreBRCryptoCurrency {
+public class BRCryptoCurrency extends PointerType {
+
+    public static BRCryptoCurrency create(String uids, String name, String code, String type, String issuer) {
+        return CryptoLibrary.INSTANCE.cryptoCurrencyCreate(uids, name, code, type, issuer);
+    }
 
     public BRCryptoCurrency(Pointer address) {
         super(address);
@@ -21,39 +25,46 @@ public class BRCryptoCurrency extends PointerType implements CoreBRCryptoCurrenc
         super();
     }
 
-    @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoCurrencyGetUids(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getName() {
         return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getCode() {
         return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getType() {
         return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(this).getString(0, "UTF-8");
     }
 
-    @Override
     public String getIssuer() {
         Pointer issuer = CryptoLibrary.INSTANCE.cryptoCurrencyGetIssuer(this);
         return issuer == null ? null : issuer.getString(0, "UTF-8");
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoCurrency coreBRCryptoCurrency) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, coreBRCryptoCurrency.asBRCryptoCurrency());
+    public boolean isIdentical(BRCryptoCurrency o) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, o);
     }
 
-    @Override
-    public BRCryptoCurrency asBRCryptoCurrency() {
-        return this;
+    public static class OwnedBRCryptoCurrency extends BRCryptoCurrency {
+
+        public OwnedBRCryptoCurrency(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoCurrency() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoCurrencyGive(this);
+            }
+        }
     }
 }

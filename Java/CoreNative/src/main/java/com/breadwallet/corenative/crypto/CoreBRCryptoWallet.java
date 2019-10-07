@@ -24,7 +24,7 @@ public interface CoreBRCryptoWallet {
 
     boolean containsTransfer(CoreBRCryptoTransfer transfer);
 
-    CoreBRCryptoCurrency getCurrency();
+    BRCryptoCurrency getCurrency();
 
     CoreBRCryptoUnit getUnitForFee();
 

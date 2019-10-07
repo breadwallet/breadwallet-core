@@ -53,7 +53,7 @@ public interface CoreBRCryptoWalletManager {
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 
-    Optional<CoreBRCryptoWallet> registerWallet(CoreBRCryptoCurrency currency);
+    Optional<CoreBRCryptoWallet> registerWallet(BRCryptoCurrency currency);
 
     void setNetworkReachable(boolean isNetworkReachable);
 
