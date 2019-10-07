@@ -700,20 +700,33 @@ CWMEventRecordingVerifyEventSequence (CWMEventRecordingState *state,
     size_t expectedIndex = 0;
 
     for (; success && index < count; index++) {
+        // We've found every expected event and we're not looking for a complete sequence, so
+        // just break out
         if (!isCompleteSequence && expectedIndex == expectedCount) {
             break;
 
+        // Check for the expected event
         } else if ((success = (expectedIndex < expectedCount &&
                                CWMEventEqual (state->events[index], &expected[expectedIndex])))) {
             expectedIndex++;
 
+        // We didn't get the expected event, see if this is an ignored event
         } else {
             for (size_t ignoredIndex = 0; !success && ignoredIndex < ignoredCount; ignoredIndex++) {
                 success = CWMEventEqual (state->events[index], &ignored[ignoredIndex]);
             }
         }
 
-        if (!success) {
+        if (success) {
+            // do nothing
+
+        } else if (expectedIndex >= expectedCount) {
+            printf("%s: failed due to unexpected event (received at idx %zu -> %s)\n",
+                   __func__,
+                   index,
+                   CWMEventString (state->events[index]));
+
+        } else if (!success) {
             printf("%s: failed due to mismatched event types (expected at idx %zu -> %s, received at idx %zu -> %s)\n",
                    __func__,
                    expectedIndex,
@@ -828,6 +841,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
        sleep(1);
        cryptoWalletManagerDisconnect (manager);
        sleep(1);
+       cryptoWalletManagerStop (manager);
 
        // Verification
        success = CWMEventRecordingVerifyEventSequence(&state,
@@ -897,6 +911,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
+        cryptoWalletManagerStop (manager);
 
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
@@ -973,6 +988,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
+        cryptoWalletManagerStop (manager);
 
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
@@ -1024,6 +1040,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
+        cryptoWalletManagerStop (manager);
 
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
@@ -1089,6 +1106,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
         sleep(1);
         cryptoWalletManagerDisconnect (manager);
         sleep(1);
+        cryptoWalletManagerStop (manager);
 
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
@@ -1160,6 +1178,8 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
             return success;
         }
 
+        cryptoWalletManagerStop (manager);
+
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
                                                        CRYPTO_FALSE,
@@ -1228,6 +1248,8 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
         }
         sleep (1);
 
+        cryptoWalletManagerStop (manager);
+
        // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,
                                                        CRYPTO_TRUE,
@@ -1282,6 +1304,8 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
             return success;
         }
         sleep (1);
+
+        cryptoWalletManagerStop (manager);
 
        // Verification
        success = CWMEventRecordingVerifyEventSequence(&state,
@@ -1371,6 +1395,8 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
             fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", __func__, __LINE__);
             return success;
         }
+
+        cryptoWalletManagerStop (manager);
 
         // Verification
         success = CWMEventRecordingVerifyEventSequence(&state,

@@ -12,8 +12,12 @@ package com.breadwallet.crypto;
 import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.errors.MigrateError;
 import com.breadwallet.crypto.errors.NetworkFeeUpdateError;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.migration.BlockBlob;
+import com.breadwallet.crypto.migration.PeerBlob;
+import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
 
 import java.util.List;
@@ -146,4 +150,9 @@ public interface System {
     List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
 
     boolean supportsWalletManagerMode(Network network, WalletManagerMode mode);
+
+    public void migrateStorage (Network network, List<TransactionBlob> transactionBlobs, List<BlockBlob> blockBlobs,
+                                List<PeerBlob> peerBlobs) throws MigrateError;
+
+    boolean migrateRequired(Network network);
 }

@@ -283,6 +283,12 @@ extern "C" {
                                           UInt256 prevBlock);
 
     extern BRCryptoWalletMigratorStatus
+    cryptoWalletMigratorHandleBlockBytesAsBTC (BRCryptoWalletMigrator migrator,
+                                               const uint8_t *bytes,
+                                               size_t bytesCount,
+                                               uint32_t height);
+
+    extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
                                          uint32_t address,
                                          uint16_t port,
