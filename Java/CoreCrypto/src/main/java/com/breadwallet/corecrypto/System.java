@@ -31,7 +31,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
-import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
@@ -545,7 +544,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private Optional<WalletManager> getWalletManager(CoreBRCryptoWalletManager coreWalletManager) {
+    private Optional<WalletManager> getWalletManager(BRCryptoWalletManager coreWalletManager) {
         WalletManager walletManager = WalletManager.create(coreWalletManager, this, callbackCoordinator);
         walletManagersReadLock.lock();
         try {
@@ -556,7 +555,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private WalletManager getWalletManagerOrCreate(CoreBRCryptoWalletManager coreWalletManager) {
+    private WalletManager getWalletManagerOrCreate(BRCryptoWalletManager coreWalletManager) {
         WalletManager walletManager = WalletManager.create(coreWalletManager, this, callbackCoordinator);
         walletManagersWriteLock.lock();
         try {
@@ -641,7 +640,7 @@ final class System implements com.breadwallet.crypto.System {
                                             BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerEventCallback");
 
-        CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
+        BRCryptoWalletManager walletManager = BRCryptoWalletManager.createOwned(coreWalletManager);
 
         switch (event.type) {
             case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
@@ -687,7 +686,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerCreated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerCreated");
 
         Optional<System> optSystem = getSystem(context);
@@ -702,7 +701,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         WalletManagerState oldState = Utilities.walletManagerStateFromCrypto(event.u.state.oldValue);
         WalletManagerState newState = Utilities.walletManagerStateFromCrypto(event.u.state.newValue);
 
@@ -726,7 +725,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerDeleted");
 
         Optional<System> optSystem = getSystem(context);
@@ -747,7 +746,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerWalletAdded(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerWalletAdded(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerWalletAdded");
 
         BRCryptoWallet coreWallet = BRCryptoWallet.createOwned(event.u.wallet.value);
@@ -778,7 +777,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerWalletChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerWalletChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerWalletChanged");
 
         BRCryptoWallet coreWallet = BRCryptoWallet.createOwned(event.u.wallet.value);
@@ -809,7 +808,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerWalletDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerWalletDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerWalletDeleted");
 
         BRCryptoWallet coreWallet = BRCryptoWallet.createOwned(event.u.wallet.value);
@@ -840,7 +839,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerSyncStarted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerSyncStarted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerSyncStarted");
 
         Optional<System> optSystem = getSystem(context);
@@ -861,7 +860,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerSyncProgress(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerSyncProgress(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         float percent = event.u.syncContinues.percentComplete;
         Date timestamp = 0 == event.u.syncContinues.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.syncContinues.timestamp));
 
@@ -885,7 +884,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerSyncStopped(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerSyncStopped(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         WalletManagerSyncStoppedReason reason = Utilities.walletManagerSyncStoppedReasonFromCrypto(event.u.syncStopped.reason);
         Log.d(TAG, String.format("WalletManagerSyncStopped: (%s)", reason));
 
@@ -907,7 +906,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletManagerBlockHeightUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+    private static void handleWalletManagerBlockHeightUpdated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.blockHeight.value);
 
         Log.d(TAG, String.format("WalletManagerBlockHeightUpdated (%s)", blockHeight));
@@ -938,7 +937,7 @@ final class System implements com.breadwallet.crypto.System {
                                      @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletEventCallback");
 
-        CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
+        BRCryptoWalletManager walletManager = BRCryptoWalletManager.createOwned(coreWalletManager);
         BRCryptoWallet wallet = BRCryptoWallet.createOwned(coreWallet);
 
         switch (event.type) {
@@ -985,7 +984,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletCreated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletCreated");
 
         Optional<System> optSystem = getSystem(context);
@@ -1014,7 +1013,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState);
         WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState);
 
@@ -1046,7 +1045,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletDeleted");
 
         Optional<System> optSystem = getSystem(context);
@@ -1075,7 +1074,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletTransferAdded(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletTransferAdded(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferAdded");
 
         BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
@@ -1114,7 +1113,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletTransferChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferChanged");
 
         BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
@@ -1153,7 +1152,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletTransferSubmitted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletTransferSubmitted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferSubmitted");
 
         BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
@@ -1192,7 +1191,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletTransferDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletTransferDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferDeleted");
 
         BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
@@ -1231,7 +1230,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletBalanceUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletBalanceUpdated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletBalanceUpdated");
 
         BRCryptoAmount coreAmount = BRCryptoAmount.createOwned(event.u.balanceUpdated.amount);
@@ -1264,7 +1263,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletFeeBasisUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletFeeBasisUpdated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletFeeBasisUpdate");
 
         BRCryptoFeeBasis coreFeeBasis = BRCryptoFeeBasis.createOwned(event.u.feeBasisUpdated.basis);
@@ -1297,7 +1296,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletFeeBasisEstimated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletFeeBasisEstimated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         int status = event.u.feeBasisEstimated.status;
 
         Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
@@ -1333,7 +1332,7 @@ final class System implements com.breadwallet.crypto.System {
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferEventCallback");
 
-        CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
+        BRCryptoWalletManager walletManager = BRCryptoWalletManager.createOwned(coreWalletManager);
         BRCryptoWallet wallet = BRCryptoWallet.createOwned(coreWallet);
         BRCryptoTransfer transfer = BRCryptoTransfer.createOwned(coreTransfer);
 
@@ -1353,7 +1352,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
+    private static void handleTransferCreated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferCreated");
 
@@ -1391,7 +1390,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
+    private static void handleTransferChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
         TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
@@ -1433,7 +1432,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
+    private static void handleTransferDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferDeleted");
 
@@ -1476,7 +1475,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void btcGetBlockNumber(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState) {
         Log.d(TAG, "BRCryptoCWMBtcGetBlockNumberCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
 
@@ -1515,7 +1514,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("BRCryptoCWMBtcGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1566,7 +1565,7 @@ final class System implements com.breadwallet.crypto.System {
                                              Pointer tx, SizeT txLength, String hashAsHex) {
         Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1598,7 +1597,7 @@ final class System implements com.breadwallet.crypto.System {
                                     String networkName, String address) {
         Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1626,7 +1625,7 @@ final class System implements com.breadwallet.crypto.System {
                                     String networkName, String address, String tokenAddress) {
         Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1654,7 +1653,7 @@ final class System implements com.breadwallet.crypto.System {
                                 String networkName) {
         Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1682,7 +1681,7 @@ final class System implements com.breadwallet.crypto.System {
                                 String networkName, String from, String to, String amount, String gasPrice, String data) {
         Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1713,7 +1712,7 @@ final class System implements com.breadwallet.crypto.System {
                                       String networkName, String transaction) {
         Log.d(TAG, "BRCryptoCWMEthSubmitTransactionCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1741,7 +1740,7 @@ final class System implements com.breadwallet.crypto.System {
                                     String networkName, String address, long begBlockNumber, long endBlockNumber) {
         Log.d(TAG, String.format("BRCryptoCWMEthGetTransactionsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1790,7 +1789,7 @@ final class System implements com.breadwallet.crypto.System {
                             long endBlockNumber) {
         Log.d(TAG, String.format("BRCryptoCWMEthGetLogsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1833,7 +1832,7 @@ final class System implements com.breadwallet.crypto.System {
                               long blockNumberStop) {
         Log.d(TAG, "BRCryptoCWMEthGetBlocksCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1862,7 +1861,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void ethGetTokens(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState) {
         Log.d(TAG, "BREthereumClientHandlerGetTokens");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1900,7 +1899,7 @@ final class System implements com.breadwallet.crypto.System {
                                    String networkName) {
         Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1928,7 +1927,7 @@ final class System implements com.breadwallet.crypto.System {
                              String networkName, String address) {
         Log.d(TAG, "BRCryptoCWMEthGetNonceCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1957,7 +1956,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void genGetBlockNumber(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState) {
         Log.d(TAG, "BRCryptoCWMGenGetBlockNumberCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
 
@@ -1996,7 +1995,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("BRCryptoCWMGenGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -2044,7 +2043,7 @@ final class System implements com.breadwallet.crypto.System {
                                              Pointer tx, SizeT txLength, String hashAsHex) {
         Log.d(TAG, "BRCryptoCWMGenSubmitTransactionCallback");
 
-        CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
+        BRCryptoWalletManager coreWalletManager = BRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
