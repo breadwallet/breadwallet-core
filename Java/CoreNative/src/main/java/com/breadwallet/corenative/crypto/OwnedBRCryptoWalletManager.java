@@ -125,12 +125,12 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
+    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
         core.submit(wallet, transfer, phraseUtf8);
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
         core.submit(wallet, transfer, key);
     }
 

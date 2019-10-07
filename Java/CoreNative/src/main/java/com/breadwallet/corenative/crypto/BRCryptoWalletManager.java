@@ -149,7 +149,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
+    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
         // ensure string is null terminated
         phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
         try {
@@ -158,7 +158,7 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), phraseBuffer);
+                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer, phraseBuffer);
             } finally {
                 phraseMemory.clear();
             }
@@ -169,8 +169,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), key);
+    public void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer, key);
     }
 
     @Override

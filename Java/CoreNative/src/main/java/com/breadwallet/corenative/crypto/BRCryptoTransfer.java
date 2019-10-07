@@ -12,7 +12,13 @@ import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfer {
+public class BRCryptoTransfer extends PointerType {
+
+    public static BRCryptoTransfer createOwned(BRCryptoTransfer transfer) {
+        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
+        //            have BRCryptoTransfer.OwnedBRCryptoTransfer as its field, instead of BRCryptoTransfer?
+        return new OwnedBRCryptoTransfer(transfer.getPointer());
+    }
 
     public BRCryptoTransfer(Pointer address) {
         super(address);
@@ -22,68 +28,69 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
         super();
     }
 
-    @Override
     public Optional<BRCryptoAddress> getSourceAddress() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this));
     }
 
-    @Override
     public Optional<BRCryptoAddress> getTargetAddress() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this));
     }
 
-    @Override
     public BRCryptoAmount getAmount() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this);
     }
 
-    @Override
     public BRCryptoAmount getAmountDirected() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetAmountDirected(this);
     }
 
-    @Override
     public Optional<BRCryptoHash> getHash() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetHash(this));
     }
 
-    @Override
     public int getDirection() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetDirection(this);
     }
 
-    @Override
     public BRCryptoTransferState getState() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetState(this);
     }
 
-    @Override
     public Optional<BRCryptoFeeBasis> getEstimatedFeeBasis() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetEstimatedFeeBasis(this));
     }
 
-    @Override
     public Optional<BRCryptoFeeBasis> getConfirmedFeeBasis() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetConfirmedFeeBasis(this));
     }
 
-    @Override
     public BRCryptoUnit getUnitForFee() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForFee(this);
     }
 
-    @Override
     public BRCryptoUnit getUnitForAmount() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForAmount(this);
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoTransfer other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoTransferEqual(this, other.asBRCryptoTransfer());
+    public boolean isIdentical(BRCryptoTransfer other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoTransferEqual(this, other);
     }
 
-    @Override
-    public BRCryptoTransfer asBRCryptoTransfer() {
-        return this;
+    public static class OwnedBRCryptoTransfer extends BRCryptoTransfer {
+
+        public OwnedBRCryptoTransfer(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoTransfer() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoTransferGive(this);
+            }
+        }
     }
 }

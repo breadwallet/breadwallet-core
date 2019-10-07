@@ -13,8 +13,8 @@ import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
-import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
@@ -111,7 +111,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public List<Transfer> getTransfers() {
         List<Transfer> transfers = new ArrayList<>();
 
-        for (CoreBRCryptoTransfer transfer: core.getTransfers()) {
+        for (BRCryptoTransfer transfer: core.getTransfers()) {
             transfers.add(Transfer.create(transfer, this));
         }
 
@@ -206,14 +206,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransfer(CoreBRCryptoTransfer transfer) {
+    Optional<Transfer> getTransfer(BRCryptoTransfer transfer) {
         return core.containsTransfer(transfer) ?
                 Optional.of(Transfer.create(transfer, this)) :
                 Optional.absent();
     }
 
     /* package */
-    Optional<Transfer> getTransferOrCreate(CoreBRCryptoTransfer transfer) {
+    Optional<Transfer> getTransferOrCreate(BRCryptoTransfer transfer) {
         Optional<Transfer> optional = getTransfer(transfer);
         if (optional.isPresent()) {
             return optional;

@@ -31,7 +31,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
-import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.corenative.utility.SizeT;
@@ -1080,7 +1079,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletTransferAdded(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferAdded");
 
-        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
+        BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1119,7 +1118,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferChanged");
 
-        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
+        BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1158,7 +1157,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletTransferSubmitted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferSubmitted");
 
-        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
+        BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1197,7 +1196,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletTransferDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletTransferDeleted");
 
-        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
+        BRCryptoTransfer coreTransfer = BRCryptoTransfer.createOwned(event.u.transfer.value);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1337,7 +1336,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.createOwned(coreWalletManager);
         CoreBRCryptoWallet wallet = CoreBRCryptoWallet.createOwned(coreWallet);
-        CoreBRCryptoTransfer transfer = CoreBRCryptoTransfer.createOwned(coreTransfer);
+        BRCryptoTransfer transfer = BRCryptoTransfer.createOwned(coreTransfer);
 
         switch (event.type) {
             case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CREATED: {
@@ -1355,7 +1354,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+    private static void handleTransferCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferCreated");
 
@@ -1393,7 +1392,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+    private static void handleTransferChanged(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
         TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
@@ -1435,7 +1434,7 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleTransferDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+    private static void handleTransferDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferDeleted");
 

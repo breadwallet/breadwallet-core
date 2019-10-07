@@ -34,15 +34,15 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public List<CoreBRCryptoTransfer> getTransfers() {
-        List<CoreBRCryptoTransfer> transfers = new ArrayList<>();
+    public List<BRCryptoTransfer> getTransfers() {
+        List<BRCryptoTransfer> transfers = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
         Pointer transfersPtr = CryptoLibrary.INSTANCE.cryptoWalletGetTransfers(this, count);
         if (null != transfersPtr) {
             try {
                 int transfersSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer transferPtr: transfersPtr.getPointerArray(0, transfersSize)) {
-                    transfers.add(new OwnedBRCryptoTransfer(new BRCryptoTransfer(transferPtr)));
+                    transfers.add(new BRCryptoTransfer.OwnedBRCryptoTransfer(transferPtr));
                 }
 
             } finally {
@@ -53,9 +53,9 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
 
-    public boolean containsTransfer(CoreBRCryptoTransfer transfer) {
+    public boolean containsTransfer(BRCryptoTransfer transfer) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletHasTransfer(this,
-                transfer.asBRCryptoTransfer());
+                transfer);
     }
 
     @Override
@@ -104,17 +104,17 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
+    public BRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
                                                BRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
-        return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target, amount, estimatedFeeBasis));
+        return CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
+                target, amount, estimatedFeeBasis);
     }
 
     @Override
-    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
+    public Optional<BRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransferForWalletSweep(this,
-                sweeper, estimatedFeeBasis)).transform(OwnedBRCryptoTransfer::new);
+                sweeper, estimatedFeeBasis));
     }
 
     @Override

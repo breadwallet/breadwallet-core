@@ -79,9 +79,9 @@ public interface CoreBRCryptoWalletManager {
 
     void syncToDepth(BRSyncDepth depth);
 
-    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
+    void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8);
 
-    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key);
+    void submit(CoreBRCryptoWallet wallet, BRCryptoTransfer transfer, BRCryptoKey key);
 
     void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 
