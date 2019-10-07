@@ -59,12 +59,12 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public List<CoreBRCryptoNetworkFee> getFees() {
+    public List<BRCryptoNetworkFee> getFees() {
         return core.getFees();
     }
 
     @Override
-    public void setFees(List<CoreBRCryptoNetworkFee> fees) {
+    public void setFees(List<BRCryptoNetworkFee> fees) {
         core.setFees(fees);
     }
 
@@ -104,7 +104,7 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public void addFee(CoreBRCryptoNetworkFee fee) {
+    public void addFee(BRCryptoNetworkFee fee) {
         core.addFee(fee);
     }
 

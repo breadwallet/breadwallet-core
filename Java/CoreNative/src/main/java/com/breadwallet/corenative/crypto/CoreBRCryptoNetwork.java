@@ -59,9 +59,9 @@ public interface CoreBRCryptoNetwork {
 
     BRCryptoCurrency getCurrency(UnsignedLong index);
 
-    List<CoreBRCryptoNetworkFee> getFees();
+    List<BRCryptoNetworkFee> getFees();
 
-    void setFees(List<CoreBRCryptoNetworkFee> fees);
+    void setFees(List<BRCryptoNetworkFee> fees);
 
     String getUids();
 
@@ -77,7 +77,7 @@ public interface CoreBRCryptoNetwork {
 
     String getName();
 
-    void addFee(CoreBRCryptoNetworkFee fee);
+    void addFee(BRCryptoNetworkFee fee);
 
     void addCurrency(BRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit);
 

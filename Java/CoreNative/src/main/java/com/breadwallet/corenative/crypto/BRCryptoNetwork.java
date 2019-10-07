@@ -60,15 +60,15 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public List<CoreBRCryptoNetworkFee> getFees() {
-        List<CoreBRCryptoNetworkFee> fees = new ArrayList<>();
+    public List<BRCryptoNetworkFee> getFees() {
+        List<BRCryptoNetworkFee> fees = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
         Pointer feesPtr = CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFees(this, count);
         if (null != feesPtr) {
             try {
                 int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
-                    fees.add(new OwnedBRCryptoNetworkFee(new BRCryptoNetworkFee(feePtr)));
+                    fees.add(new BRCryptoNetworkFee.OwnedBRCryptoNetworkFee(feePtr));
                 }
 
             } finally {
@@ -79,9 +79,9 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public void setFees(List<CoreBRCryptoNetworkFee> fees) {
+    public void setFees(List<BRCryptoNetworkFee> fees) {
         BRCryptoNetworkFee[] cryptoFees = new BRCryptoNetworkFee[fees.size()];
-        for (int i = 0; i < fees.size(); i++) cryptoFees[i] = fees.get(i).asBRCryptoNetworkFee();
+        for (int i = 0; i < fees.size(); i++) cryptoFees[i] = fees.get(i);
 
         CryptoLibrary.INSTANCE.cryptoNetworkSetNetworkFees(this, cryptoFees, new SizeT(cryptoFees.length));
     }
@@ -122,8 +122,8 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public void addFee(CoreBRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddNetworkFee(this, fee.asBRCryptoNetworkFee());
+    public void addFee(BRCryptoNetworkFee fee) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddNetworkFee(this, fee);
     }
 
     @Override

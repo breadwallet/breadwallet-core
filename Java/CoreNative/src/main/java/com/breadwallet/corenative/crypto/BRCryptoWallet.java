@@ -119,23 +119,23 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public void estimateFeeBasis(Pointer cookie,
-                                 BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+                                 BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
                 this,
                 cookie,
                 target,
                 amount,
-                fee.asBRCryptoNetworkFee());
+                fee);
     }
 
     @Override
     public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
-                                               CoreBRCryptoNetworkFee fee) {
+                                               BRCryptoNetworkFee fee) {
         CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasisForWalletSweep(
                 this,
                 cookie,
                 sweeper,
-                fee.asBRCryptoNetworkFee());
+                fee);
     }
 
     @Override

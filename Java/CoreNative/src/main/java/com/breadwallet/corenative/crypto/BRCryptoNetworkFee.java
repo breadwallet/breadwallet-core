@@ -12,7 +12,16 @@ import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoNetworkFee extends PointerType implements CoreBRCryptoNetworkFee {
+public class BRCryptoNetworkFee extends PointerType {
+
+    public static BRCryptoNetworkFee create(UnsignedLong timeIntervalInMilliseconds,
+                                            BRCryptoAmount pricePerCostFactor,
+                                            CoreBRCryptoUnit pricePerCostFactorUnit) {
+        return CryptoLibrary.INSTANCE.cryptoNetworkFeeCreate(
+                        timeIntervalInMilliseconds.longValue(),
+                        pricePerCostFactor,
+                        pricePerCostFactorUnit.asBRCryptoUnit());
+    }
 
     public BRCryptoNetworkFee(Pointer address) {
         super(address);
@@ -22,18 +31,29 @@ public class BRCryptoNetworkFee extends PointerType implements CoreBRCryptoNetwo
         super();
     }
 
-    @Override
     public UnsignedLong getConfirmationTimeInMilliseconds() {
         return UnsignedLong.valueOf(CryptoLibrary.INSTANCE.cryptoNetworkFeeGetConfirmationTimeInMilliseconds(this));
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoNetworkFee other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkFeeEqual(this, other.asBRCryptoNetworkFee());
+    public boolean isIdentical(BRCryptoNetworkFee other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkFeeEqual(this, other);
     }
 
-    @Override
-    public BRCryptoNetworkFee asBRCryptoNetworkFee() {
-        return this;
+    public static class OwnedBRCryptoNetworkFee extends BRCryptoNetworkFee {
+
+        public OwnedBRCryptoNetworkFee(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoNetworkFee() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
+            }
+        }
     }
 }

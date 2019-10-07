@@ -10,8 +10,8 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -194,7 +194,7 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public List<? extends NetworkFee> getFees() {
         List<NetworkFee> fees = new ArrayList<>();
-        for (CoreBRCryptoNetworkFee fee: core.getFees()) {
+        for (BRCryptoNetworkFee fee: core.getFees()) {
             fees.add(NetworkFee.create(fee));
         }
         return fees;
@@ -297,7 +297,7 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     void setFees(List<NetworkFee> fees) {
         checkState(!fees.isEmpty());
-        List<CoreBRCryptoNetworkFee> cryptoFees = new ArrayList<>(fees.size());
+        List<BRCryptoNetworkFee> cryptoFees = new ArrayList<>(fees.size());
         for (NetworkFee fee: fees) {
             cryptoFees.add(fee.getCoreBRCryptoNetworkFee());
         }

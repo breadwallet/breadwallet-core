@@ -103,13 +103,13 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+    public void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         core.estimateFeeBasis(cookie, target, amount, fee);
     }
 
     @Override
     public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
-                                               CoreBRCryptoNetworkFee fee) {
+                                               BRCryptoNetworkFee fee) {
         core.estimateFeeBasisForWalletSweep(cookie, sweeper, fee);
     }
 
