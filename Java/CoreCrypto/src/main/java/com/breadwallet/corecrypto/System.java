@@ -20,6 +20,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerTransferEvent;
+import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
@@ -30,7 +31,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
-import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
@@ -1269,7 +1269,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletFeeBasisUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletFeeBasisUpdate");
 
-        CoreBRCryptoFeeBasis coreFeeBasis = CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisUpdated.basis);
+        BRCryptoFeeBasis coreFeeBasis = BRCryptoFeeBasis.createOwned(event.u.feeBasisUpdated.basis);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1305,7 +1305,7 @@ final class System implements com.breadwallet.crypto.System {
         Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
 
         boolean success = status == BRCryptoStatus.CRYPTO_SUCCESS;
-        CoreBRCryptoFeeBasis coreFeeBasis = success ? CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisEstimated.basis) : null;
+        BRCryptoFeeBasis coreFeeBasis = success ? BRCryptoFeeBasis.createOwned(event.u.feeBasisEstimated.basis) : null;
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {

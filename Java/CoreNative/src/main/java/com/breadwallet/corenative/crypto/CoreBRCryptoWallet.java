@@ -34,17 +34,17 @@ public interface CoreBRCryptoWallet {
 
     void setState(int state);
 
-    CoreBRCryptoFeeBasis getDefaultFeeBasis();
+    BRCryptoFeeBasis getDefaultFeeBasis();
 
-    void setDefaultFeeBasis(CoreBRCryptoFeeBasis feeBasis);
+    void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis);
 
     BRCryptoAddress getSourceAddress(int addressScheme);
 
     BRCryptoAddress getTargetAddress(int addressScheme);
 
-    CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
+    CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis estimatedFeeBasis);
 
-    Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis);
+    Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis);
 
     void estimateFeeBasis(Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
 

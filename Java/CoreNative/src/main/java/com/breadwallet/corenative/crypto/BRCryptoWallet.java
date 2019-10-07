@@ -84,13 +84,13 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoFeeBasis getDefaultFeeBasis() {
-        return new OwnedBRCryptoFeeBasis(CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this));
+    public BRCryptoFeeBasis getDefaultFeeBasis() {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
     }
 
     @Override
-    public void setDefaultFeeBasis(CoreBRCryptoFeeBasis feeBasis) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis.asBRCryptoFeeBasis());
+    public void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis) {
+        CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis);
     }
 
     @Override
@@ -105,16 +105,16 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
-                                               CoreBRCryptoFeeBasis estimatedFeeBasis) {
+                                               BRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target, amount, estimatedFeeBasis.asBRCryptoFeeBasis()));
+                target, amount, estimatedFeeBasis));
     }
 
     @Override
-    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransferForWalletSweep(this,
-                sweeper, estimatedFeeBasis.asBRCryptoFeeBasis())).transform(OwnedBRCryptoTransfer::new);
+                sweeper, estimatedFeeBasis)).transform(OwnedBRCryptoTransfer::new);
     }
 
     @Override

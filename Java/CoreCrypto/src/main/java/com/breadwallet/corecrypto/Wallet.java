@@ -11,8 +11,8 @@ import android.util.Log;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
+import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
-import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
@@ -74,7 +74,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
-        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
+        BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         return Optional.of(Transfer.create(core.createTransfer(coreAddress, coreAmount, coreFeeBasis), this));
     }
@@ -82,7 +82,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     /* package */
     public Optional<Transfer> createTransfer(BRCryptoWalletSweeper sweeper,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
-        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
+        BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         return core.createTransferForWalletSweep(sweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 

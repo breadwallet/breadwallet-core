@@ -73,12 +73,12 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoFeeBasis getDefaultFeeBasis() {
+    public BRCryptoFeeBasis getDefaultFeeBasis() {
         return core.getDefaultFeeBasis();
     }
 
     @Override
-    public void setDefaultFeeBasis(CoreBRCryptoFeeBasis feeBasis) {
+    public void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis) {
         core.setDefaultFeeBasis(feeBasis);
     }
 
@@ -93,12 +93,12 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+    public CoreBRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis estimatedFeeBasis) {
         return core.createTransfer(target, amount, estimatedFeeBasis);
     }
 
     @Override
-    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
         return core.createTransferForWalletSweep(sweeper, estimatedFeeBasis);
     }
 

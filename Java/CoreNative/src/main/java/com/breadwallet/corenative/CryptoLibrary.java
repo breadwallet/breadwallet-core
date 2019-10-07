@@ -104,7 +104,6 @@ public interface CryptoLibrary extends Library {
     double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
     BRCryptoAmount.OwnedBRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
     int cryptoFeeBasisIsIdentical(BRCryptoFeeBasis f1, BRCryptoFeeBasis f2);
-    BRCryptoFeeBasis cryptoFeeBasisTake(BRCryptoFeeBasis obj);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
 
     // crypto/BRCryptoKey.h
@@ -190,8 +189,8 @@ public interface CryptoLibrary extends Library {
     BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
     BRCryptoTransfer cryptoTransferTake(BRCryptoTransfer obj);
     void cryptoTransferGive(BRCryptoTransfer obj);
@@ -216,7 +215,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
     BRCryptoAddress.OwnedBRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
-    BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
+    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);
