@@ -137,6 +137,10 @@ gwmAddressEqual (BRGenericNetwork nid,
 
 // MARK: - Transfer
 
+extern void gwmTransferRelease (BRGenericWalletManager gwm, BRGenericTransfer transfer) {
+    gwmGetHandlers(gwm)->transfer.free(transfer);
+}
+
 extern BRGenericAddress
 gwmTransferGetSourceAddress (BRGenericWalletManager gwm,
                              BRGenericTransfer tid) {
@@ -180,6 +184,11 @@ gwmTransferGetHash (BRGenericWalletManager gwm,
 extern BRGenericWallet
 gwmWalletCreate (BRGenericWalletManager gwm) {
     return gwmGetHandlers(gwm)->wallet.create (gwmGetAccount(gwm));
+}
+
+extern void
+gwmWalletRelease (BRGenericWalletManager gwm, BRGenericWallet wallet) {
+    gwmGetHandlers(gwm)->wallet.free (wallet);
 }
 
 extern UInt256

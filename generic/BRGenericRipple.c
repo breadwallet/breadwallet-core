@@ -55,7 +55,7 @@ genericRippleAccountGetSerialization (void *account, size_t *bytesCount) {
 }
 
 static void
-genericRippleAccountSerializeTransfer(BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
+genericRippleAccountSerializeTransfer (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
 {
     // Get the transaction pointer from this transfer
     BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
@@ -84,7 +84,7 @@ genericRippleAddressEqual (BRGenericAddress address1,
 // Transfer
 
 static BRGenericTransfer
-genericRippleTransferCreate(BRGenericAddress source, BRGenericAddress target, UInt256 amount)
+genericRippleTransferCreate (BRGenericAddress source, BRGenericAddress target, UInt256 amount)
 {
     BRRippleUnitDrops amountDrops = UInt64GetLE(amount.u8);
     BRRippleAddress *from = source;
@@ -144,7 +144,7 @@ static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {
     return (BRGenericHash) { value };
 }
 
-static uint8_t * genericRippleTransferGetSerialization(BRGenericTransfer transfer, size_t *bytesCount)
+static uint8_t * genericRippleTransferGetSerialization (BRGenericTransfer transfer, size_t *bytesCount)
 {
     uint8_t * result = NULL;
     *bytesCount = 0;
@@ -309,7 +309,7 @@ genericRippleFeeBasisFree (BRGenericFeeBasis feeBasis) {
 }
 
 static BRGenericAddress
-genericRippleNetworkAddressCreate(const char* address) {
+genericRippleNetworkAddressCreate (const char* address) {
     BRRippleAddress *genericAddress = calloc(1, sizeof(BRRippleAddress));
     int bytesWritten = rippleAddressStringToAddress(address, genericAddress);
     if (bytesWritten > 0) {
@@ -322,7 +322,7 @@ genericRippleNetworkAddressCreate(const char* address) {
 }
 
 static void
-genericRippleNetworkAddressFree(BRGenericAddress address) {
+genericRippleNetworkAddressFree (BRGenericAddress address) {
     BRRippleAddress *rippleAddress = address;
     free(rippleAddress);
 }
