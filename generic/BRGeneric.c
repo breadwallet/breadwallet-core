@@ -137,16 +137,6 @@ gwmAddressEqual (BRGenericNetwork nid,
 
 // MARK: - Transfer
 
-extern BRGenericTransfer
-gwmTransferCreate (BRGenericWalletManager gwm,
-                   BRGenericWallet wid,
-                   BRGenericAddress target, // TODO: BRGenericAddress - ownership given
-                   UInt256 amount) {
-    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
-    BRGenericAddress accountAddress = accountWithType->handlers->account.getAddress(accountWithType->base);
-    return gwmGetHandlers(gwm)->transfer.create(accountAddress, target, amount);
-}
-
 extern void gwmTransferRelease (BRGenericWalletManager gwm, BRGenericTransfer transfer) {
     gwmGetHandlers(gwm)->transfer.free(transfer);
 }
@@ -226,6 +216,16 @@ gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
                              BRGenericWallet wid,
                              BRGenericFeeBasis bid) {
     return;
+}
+
+extern BRGenericTransfer
+gwmWalletCreateTransfer (BRGenericWalletManager gwm,
+                         BRGenericWallet wid,
+                         BRGenericAddress target, // TODO: BRGenericAddress - ownership given
+                         UInt256 amount) {
+    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
+    BRGenericAddress accountAddress = accountWithType->handlers->account.getAddress(accountWithType->base);
+    return gwmGetHandlers(gwm)->transfer.create(accountAddress, target, amount);
 }
 
 extern UInt256

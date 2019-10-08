@@ -79,12 +79,6 @@ extern "C" {
 
     // Transfer
 
-    extern BRGenericTransfer
-    gwmTransferCreate (BRGenericWalletManager gwm,
-                       BRGenericWallet wid,
-                       BRGenericAddress target,
-                       UInt256 amount);
-
     extern void
     gwmTransferRelease (BRGenericWalletManager gwm, BRGenericTransfer transfer);
 
@@ -143,6 +137,13 @@ extern "C" {
     gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
                                  BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
+
+    extern BRGenericTransfer
+    gwmWalletCreateTransfer (BRGenericWalletManager gwm,
+                             BRGenericWallet wid,
+                             BRGenericAddress target,
+                             UInt256 amount);
+                             // ...
 
     extern UInt256
     gwmWalletEstimateTransferFee (BRGenericWalletManager gwm,
