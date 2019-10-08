@@ -133,7 +133,7 @@ extern "C" {
     gwmGetNetwork (BRGenericWalletManager gwm);
 
     extern BRGenericClient
-    gwmGetClient(BRGenericWalletManager gwm);
+    gwmGetClient (BRGenericWalletManager gwm);
 
     extern BRGenericTransfer
     gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
@@ -150,10 +150,10 @@ extern "C" {
                                            uint8_t *bytes,
                                            size_t   bytesCount);
 
-    extern UInt256 gwmGetFeeBasisPricePerCostFactor(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
-    extern double gwmGetFeeBasisCostFactor(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
-    extern uint32_t gwmGetFeeBasisIsEqual(BRGenericWalletManager gwm, BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
-    extern void gwmFeeBasisRelease(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+    extern UInt256 gwmGetFeeBasisPricePerCostFactor (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+    extern double gwmGetFeeBasisCostFactor (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
+    extern uint32_t gwmGetFeeBasisIsEqual (BRGenericWalletManager gwm, BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
+    extern void gwmFeeBasisRelease (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis);
 
 #ifdef __cplusplus
 }

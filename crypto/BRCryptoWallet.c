@@ -536,7 +536,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             UInt256 genValue  = cryptoAmountGetValue (amount);
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
 
-            BRGenericTransfer tid = gwmWalletCreateTransfer (gwm, wid, genAddr, genValue);
+            BRGenericTransfer tid = gwmTransferCreate (gwm, wid, genAddr, genValue);
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, gwm, tid);
             break;
         }
