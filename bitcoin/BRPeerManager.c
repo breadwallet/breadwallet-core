@@ -839,7 +839,7 @@ static void _peerDisconnected(void *info, int error)
         if (manager->connectFailureCount > MAX_CONNECT_FAILURES) manager->connectFailureCount = MAX_CONNECT_FAILURES;
     }
 
-    if (! manager->isConnected && manager->connectFailureCount == MAX_CONNECT_FAILURES) {
+    if (! manager->isConnected && manager->connectFailureCount >= MAX_CONNECT_FAILURES) {
         _BRPeerManagerSyncStopped(manager);
         
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
@@ -1498,6 +1498,7 @@ static void _peerThreadCleanup(void *info)
 
     free(info);
     pthread_mutex_lock(&manager->lock);
+    assert (0 != manager->peerThreadCount);
     manager->peerThreadCount--;
     pthread_mutex_unlock(&manager->lock);
     if (manager->threadCleanup) manager->threadCleanup(manager->info);
@@ -1664,7 +1665,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         BRPeer *p = manager->connectedPeers[i - 1];
 
-        if (BRPeerConnectStatus(p) == BRPeerStatusConnecting) BRPeerConnect(p);
+        if (BRPeerConnectStatus(p) == BRPeerStatusWaiting) BRPeerConnect(p);
     }
     
     if (array_count(manager->connectedPeers) < manager->maxConnectCount) {
@@ -1706,13 +1707,6 @@ void BRPeerManagerConnect(BRPeerManager *manager)
                                    _peerSetFeePerKb, _peerRequestedTx, _peerNetworkIsReachable, _peerThreadCleanup);
                 BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
                 BRPeerConnect(info->peer);
-
-                if (BRPeerConnectStatus(info->peer) == BRPeerStatusDisconnected) {
-                    pthread_mutex_unlock(&manager->lock);
-                    _peerDisconnected(info, ENOTCONN);
-                    pthread_mutex_lock(&manager->lock);
-                    manager->peerThreadCount--;
-                }
             }
         }
 
@@ -1744,7 +1738,7 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
         p = manager->connectedPeers[i - 1];
         manager->connectFailureCount = MAX_CONNECT_FAILURES; // prevent futher automatic reconnect attempts
         BRPeerDisconnect(p);
-        if (BRPeerConnectStatus(p) == BRPeerStatusConnecting) manager->peerThreadCount--; // waiting for network
+        while (BRPeerConnectStatus(p) == BRPeerStatusConnecting) BRPeerDisconnect(p);
     }
 
     peerThreadCount = manager->peerThreadCount;

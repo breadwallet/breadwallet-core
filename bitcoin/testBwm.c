@@ -365,6 +365,7 @@ static void *
 _testBRWalletManagerConnectThread (void *context) {
     BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
     while (!state->kill) {
+        nanosleep (&(struct timespec){0, 50000000}, NULL);
         BRWalletManagerConnect (state->manager);
     }
     return NULL;
@@ -374,6 +375,7 @@ static void *
 _testBRWalletManagerDisconnectThread (void *context) {
     BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
     while (!state->kill) {
+        nanosleep (&(struct timespec){0, 50000000}, NULL);
         BRWalletManagerDisconnect (state->manager);
     }
     return NULL;
@@ -383,7 +385,18 @@ static void *
 _testBRWalletManagerScanThread (void *context) {
     BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
     while (!state->kill) {
+        nanosleep (&(struct timespec){0, 50000000}, NULL);
         BRWalletManagerScan (state->manager);
+    }
+    return NULL;
+}
+
+static void *
+_testBRWalletManagerNetworkThread (void *context) {
+    BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
+    while (!state->kill) {
+        nanosleep (&(struct timespec){0, 50000000}, NULL);
+        BRWalletManagerSetNetworkReachable (state->manager, rand() % 2);
     }
     return NULL;
 }
@@ -392,6 +405,7 @@ static void *
 _testBRWalletManagerSwapThread (void *context) {
     BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
     while (!state->kill) {
+        nanosleep (&(struct timespec){0, 50000000}, NULL);
         switch (BRWalletManagerGetMode (state->manager)) {
             case SYNC_MODE_BRD_ONLY:
                 BRWalletManagerSetMode (state->manager, SYNC_MODE_P2P_ONLY);
@@ -943,11 +957,7 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
     }
 
     printf("Testing BRWalletManager threading...\n");
-    if (mode == SYNC_MODE_P2P_ONLY) {
-        // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
-        fprintf(stderr, "***WARNING*** %s:%d: BRWalletManager threading test is disabled for SYNC_MODE_P2P_ONLY\n", testName, __LINE__);
-
-    } else {
+    {
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
         BRRunTestWalletManagerSyncTestSetup (&state, blockHeight, 1);
@@ -956,22 +966,24 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         BRWalletManagerStart (manager);
 
         BRRunTestWalletManagerSyncThreadState threadState = {0, manager};
-        pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL;
+        pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL, networkThread = (pthread_t) NULL;
 
         success = (0 == pthread_create (&connectThread, NULL, _testBRWalletManagerConnectThread, (void*) &threadState) &&
                    0 == pthread_create (&disconnectThread, NULL, _testBRWalletManagerDisconnectThread, (void*) &threadState) &&
-                   0 == pthread_create (&scanThread, NULL, _testBRWalletManagerScanThread, (void*) &threadState));
+                   0 == pthread_create (&scanThread, NULL, _testBRWalletManagerScanThread, (void*) &threadState) &&
+                   0 == pthread_create (&networkThread, NULL, _testBRWalletManagerNetworkThread, (void*) &threadState));
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: pthread_creates failed\n", testName, __LINE__);
             return success;
         }
 
-        sleep (5);
+        sleep (10);
 
         threadState.kill = 1;
         success = (0 == pthread_join (connectThread, NULL) &&
                    0 == pthread_join (disconnectThread, NULL) &&
-                   0 == pthread_join (scanThread, NULL));
+                   0 == pthread_join (scanThread, NULL) &&
+                   0 == pthread_join (networkThread, NULL));
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", testName, __LINE__);
             return success;
@@ -1139,11 +1151,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
     }
 
     printf("Testing BRWalletManager mode swap threading...\n");
-    if (primaryMode == SYNC_MODE_P2P_ONLY || secondaryMode == SYNC_MODE_P2P_ONLY) {
-        // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
-        fprintf(stderr, "***WARNING*** %s:%d: BRWalletManager mode swap threading test is disabled\n", testName, __LINE__);
-
-    } else {
+    {
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
         BRRunTestWalletManagerSyncTestSetup (&state, blockHeight, 1);
@@ -1152,23 +1160,26 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         BRWalletManagerStart (manager);
 
         BRRunTestWalletManagerSyncThreadState threadState = {0, manager};
-        pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL, swapThread = (pthread_t) NULL;
+        pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL;
+        pthread_t networkThread = (pthread_t) NULL, swapThread = (pthread_t) NULL;
 
         success = (0 == pthread_create (&connectThread, NULL, _testBRWalletManagerConnectThread, (void*) &threadState) &&
                    0 == pthread_create (&disconnectThread, NULL, _testBRWalletManagerDisconnectThread, (void*) &threadState) &&
                    0 == pthread_create (&scanThread, NULL, _testBRWalletManagerScanThread, (void*) &threadState) &&
+                   0 == pthread_create (&networkThread, NULL, _testBRWalletManagerNetworkThread, (void*) &threadState) &&
                    0 == pthread_create (&swapThread, NULL, _testBRWalletManagerSwapThread, (void*) &threadState));
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: pthread_creates failed\n", testName, __LINE__);
             return success;
         }
 
-        sleep (5);
+        sleep (10);
 
         threadState.kill = 1;
         success = (0 == pthread_join (connectThread, NULL) &&
                    0 == pthread_join (disconnectThread, NULL) &&
                    0 == pthread_join (scanThread, NULL) &&
+                   0 == pthread_join (networkThread, NULL) &&
                    0 == pthread_join (swapThread, NULL));
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", testName, __LINE__);
@@ -1399,7 +1410,7 @@ BRRunTestWalletManagerFileService (const char *storagePath) {
     BRTransactionFree(tx);
     BRTransactionFree(tx2);
     BRSetFree (transactionSet);
-    
+
     ///
     /// Peer
     ///
@@ -1425,7 +1436,7 @@ BRRunTestWalletManagerFileService (const char *storagePath) {
 
     free(p2);
     BRSetFree(peerSet);
-    
+
     fileServiceClose(fs);
     fileServiceRelease(fs);
 
