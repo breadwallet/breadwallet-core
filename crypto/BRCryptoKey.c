@@ -106,6 +106,7 @@ static BRAddressParams
 cryptoKeyFindAddressParams (const char *string) {
     if (BRPrivKeyIsValid (BITCOIN_ADDRESS_PARAMS, string)) return BITCOIN_ADDRESS_PARAMS;
     if (BRPrivKeyIsValid (BITCOIN_TEST_ADDRESS_PARAMS, string)) return BITCOIN_TEST_ADDRESS_PARAMS;
+    if (BRPrivKeyIsValid (CRYPTO_ADDRESS_PARAMS, string)) return CRYPTO_ADDRESS_PARAMS;
     return EMPTY_ADDRESS_PARAMS;
 }
 
@@ -118,7 +119,9 @@ cryptoKeyCreateFromStringProtectedPrivate (const char *privateKey, const char * 
                           ? cryptoKeyCreateInternal (core, BITCOIN_ADDRESS_PARAMS)
                           : (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, BITCOIN_TEST_ADDRESS_PARAMS)
                              ? cryptoKeyCreateInternal (core, BITCOIN_TEST_ADDRESS_PARAMS)
-                             : NULL));
+                             : (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, CRYPTO_ADDRESS_PARAMS)
+                                ? cryptoKeyCreateInternal (core, CRYPTO_ADDRESS_PARAMS)
+                                : NULL)));
 
     BRKeyClean (&core);
 

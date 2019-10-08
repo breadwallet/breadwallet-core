@@ -40,6 +40,7 @@ class BRCryptoCommonTests: XCTestCase {
         k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
         XCTAssertNotNil(k)
         XCTAssertEqual ("5KYkuC2SX6twF8C4yhDRJsy9tgBnn9aFsEXgaMLwRciopuRnBfT", k.encodeAsPrivate)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
 
         // testnet (https://bitcoinpaperwallet.com/bitcoinpaperwallet/generate-wallet.html?design=alt-testnet)
         s = "6PRVDGjn5m1Tj6wbP8kG6YozjE5qBHxE9BPfF8HxZHLdd1tAkENLjjsQve"
@@ -48,6 +49,7 @@ class BRCryptoCommonTests: XCTestCase {
         k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
         XCTAssertNotNil(k)
         XCTAssertEqual ("92HBCaQbnqkGkSm8z2rxKA3DRdSrsniEswiWFe5CQXdfPqThR9N", k.encodeAsPrivate)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
 
         s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
         p = Key.isProtected(asPrivate: s)
@@ -70,6 +72,7 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertNotNil(k)
         XCTAssertTrue (k.hasSecret)
         XCTAssertEqual (s, k.encodeAsPrivate)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
 
         //
         // Compressed
@@ -105,6 +108,7 @@ class BRCryptoCommonTests: XCTestCase {
         //
         k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
         XCTAssertNotNil(k)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
         k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: nil)
         XCTAssertNil(k)
         k = Key.createFrom (phrase: "not-a-chance", words: BRCryptoAccountTests.words)
@@ -115,11 +119,13 @@ class BRCryptoCommonTests: XCTestCase {
         k = Key.createFromString(asPrivate: s)
         n = "nonce".data(using: .utf8)
         l = Key.createForPigeonFrom(key: k, nonce: n)
+        XCTAssertNotNil (Key.createFromString (asPrivate: l.encodeAsPrivate))
         XCTAssertNotNil(l)
 
         // BIP32ApiAuth
         k = Key.createForBIP32ApiAuth (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
         XCTAssertNotNil(k)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
         k = Key.createForBIP32ApiAuth (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: nil)
         XCTAssertNil(k)
         k = Key.createForBIP32ApiAuth (phrase: "not-a-chance", words: BRCryptoAccountTests.words)
@@ -131,6 +137,7 @@ class BRCryptoCommonTests: XCTestCase {
                                      uri: "some uri",
                                      words: BRCryptoAccountTests.words)
         XCTAssertNotNil(k)
+        XCTAssertNotNil (Key.createFromString(asPrivate: k.encodeAsPrivate))
         k = Key.createForBIP32BitID (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic",
                                      index: 2,
                                      uri: "some uri",
