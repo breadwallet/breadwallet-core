@@ -26,10 +26,15 @@
 // questions are answered, the various cryptoKeyCreate*() functions will need to specify their
 // address params AND (AND AND) the serialization will need to WRITE OUT the specific params.
 //
+// Resulting Base58 Prefix:
+//  6: Uncompressed
+//  T: Compressed
+//
+#define CRYPTO_PREFIX_OFFET    0x30
 #define CRYPTO_ADDRESS_PARAMS  ((BRAddressParams) { \
-    3 + BITCOIN_PUBKEY_PREFIX,  \
-    3 + BITCOIN_SCRIPT_PREFIX,  \
-    3 + BITCOIN_PRIVKEY_PREFIX, \
+    CRYPTO_PREFIX_OFFET + BITCOIN_PUBKEY_PREFIX,  \
+    CRYPTO_PREFIX_OFFET + BITCOIN_SCRIPT_PREFIX,  \
+    CRYPTO_PREFIX_OFFET + BITCOIN_PRIVKEY_PREFIX, \
     "cry" \
 })
 
