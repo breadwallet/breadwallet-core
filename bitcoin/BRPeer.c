@@ -99,7 +99,6 @@ typedef struct {
     uint32_t magicNumber;
     char host[INET6_ADDRSTRLEN];
     BRPeerStatus status;
-    int waitingForNetwork;
     volatile int needsFilterUpdate;
     uint64_t nonce, feePerKb;
     char *useragent;
@@ -985,7 +984,7 @@ static double _peerGetMempoolTime (BRPeerContext *ctx) {
 }
 
 
-static void *_peerThreadRoutine(void *arg)
+static void *_peerThreadConnectRoutine(void *arg)
 {
     BRPeer *peer = arg;
     BRPeerContext *ctx = arg;
@@ -1114,6 +1113,22 @@ static void *_peerThreadRoutine(void *arg)
     return NULL; // detached threads don't need to return a value
 }
 
+static void *_peerThreadDisconnectRoutine(void *arg) {
+    BRPeer *peer = arg;
+    BRPeerContext *ctx = arg;
+    
+    pthread_cleanup_push(ctx->threadCleanup, ctx->info);
+
+    peer_log(peer, "waiting-disconnected");
+
+    assert (0 == array_count(ctx->pongCallback));
+    assert (NULL == ctx->mempoolCallback);
+
+    if (ctx->disconnected) ctx->disconnected(ctx->info, 0);
+    pthread_cleanup_pop(1);
+    return NULL; // detached threads don't need to return a value
+}
+
 static void _dummyThreadCleanup(void *info)
 {
 }
@@ -1226,35 +1241,31 @@ void BRPeerConnect(BRPeer *peer)
     pthread_attr_t attr;
 
     pthread_mutex_lock(&ctx->lock);
-    if (ctx->status == BRPeerStatusDisconnected || ctx->waitingForNetwork) {
-        ctx->status = BRPeerStatusConnecting;
-    
+    if (ctx->status == BRPeerStatusDisconnected || ctx->status == BRPeerStatusWaiting) {
         if (ctx->networkIsReachable && ! ctx->networkIsReachable(ctx->info)) { // delay until network is reachable
-            if (! ctx->waitingForNetwork) peer_log(peer, "waiting for network reachability");
-            ctx->waitingForNetwork = 1;
+            if (ctx->status != BRPeerStatusWaiting) peer_log(peer, "waiting for network reachability");
+            ctx->status = BRPeerStatusWaiting;
         }
         else {
             peer_log(peer, "connecting");
-            ctx->waitingForNetwork = 0;
+            ctx->status = BRPeerStatusConnecting;
             gettimeofday(&tv, NULL);
 
             // No race - set before the thread starts.
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
 
             if (pthread_attr_init(&attr) != 0) {
-                // error = ENOMEM;
-                peer_log(peer, "error creating thread");
+                peer_log(peer, "error creating connect thread");
                 ctx->status = BRPeerStatusDisconnected;
-                //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+                assert (0);
             }
             else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                      pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) != 0 ||
-                     pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
-                // error = EAGAIN;
-                peer_log(peer, "error creating thread");
+                     pthread_create(&ctx->thread, &attr, _peerThreadConnectRoutine, peer) != 0) {
+                peer_log(peer, "error creating connect thread");
                 pthread_attr_destroy(&attr);
                 ctx->status = BRPeerStatusDisconnected;
-                //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+                assert (0);
             }
         }
     }
@@ -1266,6 +1277,7 @@ void BRPeerDisconnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     int socket = -1;
+    pthread_attr_t attr;
 
     if (_peerCheckAndGetSocket(ctx, &socket)) {
         pthread_mutex_lock(&ctx->lock);
@@ -1273,8 +1285,28 @@ void BRPeerDisconnect(BRPeer *peer)
         pthread_mutex_unlock(&ctx->lock);
 
         if (shutdown(socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
-        close(socket);
     }
+
+    pthread_mutex_lock(&ctx->lock);
+    if (ctx->status == BRPeerStatusWaiting) {
+        peer_log(peer, "disconnecting");
+        ctx->status = BRPeerStatusDisconnected;
+
+        if (pthread_attr_init(&attr) != 0) {
+            peer_log(peer, "error creating disconnect thread");
+            assert (0);
+        }
+        else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
+                 pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) != 0 ||
+                 pthread_create(&ctx->thread, &attr, _peerThreadDisconnectRoutine, peer) != 0) {
+            peer_log(peer, "error creating disconnect thread");
+            pthread_attr_destroy(&attr);
+            assert (0);
+        }
+
+        ctx->status = BRPeerStatusDisconnected;
+    }
+    pthread_mutex_unlock(&ctx->lock);
 }
 
 // call this to (re)schedule a disconnect in the given number of seconds, or < 0 to cancel (useful for sync timeout)

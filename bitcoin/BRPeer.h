@@ -93,7 +93,8 @@ extern "C" {
 typedef enum {
     BRPeerStatusDisconnected = 0,
     BRPeerStatusConnecting,
-    BRPeerStatusConnected
+    BRPeerStatusConnected,
+    BRPeerStatusWaiting
 } BRPeerStatus;
 
 typedef struct {
