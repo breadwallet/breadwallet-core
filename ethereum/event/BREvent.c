@@ -25,6 +25,15 @@
 static void *
 eventHandlerThread (BREventHandler handler);
 
+static void
+eventHandlerCreateThread (BREventHandler handler);
+
+static pthread_t
+eventHandlerGetThread (BREventHandler handler);
+
+static void
+eventHandlerJoinThread (BREventHandler handler);
+
 //
 // Event Handler
 //
@@ -65,8 +74,20 @@ struct BREventHandlerRecord {
     // The thread handling events.
     pthread_t thread;
 
-    // A lock on internal state
-    pthread_mutex_t lock;
+    // A lock on the `thread` field. This lock is required because the
+    // `thread` field is accessed by `eventHandlerIsCurrentThread()`, where
+    // `stateLock` cannot be held. The `stateLock` is held while calling
+    // `pthread_join` on the running thread in `eventHandlerStop()`; thus if
+    // `eventHandlerIsCurrentThread()` were to use `stateLock` and it was
+    // called by the event handler thread, we would deadlock. And so,
+    // `threadLock` was born. It can be acquired on its own OR while
+    // `stateLock` is already held. The reverse CANNOT be done (holding
+    // `threadLock` and trying to acquire `stateLock`).
+    pthread_mutex_t threadLock;
+
+    // A lock on internal state. It protects the logical consistency of the
+    // event handler.
+    pthread_mutex_t stateLock;
 
     // A lock for protecting the dispatch call.  Optional but recommended.
     pthread_mutex_t *lockOnDispatch;
@@ -104,11 +125,21 @@ eventHandlerCreate (const char *name,
 
     // Create the PTHREAD LOCK variable
     {
-        // The cacheLock is a normal, non-recursive lock
+        // The stateLock is a normal, non-recursive lock
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
-        pthread_mutex_init(&handler->lock, &attr);
+        pthread_mutex_init(&handler->stateLock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    // Create the PTHREAD LOCK variable
+    {
+        // The threadLock is a normal, non-recursive lock
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        pthread_mutex_init(&handler->threadLock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
 
@@ -125,12 +156,12 @@ eventHandlerSetTimeoutDispatcher (BREventHandler handler,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
                                   BREventTimeoutContext context) {
-    pthread_mutex_lock (&handler->lock);
+    pthread_mutex_lock (&handler->stateLock);
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
     handler->timeoutContext = context;
     handler->timeoutEventType.eventDispatcher = dispatcher;
-    pthread_mutex_unlock (&handler->lock);
+    pthread_mutex_unlock (&handler->stateLock);
 }
 
 static void
@@ -191,7 +222,8 @@ eventHandlerDestroy (BREventHandler handler) {
 
     // ... then kill
     assert (PTHREAD_NULL == handler->thread);
-    pthread_mutex_destroy(&handler->lock);
+    pthread_mutex_destroy(&handler->threadLock);
+    pthread_mutex_destroy(&handler->stateLock);
 
     // release memory
     eventQueueDestroy(handler->queue);
@@ -212,8 +244,8 @@ eventHandlerDestroy (BREventHandler handler) {
 extern void
 eventHandlerStart (BREventHandler handler) {
     alarmClockCreateIfNecessary(1);
-    pthread_mutex_lock(&handler->lock);
-    if (PTHREAD_NULL == handler->thread) {
+    pthread_mutex_lock(&handler->stateLock);
+    if (PTHREAD_NULL == eventHandlerGetThread (handler)) {
         // If we have an timeout event dispatcher, then add an alarm.
         if (NULL != handler->timeoutEventType.eventDispatcher) {
             handler->timeoutAlarmId = alarmClockAddAlarmPeriodic (alarmClock,
@@ -222,25 +254,9 @@ eventHandlerStart (BREventHandler handler) {
                                                                   handler->timeout);
         }
 
-        // Spawn the eventHandlerThread
-        {
-            pthread_attr_t attr;
-            pthread_attr_init(&attr);
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-            pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
-
-            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
-            // "Before returning, a successful call to pthread_create() stores the ID of the new
-            // thread in the buffer pointed to by thread; this identifier is used to refer to the
-            // thread in subsequent calls to other pthreads functions."
-            //
-            // TODO: Handle an unsuccessfull call.
-            // assert (NULL != handler->thread);
-
-            pthread_attr_destroy(&attr);
-        }
+        eventHandlerCreateThread (handler);
     }
-    pthread_mutex_unlock(&handler->lock);
+    pthread_mutex_unlock(&handler->stateLock);
 }
 
 
@@ -257,8 +273,8 @@ eventHandlerStart (BREventHandler handler) {
  */
 extern void
 eventHandlerStop (BREventHandler handler) {
-    pthread_mutex_lock(&handler->lock);
-    if (PTHREAD_NULL != handler->thread) {
+    pthread_mutex_lock(&handler->stateLock);
+    if (PTHREAD_NULL != eventHandlerGetThread (handler)) {
         // Remove a timeout alarm, if it exists.
         if (ALARM_ID_NONE != handler->timeoutAlarmId) {
             alarmClockRemAlarm (alarmClock, handler->timeoutAlarmId);
@@ -269,27 +285,35 @@ eventHandlerStop (BREventHandler handler) {
         eventQueueDequeueWaitAbort (handler->queue);
 
         // Wait for the thread.
-        pthread_join (handler->thread, NULL);
-        // A mini-race here?
-        handler->thread = PTHREAD_NULL;
+        eventHandlerJoinThread (handler);
 
         // TODO: Empty the queue completely?  Or not?
         eventQueueDequeueWaitAbortReset (handler->queue);
         eventHandlerClear (handler);
     }
-    pthread_mutex_unlock(&handler->lock);
+    pthread_mutex_unlock(&handler->stateLock);
 }
 
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
-    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
-    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
+    // This function does NOT hold the `stateLock` as it is
+    // not required to perform this check (and actually can't
+    // as it would cause a deadlock). Its not required because
+    // we are checking against `pthread_self()`. There is no
+    // chance of a false positive, even if `eventHandlerJoinThread()`
+    // was in progress in another thread.
+    return pthread_self() == eventHandlerGetThread (handler);
 }
 
 extern int
 eventHandlerIsRunning (BREventHandler handler) {
-    return PTHREAD_NULL != handler->thread;
+    // This function does hold the `stateLock`. If the lock were
+    // not held and `eventHandlerJoinThread()` was in progress in
+    // another thread, the result here would be inaccurate.
+    pthread_mutex_lock(&handler->stateLock);
+    int isRunning = PTHREAD_NULL != eventHandlerGetThread (handler);
+    pthread_mutex_lock(&handler->stateLock);
+    return isRunning;
 }
 
 extern BREventStatus
@@ -309,4 +333,39 @@ eventHandlerSignalEventOOB (BREventHandler handler,
 extern void
 eventHandlerClear (BREventHandler handler) {
     eventQueueClear(handler->queue);
+}
+
+static void
+eventHandlerCreateThread (BREventHandler handler) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
+
+    pthread_mutex_lock(&handler->threadLock);
+    pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
+    pthread_mutex_unlock(&handler->threadLock);
+
+    pthread_attr_destroy(&attr);
+}
+
+static pthread_t
+eventHandlerGetThread (BREventHandler handler) {
+    pthread_mutex_lock(&handler->threadLock);
+    pthread_t handlerThread = handler->thread;
+    pthread_mutex_unlock(&handler->threadLock);
+    return handlerThread;
+}
+
+static void
+eventHandlerJoinThread (BREventHandler handler) {
+    pthread_mutex_lock(&handler->threadLock);
+    pthread_t handlerThread = handler->thread;
+    pthread_mutex_unlock(&handler->threadLock);
+
+    pthread_join (handlerThread, NULL);
+
+    pthread_mutex_lock(&handler->threadLock);
+    handler->thread = PTHREAD_NULL;
+    pthread_mutex_unlock(&handler->threadLock);
 }
