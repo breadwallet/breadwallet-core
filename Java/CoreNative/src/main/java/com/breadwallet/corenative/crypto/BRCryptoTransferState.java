@@ -1,7 +1,7 @@
 /*
  * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
-*
+ *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -17,146 +17,150 @@ import java.util.List;
 
 public class BRCryptoTransferState extends Structure {
 
-	public int type;
-	public u_union u;
+    public int typeEnum;
+    public u_union u;
 
-	public static class u_union extends Union {
+    public static class u_union extends Union {
 
-		public included_struct included;
-		public errored_struct errored;
+        public included_struct included;
+        public errored_struct errored;
 
-		public static class included_struct extends Structure {
+        public static class included_struct extends Structure {
 
-			public long blockNumber;
-			public long transactionIndex;
-			public long timestamp;
-			public BRCryptoAmount fee;
+            public long blockNumber;
+            public long transactionIndex;
+            public long timestamp;
+            public BRCryptoAmount fee;
 
-			public included_struct() {
-				super();
-			}
+            public included_struct() {
+                super();
+            }
 
-			protected List<String> getFieldOrder() {
-				return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "fee");
-			}
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "fee");
+            }
 
-			public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoAmount fee) {
-				super();
-				this.blockNumber = blockNumber;
-				this.transactionIndex = transactionIndex;
-				this.timestamp = timestamp;
-				this.fee = fee;
-			}
+            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoAmount fee) {
+                super();
+                this.blockNumber = blockNumber;
+                this.transactionIndex = transactionIndex;
+                this.timestamp = timestamp;
+                this.fee = fee;
+            }
 
-			public included_struct(Pointer peer) {
-				super(peer);
-			}
+            public included_struct(Pointer peer) {
+                super(peer);
+            }
 
-			public static class ByReference extends included_struct implements Structure.ByReference {
+            public static class ByReference extends included_struct implements Structure.ByReference {
 
-			}
-			public static class ByValue extends included_struct implements Structure.ByValue {
+            }
+            public static class ByValue extends included_struct implements Structure.ByValue {
 
-			}
-		}
+            }
+        }
 
-		public static class errored_struct extends Structure {
+        public static class errored_struct extends Structure {
 
-			public BRTransferSubmitError error;
+            public BRTransferSubmitError error;
 
-			public errored_struct() {
-				super();
-			}
+            public errored_struct() {
+                super();
+            }
 
-			protected List<String> getFieldOrder() {
-				return Arrays.asList("error");
-			}
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("error");
+            }
 
-			public errored_struct(BRTransferSubmitError error) {
-				super();
-				this.error = error;
-			}
+            public errored_struct(BRTransferSubmitError error) {
+                super();
+                this.error = error;
+            }
 
-			public errored_struct(Pointer peer) {
-				super(peer);
-			}
+            public errored_struct(Pointer peer) {
+                super(peer);
+            }
 
-			public static class ByReference extends errored_struct implements Structure.ByReference {
+            public static class ByReference extends errored_struct implements Structure.ByReference {
 
-			}
+            }
 
-			public static class ByValue extends errored_struct implements Structure.ByValue {
+            public static class ByValue extends errored_struct implements Structure.ByValue {
 
-			}
-		}
+            }
+        }
 
-		public u_union() {
-			super();
-		}
+        public u_union() {
+            super();
+        }
 
-		public u_union(included_struct state) {
-			super();
-			this.included = state;
-			setType(included_struct.class);
-		}
+        public u_union(included_struct state) {
+            super();
+            this.included = state;
+            setType(included_struct.class);
+        }
 
-		public u_union(errored_struct confirmation) {
-			super();
-			this.errored = confirmation;
-			setType(errored_struct.class);
-		}
+        public u_union(errored_struct confirmation) {
+            super();
+            this.errored = confirmation;
+            setType(errored_struct.class);
+        }
 
-		public u_union(Pointer peer) {
-			super(peer);
-		}
+        public u_union(Pointer peer) {
+            super(peer);
+        }
 
-		public static class ByReference extends u_union implements Structure.ByReference {
+        public static class ByReference extends u_union implements Structure.ByReference {
 
-		}
+        }
 
-		public static class ByValue extends u_union implements Structure.ByValue {
+        public static class ByValue extends u_union implements Structure.ByValue {
 
-		}
-	}
+        }
+    }
 
-	public BRCryptoTransferState() {
-		super();
-	}
+    public BRCryptoTransferState() {
+        super();
+    }
 
-	protected List<String> getFieldOrder() {
-		return Arrays.asList("type", "u");
-	}
+    public BRCryptoTransferStateType type() {
+        return BRCryptoTransferStateType.fromCore(typeEnum);
+    }
 
-	public BRCryptoTransferState(int type, u_union u) {
-		super();
-		this.type = type;
-		this.u = u;
-	}
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("typeEnum", "u");
+    }
 
-	public BRCryptoTransferState(Pointer peer) {
-		super(peer);
-	}
+    public BRCryptoTransferState(int type, u_union u) {
+        super();
+        this.typeEnum = type;
+        this.u = u;
+    }
 
-	@Override
-	public void read() {
-		super.read();
-		switch (type){
-			case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
-				u.setType(u_union.included_struct.class);
-				u.read();
-				break;
-			case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
-				u.setType(u_union.errored_struct.class);
-				u.read();
-				break;
-		}
-	}
+    public BRCryptoTransferState(Pointer peer) {
+        super(peer);
+    }
 
-	public static class ByReference extends BRCryptoTransferState implements Structure.ByReference {
+    @Override
+    public void read() {
+        super.read();
+        switch (type()){
+            case CRYPTO_TRANSFER_STATE_INCLUDED:
+                u.setType(u_union.included_struct.class);
+                u.read();
+                break;
+            case CRYPTO_TRANSFER_STATE_ERRORED:
+                u.setType(u_union.errored_struct.class);
+                u.read();
+                break;
+        }
+    }
 
-	}
+    public static class ByReference extends BRCryptoTransferState implements Structure.ByReference {
 
-	public static class ByValue extends BRCryptoTransferState implements Structure.ByValue {
+    }
 
-	}
+    public static class ByValue extends BRCryptoTransferState implements Structure.ByValue {
+
+    }
 }

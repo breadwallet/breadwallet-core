@@ -607,6 +607,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         BRWalletManagerDisconnect (manager);
         sleep(1);
 
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
                                                                     1,
@@ -636,9 +639,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         }
 
         // Test teardown
-
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
 
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
@@ -662,6 +662,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         BRWalletManagerDisconnect (manager);
         sleep(1);
 
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
                                                                     1,
@@ -692,9 +695,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -714,6 +714,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         sleep(1);
         BRWalletManagerDisconnect (manager);
         sleep(1);
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -741,9 +744,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -763,6 +763,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         sleep(1);
         BRWalletManagerDisconnect (manager);
         sleep(1);
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         // multiple cases accepted as with P2P, depending on peer connections, could see:
@@ -836,9 +839,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -858,6 +858,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         sleep(1);
         BRWalletManagerDisconnect (manager);
         sleep(1);
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -889,9 +892,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -909,6 +909,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         sleep(1);
         BRWalletManagerDisconnect (manager);
         sleep(1);
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -935,9 +938,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         }
 
         // Test teardown
-
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
 
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
@@ -966,7 +966,7 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
             return success;
         }
 
-        sleep (1);
+        sleep (5);
 
         threadState.kill = 1;
         success = (0 == pthread_join (connectThread, NULL) &&
@@ -976,6 +976,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
             fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", testName, __LINE__);
             return success;
         }
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -998,9 +1001,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         }
 
         // Test teardown
-
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
 
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
@@ -1049,6 +1049,9 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         }
         sleep (1);
 
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
                                                                     1,
@@ -1075,9 +1078,6 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -1101,6 +1101,9 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
             return success;
         }
         sleep (1);
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -1132,9 +1135,6 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test teardown
 
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
-
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }
 
@@ -1163,7 +1163,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
             return success;
         }
 
-        sleep (1);
+        sleep (5);
 
         threadState.kill = 1;
         success = (0 == pthread_join (connectThread, NULL) &&
@@ -1174,6 +1174,9 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
             fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", testName, __LINE__);
             return success;
         }
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
 
         // Verification
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
@@ -1196,9 +1199,6 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         }
 
         // Test teardown
-
-        BRWalletManagerStop (manager);
-        BRWalletManagerFree (manager);
 
         BRRunTestWalletManagerSyncTestTeardown (&state);
     }

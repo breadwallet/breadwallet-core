@@ -282,6 +282,13 @@ alarmClockThread (BREventAlarmClock clock) {
 
         switch (pthread_cond_timedwait (&clock->cond, &clock->lock, &clock->timeout)) {
             case ETIMEDOUT: {
+                // Check if alarm was removed while we slept...
+                if (0 == array_count(clock->alarms) ||
+                    0 != timespecCompare(&clock->alarms[0].expiration, &clock->timeout)) {
+                    // ... ignore the timeout, its alarm is for the birds now
+                    break;
+                }
+
                 // If we timed-out, then get the alarm that has expired...
                 BREventAlarm alarm = clock->alarms[0];
                 // ... and remove it from the clock's alarms (for now; if periodic, add it back)

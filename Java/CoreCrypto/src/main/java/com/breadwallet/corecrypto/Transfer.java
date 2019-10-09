@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
 import com.google.common.base.Optional;
@@ -20,7 +20,7 @@ import java.util.Objects;
 final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
-    static Transfer create(CoreBRCryptoTransfer transfer, Wallet wallet) {
+    static Transfer create(BRCryptoTransfer transfer, Wallet wallet) {
         return new Transfer(transfer, wallet);
     }
 
@@ -37,7 +37,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
         throw new IllegalArgumentException("Unsupported transfer instance");
     }
 
-    private final CoreBRCryptoTransfer core;
+    private final BRCryptoTransfer core;
     private final Wallet wallet;
 
     private final Supplier<Unit> unitSupplier;
@@ -49,7 +49,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     private final Supplier<Amount> directedSupplier;
     private final Supplier<TransferDirection> directionSupplier;
 
-    private Transfer(CoreBRCryptoTransfer core, Wallet wallet) {
+    private Transfer(BRCryptoTransfer core, Wallet wallet) {
         this.core = core;
         this.wallet = wallet;
 
@@ -150,7 +150,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     }
 
     /* package */
-    CoreBRCryptoTransfer getCoreBRCryptoTransfer() {
+    BRCryptoTransfer getCoreBRCryptoTransfer() {
         return core;
     }
 }

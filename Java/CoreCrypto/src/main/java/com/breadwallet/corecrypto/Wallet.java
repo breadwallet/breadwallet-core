@@ -9,13 +9,13 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
+import com.breadwallet.corenative.crypto.BRCryptoAddress;
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
+import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
-import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
-import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
-import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
@@ -34,7 +34,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private static final String TAG = Wallet.class.getName();
 
     /* package */
-    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+    static Wallet create(BRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         return new Wallet(wallet, walletManager, callbackCoordinator);
     }
 
@@ -51,7 +51,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         throw new IllegalArgumentException("Unsupported wallet instance");
     }
 
-    private final CoreBRCryptoWallet core;
+    private final BRCryptoWallet core;
     private final WalletManager walletManager;
     private final SystemCallbackCoordinator callbackCoordinator;
 
@@ -59,7 +59,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private final Supplier<Unit> unitForFeeSupplier;
     private final Supplier<Currency> defaultUnitCurrencySupplier;
 
-    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+    private Wallet(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.walletManager = walletManager;
         this.callbackCoordinator = callbackCoordinator;
@@ -73,32 +73,32 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
-        CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
-        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
-        CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
+        BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
+        BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
+        BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         return Optional.of(Transfer.create(core.createTransfer(coreAddress, coreAmount, coreFeeBasis), this));
     }
 
     /* package */
     public Optional<Transfer> createTransfer(BRCryptoWalletSweeper sweeper,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
-        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
+        BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         return core.createTransferForWalletSweep(sweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
                             com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
-        CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
-        CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
-        CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
+        BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
+        BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
+        BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
         core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     /* package */
     void estimateFee(BRCryptoWalletSweeper sweeper,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
-        CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
+        BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
         core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), sweeper, coreFee);
     }
 
@@ -111,7 +111,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public List<Transfer> getTransfers() {
         List<Transfer> transfers = new ArrayList<>();
 
-        for (CoreBRCryptoTransfer transfer: core.getTransfers()) {
+        for (BRCryptoTransfer transfer: core.getTransfers()) {
             transfers.add(Transfer.create(transfer, this));
         }
 
@@ -206,14 +206,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransfer(CoreBRCryptoTransfer transfer) {
+    Optional<Transfer> getTransfer(BRCryptoTransfer transfer) {
         return core.containsTransfer(transfer) ?
                 Optional.of(Transfer.create(transfer, this)) :
                 Optional.absent();
     }
 
     /* package */
-    Optional<Transfer> getTransferOrCreate(CoreBRCryptoTransfer transfer) {
+    Optional<Transfer> getTransferOrCreate(BRCryptoTransfer transfer) {
         Optional<Transfer> optional = getTransfer(transfer);
         if (optional.isPresent()) {
             return optional;
@@ -225,7 +225,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    CoreBRCryptoWallet getCoreBRCryptoWallet() {
+    BRCryptoWallet getCoreBRCryptoWallet() {
         return core;
     }
 }

@@ -764,13 +764,15 @@ public final class System {
                             // Save the network
                             self.networks.append (network)
 
-                            // Announce NetworkEvent.created...
-                            self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+                            self.listenerQueue.async {
+                                // Announce NetworkEvent.created...
+                                self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
 
-                            // Announce SystemEvent.networkAdded - this will likely be handled with
-                            // system.createWalletManager(network:...) which will then announce
-                            // numerous events as wallets are created.
-                            self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                                // Announce SystemEvent.networkAdded - this will likely be handled with
+                                // system.createWalletManager(network:...) which will then announce
+                                // numerous events as wallets are created.
+                                self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                            }
 
                             // Keep a running total of discovered networks
                             discoveredNetworks.append(network)
@@ -785,7 +787,9 @@ public final class System {
             blockchainsGroup.wait()
 
             // Mark the completion.
-            self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
+            self.listenerQueue.async {
+                self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
+            }
         }
     }
 
@@ -799,7 +803,7 @@ public final class System {
             .map {
                 let code         = code.uppercased()
                 let blockchainID = uids.prefix(upTo: $0).description
-                let address      = uids.suffix(from: $0).description
+                let address      = uids.suffix(from: uids.index (after: $0)).description
 
                 return (id:   uids,
                         name: name,
@@ -857,8 +861,8 @@ public final class System {
     private static var systemRemovedSystemsSave = true;
 
     static func systemRemove (index: Int32) {
-        return systemQueue.sync {
-            systemMapping.removeValue(forKey: index)
+        return systemQueue.sync (flags: .barrier) {
+            systemMapping.removeValue (forKey: index)
                 .map {
                     if systemRemovedSystemsSave {
                         systemRemovedSystems.append ($0)
@@ -1959,7 +1963,7 @@ extension System {
                 else { throw MigrateError.block }
 
             var flags  = blob.flags
-            var hashes = blob.hashes
+            var hashes = blob.hashes.flatMap { $0 }  // [[UInt8 ...] ...] => [UInt8 ... ...]
             let hashesCount = blob.hashes.count
 
             let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }

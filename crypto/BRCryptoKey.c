@@ -26,10 +26,15 @@
 // questions are answered, the various cryptoKeyCreate*() functions will need to specify their
 // address params AND (AND AND) the serialization will need to WRITE OUT the specific params.
 //
+// Resulting Base58 Prefix:
+//  6: Uncompressed
+//  T: Compressed
+//
+#define CRYPTO_PREFIX_OFFET    0x30
 #define CRYPTO_ADDRESS_PARAMS  ((BRAddressParams) { \
-    3 + BITCOIN_PUBKEY_PREFIX,  \
-    3 + BITCOIN_SCRIPT_PREFIX,  \
-    3 + BITCOIN_PRIVKEY_PREFIX, \
+    CRYPTO_PREFIX_OFFET + BITCOIN_PUBKEY_PREFIX,  \
+    CRYPTO_PREFIX_OFFET + BITCOIN_SCRIPT_PREFIX,  \
+    CRYPTO_PREFIX_OFFET + BITCOIN_PRIVKEY_PREFIX, \
     "cry" \
 })
 
@@ -106,6 +111,7 @@ static BRAddressParams
 cryptoKeyFindAddressParams (const char *string) {
     if (BRPrivKeyIsValid (BITCOIN_ADDRESS_PARAMS, string)) return BITCOIN_ADDRESS_PARAMS;
     if (BRPrivKeyIsValid (BITCOIN_TEST_ADDRESS_PARAMS, string)) return BITCOIN_TEST_ADDRESS_PARAMS;
+    if (BRPrivKeyIsValid (CRYPTO_ADDRESS_PARAMS, string)) return CRYPTO_ADDRESS_PARAMS;
     return EMPTY_ADDRESS_PARAMS;
 }
 
@@ -118,7 +124,9 @@ cryptoKeyCreateFromStringProtectedPrivate (const char *privateKey, const char * 
                           ? cryptoKeyCreateInternal (core, BITCOIN_ADDRESS_PARAMS)
                           : (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, BITCOIN_TEST_ADDRESS_PARAMS)
                              ? cryptoKeyCreateInternal (core, BITCOIN_TEST_ADDRESS_PARAMS)
-                             : NULL));
+                             : (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, CRYPTO_ADDRESS_PARAMS)
+                                ? cryptoKeyCreateInternal (core, CRYPTO_ADDRESS_PARAMS)
+                                : NULL)));
 
     BRKeyClean (&core);
 

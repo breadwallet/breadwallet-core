@@ -12,7 +12,7 @@ import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoFeeBasis extends PointerType implements CoreBRCryptoFeeBasis {
+public class BRCryptoFeeBasis extends PointerType {
 
     public BRCryptoFeeBasis(Pointer address) {
         super(address);
@@ -22,33 +22,45 @@ public class BRCryptoFeeBasis extends PointerType implements CoreBRCryptoFeeBasi
         super();
     }
 
-    @Override
     public double getCostFactor() {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetCostFactor(this);
     }
 
-    @Override
-    public CoreBRCryptoUnit getPricePerCostFactorUnit() {
+    public BRCryptoUnit getPricePerCostFactorUnit() {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactorUnit(this);
     }
 
-    @Override
-    public CoreBRCryptoAmount getPricePerCostFactor() {
+    public BRCryptoAmount getPricePerCostFactor() {
         return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactor(this);
     }
 
-    @Override
-    public Optional<CoreBRCryptoAmount> getFee() {
+    public Optional<BRCryptoAmount> getFee() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoFeeBasisGetFee(this));
     }
 
-    @Override
-    public boolean isIdentical(CoreBRCryptoFeeBasis other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other.asBRCryptoFeeBasis());
+    public boolean isIdentical(BRCryptoFeeBasis other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other);
     }
 
-    @Override
-    public BRCryptoFeeBasis asBRCryptoFeeBasis() {
-        return this;
+    public BRCryptoFeeBasis toOwned() {
+        return new OwnedBRCryptoFeeBasis(getPointer());
+    }
+
+    public static class OwnedBRCryptoFeeBasis extends BRCryptoFeeBasis {
+
+        public OwnedBRCryptoFeeBasis(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoFeeBasis() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoFeeBasisGive(this);
+            }
+        }
     }
 }

@@ -91,21 +91,10 @@ static int runSupFileServiceTests (void) {
     if (NULL == fs) return fileServiceTestDone(path, 0);
 
     // Confirm the full path exists.
-    char fullpath[1024];
-    sprintf (fullpath, "%s/%s/%s", path,  currency, network);
-    if (0 != stat (fullpath, &dirStat)) return fileServiceTestDone (path, 0);
+    char dbpath[1024];
+    sprintf (dbpath, "%s/%s-%s-entities.db", path,  currency, network);
+    if (0 != stat (dbpath, &dirStat)) return fileServiceTestDone (path, 0);
 
-    // change the fullpath permissions; expect 'defineType' to fail.
-    chmod (fullpath, 0000);
-    if (1 == fileServiceDefineType(fs, type1, 0, NULL, NULL, NULL, NULL))
-        return fileServiceTestDone (path, 0);
-
-    // and can't set the current version on a bad type
-    if (1 == fileServiceDefineCurrentVersion(fs, type1, 0))
-        return fileServiceTestDone (path, 0);
-
-    // change the permission to allow writing
-    chmod (fullpath, 0700);
     if (1 != fileServiceDefineType(fs, type1, 0, NULL, NULL, NULL, NULL))
         return fileServiceTestDone (path, 0);
 
@@ -405,7 +394,7 @@ runSupAssertTests (void) {
         supMainRelease (mains[index]);
 
     BRAssertUninstall();
-    printf ("==== SUP:Assert Donen");
+    printf ("==== SUP:Assert Done");
     return success;
 }
 

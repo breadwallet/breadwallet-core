@@ -13,8 +13,8 @@ import android.util.Log;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
-import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
-import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.BRCryptoWallet;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
@@ -48,7 +48,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String storagePath,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        return CoreBRCryptoWalletManager.create(
+        return BRCryptoWalletManager.create(
                 listener,
                 client,
                 account.getCoreBRCryptoAccount(),
@@ -62,11 +62,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    static WalletManager create(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
+    static WalletManager create(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
         return new WalletManager(core, system, callbackCoordinator);
     }
 
-    private CoreBRCryptoWalletManager core;
+    private BRCryptoWalletManager core;
     private final System system;
     private final SystemCallbackCoordinator callbackCoordinator;
 
@@ -78,7 +78,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final Supplier<Unit> networkBaseUnitSupplier;
     private final Supplier<Unit> networkDefaultUnitSupplier;
 
-    private WalletManager(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
+    private WalletManager(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.system = system;
         this.callbackCoordinator = callbackCoordinator;
@@ -172,7 +172,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     public List<Wallet> getWallets() {
         List<Wallet> wallets = new ArrayList<>();
 
-        for (CoreBRCryptoWallet wallet: core.getWallets()) {
+        for (BRCryptoWallet wallet: core.getWallets()) {
             wallets.add(Wallet.create(wallet, this, callbackCoordinator));
         }
 
@@ -273,14 +273,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    Optional<Wallet> getWallet(CoreBRCryptoWallet wallet) {
+    Optional<Wallet> getWallet(BRCryptoWallet wallet) {
         return core.containsWallet(wallet) ?
                 Optional.of(Wallet.create(wallet, this, callbackCoordinator)):
                 Optional.absent();
     }
 
     /* package */
-    Optional<Wallet> getWalletOrCreate(CoreBRCryptoWallet wallet) {
+    Optional<Wallet> getWalletOrCreate(BRCryptoWallet wallet) {
         Optional<Wallet> optional = getWallet(wallet);
         if (optional.isPresent()) {
             return optional;
@@ -292,7 +292,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    CoreBRCryptoWalletManager getCoreBRCryptoWalletManager() {
+    BRCryptoWalletManager getCoreBRCryptoWalletManager() {
         return core;
     }
 }

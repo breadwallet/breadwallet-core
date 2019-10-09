@@ -9,7 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
+import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -20,13 +20,13 @@ import java.util.Objects;
 final class Currency implements com.breadwallet.crypto.Currency {
 
     /* package */
-    static Currency create(CoreBRCryptoCurrency core) {
+    static Currency create(BRCryptoCurrency core) {
         return new Currency(core);
     }
 
     /* package */
     static Currency create (String uids, String name, String code, String type, @Nullable String issuer) {
-        return new Currency(CoreBRCryptoCurrency.create(uids, name, code, type, issuer));
+        return new Currency(BRCryptoCurrency.create(uids, name, code, type, issuer));
     }
 
     /* package */
@@ -42,7 +42,7 @@ final class Currency implements com.breadwallet.crypto.Currency {
         throw new IllegalArgumentException("Unsupported currency instance");
     }
 
-    private final CoreBRCryptoCurrency core;
+    private final BRCryptoCurrency core;
 
     private final Supplier<String> uidsSupplier;
     private final Supplier<String> nameSupplier;
@@ -51,7 +51,7 @@ final class Currency implements com.breadwallet.crypto.Currency {
 
     private final Supplier<String> issuerSupplier;
 
-    private Currency(CoreBRCryptoCurrency core) {
+    private Currency(BRCryptoCurrency core) {
         this.core = core;
 
         this.uidsSupplier = Suppliers.memoize(core::getUids);
@@ -106,7 +106,7 @@ final class Currency implements com.breadwallet.crypto.Currency {
     }
 
     /* package */
-    CoreBRCryptoCurrency getCoreBRCryptoCurrency() {
+    BRCryptoCurrency getCoreBRCryptoCurrency() {
         return core;
     }
 }

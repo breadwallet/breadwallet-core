@@ -7,50 +7,41 @@
  */
 package com.breadwallet.corenative.support;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRSyncDepth {
 
     SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND {
         @Override
-        public int toNative() {
-            return 0;
+        public int toCore() {
+            return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND_VALUE;
         }
     },
 
     SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK {
         @Override
-        public int toNative() {
-            return 1;
+        public int toCore() {
+            return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE;
         }
     },
 
     SYNC_DEPTH_FROM_CREATION {
         @Override
-        public int toNative() {
-            return 2;
+        public int toCore() {
+            return SYNC_DEPTH_FROM_CREATION_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRSyncDepth> LOOKUP;
+    private static final int SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND_VALUE  = 0;
+    private static final int SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE   = 1;
+    private static final int SYNC_DEPTH_FROM_CREATION_VALUE             = 2;
 
-    static {
-        ImmutableMap.Builder<Integer, BRSyncDepth> b = ImmutableMap.builder();
-
-        b.put(SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND.toNative(), SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND);
-        b.put(SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK.toNative(),  SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK);
-        b.put(SYNC_DEPTH_FROM_CREATION.toNative(),            SYNC_DEPTH_FROM_CREATION);
-
-        LOOKUP = b.build();
+    public static BRSyncDepth fromCore(int nativeValue) {
+        switch (nativeValue) {
+            case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND_VALUE: return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
+            case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE:  return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
+            case SYNC_DEPTH_FROM_CREATION_VALUE:            return SYNC_DEPTH_FROM_CREATION;
+            default: throw new IllegalArgumentException("Invalid core value");
+        }
     }
 
-    public static BRSyncDepth fromNative(int nativeValue) {
-        BRSyncDepth status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
-    }
-
-    public abstract int toNative();
+    public abstract int toCore();
 }

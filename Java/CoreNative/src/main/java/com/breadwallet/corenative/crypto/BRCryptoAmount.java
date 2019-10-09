@@ -10,7 +10,6 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -18,7 +17,24 @@ import com.sun.jna.ptr.IntByReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
+public class BRCryptoAmount extends PointerType {
+
+    public static BRCryptoAmount create(double value, BRCryptoUnit unit) {
+        return CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit);
+    }
+
+    public static BRCryptoAmount create(long value, BRCryptoUnit unit) {
+        return CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit);
+    }
+
+    public static Optional<BRCryptoAmount> create(String value, boolean isNegative, BRCryptoUnit unit) {
+        return Optional.fromNullable(
+                CryptoLibrary.INSTANCE.cryptoAmountCreateString(
+                        value,
+                        isNegative ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
+                        unit)
+        );
+    }
 
     public BRCryptoAmount(Pointer address) {
         super(address);
@@ -28,70 +44,52 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
         super();
     }
 
-    @Override
-    public CoreBRCryptoCurrency getCurrency() {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this));
+    public BRCryptoCurrency getCurrency() {
+        return CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this);
     }
 
-    @Override
-    public CoreBRCryptoUnit getUnit() {
-        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this));
+    public BRCryptoUnit getUnit() {
+        return CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this);
     }
 
-    @Override
-    public Optional<Double> getDouble(CoreBRCryptoUnit unit) {
-        BRCryptoUnit unitCore = unit.asBRCryptoUnit();
+    public Optional<Double> getDouble(BRCryptoUnit unit) {
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(this, unitCore, overflowRef);
+        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(this, unit, overflowRef);
         return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
     }
 
-    @Override
-    public Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount o) {
-        BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountAdd(this, otherCore)).transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> add(BRCryptoAmount o) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountAdd(this, o));
     }
 
-    @Override
-    public Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount o) {
-        BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountSub(this, otherCore)).transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> sub(BRCryptoAmount o) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountSub(this, o));
     }
 
-    @Override
-    public CoreBRCryptoAmount negate() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoAmountNegate(this));
+    public BRCryptoAmount negate() {
+        return CryptoLibrary.INSTANCE.cryptoAmountNegate(this);
     }
 
-    @Override
-    public Optional<CoreBRCryptoAmount> convert(CoreBRCryptoUnit toUnit) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit.asBRCryptoUnit())).transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> convert(BRCryptoUnit toUnit) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit));
     }
 
-    @Override
     public boolean isNegative() {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
     }
 
-    @Override
-    public int compare(CoreBRCryptoAmount o) {
-        BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return CryptoLibrary.INSTANCE.cryptoAmountCompare(this, otherCore);
+    public BRCryptoComparison compare(BRCryptoAmount o) {
+        return BRCryptoComparison.fromCore(CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o));
     }
 
-    @Override
-    public boolean isCompatible(CoreBRCryptoAmount o) {
-        BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, otherCore);
+    public boolean isCompatible(BRCryptoAmount o) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, o);
     }
 
-    @Override
-    public boolean hasCurrency(CoreBRCryptoCurrency o) {
-        BRCryptoCurrency otherCore = o.asBRCryptoCurrency();
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, otherCore);
+    public boolean hasCurrency(BRCryptoCurrency o) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, o);
     }
 
-    @Override
     public String toStringWithBase(int base, String preface) {
         UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(this);
         Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
@@ -103,8 +101,25 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
 
     }
 
-    @Override
-    public BRCryptoAmount asBRCryptoAmount() {
-        return this;
+    public BRCryptoAmount toOwned() {
+        return new OwnedBRCryptoAmount(getPointer());
+    }
+
+    public static class OwnedBRCryptoAmount extends BRCryptoAmount {
+
+        public OwnedBRCryptoAmount(Pointer address) {
+            super(address);
+        }
+
+        public OwnedBRCryptoAmount() {
+            super();
+        }
+
+        @Override
+        protected void finalize() {
+            if (null != getPointer()) {
+                CryptoLibrary.INSTANCE.cryptoAmountGive(this);
+            }
+        }
     }
 }

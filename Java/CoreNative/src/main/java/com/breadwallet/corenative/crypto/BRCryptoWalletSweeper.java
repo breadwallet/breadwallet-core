@@ -10,17 +10,9 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedInteger;
-import com.google.common.primitives.UnsignedLong;
-import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-import com.sun.jna.StringArray;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
 
 public class BRCryptoWalletSweeper extends PointerType {
 
@@ -32,34 +24,33 @@ public class BRCryptoWalletSweeper extends PointerType {
         super();
     }
 
-    public static BRCryptoWalletSweeperStatus validateSupported(CoreBRCryptoNetwork network,
-                                                                CoreBRCryptoCurrency currency,
+    public static BRCryptoWalletSweeperStatus validateSupported(BRCryptoNetwork network,
+                                                                BRCryptoCurrency currency,
                                                                 BRCryptoKey key,
-                                                                CoreBRCryptoWallet wallet) {
-        return BRCryptoWalletSweeperStatus.fromNative(
+                                                                BRCryptoWallet wallet) {
+        return BRCryptoWalletSweeperStatus.fromCore(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperValidateSupported(
-                        network.asBRCryptoNetwork(),
-                        currency.asBRCryptoCurrency(),
+                        network,
+                        currency,
                         key,
-                        wallet.asBRCryptoWallet())
+                        wallet)
         );
     }
 
-    public static BRCryptoWalletSweeper createAsBtc(CoreBRCryptoNetwork network,
-                                                    CoreBRCryptoCurrency currency,
+    public static BRCryptoWalletSweeper createAsBtc(BRCryptoNetwork network,
+                                                    BRCryptoCurrency currency,
                                                     BRCryptoKey key,
-                                                    int scheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network.asBRCryptoNetwork(),
-                currency.asBRCryptoCurrency(), key, scheme);
+                                                    BRCryptoAddressScheme scheme) {
+        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network,
+                currency, key, scheme.toCore());
     }
 
     public BRCryptoKey getKey() {
         return CryptoLibrary.INSTANCE.cryptoWalletSweeperGetKey(this);
     }
 
-    public Optional<CoreBRCryptoAmount> getBalance() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this))
-                .transform(OwnedBRCryptoAmount::new);
+    public Optional<BRCryptoAmount> getBalance() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this));
     }
 
     public Optional<String> getAddress() {
@@ -72,7 +63,7 @@ public class BRCryptoWalletSweeper extends PointerType {
     }
 
     public BRCryptoWalletSweeperStatus handleTransactionAsBtc(byte[] transaction) {
-        return BRCryptoWalletSweeperStatus.fromNative(
+        return BRCryptoWalletSweeperStatus.fromCore(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperHandleTransactionAsBTC(
                         this,
                         transaction,
@@ -81,7 +72,7 @@ public class BRCryptoWalletSweeper extends PointerType {
     }
 
     public BRCryptoWalletSweeperStatus validate() {
-        return BRCryptoWalletSweeperStatus.fromNative(
+        return BRCryptoWalletSweeperStatus.fromCore(
                 CryptoLibrary.INSTANCE.cryptoWalletSweeperValidate(this)
         );
     }

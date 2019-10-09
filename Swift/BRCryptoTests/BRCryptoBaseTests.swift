@@ -150,15 +150,16 @@ class TestNetworkListener: NetworkListener {
 
 class CryptoTestSystemListener: SystemListener {
 
-    private let currencyCodesNeeded: [String]
     private let isMainnet: Bool
-    private let modeMap: [String:WalletManagerMode]
+    private let networkCurrencyCodesToMode: [String:WalletManagerMode]
+    private let registerCurrencyCodes: [String]
 
-
-    public init (currencyCodesNeeded: [String], isMainnet: Bool, modeMap: [String:WalletManagerMode]) {
-        self.currencyCodesNeeded = currencyCodesNeeded
+    public init (networkCurrencyCodesToMode: [String:WalletManagerMode],
+                 registerCurrencyCodes: [String],
+                 isMainnet: Bool) {
+        self.networkCurrencyCodesToMode = networkCurrencyCodesToMode
+        self.registerCurrencyCodes = registerCurrencyCodes;
         self.isMainnet = isMainnet
-        self.modeMap = modeMap
     }
 
     var systemHandlers: [SystemEventHandler] = []
@@ -169,16 +170,36 @@ class CryptoTestSystemListener: SystemListener {
         systemEvents.append (event)
         switch event {
         case .networkAdded (let network):
-            if isMainnet == network.isMainnet &&
-                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
-                let mode = modeMap[network.currency.code] ?? system.defaultMode(network: network)
-                XCTAssertTrue (system.supportsMode(network: network, mode))
+            if isMainnet == network.isMainnet,
+                 network.currencies.contains(where: { nil != networkCurrencyCodesToMode[$0.code] }),
+                 let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
+                 // Get a valid mode, ideally from `currencyMode`
 
-                let scheme = system.defaultAddressScheme(network: network)
-                let _ = system.createWalletManager (network: network,
-                                                    mode: mode,
-                                                    addressScheme: scheme,
-                                                    currencies: Set<Currency>())
+                 let mode = system.supportsMode (network: network, currencyMode)
+                     ? currencyMode
+                     : system.defaultMode(network: network)
+
+                 let scheme = system.defaultAddressScheme(network: network)
+
+                 let currencies = network.currencies
+                     .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
+
+                 let success = system.createWalletManager (network: network,
+                                                           mode: mode,
+                                                           addressScheme: scheme,
+                                                           currencies: currencies)
+                XCTAssertTrue(success)
+
+//            if isMainnet == network.isMainnet &&
+//                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
+//                let mode = modeMap[network.currency.code] ?? system.defaultMode(network: network)
+//                XCTAssertTrue (system.supportsMode(network: network, mode))
+//
+//                let scheme = system.defaultAddressScheme(network: network)
+//                let _ = system.createWalletManager (network: network,
+//                                                    mode: mode,
+//                                                    addressScheme: scheme,
+//                                                    currencies: Set<Currency>())
             }
             networkExpectation.fulfill()
 
@@ -291,9 +312,73 @@ class CryptoTestSystemListener: SystemListener {
         return networkEvents.match(matchers)
     }
 
+    //
+    // Common Sequences
+    //
 
+    func checkSystemEventsCommonlyWith (network: Network, manager: WalletManager) -> Bool {
+        return checkSystemEvents(
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+        ])
+    }
+
+    func checkManagerEventsCommonlyWith (mode: WalletManagerMode,
+                                         wallet: Wallet,
+                                         lenientDisconnect: Bool = false) -> Bool {
+        let disconnectReason = (mode == WalletManagerMode.api_only
+            ? WalletManagerDisconnectReason.requested
+            : (mode == WalletManagerMode.p2p_only
+                ? WalletManagerDisconnectReason.posix (errno: 54, message: "Connection reset by peer")
+                : WalletManagerDisconnectReason.unknown))
+        
+        let disconnectEventMatcher =
+            EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: disconnectReason)),
+                          strict: !lenientDisconnect,
+                          scan: false)
+
+        return checkManagerEvents(
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded (wallet: wallet)),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.created,
+                                                              newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                              newState: WalletManagerState.syncing)),
+
+             // On API_ONLY here is no .syncProgress: timestamp: nil, percentComplete: 0
+                EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
+
+                EventMatcher (event: WalletManagerEvent.syncEnded (reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
+                EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.syncing,
+                                                                 newState: WalletManagerState.connected)),
+                disconnectEventMatcher
+        ])
+    }
+    
+    func checkWalletEventsCommonlyWith (mode: WalletManagerMode, balance: Amount, transfer: Transfer) -> Bool {
+        switch mode {
+        case .p2p_only:
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+            ])
+        case .api_only:
+            // Balance before transfer... doesn't seem right. But worse, all balance events arrive
+            // before all transfer events.
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+            ])
+        default:
+            return false
+        }
+    }
 }
-
 
 class BRCryptoSystemBaseTests: BRCryptoBaseTests {
 
@@ -301,13 +386,15 @@ class BRCryptoSystemBaseTests: BRCryptoBaseTests {
     var query: BlockChainDB!
     var system: System!
 
-    var currencyCodesNeeded = ["btc"]
-    var modeMap = ["btc":WalletManagerMode.api_only]
+    var registerCurrencyCodes = [String]()
+    var currencyCodesToMode = ["btc":WalletManagerMode.api_only]
 
     var currencyModels: [BlockChainDB.Model.Currency] = []
 
     func createDefaultListener() -> CryptoTestSystemListener {
-        return CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded, isMainnet: isMainnet, modeMap: modeMap)
+        return CryptoTestSystemListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                         registerCurrencyCodes: registerCurrencyCodes,
+                                         isMainnet: isMainnet)
     }
 
     func createDefaultQuery () -> BlockChainDB {
@@ -325,7 +412,7 @@ class BRCryptoSystemBaseTests: BRCryptoBaseTests {
                          path:      self.coreDataDir,
                          query:     self.query)
 
-        XCTAssertEqual (coreDataDir, system.path)
+        XCTAssertEqual (coreDataDir + "/" + self.account.fileSystemIdentifier, system.path)
         XCTAssertTrue  (self.query === system.query)
         XCTAssertEqual (account.uids, system.account.uids)
 

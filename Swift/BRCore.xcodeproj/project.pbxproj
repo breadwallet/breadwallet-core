@@ -47,6 +47,9 @@
 		3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */; };
 		3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3B37FB20D82335004F9928 /* BREventAlarm.c */; };
 		3C3DC5BB21DFCA7C004188BD /* BRFileService.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3DC5BA21DFCA7C004188BD /* BRFileService.c */; };
+		3C4B1AA6234CE14500189DD5 /* InstallCoreTestsConfig.sh in Resources */ = {isa = PBXBuildFile; fileRef = 3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */; };
+		3C4B1AA7234CE14600189DD5 /* InstallCoreTestsConfig.sh in Resources */ = {isa = PBXBuildFile; fileRef = 3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */; };
+		3C4B1AA8234CE14700189DD5 /* InstallCoreTestsConfig.sh in Resources */ = {isa = PBXBuildFile; fileRef = 3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */; };
 		3C54A7FF2121F1D200C57B1B /* BREthereumMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */; };
 		3C54A8022122284900C57B1B /* BREthereumNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumNode.c */; };
 		3C54A80521234C9700C57B1B /* BREthereumNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */; };
@@ -504,6 +507,7 @@
 		3C3DC5BA21DFCA7C004188BD /* BRFileService.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRFileService.c; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
+		3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = InstallCoreTestsConfig.sh; sourceTree = "<group>"; };
 		3C54A7FD2121F1D200C57B1B /* BREthereumMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMessage.h; sourceTree = "<group>"; };
 		3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMessage.c; sourceTree = "<group>"; };
 		3C54A8002122284900C57B1B /* BREthereumNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumNode.h; sourceTree = "<group>"; };
@@ -1179,6 +1183,7 @@
 				3C5E176E232D461500A558C7 /* README.md */,
 				3C5E176F232D461500A558C7 /* LICENSE */,
 				3C5E1772232D466700A558C7 /* CONTRIBUTORS */,
+				3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */,
 				3C590F1820950C160005597B /* Products */,
 				3CAB610A20AF938E00810CE4 /* Frameworks */,
 			);
@@ -1681,6 +1686,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C4B1AA7234CE14600189DD5 /* InstallCoreTestsConfig.sh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1692,6 +1698,7 @@
 				3C18F8BB21950748006F738F /* Assets.xcassets in Resources */,
 				3C1D1F2222ECDD760028B20C /* CoreTestsConfig.json in Resources */,
 				3C18F8B921950746006F738F /* Main.storyboard in Resources */,
+				3C4B1AA8234CE14700189DD5 /* InstallCoreTestsConfig.sh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1699,6 +1706,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C4B1AA6234CE14500189DD5 /* InstallCoreTestsConfig.sh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1721,7 +1729,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/BRCryptoDemo/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file.\"\nexit 1\nfi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n${SOURCE_ROOT}/InstallCoreTestsConfig.sh \"${HOME}/.brdCoreTestsConfig.json\" \"${SOURCE_ROOT}/BRCryptoDemo/CoreTestsConfig.json\"\n";
 		};
 		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig As Bundle Resource */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1758,7 +1766,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file.\"\n  exit 1\nfi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n${SOURCE_ROOT}/InstallCoreTestsConfig.sh \"${HOME}/.brdCoreTestsConfig.json\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n";
 		};
 		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.json */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1776,7 +1784,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file.\"\nexit 1\nfi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n${SOURCE_ROOT}/InstallCoreTestsConfig.sh \"${HOME}/.brdCoreTestsConfig.json\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n";
 		};
 		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig as Resource */ = {
 			isa = PBXShellScriptBuildPhase;

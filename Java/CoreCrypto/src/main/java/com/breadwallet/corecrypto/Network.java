@@ -9,9 +9,9 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoCurrency;
+import com.breadwallet.corenative.crypto.BRCryptoNetwork;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -34,20 +34,20 @@ final class Network implements com.breadwallet.crypto.Network {
     static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
                           Map<Currency, NetworkAssociation> associations,
                           List<NetworkFee> fees, UnsignedInteger confirmationsUntilFinal) {
-        CoreBRCryptoNetwork core;
+        BRCryptoNetwork core;
 
         String code = currency.getCode();
         switch (code) {
             case com.breadwallet.crypto.Currency.CODE_AS_BTC:
-                core = CoreBRCryptoNetwork.createAsBtc(uids, name, isMainnet);
+                core = BRCryptoNetwork.createAsBtc(uids, name, isMainnet);
 
                 break;
             case com.breadwallet.crypto.Currency.CODE_AS_BCH:
-                core = CoreBRCryptoNetwork.createAsBch(uids, name, isMainnet);
+                core = BRCryptoNetwork.createAsBch(uids, name, isMainnet);
 
                 break;
             case com.breadwallet.crypto.Currency.CODE_AS_ETH:
-                Optional<CoreBRCryptoNetwork> optional = CoreBRCryptoNetwork.createAsEth(uids, name, isMainnet);
+                Optional<BRCryptoNetwork> optional = BRCryptoNetwork.createAsEth(uids, name, isMainnet);
                 if (optional.isPresent()) {
                     core = optional.get();
                 } else {
@@ -56,7 +56,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
                 break;
             default:
-                core = CoreBRCryptoNetwork.createAsGen(uids, name, isMainnet);
+                core = BRCryptoNetwork.createAsGen(uids, name, isMainnet);
                 break;
         }
 
@@ -87,7 +87,7 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     /* package */
-    static Network create(CoreBRCryptoNetwork core) {
+    static Network create(BRCryptoNetwork core) {
         return new Network(core);
     }
 
@@ -104,7 +104,7 @@ final class Network implements com.breadwallet.crypto.Network {
         throw new IllegalArgumentException("Unsupported network instance");
     }
 
-    private final CoreBRCryptoNetwork core;
+    private final BRCryptoNetwork core;
 
     private final Supplier<String> uidsSupplier;
     private final Supplier<String> nameSupplier;
@@ -112,7 +112,7 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Supplier<Currency> currencySupplier;
     private final Supplier<Set<Currency>> currenciesSupplier;
 
-    private Network(CoreBRCryptoNetwork core) {
+    private Network(BRCryptoNetwork core) {
         this.core = core;
 
         uidsSupplier = Suppliers.memoize(core::getUids);
@@ -194,7 +194,7 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public List<? extends NetworkFee> getFees() {
         List<NetworkFee> fees = new ArrayList<>();
-        for (CoreBRCryptoNetworkFee fee: core.getFees()) {
+        for (BRCryptoNetworkFee fee: core.getFees()) {
             fees.add(NetworkFee.create(fee));
         }
         return fees;
@@ -240,7 +240,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
         Set<Unit> units = new HashSet<>();
 
-        CoreBRCryptoCurrency currencyCore = Currency.from(currency).getCoreBRCryptoCurrency();
+        BRCryptoCurrency currencyCore = Currency.from(currency).getCoreBRCryptoCurrency();
         UnsignedLong count = core.getUnitCount(currencyCore);
 
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
@@ -281,12 +281,12 @@ final class Network implements com.breadwallet.crypto.Network {
         }
 
         Network network = (Network) object;
-        return core.equals(network.core);
+        return getUids().equals(network.getUids());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(core);
+        return Objects.hash(getUids());
     }
 
     /* package */
@@ -297,7 +297,7 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     void setFees(List<NetworkFee> fees) {
         checkState(!fees.isEmpty());
-        List<CoreBRCryptoNetworkFee> cryptoFees = new ArrayList<>(fees.size());
+        List<BRCryptoNetworkFee> cryptoFees = new ArrayList<>(fees.size());
         for (NetworkFee fee: fees) {
             cryptoFees.add(fee.getCoreBRCryptoNetworkFee());
         }
@@ -305,7 +305,7 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     /* package */
-    CoreBRCryptoNetwork getCoreBRCryptoNetwork() {
+    BRCryptoNetwork getCoreBRCryptoNetwork() {
         return core;
     }
 }

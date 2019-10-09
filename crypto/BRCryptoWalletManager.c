@@ -1098,6 +1098,36 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
     // ...
     theErrorHackReset(migrator);
     fileServiceSave (migrator->fileService, migrator->fileServiceBlockType, block);
+    BRMerkleBlockFree (block);
+
+    if (migrator->theErrorHackHappened)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK
+        };
+    else
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_SUCCESS
+        };
+}
+
+extern BRCryptoWalletMigratorStatus
+cryptoWalletMigratorHandleBlockBytesAsBTC (BRCryptoWalletMigrator migrator,
+                                           const uint8_t *bytes,
+                                           size_t bytesCount,
+                                           uint32_t height) {
+    BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount);
+    if (NULL == block)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK
+        };
+
+    block->height = height;
+
+    // ...
+    theErrorHackReset(migrator);
+    fileServiceSave (migrator->fileService, migrator->fileServiceBlockType, block);
+    BRMerkleBlockFree (block);
+
     if (migrator->theErrorHackHappened)
         return (BRCryptoWalletMigratorStatus) {
             CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK
@@ -1124,6 +1154,7 @@ cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
 
     theErrorHackReset(migrator);
     fileServiceSave (migrator->fileService, migrator->fileServicePeerType, &peer);
+
     if (migrator->theErrorHackHappened)
         return (BRCryptoWalletMigratorStatus) {
             CRYPTO_WALLET_MIGRATOR_ERROR_PEER

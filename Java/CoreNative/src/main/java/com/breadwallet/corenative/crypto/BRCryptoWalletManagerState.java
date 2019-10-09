@@ -1,7 +1,7 @@
 /*
  * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
-*
+ *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
@@ -17,100 +17,104 @@ import java.util.List;
 
 public class BRCryptoWalletManagerState extends Structure {
 
-	public int type;
-	public u_union u;
+    public int typeEnum;
+    public u_union u;
 
-	public static class u_union extends Union {
+    public static class u_union extends Union {
 
-		public disconnected_struct disconnected;
+        public disconnected_struct disconnected;
 
-		public static class disconnected_struct extends Structure {
+        public static class disconnected_struct extends Structure {
 
-			public BRDisconnectReason reason;
+            public BRDisconnectReason reason;
 
-			public disconnected_struct() {
-				super();
-			}
+            public disconnected_struct() {
+                super();
+            }
 
-			protected List<String> getFieldOrder() {
-				return Arrays.asList("reason");
-			}
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("reason");
+            }
 
-			public disconnected_struct(BRDisconnectReason reason) {
-				super();
-				this.reason = reason;
-			}
+            public disconnected_struct(BRDisconnectReason reason) {
+                super();
+                this.reason = reason;
+            }
 
-			public disconnected_struct(Pointer peer) {
-				super(peer);
-			}
+            public disconnected_struct(Pointer peer) {
+                super(peer);
+            }
 
-			public static class ByReference extends disconnected_struct implements Structure.ByReference {
+            public static class ByReference extends disconnected_struct implements Structure.ByReference {
 
-			}
+            }
 
-			public static class ByValue extends disconnected_struct implements Structure.ByValue {
+            public static class ByValue extends disconnected_struct implements Structure.ByValue {
 
-			}
-		}
+            }
+        }
 
-		public u_union() {
-			super();
-		}
+        public u_union() {
+            super();
+        }
 
-		public u_union(disconnected_struct state) {
-			super();
-			this.disconnected = state;
-			setType(disconnected_struct.class);
-		}
+        public u_union(disconnected_struct state) {
+            super();
+            this.disconnected = state;
+            setType(disconnected_struct.class);
+        }
 
-		public u_union(Pointer peer) {
-			super(peer);
-		}
+        public u_union(Pointer peer) {
+            super(peer);
+        }
 
-		public static class ByReference extends u_union implements Structure.ByReference {
+        public static class ByReference extends u_union implements Structure.ByReference {
 
-		}
+        }
 
-		public static class ByValue extends u_union implements Structure.ByValue {
+        public static class ByValue extends u_union implements Structure.ByValue {
 
-		}
-	}
+        }
+    }
 
-	public BRCryptoWalletManagerState() {
-		super();
-	}
+    public BRCryptoWalletManagerState() {
+        super();
+    }
 
-	protected List<String> getFieldOrder() {
-		return Arrays.asList("type", "u");
-	}
+    public BRCryptoWalletManagerStateType type() {
+        return BRCryptoWalletManagerStateType.fromCore(typeEnum);
+    }
 
-	public BRCryptoWalletManagerState(int type, u_union u) {
-		super();
-		this.type = type;
-		this.u = u;
-	}
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("typeEnum", "u");
+    }
 
-	public BRCryptoWalletManagerState(Pointer peer) {
-		super(peer);
-	}
+    public BRCryptoWalletManagerState(int type, u_union u) {
+        super();
+        this.typeEnum = type;
+        this.u = u;
+    }
 
-	@Override
-	public void read() {
-		super.read();
-		switch (type){
-			case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-				u.setType(u_union.disconnected_struct.class);
-				u.read();
-				break;
-		}
-	}
+    public BRCryptoWalletManagerState(Pointer peer) {
+        super(peer);
+    }
 
-	public static class ByReference extends BRCryptoWalletManagerState implements Structure.ByReference {
-		
-	}
+    @Override
+    public void read() {
+        super.read();
+        switch (type()){
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                u.setType(u_union.disconnected_struct.class);
+                u.read();
+                break;
+        }
+    }
 
-	public static class ByValue extends BRCryptoWalletManagerState implements Structure.ByValue {
-		
-	}
+    public static class ByReference extends BRCryptoWalletManagerState implements Structure.ByReference {
+
+    }
+
+    public static class ByValue extends BRCryptoWalletManagerState implements Structure.ByValue {
+
+    }
 }

@@ -456,7 +456,6 @@ _updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
 
 static uint32_t
 _calculateSyncDepthHeight(BRSyncDepth depth,
-                          BRWallet *wallet,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
                           OwnershipKept BRTransaction *lastConfirmedSendTx);
@@ -1009,7 +1008,6 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
             // and don't go past the current sync height so that we don't we miss transactions)
             manager->syncedBlockHeight = MAX (manager->initBlockHeight,
                                               MIN (_calculateSyncDepthHeight (depth,
-                                                                              manager->wallet,
                                                                               manager->chainParams,
                                                                               manager->networkBlockHeight,
                                                                               lastConfirmedSendTx),
@@ -1671,9 +1669,8 @@ BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
                              BRSyncDepth depth,
                              OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint32_t scanHeight = MIN (_calculateSyncDepthHeight (depth,
-                                                          manager->wallet,
                                                           manager->chainParams,
-                                                          manager->networkBlockHeight,
+                                                          BRPeerSyncManagerGetBlockHeight (manager),
                                                           lastConfirmedSendTx),
                                BRPeerManagerLastBlockHeight (manager->peerManager));
     if (0 != scanHeight) {
@@ -2082,7 +2079,6 @@ _updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
 
 static uint32_t
 _calculateSyncDepthHeight(BRSyncDepth depth,
-                          BRWallet *wallet,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
                           OwnershipKept BRTransaction *lastConfirmedSendTx) {
