@@ -1,47 +1,39 @@
 package com.breadwallet.corenative.support;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRDisconnectReasonType {
 
     DISCONNECT_REASON_REQUESTED  {
         @Override
         public int toNative() {
-            return 0;
+            return DISCONNECT_REASON_REQUESTED_VALUE;
         }
     },
 
     DISCONNECT_REASON_UNKNOWN  {
         @Override
         public int toNative() {
-            return 1;
+            return DISCONNECT_REASON_UNKNOWN_VALUE;
         }
     },
 
     DISCONNECT_REASON_POSIX  {
         @Override
         public int toNative() {
-            return 2;
+            return DISCONNECT_REASON_POSIX_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRDisconnectReasonType> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRDisconnectReasonType> b = ImmutableMap.builder();
-
-        b.put(DISCONNECT_REASON_REQUESTED.toNative(),       DISCONNECT_REASON_REQUESTED);
-        b.put(DISCONNECT_REASON_UNKNOWN.toNative(),         DISCONNECT_REASON_UNKNOWN);
-        b.put(DISCONNECT_REASON_POSIX.toNative(),           DISCONNECT_REASON_POSIX);
-        LOOKUP = b.build();
-    }
+    private static final int DISCONNECT_REASON_REQUESTED_VALUE  = 0;
+    private static final int DISCONNECT_REASON_UNKNOWN_VALUE    = 1;
+    private static final int DISCONNECT_REASON_POSIX_VALUE      = 2;
 
     public static BRDisconnectReasonType fromNative(int nativeValue) {
-        BRDisconnectReasonType status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case DISCONNECT_REASON_REQUESTED_VALUE: return DISCONNECT_REASON_REQUESTED;
+            case DISCONNECT_REASON_UNKNOWN_VALUE:   return DISCONNECT_REASON_UNKNOWN;
+            case DISCONNECT_REASON_POSIX_VALUE:     return DISCONNECT_REASON_POSIX;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

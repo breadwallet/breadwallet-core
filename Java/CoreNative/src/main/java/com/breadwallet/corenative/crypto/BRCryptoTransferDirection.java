@@ -7,49 +7,40 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoTransferDirection {
 
     CRYPTO_TRANSFER_SENT {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_TRANSFER_SENT_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_RECEIVED {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_TRANSFER_RECEIVED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_RECOVERED {
         @Override
         public int toNative() {
-            return 2;
+            return CRYPTO_TRANSFER_RECOVERED_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoTransferDirection> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoTransferDirection> b = ImmutableMap.builder();
-
-        b.put(CRYPTO_TRANSFER_SENT.toNative(),      CRYPTO_TRANSFER_SENT);
-        b.put(CRYPTO_TRANSFER_RECEIVED.toNative(),  CRYPTO_TRANSFER_RECEIVED);
-        b.put(CRYPTO_TRANSFER_RECOVERED.toNative(), CRYPTO_TRANSFER_RECOVERED);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_TRANSFER_SENT_VALUE      = 0;
+    private static final int CRYPTO_TRANSFER_RECEIVED_VALUE  = 1;
+    private static final int CRYPTO_TRANSFER_RECOVERED_VALUE = 2;
 
     public static BRCryptoTransferDirection fromNative(int nativeValue) {
-        BRCryptoTransferDirection status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_TRANSFER_SENT_VALUE:      return CRYPTO_TRANSFER_SENT;
+            case CRYPTO_TRANSFER_RECEIVED_VALUE:  return CRYPTO_TRANSFER_RECEIVED;
+            case CRYPTO_TRANSFER_RECOVERED_VALUE: return CRYPTO_TRANSFER_RECOVERED;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

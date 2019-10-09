@@ -7,49 +7,40 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoComparison {
 
     CRYPTO_COMPARE_LT {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_COMPARE_LT_VALUE;
         }
     },
 
     CRYPTO_COMPARE_EQ {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_COMPARE_EQ_VALUE;
         }
     },
 
     CRYPTO_COMPARE_GT {
         @Override
         public int toNative() {
-            return 2;
+            return CRYPTO_COMPARE_GT_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoComparison> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoComparison> b = ImmutableMap.builder();
-
-        b.put(CRYPTO_COMPARE_LT.toNative(), CRYPTO_COMPARE_LT);
-        b.put(CRYPTO_COMPARE_EQ.toNative(), CRYPTO_COMPARE_EQ);
-        b.put(CRYPTO_COMPARE_GT.toNative(), CRYPTO_COMPARE_GT);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_COMPARE_LT_VALUE = 0;
+    private static final int CRYPTO_COMPARE_EQ_VALUE = 1;
+    private static final int CRYPTO_COMPARE_GT_VALUE = 2;
 
     public static BRCryptoComparison fromNative(int nativeValue) {
-        BRCryptoComparison status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_COMPARE_LT_VALUE: return CRYPTO_COMPARE_LT;
+            case CRYPTO_COMPARE_EQ_VALUE: return CRYPTO_COMPARE_EQ;
+            case CRYPTO_COMPARE_GT_VALUE: return CRYPTO_COMPARE_GT;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

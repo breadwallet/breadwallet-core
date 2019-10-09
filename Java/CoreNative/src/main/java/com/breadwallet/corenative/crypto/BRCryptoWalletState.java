@@ -7,41 +7,31 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoWalletState {
 
     CRYPTO_WALLET_STATE_CREATED {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_WALLET_STATE_CREATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_STATE_DELETED {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_WALLET_STATE_DELETED_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoWalletState> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoWalletState> b = ImmutableMap.builder();
-
-        b.put(CRYPTO_WALLET_STATE_CREATED.toNative(), CRYPTO_WALLET_STATE_CREATED);
-        b.put(CRYPTO_WALLET_STATE_DELETED.toNative(), CRYPTO_WALLET_STATE_DELETED);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_WALLET_STATE_CREATED_VALUE = 0;
+    private static final int CRYPTO_WALLET_STATE_DELETED_VALUE = 1;
 
     public static BRCryptoWalletState fromNative(int nativeValue) {
-        BRCryptoWalletState status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_WALLET_STATE_CREATED_VALUE: return CRYPTO_WALLET_STATE_CREATED;
+            case CRYPTO_WALLET_STATE_DELETED_VALUE: return CRYPTO_WALLET_STATE_DELETED;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

@@ -7,57 +7,49 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoAddressScheme {
 
     CRYPTO_ADDRESS_SCHEME_BTC_LEGACY {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_ADDRESS_SCHEME_BTC_LEGACY_VALUE;
         }
     },
 
     CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT_VALUE;
         }
     },
 
     CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT {
         @Override
         public int toNative() {
-            return 2;
+            return CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT_VALUE;
         }
     },
 
     CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT {
         @Override
         public int toNative() {
-            return 3;
+            return CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoAddressScheme> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoAddressScheme> b = ImmutableMap.builder();
-
-        b.put(CRYPTO_ADDRESS_SCHEME_BTC_LEGACY.toNative(),  CRYPTO_ADDRESS_SCHEME_BTC_LEGACY);
-        b.put(CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT.toNative(),  CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT);
-        b.put(CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT.toNative(), CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT);
-        b.put(CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT.toNative(), CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_ADDRESS_SCHEME_BTC_LEGACY_VALUE  = 0;
+    private static final int CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT_VALUE  = 1;
+    private static final int CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT_VALUE = 2;
+    private static final int CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT_VALUE = 3;
 
     public static BRCryptoAddressScheme fromNative(int nativeValue) {
-        BRCryptoAddressScheme status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY_VALUE:  return CRYPTO_ADDRESS_SCHEME_BTC_LEGACY;
+            case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT_VALUE:  return CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT;
+            case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT_VALUE: return CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT;
+            case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT_VALUE: return CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

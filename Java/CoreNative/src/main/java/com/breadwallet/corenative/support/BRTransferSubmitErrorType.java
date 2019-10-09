@@ -16,31 +16,26 @@ public enum BRTransferSubmitErrorType {
     TRANSFER_SUBMIT_ERROR_UNKNOWN  {
         @Override
         public int toNative() {
-            return 0;
+            return TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE;
         }
     },
 
     TRANSFER_SUBMIT_ERROR_POSIX  {
         @Override
         public int toNative() {
-            return 1;
+            return TRANSFER_SUBMIT_ERROR_POSIX_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRTransferSubmitErrorType> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRTransferSubmitErrorType> b = ImmutableMap.builder();
-
-        b.put(TRANSFER_SUBMIT_ERROR_UNKNOWN.toNative(),       TRANSFER_SUBMIT_ERROR_UNKNOWN);
-        b.put(TRANSFER_SUBMIT_ERROR_POSIX.toNative(),         TRANSFER_SUBMIT_ERROR_POSIX);
-        LOOKUP = b.build();
-    }
+    private static final int TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE = 0;
+    private static final int TRANSFER_SUBMIT_ERROR_POSIX_VALUE   = 1;
 
     public static BRTransferSubmitErrorType fromNative(int nativeValue) {
-        BRTransferSubmitErrorType status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE: return TRANSFER_SUBMIT_ERROR_UNKNOWN;
+            case TRANSFER_SUBMIT_ERROR_POSIX_VALUE:   return TRANSFER_SUBMIT_ERROR_POSIX;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

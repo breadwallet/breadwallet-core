@@ -7,23 +7,18 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoStatus {
 
     CRYPTO_SUCCESS {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_SUCCESS_VALUE;
         }
     },
-
     CRYPTO_ERROR_FAILED {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_ERROR_FAILED_VALUE;
         }
     },
 
@@ -31,37 +26,37 @@ public enum BRCryptoStatus {
     CRYPTO_ERROR_UNKNOWN_NODE {
         @Override
         public int toNative() {
-            return 10000;
+            return CRYPTO_ERROR_UNKNOWN_NODE_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_TRANSFER {
         @Override
         public int toNative() {
-            return 10001;
+            return CRYPTO_ERROR_UNKNOWN_TRANSFER_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_ACCOUNT {
         @Override
         public int toNative() {
-            return 10002;
+            return CRYPTO_ERROR_UNKNOWN_ACCOUNT_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_WALLET {
         @Override
         public int toNative() {
-            return 10003;
+            return CRYPTO_ERROR_UNKNOWN_WALLET_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_BLOCK {
         @Override
         public int toNative() {
-            return 10004;
+            return CRYPTO_ERROR_UNKNOWN_BLOCK_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_LISTENER {
         @Override
         public int toNative() {
-            return 10005;
+            return CRYPTO_ERROR_UNKNOWN_LISTENER_VALUE;
         }
     },
 
@@ -69,7 +64,7 @@ public enum BRCryptoStatus {
     CRYPTO_ERROR_NODE_NOT_CONNECTED {
         @Override
         public int toNative() {
-            return 20000;
+            return CRYPTO_ERROR_NODE_NOT_CONNECTED_VALUE;
         }
     },
 
@@ -77,13 +72,13 @@ public enum BRCryptoStatus {
     CRYPTO_ERROR_TRANSFER_HASH_MISMATCH {
         @Override
         public int toNative() {
-            return 30000;
+            return CRYPTO_ERROR_TRANSFER_HASH_MISMATCH_VALUE;
         }
     },
     CRYPTO_ERROR_TRANSFER_SUBMISSION {
         @Override
         public int toNative() {
-            return 30001;
+            return CRYPTO_ERROR_TRANSFER_SUBMISSION_VALUE;
         }
     },
 
@@ -91,39 +86,47 @@ public enum BRCryptoStatus {
     CRYPTO_ERROR_NUMERIC_PARSE {
         @Override
         public int toNative() {
-            return 40000;
+            return CRYPTO_ERROR_NUMERIC_PARSE_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoStatus> LOOKUP;
+    private static final int CRYPTO_SUCCESS_VALUE                       = 0;
+    private static final int CRYPTO_ERROR_FAILED_VALUE                  = 1;
 
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoStatus> b = ImmutableMap.builder();
+    private static final int CRYPTO_ERROR_UNKNOWN_NODE_VALUE            = 10000;
+    private static final int CRYPTO_ERROR_UNKNOWN_TRANSFER_VALUE        = 10001;
+    private static final int CRYPTO_ERROR_UNKNOWN_ACCOUNT_VALUE         = 10002;
+    private static final int CRYPTO_ERROR_UNKNOWN_WALLET_VALUE          = 10003;
+    private static final int CRYPTO_ERROR_UNKNOWN_BLOCK_VALUE           = 10004;
+    private static final int CRYPTO_ERROR_UNKNOWN_LISTENER_VALUE        = 10005;
 
-        b.put(CRYPTO_SUCCESS.toNative(),                      CRYPTO_SUCCESS);
-        b.put(CRYPTO_ERROR_FAILED.toNative(),                 CRYPTO_ERROR_FAILED);
+    private static final int CRYPTO_ERROR_NODE_NOT_CONNECTED_VALUE      = 20000;
 
-        b.put(CRYPTO_ERROR_UNKNOWN_NODE.toNative(),           CRYPTO_ERROR_UNKNOWN_NODE);
-        b.put(CRYPTO_ERROR_UNKNOWN_TRANSFER.toNative(),       CRYPTO_ERROR_UNKNOWN_TRANSFER);
-        b.put(CRYPTO_ERROR_UNKNOWN_ACCOUNT.toNative(),        CRYPTO_ERROR_UNKNOWN_ACCOUNT);
-        b.put(CRYPTO_ERROR_UNKNOWN_WALLET.toNative(),         CRYPTO_ERROR_UNKNOWN_WALLET);
-        b.put(CRYPTO_ERROR_UNKNOWN_BLOCK.toNative(),          CRYPTO_ERROR_UNKNOWN_BLOCK);
-        b.put(CRYPTO_ERROR_UNKNOWN_LISTENER.toNative(),       CRYPTO_ERROR_UNKNOWN_LISTENER);
+    private static final int CRYPTO_ERROR_TRANSFER_HASH_MISMATCH_VALUE  = 30000;
+    private static final int CRYPTO_ERROR_TRANSFER_SUBMISSION_VALUE     = 30001;
 
-        b.put(CRYPTO_ERROR_NODE_NOT_CONNECTED.toNative(),     CRYPTO_ERROR_NODE_NOT_CONNECTED);
-
-        b.put(CRYPTO_ERROR_TRANSFER_HASH_MISMATCH.toNative(), CRYPTO_ERROR_TRANSFER_HASH_MISMATCH);
-        b.put(CRYPTO_ERROR_TRANSFER_SUBMISSION.toNative(),    CRYPTO_ERROR_TRANSFER_SUBMISSION);
-
-        b.put(CRYPTO_ERROR_NUMERIC_PARSE.toNative(),          CRYPTO_ERROR_NUMERIC_PARSE);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_ERROR_NUMERIC_PARSE_VALUE           = 40000;
 
     public static BRCryptoStatus fromNative(int nativeValue) {
-        BRCryptoStatus status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_SUCCESS_VALUE:                      return CRYPTO_SUCCESS;
+            case CRYPTO_ERROR_FAILED_VALUE:                 return CRYPTO_ERROR_FAILED;
+
+            case CRYPTO_ERROR_UNKNOWN_NODE_VALUE:           return CRYPTO_ERROR_UNKNOWN_NODE;
+            case CRYPTO_ERROR_UNKNOWN_TRANSFER_VALUE:       return CRYPTO_ERROR_UNKNOWN_TRANSFER;
+            case CRYPTO_ERROR_UNKNOWN_ACCOUNT_VALUE:        return CRYPTO_ERROR_UNKNOWN_ACCOUNT;
+            case CRYPTO_ERROR_UNKNOWN_WALLET_VALUE:         return CRYPTO_ERROR_UNKNOWN_WALLET;
+            case CRYPTO_ERROR_UNKNOWN_BLOCK_VALUE:          return CRYPTO_ERROR_UNKNOWN_BLOCK;
+            case CRYPTO_ERROR_UNKNOWN_LISTENER_VALUE:       return CRYPTO_ERROR_UNKNOWN_LISTENER;
+
+            case CRYPTO_ERROR_NODE_NOT_CONNECTED_VALUE:     return CRYPTO_ERROR_NODE_NOT_CONNECTED;
+
+            case CRYPTO_ERROR_TRANSFER_HASH_MISMATCH_VALUE: return CRYPTO_ERROR_TRANSFER_HASH_MISMATCH;
+            case CRYPTO_ERROR_TRANSFER_SUBMISSION_VALUE:    return CRYPTO_ERROR_TRANSFER_SUBMISSION;
+
+            case CRYPTO_ERROR_NUMERIC_PARSE_VALUE:          return CRYPTO_ERROR_NUMERIC_PARSE;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

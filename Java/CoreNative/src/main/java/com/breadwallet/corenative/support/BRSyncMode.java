@@ -7,56 +7,49 @@
  */
 package com.breadwallet.corenative.support;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRSyncMode {
 
     SYNC_MODE_BRD_ONLY {
         @Override
         public int toNative() {
-            return 0;
+            return SYNC_MODE_BRD_ONLY_VALUE;
         }
     },
 
     SYNC_MODE_BRD_WITH_P2P_SEND {
         @Override
         public int toNative() {
-            return 1;
+            return SYNC_MODE_BRD_WITH_P2P_SEND_VALUE;
         }
     },
 
     SYNC_MODE_P2P_WITH_BRD_SYNC {
         @Override
         public int toNative() {
-            return 2;
+            return SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE;
         }
     },
 
     SYNC_MODE_P2P_ONLY {
         @Override
         public int toNative() {
-            return 3;
+            return SYNC_MODE_P2P_ONLY_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRSyncMode> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRSyncMode> b = ImmutableMap.builder();
-
-        b.put(SYNC_MODE_BRD_ONLY.toNative(),          SYNC_MODE_BRD_ONLY);
-        b.put(SYNC_MODE_BRD_WITH_P2P_SEND.toNative(), SYNC_MODE_BRD_WITH_P2P_SEND);
-        b.put(SYNC_MODE_P2P_WITH_BRD_SYNC.toNative(), SYNC_MODE_P2P_WITH_BRD_SYNC);
-        b.put(SYNC_MODE_P2P_ONLY.toNative(),          SYNC_MODE_P2P_ONLY);
-        LOOKUP = b.build();
-    }
+    private static final int SYNC_MODE_BRD_ONLY_VALUE           = 0;
+    private static final int SYNC_MODE_BRD_WITH_P2P_SEND_VALUE  = 1;
+    private static final int SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE  = 2;
+    private static final int SYNC_MODE_P2P_ONLY_VALUE           = 3;
 
     public static BRSyncMode fromNative(int nativeValue) {
-        BRSyncMode status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case SYNC_MODE_BRD_ONLY_VALUE:          return SYNC_MODE_BRD_ONLY;
+            case SYNC_MODE_BRD_WITH_P2P_SEND_VALUE: return SYNC_MODE_BRD_WITH_P2P_SEND;
+            case SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE: return SYNC_MODE_P2P_WITH_BRD_SYNC;
+            case SYNC_MODE_P2P_ONLY_VALUE:          return SYNC_MODE_P2P_ONLY;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();

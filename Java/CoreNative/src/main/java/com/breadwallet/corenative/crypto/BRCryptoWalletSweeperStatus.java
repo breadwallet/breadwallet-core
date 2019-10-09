@@ -7,107 +7,103 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRCryptoWalletSweeperStatus {
 
     CRYPTO_WALLET_SWEEPER_SUCCESS {
         @Override
         public int toNative() {
-            return 0;
+            return CRYPTO_WALLET_SWEEPER_SUCCESS_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY {
         @Override
         public int toNative() {
-            return 1;
+            return CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_INVALID_KEY {
         @Override
         public int toNative() {
-            return 2;
+            return CRYPTO_WALLET_SWEEPER_INVALID_KEY_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS {
         @Override
         public int toNative() {
-            return 3;
+            return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION {
         @Override
         public int toNative() {
-            return 4;
+            return CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION_VALUE;
         }
     },
 
-    CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET{
+    CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET {
         @Override
         public int toNative() {
-            return 5;
+            return CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND {
         @Override
         public int toNative() {
-            return 6;
+            return CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS{
         @Override
         public int toNative() {
-            return 7;
+            return CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS_VALUE;
         }
     },
 
     CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP  {
         @Override
         public int toNative() {
-            return 8;
+            return CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP_VALUE;
         }
     },
-
 
     CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION  {
         @Override
         public int toNative() {
-            return 9;
+            return CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRCryptoWalletSweeperStatus> LOOKUP;
-
-    static {
-        ImmutableMap.Builder<Integer, BRCryptoWalletSweeperStatus> b = ImmutableMap.builder();
-
-        b.put(CRYPTO_WALLET_SWEEPER_SUCCESS.toNative(),                 CRYPTO_WALLET_SWEEPER_SUCCESS);
-        b.put(CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY.toNative(),    CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY);
-        b.put(CRYPTO_WALLET_SWEEPER_INVALID_KEY.toNative(),             CRYPTO_WALLET_SWEEPER_INVALID_KEY);
-        b.put(CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS.toNative(),       CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS);
-        b.put(CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION.toNative(),     CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION);
-        b.put(CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET.toNative(),   CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET);
-
-        b.put(CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND.toNative(),      CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND);
-        b.put(CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS.toNative(),      CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS);
-        b.put(CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP.toNative(),         CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP);
-        b.put(CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION.toNative(),       CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION);
-
-        LOOKUP = b.build();
-    }
+    private static final int CRYPTO_WALLET_SWEEPER_SUCCESS_VALUE                = 0;
+    private static final int CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY_VALUE   = 1;
+    private static final int CRYPTO_WALLET_SWEEPER_INVALID_KEY_VALUE            = 2;
+    private static final int CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS_VALUE      = 3;
+    private static final int CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION_VALUE    = 4;
+    private static final int CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET_VALUE  = 5;
+    private static final int CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND_VALUE     = 6;
+    private static final int CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS_VALUE     = 7;
+    private static final int CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP_VALUE        = 8;
+    private static final int CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION_VALUE      = 9;
 
     public static BRCryptoWalletSweeperStatus fromNative(int nativeValue) {
-        BRCryptoWalletSweeperStatus status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
+        switch (nativeValue) {
+            case CRYPTO_WALLET_SWEEPER_SUCCESS_VALUE:               return CRYPTO_WALLET_SWEEPER_SUCCESS;
+            case CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY_VALUE:  return CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY;
+            case CRYPTO_WALLET_SWEEPER_INVALID_KEY_VALUE:           return CRYPTO_WALLET_SWEEPER_INVALID_KEY;
+            case CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS_VALUE:     return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
+            case CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION_VALUE:   return CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION;
+            case CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET_VALUE: return CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET;
+            case CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND_VALUE:    return CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND;
+            case CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS_VALUE:    return CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS;
+            case CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP_VALUE:       return CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP;
+            case CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION_VALUE:     return CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION;
+            default: throw new IllegalArgumentException("Invalid native value");
+        }
     }
 
     public abstract int toNative();
