@@ -110,7 +110,7 @@ final class Utilities {
     }
 
     /* package */
-    static int walletStateToCrypto(WalletState state) {
+    static BRCryptoWalletState walletStateToCrypto(WalletState state) {
         switch (state) {
             case CREATED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_CREATED;
             case DELETED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_DELETED;
@@ -119,10 +119,10 @@ final class Utilities {
     }
 
     /* package */
-    static WalletState walletStateFromCrypto(int state) {
+    static WalletState walletStateFromCrypto(BRCryptoWalletState state) {
         switch (state) {
-            case BRCryptoWalletState.CRYPTO_WALLET_STATE_CREATED: return WalletState.CREATED;
-            case BRCryptoWalletState.CRYPTO_WALLET_STATE_DELETED: return WalletState.DELETED;
+            case CRYPTO_WALLET_STATE_CREATED: return WalletState.CREATED;
+            case CRYPTO_WALLET_STATE_DELETED: return WalletState.DELETED;
             default: throw new IllegalArgumentException("Unsupported state");
         }
     }

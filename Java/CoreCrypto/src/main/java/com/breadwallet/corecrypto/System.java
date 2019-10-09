@@ -1112,8 +1112,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState);
-        WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState);
+        WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState());
+        WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState());
 
         Log.d(TAG, String.format("WalletChanged (%s -> %s)", oldState, newState));
 

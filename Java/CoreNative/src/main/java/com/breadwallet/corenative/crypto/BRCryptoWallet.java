@@ -74,12 +74,12 @@ public class BRCryptoWallet extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this);
     }
 
-    public int getState() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetState(this);
+    public BRCryptoWalletState getState() {
+        return BRCryptoWalletState.fromNative(CryptoLibrary.INSTANCE.cryptoWalletGetState(this));
     }
 
-    public void setState(int state) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state);
+    public void setState(BRCryptoWalletState state) {
+        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state.toNative());
     }
 
     public BRCryptoFeeBasis getDefaultFeeBasis() {

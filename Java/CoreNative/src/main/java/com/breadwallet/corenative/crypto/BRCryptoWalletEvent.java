@@ -28,25 +28,33 @@ public class BRCryptoWalletEvent extends Structure {
 
         public static class state_struct extends Structure {
 
-            public int oldState;
-            public int newState;
+            public int oldStateInt;
+            public int newStateInt;
 
             public state_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("oldState", "newState");
+                return Arrays.asList("oldStateInt", "newStateInt");
             }
 
-            public state_struct(int oldState, int newState) {
+            public state_struct(int oldStateInt, int newStateInt) {
                 super();
-                this.oldState = oldState;
-                this.newState = newState;
+                this.oldStateInt = oldStateInt;
+                this.newStateInt = newStateInt;
             }
 
             public state_struct(Pointer peer) {
                 super(peer);
+            }
+
+            public BRCryptoWalletState oldState() {
+                return BRCryptoWalletState.fromNative(oldStateInt);
+            }
+
+            public BRCryptoWalletState newState() {
+                return BRCryptoWalletState.fromNative(newStateInt);
             }
 
             public static class ByReference extends state_struct implements Structure.ByReference {
