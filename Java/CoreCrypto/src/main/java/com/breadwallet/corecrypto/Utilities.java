@@ -128,11 +128,11 @@ final class Utilities {
     }
 
     /* package */
-    static TransferDirection transferDirectionFromCrypto(int direction) {
+    static TransferDirection transferDirectionFromCrypto(BRCryptoTransferDirection direction) {
         switch (direction) {
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_RECEIVED: return TransferDirection.RECEIVED;
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_SENT: return TransferDirection.SENT;
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_RECOVERED: return TransferDirection.RECOVERED;
+            case CRYPTO_TRANSFER_RECEIVED: return TransferDirection.RECEIVED;
+            case CRYPTO_TRANSFER_SENT: return TransferDirection.SENT;
+            case CRYPTO_TRANSFER_RECOVERED: return TransferDirection.RECOVERED;
             default: throw new IllegalArgumentException("Unsupported direction");
         }
     }
