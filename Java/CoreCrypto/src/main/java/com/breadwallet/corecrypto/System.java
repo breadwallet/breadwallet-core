@@ -1038,44 +1038,44 @@ final class System implements com.breadwallet.crypto.System {
         BRCryptoWalletManager walletManager = BRCryptoWalletManager.createOwned(coreWalletManager);
         BRCryptoWallet wallet = BRCryptoWallet.createOwned(coreWallet);
 
-        switch (event.type) {
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CREATED: {
+        switch (event.type()) {
+            case CRYPTO_WALLET_EVENT_CREATED: {
                 handleWalletCreated(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CHANGED: {
+            case CRYPTO_WALLET_EVENT_CHANGED: {
                 handleWalletChanged(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_DELETED: {
+            case CRYPTO_WALLET_EVENT_DELETED: {
                 handleWalletDeleted(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_ADDED: {
+            case CRYPTO_WALLET_EVENT_TRANSFER_ADDED: {
                 handleWalletTransferAdded(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: {
+            case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: {
                 handleWalletTransferChanged(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: {
+            case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: {
                 handleWalletTransferSubmitted(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_DELETED: {
+            case CRYPTO_WALLET_EVENT_TRANSFER_DELETED: {
                 handleWalletTransferDeleted(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_BALANCE_UPDATED: {
+            case CRYPTO_WALLET_EVENT_BALANCE_UPDATED: {
                 handleWalletBalanceUpdated(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
+            case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
                 handleWalletFeeBasisUpdated(context, walletManager, wallet, event);
                 break;
             }
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: {
+            case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: {
                 handleWalletFeeBasisEstimated(context, walletManager, wallet, event);
                 break;
             }

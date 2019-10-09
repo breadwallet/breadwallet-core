@@ -15,7 +15,7 @@ import java.util.List;
 
 public class BRCryptoWalletEvent extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -245,40 +245,44 @@ public class BRCryptoWalletEvent extends Structure {
         super();
     }
 
+    public BRCryptoWalletEventType type() {
+        return BRCryptoWalletEventType.fromNative(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRCryptoWalletEvent(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
     @Override
     public void read() {
         super.read();
-        switch (type){
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CHANGED:
+        switch (type()){
+            case CRYPTO_WALLET_EVENT_CHANGED:
                 u.setType(u_union.state_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
+            case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
                 u.setType(u_union.balanceUpdated_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
+            case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
+            case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
+            case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
+            case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
                 u.setType(u_union.transfer_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
+            case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
                 u.setType(u_union.feeBasisUpdated_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
+            case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
                 u.setType(u_union.feeBasisEstimated_struct.class);
                 u.read();
                 break;
