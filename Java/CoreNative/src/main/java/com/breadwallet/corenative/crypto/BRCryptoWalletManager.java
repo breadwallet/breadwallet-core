@@ -249,8 +249,8 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate, gasPrice);
     }
 
-    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, BRCryptoStatus status) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status.toNative());
     }
 
     public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,

@@ -39,10 +39,10 @@ public class BRCryptoWalletEvent extends Structure {
                 return Arrays.asList("oldStateInt", "newStateInt");
             }
 
-            public state_struct(int oldStateInt, int newStateInt) {
+            public state_struct(int oldState, int newState) {
                 super();
-                this.oldStateInt = oldStateInt;
-                this.newStateInt = newStateInt;
+                this.oldStateInt = oldState;
+                this.newStateInt = newState;
             }
 
             public state_struct(Pointer peer) {
@@ -158,7 +158,7 @@ public class BRCryptoWalletEvent extends Structure {
 
         public static class feeBasisEstimated_struct extends Structure {
 
-            public int status;
+            public int statusInt;
             public Pointer cookie;
             public BRCryptoFeeBasis basis;
 
@@ -167,18 +167,22 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("status", "cookie", "basis");
+                return Arrays.asList("statusInt", "cookie", "basis");
             }
 
             public feeBasisEstimated_struct(int status, Pointer cookie, BRCryptoFeeBasis basis) {
                 super();
-                this.status = status;
+                this.statusInt = status;
                 this.cookie = cookie;
                 this.basis = basis;
             }
 
             public feeBasisEstimated_struct(Pointer peer) {
                 super(peer);
+            }
+
+            public BRCryptoStatus status() {
+                return BRCryptoStatus.fromNative(statusInt);
             }
 
             public static class ByReference extends feeBasisEstimated_struct implements Structure.ByReference {

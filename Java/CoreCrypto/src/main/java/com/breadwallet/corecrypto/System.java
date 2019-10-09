@@ -1395,7 +1395,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletFeeBasisEstimated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        int status = event.u.feeBasisEstimated.status;
+        BRCryptoStatus status = event.u.feeBasisEstimated.status();
 
         Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
 

@@ -194,9 +194,9 @@ final class Utilities {
     }
 
     /* package */
-    static FeeEstimationError feeEstimationErrorFromStatus(int status) {
+    static FeeEstimationError feeEstimationErrorFromStatus(BRCryptoStatus status) {
         switch (status) {
-            case BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
+            case CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
             default: return new FeeEstimationServiceFailureError();
         }
     }
