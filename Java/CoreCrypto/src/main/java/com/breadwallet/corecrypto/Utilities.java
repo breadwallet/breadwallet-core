@@ -76,7 +76,7 @@ final class Utilities {
             case CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
             case CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
             case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-                switch (BRDisconnectReasonType.fromNative(state.u.disconnected.reason.type)) {
+                switch (state.u.disconnected.reason.type()) {
                     case DISCONNECT_REASON_REQUESTED: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.REQUESTED()
                     );
@@ -97,7 +97,7 @@ final class Utilities {
 
     /* package */
     static WalletManagerSyncStoppedReason walletManagerSyncStoppedReasonFromCrypto(BRSyncStoppedReason reason) {
-        switch (BRSyncStoppedReasonType.fromNative(reason.type)) {
+        switch (reason.type()) {
             case SYNC_STOPPED_REASON_COMPLETE: return WalletManagerSyncStoppedReason.COMPLETE();
             case SYNC_STOPPED_REASON_REQUESTED: return WalletManagerSyncStoppedReason.REQUESTED();
             case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
@@ -145,7 +145,7 @@ final class Utilities {
             case CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
             case CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
             case CRYPTO_TRANSFER_STATE_ERRORED:
-                switch (BRTransferSubmitErrorType.fromNative(state.u.errored.error.type)) {
+                switch (state.u.errored.error.type()) {
                     case TRANSFER_SUBMIT_ERROR_UNKNOWN: return TransferState.FAILED(
                             new TransferSubmitUnknownError()
                     );

@@ -20,7 +20,7 @@ import java.util.List;
 
 public class BRSyncStoppedReason extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -84,13 +84,17 @@ public class BRSyncStoppedReason extends Structure {
         super();
     }
 
+    public BRSyncStoppedReasonType type() {
+        return BRSyncStoppedReasonType.fromNative(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRSyncStoppedReason(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
@@ -101,7 +105,7 @@ public class BRSyncStoppedReason extends Structure {
     @Override
     public void read() {
         super.read();
-        if (type == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX.toNative())
+        if (type() == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX)
             u.setType(u_union.posix_struct.class);
         u.read();
     }
