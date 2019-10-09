@@ -19,7 +19,7 @@ import java.util.List;
 
 public class BRTransferSubmitError extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -83,13 +83,17 @@ public class BRTransferSubmitError extends Structure {
         super();
     }
 
+    public BRTransferSubmitErrorType type() {
+        return BRTransferSubmitErrorType.fromCore(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRTransferSubmitError(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
@@ -100,7 +104,7 @@ public class BRTransferSubmitError extends Structure {
     @Override
     public void read() {
         super.read();
-        if (type == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX.toNative())
+        if (type() == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX)
             u.setType(u_union.posix_struct.class);
         u.read();
     }

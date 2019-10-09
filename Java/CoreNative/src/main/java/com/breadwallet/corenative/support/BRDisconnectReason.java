@@ -19,7 +19,7 @@ import java.util.List;
 
 public class BRDisconnectReason extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -83,13 +83,17 @@ public class BRDisconnectReason extends Structure {
         super();
     }
 
+    public BRDisconnectReasonType type() {
+        return BRDisconnectReasonType.fromCore(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRDisconnectReason(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
@@ -100,7 +104,7 @@ public class BRDisconnectReason extends Structure {
     @Override
     public void read() {
         super.read();
-        if (type == BRDisconnectReasonType.DISCONNECT_REASON_POSIX.toNative())
+        if (type() == BRDisconnectReasonType.DISCONNECT_REASON_POSIX)
             u.setType(u_union.posix_struct.class);
         u.read();
     }

@@ -7,7 +7,12 @@
  */
 package com.breadwallet.corenative.crypto;
 
-public interface BRCryptoBoolean {
+/* package */
+interface BRCryptoBoolean {
+
+    // This type is left as an interface with int constant values, rather than converting to an enum, as
+    // this is never exposed outside of the library (boolean is used) so the overhead of creating an enum
+    // is unnecessary.
 
     int CRYPTO_FALSE = 0;
     int CRYPTO_TRUE = 1;

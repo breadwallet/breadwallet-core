@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
@@ -81,8 +82,8 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
         BRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
         BRCryptoCurrency coreCurrency = coreWallet.getCurrency();
         BRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
+        BRCryptoAddressScheme coreScheme = Utilities.addressSchemeToCrypto(manager.getAddressScheme());
 
-        int coreScheme = Utilities.addressSchemeToCrypto(manager.getAddressScheme());
         return new WalletSweeper(BRCryptoWalletSweeper.createAsBtc(coreNetwork, coreCurrency, coreKey, coreScheme), manager, wallet);
     }
 

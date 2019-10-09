@@ -16,7 +16,7 @@ import java.util.List;
 
 public class BRCryptoWalletManagerEvent extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -231,13 +231,17 @@ public class BRCryptoWalletManagerEvent extends Structure {
         super();
     }
 
+    public BRCryptoWalletManagerEventType type() {
+        return BRCryptoWalletManagerEventType.fromCore(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRCryptoWalletManagerEvent(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
@@ -248,26 +252,26 @@ public class BRCryptoWalletManagerEvent extends Structure {
     @Override
     public void read() {
         super.read();
-        switch (type){
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
+        switch (type()){
+            case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                 u.setType(u_union.blockHeight_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+            case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
                 u.setType(u_union.state_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
                 u.setType(u_union.syncContinues_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                 u.setType(u_union.syncStopped_struct.class);
                 u.read();
                 break;
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
                 u.setType(u_union.wallet_struct.class);
                 u.read();
                 break;

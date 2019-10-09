@@ -10,7 +10,6 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -35,12 +34,6 @@ public class BRCryptoAmount extends PointerType {
                         isNegative ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
                         unit)
         );
-    }
-
-    public static BRCryptoAmount createOwned(BRCryptoAmount amount) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoAmount.OwnedBRCryptoAmount as its field, instead of BRCryptoAmount?
-        return new OwnedBRCryptoAmount(amount.getPointer());
     }
 
     public BRCryptoAmount(Pointer address) {
@@ -85,8 +78,8 @@ public class BRCryptoAmount extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
     }
 
-    public int compare(BRCryptoAmount o) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o);
+    public BRCryptoComparison compare(BRCryptoAmount o) {
+        return BRCryptoComparison.fromCore(CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o));
     }
 
     public boolean isCompatible(BRCryptoAmount o) {
@@ -106,6 +99,10 @@ public class BRCryptoAmount extends PointerType {
             Native.free(Pointer.nativeValue(ptr));
         }
 
+    }
+
+    public BRCryptoAmount toOwned() {
+        return new OwnedBRCryptoAmount(getPointer());
     }
 
     public static class OwnedBRCryptoAmount extends BRCryptoAmount {

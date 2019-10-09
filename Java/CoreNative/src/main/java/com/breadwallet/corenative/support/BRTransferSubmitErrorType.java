@@ -15,33 +15,28 @@ public enum BRTransferSubmitErrorType {
 
     TRANSFER_SUBMIT_ERROR_UNKNOWN  {
         @Override
-        public int toNative() {
-            return 0;
+        public int toCore() {
+            return TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE;
         }
     },
 
     TRANSFER_SUBMIT_ERROR_POSIX  {
         @Override
-        public int toNative() {
-            return 1;
+        public int toCore() {
+            return TRANSFER_SUBMIT_ERROR_POSIX_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRTransferSubmitErrorType> LOOKUP;
+    private static final int TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE = 0;
+    private static final int TRANSFER_SUBMIT_ERROR_POSIX_VALUE   = 1;
 
-    static {
-        ImmutableMap.Builder<Integer, BRTransferSubmitErrorType> b = ImmutableMap.builder();
-
-        b.put(TRANSFER_SUBMIT_ERROR_UNKNOWN.toNative(),       TRANSFER_SUBMIT_ERROR_UNKNOWN);
-        b.put(TRANSFER_SUBMIT_ERROR_POSIX.toNative(),         TRANSFER_SUBMIT_ERROR_POSIX);
-        LOOKUP = b.build();
+    public static BRTransferSubmitErrorType fromCore(int nativeValue) {
+        switch (nativeValue) {
+            case TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE: return TRANSFER_SUBMIT_ERROR_UNKNOWN;
+            case TRANSFER_SUBMIT_ERROR_POSIX_VALUE:   return TRANSFER_SUBMIT_ERROR_POSIX;
+            default: throw new IllegalArgumentException("Invalid core value");
+        }
     }
 
-    public static BRTransferSubmitErrorType fromNative(int nativeValue) {
-        BRTransferSubmitErrorType status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
-    }
-
-    public abstract int toNative();
+    public abstract int toCore();
 }

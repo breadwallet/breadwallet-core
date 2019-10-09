@@ -12,16 +12,11 @@ import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
-import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
-import com.breadwallet.corenative.crypto.BRCryptoWalletManagerStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
-import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
-import com.breadwallet.corenative.support.BRSyncStoppedReasonType;
-import com.breadwallet.corenative.support.BRTransferSubmitErrorType;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -47,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 final class Utilities {
 
     /* package */
-    static int walletManagerModeToCrypto(WalletManagerMode mode) {
+    static BRSyncMode walletManagerModeToCrypto(WalletManagerMode mode) {
         switch (mode) {
             case API_ONLY: return BRSyncMode.SYNC_MODE_BRD_ONLY;
             case API_WITH_P2P_SUBMIT: return BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND;
@@ -58,25 +53,25 @@ final class Utilities {
     }
 
     /* package */
-    static WalletManagerMode walletManagerModeFromCrypto(int mode) {
+    static WalletManagerMode walletManagerModeFromCrypto(BRSyncMode mode) {
         switch (mode) {
-            case BRSyncMode.SYNC_MODE_BRD_ONLY: return WalletManagerMode.API_ONLY;
-            case BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND: return WalletManagerMode.API_WITH_P2P_SUBMIT;
-            case BRSyncMode.SYNC_MODE_P2P_ONLY: return WalletManagerMode.P2P_ONLY;
-            case BRSyncMode.SYNC_MODE_P2P_WITH_BRD_SYNC: return WalletManagerMode.P2P_WITH_API_SYNC;
+            case SYNC_MODE_BRD_ONLY: return WalletManagerMode.API_ONLY;
+            case SYNC_MODE_BRD_WITH_P2P_SEND: return WalletManagerMode.API_WITH_P2P_SUBMIT;
+            case SYNC_MODE_P2P_ONLY: return WalletManagerMode.P2P_ONLY;
+            case SYNC_MODE_P2P_WITH_BRD_SYNC: return WalletManagerMode.P2P_WITH_API_SYNC;
             default: throw new IllegalArgumentException("Unsupported mode");
         }
     }
 
     /* package */
     static WalletManagerState walletManagerStateFromCrypto(BRCryptoWalletManagerState state) {
-        switch (state.type) {
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-                switch (BRDisconnectReasonType.fromNative(state.u.disconnected.reason.type)) {
+        switch (state.type()) {
+            case CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
+            case CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
+            case CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
+            case CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                switch (state.u.disconnected.reason.type()) {
                     case DISCONNECT_REASON_REQUESTED: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.REQUESTED()
                     );
@@ -97,7 +92,7 @@ final class Utilities {
 
     /* package */
     static WalletManagerSyncStoppedReason walletManagerSyncStoppedReasonFromCrypto(BRSyncStoppedReason reason) {
-        switch (BRSyncStoppedReasonType.fromNative(reason.type)) {
+        switch (reason.type()) {
             case SYNC_STOPPED_REASON_COMPLETE: return WalletManagerSyncStoppedReason.COMPLETE();
             case SYNC_STOPPED_REASON_REQUESTED: return WalletManagerSyncStoppedReason.REQUESTED();
             case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
@@ -110,7 +105,7 @@ final class Utilities {
     }
 
     /* package */
-    static int walletStateToCrypto(WalletState state) {
+    static BRCryptoWalletState walletStateToCrypto(WalletState state) {
         switch (state) {
             case CREATED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_CREATED;
             case DELETED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_DELETED;
@@ -119,33 +114,33 @@ final class Utilities {
     }
 
     /* package */
-    static WalletState walletStateFromCrypto(int state) {
+    static WalletState walletStateFromCrypto(BRCryptoWalletState state) {
         switch (state) {
-            case BRCryptoWalletState.CRYPTO_WALLET_STATE_CREATED: return WalletState.CREATED;
-            case BRCryptoWalletState.CRYPTO_WALLET_STATE_DELETED: return WalletState.DELETED;
+            case CRYPTO_WALLET_STATE_CREATED: return WalletState.CREATED;
+            case CRYPTO_WALLET_STATE_DELETED: return WalletState.DELETED;
             default: throw new IllegalArgumentException("Unsupported state");
         }
     }
 
     /* package */
-    static TransferDirection transferDirectionFromCrypto(int direction) {
+    static TransferDirection transferDirectionFromCrypto(BRCryptoTransferDirection direction) {
         switch (direction) {
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_RECEIVED: return TransferDirection.RECEIVED;
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_SENT: return TransferDirection.SENT;
-            case BRCryptoTransferDirection.CRYPTO_TRANSFER_RECOVERED: return TransferDirection.RECOVERED;
+            case CRYPTO_TRANSFER_RECEIVED: return TransferDirection.RECEIVED;
+            case CRYPTO_TRANSFER_SENT: return TransferDirection.SENT;
+            case CRYPTO_TRANSFER_RECOVERED: return TransferDirection.RECOVERED;
             default: throw new IllegalArgumentException("Unsupported direction");
         }
     }
 
     /* package */
     static TransferState transferStateFromCrypto(BRCryptoTransferState state) {
-        switch (state.type) {
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
-                switch (BRTransferSubmitErrorType.fromNative(state.u.errored.error.type)) {
+        switch (state.type()) {
+            case CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
+            case CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
+            case CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
+            case CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
+            case CRYPTO_TRANSFER_STATE_ERRORED:
+                switch (state.u.errored.error.type()) {
                     case TRANSFER_SUBMIT_ERROR_UNKNOWN: return TransferState.FAILED(
                             new TransferSubmitUnknownError()
                     );
@@ -157,13 +152,13 @@ final class Utilities {
                     );
                     default: throw new IllegalArgumentException("Unsupported error");
                 }
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
+            case CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
                     new TransferConfirmation(
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.fee)
-                                    .transform(BRCryptoAmount::createOwned)
+                                    .transform(BRCryptoAmount::toOwned)
                                     .transform(Amount::create)
                     )
             );
@@ -172,7 +167,7 @@ final class Utilities {
     }
 
     /* package */
-    static int addressSchemeToCrypto(AddressScheme scheme) {
+    static BRCryptoAddressScheme addressSchemeToCrypto(AddressScheme scheme) {
         switch (scheme) {
             case BTC_LEGACY: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY;
             case BTC_SEGWIT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT;
@@ -183,22 +178,22 @@ final class Utilities {
     }
 
     /* package */
-    static AddressScheme addressSchemeFromCrypto(int scheme) {
+    static AddressScheme addressSchemeFromCrypto(BRCryptoAddressScheme scheme) {
         switch (scheme) {
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
+            case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
+            case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
+            case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
+            case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
             default: throw new IllegalArgumentException("Unsupported scheme");
         }
     }
 
     /* package */
-    static FeeEstimationError feeEstimationErrorFromStatus(int status) {
-        switch (status) {
-            case BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
-            default: return new FeeEstimationServiceFailureError();
+    static FeeEstimationError feeEstimationErrorFromStatus(BRCryptoStatus status) {
+        if (status == BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED) {
+            return new FeeEstimationServiceUnavailableError();
         }
+        return new FeeEstimationServiceFailureError();
     }
 
     /* package */

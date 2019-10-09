@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
+import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -32,8 +33,8 @@ public class BRCryptoWalletManager extends PointerType {
                                                              BRCryptoCWMClient client,
                                                              BRCryptoAccount account,
                                                              BRCryptoNetwork network,
-                                                             int mode,
-                                                             int scheme,
+                                                             BRSyncMode mode,
+                                                             BRCryptoAddressScheme scheme,
                                                              String path) {
         return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
@@ -41,17 +42,11 @@ public class BRCryptoWalletManager extends PointerType {
                         client.toByValue(),
                         account,
                         network,
-                        mode,
-                        scheme,
+                        mode.toCore(),
+                        scheme.toCore(),
                         path
                 )
         );
-    }
-
-    public static BRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoWallet.OwnedBRCryptoWallet as its field, instead of BRCryptoWallet?
-        return new OwnedBRCryptoWalletManager(manager.getPointer());
     }
 
     public BRCryptoWalletManager(Pointer address) {
@@ -110,12 +105,12 @@ public class BRCryptoWalletManager extends PointerType {
         );
     }
 
-    public int getMode() {
-        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
+    public BRSyncMode getMode() {
+        return BRSyncMode.fromCore(CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this));
     }
 
-    public void setMode(int mode) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode);
+    public void setMode(BRSyncMode mode) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode.toCore());
     }
 
     public String getPath() {
@@ -126,12 +121,12 @@ public class BRCryptoWalletManager extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetState(this);
     }
 
-    public int getAddressScheme() {
-        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this);
+    public BRCryptoAddressScheme getAddressScheme() {
+        return BRCryptoAddressScheme.fromCore(CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this));
     }
 
-    public void setAddressScheme(int scheme) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme);
+    public void setAddressScheme(BRCryptoAddressScheme scheme) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme.toCore());
     }
 
     public void connect(BRCryptoPeer peer) {
@@ -151,7 +146,7 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public void syncToDepth(BRSyncDepth depth) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toNative());
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toCore());
     }
 
     public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
@@ -248,8 +243,8 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate, gasPrice);
     }
 
-    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, BRCryptoStatus status) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status.toCore());
     }
 
     public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,
@@ -295,6 +290,10 @@ public class BRCryptoWalletManager extends PointerType {
 
     public void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState) {
         CryptoLibrary.INSTANCE.cwmAnnounceGetNonceFailure(this, callbackState);
+    }
+
+    public BRCryptoWalletManager toOwned() {
+        return new OwnedBRCryptoWalletManager(getPointer());
     }
 
     public static class OwnedBRCryptoWalletManager extends BRCryptoWalletManager {

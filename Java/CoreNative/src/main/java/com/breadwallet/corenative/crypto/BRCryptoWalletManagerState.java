@@ -17,7 +17,7 @@ import java.util.List;
 
 public class BRCryptoWalletManagerState extends Structure {
 
-    public int type;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -81,13 +81,17 @@ public class BRCryptoWalletManagerState extends Structure {
         super();
     }
 
+    public BRCryptoWalletManagerStateType type() {
+        return BRCryptoWalletManagerStateType.fromCore(typeEnum);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRCryptoWalletManagerState(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeEnum = type;
         this.u = u;
     }
 
@@ -98,8 +102,8 @@ public class BRCryptoWalletManagerState extends Structure {
     @Override
     public void read() {
         super.read();
-        switch (type){
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+        switch (type()){
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
                 u.setType(u_union.disconnected_struct.class);
                 u.read();
                 break;
