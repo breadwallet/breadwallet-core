@@ -1434,16 +1434,16 @@ final class System implements com.breadwallet.crypto.System {
         BRCryptoWallet wallet = BRCryptoWallet.createOwned(coreWallet);
         BRCryptoTransfer transfer = BRCryptoTransfer.createOwned(coreTransfer);
 
-        switch (event.type) {
-            case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CREATED: {
+        switch (event.type()) {
+            case CRYPTO_TRANSFER_EVENT_CREATED: {
                 handleTransferCreated(context, walletManager, wallet, transfer, event);
                 break;
             }
-            case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CHANGED: {
+            case CRYPTO_TRANSFER_EVENT_CHANGED: {
                 handleTransferChanged(context, walletManager, wallet, transfer, event);
                 break;
             }
-            case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_DELETED: {
+            case CRYPTO_TRANSFER_EVENT_DELETED: {
                 handleTransferDeleted(context, walletManager, wallet, transfer, event);
                 break;
             }
