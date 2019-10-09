@@ -15,7 +15,7 @@ import java.util.List;
 
 public class BRCryptoTransferEvent extends Structure {
 
-    public int typeInt;
+    public int typeEnum;
     public u_union u;
 
     public static class u_union extends Union {
@@ -81,16 +81,16 @@ public class BRCryptoTransferEvent extends Structure {
     }
 
     public BRCryptoTransferEventType type() {
-        return BRCryptoTransferEventType.fromNative(typeInt);
+        return BRCryptoTransferEventType.fromNative(typeEnum);
     }
 
     protected List<String> getFieldOrder() {
-        return Arrays.asList("typeInt", "u");
+        return Arrays.asList("typeEnum", "u");
     }
 
     public BRCryptoTransferEvent(int type, u_union u) {
         super();
-        this.typeInt = type;
+        this.typeEnum = type;
         this.u = u;
     }
 

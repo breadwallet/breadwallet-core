@@ -28,21 +28,21 @@ public class BRCryptoWalletEvent extends Structure {
 
         public static class state_struct extends Structure {
 
-            public int oldStateInt;
-            public int newStateInt;
+            public int oldStateEnum;
+            public int newStateEnum;
 
             public state_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("oldStateInt", "newStateInt");
+                return Arrays.asList("oldStateEnum", "newStateEnum");
             }
 
             public state_struct(int oldState, int newState) {
                 super();
-                this.oldStateInt = oldState;
-                this.newStateInt = newState;
+                this.oldStateEnum = oldState;
+                this.newStateEnum = newState;
             }
 
             public state_struct(Pointer peer) {
@@ -50,11 +50,11 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             public BRCryptoWalletState oldState() {
-                return BRCryptoWalletState.fromNative(oldStateInt);
+                return BRCryptoWalletState.fromNative(oldStateEnum);
             }
 
             public BRCryptoWalletState newState() {
-                return BRCryptoWalletState.fromNative(newStateInt);
+                return BRCryptoWalletState.fromNative(newStateEnum);
             }
 
             public static class ByReference extends state_struct implements Structure.ByReference {
@@ -158,7 +158,7 @@ public class BRCryptoWalletEvent extends Structure {
 
         public static class feeBasisEstimated_struct extends Structure {
 
-            public int statusInt;
+            public int statusEnum;
             public Pointer cookie;
             public BRCryptoFeeBasis basis;
 
@@ -167,12 +167,12 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("statusInt", "cookie", "basis");
+                return Arrays.asList("statusEnum", "cookie", "basis");
             }
 
             public feeBasisEstimated_struct(int status, Pointer cookie, BRCryptoFeeBasis basis) {
                 super();
-                this.statusInt = status;
+                this.statusEnum = status;
                 this.cookie = cookie;
                 this.basis = basis;
             }
@@ -182,7 +182,7 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             public BRCryptoStatus status() {
-                return BRCryptoStatus.fromNative(statusInt);
+                return BRCryptoStatus.fromNative(statusEnum);
             }
 
             public static class ByReference extends feeBasisEstimated_struct implements Structure.ByReference {

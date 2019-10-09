@@ -70,12 +70,12 @@ final class Utilities {
 
     /* package */
     static WalletManagerState walletManagerStateFromCrypto(BRCryptoWalletManagerState state) {
-        switch (state.type) {
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
-            case BRCryptoWalletManagerStateType.CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+        switch (state.type()) {
+            case CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
+            case CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
+            case CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
+            case CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
                 switch (BRDisconnectReasonType.fromNative(state.u.disconnected.reason.type)) {
                     case DISCONNECT_REASON_REQUESTED: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.REQUESTED()
