@@ -1923,7 +1923,7 @@ extension System {
                 else { throw MigrateError.block }
 
             var flags  = blob.flags
-            var hashes = blob.hashes
+            var hashes = blob.hashes.flatMap { $0 }  // [[UInt8 ...] ...] => [UInt8 ... ...]
             let hashesCount = blob.hashes.count
 
             let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }

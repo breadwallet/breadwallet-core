@@ -10,11 +10,6 @@ import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
-import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
@@ -76,7 +71,10 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testBitcoinSyncOne() {
-        TestCryptoLibrary.INSTANCE.BRRunTestsSync (paperKey, 1, 1);
+        int success = 0;
+
+        success = TestCryptoLibrary.INSTANCE.BRRunTestsSync (paperKey, 1, 1);
+        assertEquals(1, success);
     }
 
     @Test
@@ -326,29 +324,23 @@ public class CryptoLibraryAIT {
     }
 
     private static BRCryptoNetwork createBitcoinNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency btc = CoreBRCryptoCurrency
-                .create("bitcoin", "bitcoin", "btc", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency btc = BRCryptoCurrency
+                .create("bitcoin", "bitcoin", "btc", "native", null);
 
-        BRCryptoUnit satoshis = CoreBRCryptoUnit
-                .createAsBase(btc, "sat", "satoshi", "SAT")
-                .asBRCryptoUnit();
+        BRCryptoUnit satoshis = BRCryptoUnit
+                .createAsBase(btc, "sat", "satoshi", "SAT");
 
-        BRCryptoUnit bitcoins = CoreBRCryptoUnit
-                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8))
-                .asBRCryptoUnit();
+        BRCryptoUnit bitcoins = BRCryptoUnit
+                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8));
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
-                .createAsBtc("bitcoin-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin", isMainnet)
-                .asBRCryptoNetwork();
+        BRCryptoNetwork network = BRCryptoNetwork
+                .createAsBtc("bitcoin-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin", isMainnet);
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(1000, satoshis)
-                .asBRCryptoAmount();
+        BRCryptoAmount feePricePerCostFactor = BRCryptoAmount
+                .create(1000, satoshis);
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis)
-                .asBRCryptoNetworkFee();
+        BRCryptoNetworkFee fee = BRCryptoNetworkFee
+                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis);
 
         network.setHeight(UnsignedLong.valueOf(blockHeight));
 
@@ -365,29 +357,23 @@ public class CryptoLibraryAIT {
     }
 
     private static BRCryptoNetwork createBitcoinCashNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency btc = CoreBRCryptoCurrency
-                .create("bitcoin-cash", "bitcoin cash", "bch", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency btc = BRCryptoCurrency
+                .create("bitcoin-cash", "bitcoin cash", "bch", "native", null);
 
-        BRCryptoUnit satoshis = CoreBRCryptoUnit
-                .createAsBase(btc, "sat", "satoshi", "SAT")
-                .asBRCryptoUnit();
+        BRCryptoUnit satoshis = BRCryptoUnit
+                .createAsBase(btc, "sat", "satoshi", "SAT");
 
-        BRCryptoUnit bitcoins = CoreBRCryptoUnit
-                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8))
-                .asBRCryptoUnit();
+        BRCryptoUnit bitcoins = BRCryptoUnit
+                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8));
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
-                .createAsBch("bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin cash", isMainnet)
-                .asBRCryptoNetwork();
+        BRCryptoNetwork network = BRCryptoNetwork
+                .createAsBch("bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin cash", isMainnet);
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(1000, satoshis)
-                .asBRCryptoAmount();
+        BRCryptoAmount feePricePerCostFactor = BRCryptoAmount
+                .create(1000, satoshis);
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis)
-                .asBRCryptoNetworkFee();
+        BRCryptoNetworkFee fee = BRCryptoNetworkFee
+                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis);
 
         network.setHeight(UnsignedLong.valueOf(blockHeight));
 
@@ -404,34 +390,27 @@ public class CryptoLibraryAIT {
     }
 
     private static BRCryptoNetwork createEthereumNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency eth = CoreBRCryptoCurrency
-                .create("ethereum", "ethereum", "eth", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency eth = BRCryptoCurrency
+                .create("ethereum", "ethereum", "eth", "native", null);
 
-        BRCryptoUnit wei = CoreBRCryptoUnit
-                .createAsBase(eth, "wei", "wei", "wei")
-                .asBRCryptoUnit();
+        BRCryptoUnit wei = BRCryptoUnit
+                .createAsBase(eth, "wei", "wei", "wei");
 
-        BRCryptoUnit gwei = CoreBRCryptoUnit
-                .create(eth, "gwei", "gwei", "gwei", wei, UnsignedInteger.valueOf(9))
-                .asBRCryptoUnit();
+        BRCryptoUnit gwei = BRCryptoUnit
+                .create(eth, "gwei", "gwei", "gwei", wei, UnsignedInteger.valueOf(9));
 
-        BRCryptoUnit ether = CoreBRCryptoUnit
-                .create(eth, "ether", "eth", "E", wei, UnsignedInteger.valueOf(18))
-                .asBRCryptoUnit();
+        BRCryptoUnit ether = BRCryptoUnit
+                .create(eth, "ether", "eth", "E", wei, UnsignedInteger.valueOf(18));
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
+        BRCryptoNetwork network = BRCryptoNetwork
                 .createAsEth("ethereum-" + (isMainnet ? "mainnet" : "testnet"), "ethereum", isMainnet)
-                .get()
-                .asBRCryptoNetwork();
+                .get();
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(2.0, gwei)
-                .asBRCryptoAmount();
+        BRCryptoAmount feePricePerCostFactor = BRCryptoAmount
+                .create(2.0, gwei);
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(1000), feePricePerCostFactor, gwei)
-                .asBRCryptoNetworkFee();
+        BRCryptoNetworkFee fee = BRCryptoNetworkFee
+                .create(UnsignedLong.valueOf(1000), feePricePerCostFactor, gwei);
 
         network.setHeight(UnsignedLong.valueOf(blockHeight));
 
