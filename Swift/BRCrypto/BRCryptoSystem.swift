@@ -859,8 +859,8 @@ public final class System {
     private static var systemRemovedSystemsSave = true;
 
     static func systemRemove (index: Int32) {
-        return systemQueue.sync {
-            systemMapping.removeValue(forKey: index)
+        return systemQueue.sync (flags: .barrier) {
+            systemMapping.removeValue (forKey: index)
                 .map {
                     if systemRemovedSystemsSave {
                         systemRemovedSystems.append ($0)
