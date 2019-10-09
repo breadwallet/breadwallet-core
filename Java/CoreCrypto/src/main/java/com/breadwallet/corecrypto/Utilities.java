@@ -139,12 +139,12 @@ final class Utilities {
 
     /* package */
     static TransferState transferStateFromCrypto(BRCryptoTransferState state) {
-        switch (state.type) {
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
+        switch (state.type()) {
+            case CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
+            case CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
+            case CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
+            case CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
+            case CRYPTO_TRANSFER_STATE_ERRORED:
                 switch (BRTransferSubmitErrorType.fromNative(state.u.errored.error.type)) {
                     case TRANSFER_SUBMIT_ERROR_UNKNOWN: return TransferState.FAILED(
                             new TransferSubmitUnknownError()
@@ -157,7 +157,7 @@ final class Utilities {
                     );
                     default: throw new IllegalArgumentException("Unsupported error");
                 }
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
+            case CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
                     new TransferConfirmation(
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),

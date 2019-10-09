@@ -17,7 +17,7 @@ import java.util.List;
 
 public class BRCryptoTransferState extends Structure {
 
-    public int type;
+    public int typeInt;
     public u_union u;
 
     public static class u_union extends Union {
@@ -123,13 +123,17 @@ public class BRCryptoTransferState extends Structure {
         super();
     }
 
+    public BRCryptoTransferStateType type() {
+        return BRCryptoTransferStateType.fromNative(typeInt);
+    }
+
     protected List<String> getFieldOrder() {
-        return Arrays.asList("type", "u");
+        return Arrays.asList("typeInt", "u");
     }
 
     public BRCryptoTransferState(int type, u_union u) {
         super();
-        this.type = type;
+        this.typeInt = type;
         this.u = u;
     }
 
@@ -140,12 +144,12 @@ public class BRCryptoTransferState extends Structure {
     @Override
     public void read() {
         super.read();
-        switch (type){
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
+        switch (type()){
+            case CRYPTO_TRANSFER_STATE_INCLUDED:
                 u.setType(u_union.included_struct.class);
                 u.read();
                 break;
-            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED:
+            case CRYPTO_TRANSFER_STATE_ERRORED:
                 u.setType(u_union.errored_struct.class);
                 u.read();
                 break;
