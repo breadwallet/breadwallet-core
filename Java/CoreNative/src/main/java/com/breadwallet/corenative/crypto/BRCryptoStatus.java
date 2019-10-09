@@ -11,13 +11,13 @@ public enum BRCryptoStatus {
 
     CRYPTO_SUCCESS {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_SUCCESS_VALUE;
         }
     },
     CRYPTO_ERROR_FAILED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_FAILED_VALUE;
         }
     },
@@ -25,37 +25,37 @@ public enum BRCryptoStatus {
     // Reference access
     CRYPTO_ERROR_UNKNOWN_NODE {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_NODE_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_TRANSFER {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_TRANSFER_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_ACCOUNT {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_ACCOUNT_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_WALLET {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_WALLET_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_BLOCK {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_BLOCK_VALUE;
         }
     },
     CRYPTO_ERROR_UNKNOWN_LISTENER {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_UNKNOWN_LISTENER_VALUE;
         }
     },
@@ -63,7 +63,7 @@ public enum BRCryptoStatus {
     // Node
     CRYPTO_ERROR_NODE_NOT_CONNECTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_NODE_NOT_CONNECTED_VALUE;
         }
     },
@@ -71,13 +71,13 @@ public enum BRCryptoStatus {
     // Transfer
     CRYPTO_ERROR_TRANSFER_HASH_MISMATCH {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_TRANSFER_HASH_MISMATCH_VALUE;
         }
     },
     CRYPTO_ERROR_TRANSFER_SUBMISSION {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_TRANSFER_SUBMISSION_VALUE;
         }
     },
@@ -85,7 +85,7 @@ public enum BRCryptoStatus {
     // Numeric
     CRYPTO_ERROR_NUMERIC_PARSE {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_ERROR_NUMERIC_PARSE_VALUE;
         }
     };
@@ -107,7 +107,7 @@ public enum BRCryptoStatus {
 
     private static final int CRYPTO_ERROR_NUMERIC_PARSE_VALUE           = 40000;
 
-    public static BRCryptoStatus fromNative(int nativeValue) {
+    public static BRCryptoStatus fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_SUCCESS_VALUE:                      return CRYPTO_SUCCESS;
             case CRYPTO_ERROR_FAILED_VALUE:                 return CRYPTO_ERROR_FAILED;
@@ -125,9 +125,9 @@ public enum BRCryptoStatus {
             case CRYPTO_ERROR_TRANSFER_SUBMISSION_VALUE:    return CRYPTO_ERROR_TRANSFER_SUBMISSION;
 
             case CRYPTO_ERROR_NUMERIC_PARSE_VALUE:          return CRYPTO_ERROR_NUMERIC_PARSE;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

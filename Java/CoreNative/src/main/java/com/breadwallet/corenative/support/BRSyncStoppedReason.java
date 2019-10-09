@@ -14,7 +14,6 @@ import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -85,7 +84,7 @@ public class BRSyncStoppedReason extends Structure {
     }
 
     public BRSyncStoppedReasonType type() {
-        return BRSyncStoppedReasonType.fromNative(typeEnum);
+        return BRSyncStoppedReasonType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

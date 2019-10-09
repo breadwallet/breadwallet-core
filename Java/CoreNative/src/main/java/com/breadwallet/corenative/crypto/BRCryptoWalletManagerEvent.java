@@ -232,7 +232,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
     }
 
     public BRCryptoWalletManagerEventType type() {
-        return BRCryptoWalletManagerEventType.fromNative(typeEnum);
+        return BRCryptoWalletManagerEventType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

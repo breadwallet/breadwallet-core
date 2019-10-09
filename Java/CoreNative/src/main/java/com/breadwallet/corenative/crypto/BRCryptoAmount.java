@@ -10,7 +10,6 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -86,7 +85,7 @@ public class BRCryptoAmount extends PointerType {
     }
 
     public BRCryptoComparison compare(BRCryptoAmount o) {
-        return BRCryptoComparison.fromNative(CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o));
+        return BRCryptoComparison.fromCore(CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o));
     }
 
     public boolean isCompatible(BRCryptoAmount o) {

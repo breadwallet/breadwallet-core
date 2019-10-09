@@ -75,11 +75,11 @@ public class BRCryptoWallet extends PointerType {
     }
 
     public BRCryptoWalletState getState() {
-        return BRCryptoWalletState.fromNative(CryptoLibrary.INSTANCE.cryptoWalletGetState(this));
+        return BRCryptoWalletState.fromCore(CryptoLibrary.INSTANCE.cryptoWalletGetState(this));
     }
 
     public void setState(BRCryptoWalletState state) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state.toNative());
+        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state.toCore());
     }
 
     public BRCryptoFeeBasis getDefaultFeeBasis() {
@@ -91,11 +91,11 @@ public class BRCryptoWallet extends PointerType {
     }
 
     public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toNative());
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toCore());
     }
 
     public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toNative());
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toCore());
     }
 
     public BRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,

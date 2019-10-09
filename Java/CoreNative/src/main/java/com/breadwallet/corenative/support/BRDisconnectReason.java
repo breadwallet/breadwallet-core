@@ -84,7 +84,7 @@ public class BRDisconnectReason extends Structure {
     }
 
     public BRDisconnectReasonType type() {
-        return BRDisconnectReasonType.fromNative(typeEnum);
+        return BRDisconnectReasonType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

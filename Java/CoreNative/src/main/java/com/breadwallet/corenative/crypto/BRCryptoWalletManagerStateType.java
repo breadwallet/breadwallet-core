@@ -11,35 +11,35 @@ public enum BRCryptoWalletManagerStateType {
 
     CRYPTO_WALLET_MANAGER_STATE_CREATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_STATE_CREATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_STATE_CONNECTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_STATE_CONNECTED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_STATE_SYNCING {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_STATE_SYNCING_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_STATE_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_STATE_DELETED_VALUE;
         }
     };
@@ -50,16 +50,16 @@ public enum BRCryptoWalletManagerStateType {
     private static final int CRYPTO_WALLET_MANAGER_STATE_SYNCING_VALUE      = 3;
     private static final int CRYPTO_WALLET_MANAGER_STATE_DELETED_VALUE      = 4;
 
-    public static BRCryptoWalletManagerStateType fromNative(int nativeValue) {
+    public static BRCryptoWalletManagerStateType fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_WALLET_MANAGER_STATE_CREATED_VALUE:      return CRYPTO_WALLET_MANAGER_STATE_CREATED;
             case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED_VALUE: return CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED;
             case CRYPTO_WALLET_MANAGER_STATE_CONNECTED_VALUE:    return CRYPTO_WALLET_MANAGER_STATE_CONNECTED;
             case CRYPTO_WALLET_MANAGER_STATE_SYNCING_VALUE:      return CRYPTO_WALLET_MANAGER_STATE_SYNCING;
             case CRYPTO_WALLET_MANAGER_STATE_DELETED_VALUE:      return CRYPTO_WALLET_MANAGER_STATE_DELETED;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

@@ -11,21 +11,21 @@ public enum BRCryptoComparison {
 
     CRYPTO_COMPARE_LT {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_COMPARE_LT_VALUE;
         }
     },
 
     CRYPTO_COMPARE_EQ {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_COMPARE_EQ_VALUE;
         }
     },
 
     CRYPTO_COMPARE_GT {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_COMPARE_GT_VALUE;
         }
     };
@@ -34,14 +34,14 @@ public enum BRCryptoComparison {
     private static final int CRYPTO_COMPARE_EQ_VALUE = 1;
     private static final int CRYPTO_COMPARE_GT_VALUE = 2;
 
-    public static BRCryptoComparison fromNative(int nativeValue) {
+    public static BRCryptoComparison fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_COMPARE_LT_VALUE: return CRYPTO_COMPARE_LT;
             case CRYPTO_COMPARE_EQ_VALUE: return CRYPTO_COMPARE_EQ;
             case CRYPTO_COMPARE_GT_VALUE: return CRYPTO_COMPARE_GT;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

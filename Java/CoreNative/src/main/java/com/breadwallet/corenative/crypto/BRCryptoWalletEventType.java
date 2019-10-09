@@ -11,70 +11,70 @@ public enum BRCryptoWalletEventType {
 
     CRYPTO_WALLET_EVENT_CREATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_CREATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_CHANGED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_CHANGED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_DELETED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_TRANSFER_ADDED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_TRANSFER_ADDED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_TRANSFER_CHANGED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_TRANSFER_CHANGED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_TRANSFER_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_TRANSFER_DELETED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_BALANCE_UPDATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_BALANCE_UPDATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED_VALUE;
         }
     };
@@ -90,7 +90,7 @@ public enum BRCryptoWalletEventType {
     private static final int CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED_VALUE    = 8;
     private static final int CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED_VALUE  = 9;
 
-    public static BRCryptoWalletEventType fromNative(int nativeValue) {
+    public static BRCryptoWalletEventType fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_WALLET_EVENT_CREATED_VALUE:             return CRYPTO_WALLET_EVENT_CREATED;
             case CRYPTO_WALLET_EVENT_CHANGED_VALUE:             return CRYPTO_WALLET_EVENT_CHANGED;
@@ -102,9 +102,9 @@ public enum BRCryptoWalletEventType {
             case CRYPTO_WALLET_EVENT_BALANCE_UPDATED_VALUE:     return CRYPTO_WALLET_EVENT_BALANCE_UPDATED;
             case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED_VALUE:   return CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED;
             case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED_VALUE: return CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

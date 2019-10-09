@@ -4,21 +4,21 @@ public enum BRDisconnectReasonType {
 
     DISCONNECT_REASON_REQUESTED  {
         @Override
-        public int toNative() {
+        public int toCore() {
             return DISCONNECT_REASON_REQUESTED_VALUE;
         }
     },
 
     DISCONNECT_REASON_UNKNOWN  {
         @Override
-        public int toNative() {
+        public int toCore() {
             return DISCONNECT_REASON_UNKNOWN_VALUE;
         }
     },
 
     DISCONNECT_REASON_POSIX  {
         @Override
-        public int toNative() {
+        public int toCore() {
             return DISCONNECT_REASON_POSIX_VALUE;
         }
     };
@@ -27,14 +27,14 @@ public enum BRDisconnectReasonType {
     private static final int DISCONNECT_REASON_UNKNOWN_VALUE    = 1;
     private static final int DISCONNECT_REASON_POSIX_VALUE      = 2;
 
-    public static BRDisconnectReasonType fromNative(int nativeValue) {
+    public static BRDisconnectReasonType fromCore(int nativeValue) {
         switch (nativeValue) {
             case DISCONNECT_REASON_REQUESTED_VALUE: return DISCONNECT_REASON_REQUESTED;
             case DISCONNECT_REASON_UNKNOWN_VALUE:   return DISCONNECT_REASON_UNKNOWN;
             case DISCONNECT_REASON_POSIX_VALUE:     return DISCONNECT_REASON_POSIX;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

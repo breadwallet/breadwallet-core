@@ -84,7 +84,7 @@ public class BRTransferSubmitError extends Structure {
     }
 
     public BRTransferSubmitErrorType type() {
-        return BRTransferSubmitErrorType.fromNative(typeEnum);
+        return BRTransferSubmitErrorType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

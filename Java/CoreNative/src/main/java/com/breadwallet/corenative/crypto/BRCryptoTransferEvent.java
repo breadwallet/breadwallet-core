@@ -81,7 +81,7 @@ public class BRCryptoTransferEvent extends Structure {
     }
 
     public BRCryptoTransferEventType type() {
-        return BRCryptoTransferEventType.fromNative(typeEnum);
+        return BRCryptoTransferEventType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

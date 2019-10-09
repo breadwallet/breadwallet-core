@@ -11,42 +11,42 @@ public enum BRCryptoTransferStateType {
 
     CRYPTO_TRANSFER_STATE_CREATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_CREATED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_STATE_SIGNED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_SIGNED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_STATE_SUBMITTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_SUBMITTED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_STATE_INCLUDED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_INCLUDED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_STATE_ERRORED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_ERRORED_VALUE;
         }
     },
 
     CRYPTO_TRANSFER_STATE_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_TRANSFER_STATE_DELETED_VALUE;
         }
     };
@@ -58,7 +58,7 @@ public enum BRCryptoTransferStateType {
     private static final int CRYPTO_TRANSFER_STATE_ERRORED_VALUE   = 4;
     private static final int CRYPTO_TRANSFER_STATE_DELETED_VALUE   = 5;
 
-    public static BRCryptoTransferStateType fromNative(int nativeValue) {
+    public static BRCryptoTransferStateType fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_TRANSFER_STATE_CREATED_VALUE:   return CRYPTO_TRANSFER_STATE_CREATED;
             case CRYPTO_TRANSFER_STATE_SIGNED_VALUE:    return CRYPTO_TRANSFER_STATE_SIGNED;
@@ -66,9 +66,9 @@ public enum BRCryptoTransferStateType {
             case CRYPTO_TRANSFER_STATE_INCLUDED_VALUE:  return CRYPTO_TRANSFER_STATE_INCLUDED;
             case CRYPTO_TRANSFER_STATE_ERRORED_VALUE:   return CRYPTO_TRANSFER_STATE_ERRORED;
             case CRYPTO_TRANSFER_STATE_DELETED_VALUE:   return CRYPTO_TRANSFER_STATE_DELETED;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

@@ -82,7 +82,7 @@ public class BRCryptoWalletManagerState extends Structure {
     }
 
     public BRCryptoWalletManagerStateType type() {
-        return BRCryptoWalletManagerStateType.fromNative(typeEnum);
+        return BRCryptoWalletManagerStateType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

@@ -11,21 +11,21 @@ public enum BRSyncDepth {
 
     SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND_VALUE;
         }
     },
 
     SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE;
         }
     },
 
     SYNC_DEPTH_FROM_CREATION {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_DEPTH_FROM_CREATION_VALUE;
         }
     };
@@ -34,14 +34,14 @@ public enum BRSyncDepth {
     private static final int SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE   = 1;
     private static final int SYNC_DEPTH_FROM_CREATION_VALUE             = 2;
 
-    public static BRSyncDepth fromNative(int nativeValue) {
+    public static BRSyncDepth fromCore(int nativeValue) {
         switch (nativeValue) {
             case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND_VALUE: return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
             case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK_VALUE:  return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
             case SYNC_DEPTH_FROM_CREATION_VALUE:            return SYNC_DEPTH_FROM_CREATION;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

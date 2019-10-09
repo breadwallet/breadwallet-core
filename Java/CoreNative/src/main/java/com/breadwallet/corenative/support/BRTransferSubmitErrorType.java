@@ -15,14 +15,14 @@ public enum BRTransferSubmitErrorType {
 
     TRANSFER_SUBMIT_ERROR_UNKNOWN  {
         @Override
-        public int toNative() {
+        public int toCore() {
             return TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE;
         }
     },
 
     TRANSFER_SUBMIT_ERROR_POSIX  {
         @Override
-        public int toNative() {
+        public int toCore() {
             return TRANSFER_SUBMIT_ERROR_POSIX_VALUE;
         }
     };
@@ -30,13 +30,13 @@ public enum BRTransferSubmitErrorType {
     private static final int TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE = 0;
     private static final int TRANSFER_SUBMIT_ERROR_POSIX_VALUE   = 1;
 
-    public static BRTransferSubmitErrorType fromNative(int nativeValue) {
+    public static BRTransferSubmitErrorType fromCore(int nativeValue) {
         switch (nativeValue) {
             case TRANSFER_SUBMIT_ERROR_UNKNOWN_VALUE: return TRANSFER_SUBMIT_ERROR_UNKNOWN;
             case TRANSFER_SUBMIT_ERROR_POSIX_VALUE:   return TRANSFER_SUBMIT_ERROR_POSIX;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

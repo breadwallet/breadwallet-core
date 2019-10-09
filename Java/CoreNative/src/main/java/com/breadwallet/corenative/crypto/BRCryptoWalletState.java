@@ -11,14 +11,14 @@ public enum BRCryptoWalletState {
 
     CRYPTO_WALLET_STATE_CREATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_STATE_CREATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_STATE_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_STATE_DELETED_VALUE;
         }
     };
@@ -26,13 +26,13 @@ public enum BRCryptoWalletState {
     private static final int CRYPTO_WALLET_STATE_CREATED_VALUE = 0;
     private static final int CRYPTO_WALLET_STATE_DELETED_VALUE = 1;
 
-    public static BRCryptoWalletState fromNative(int nativeValue) {
+    public static BRCryptoWalletState fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_WALLET_STATE_CREATED_VALUE: return CRYPTO_WALLET_STATE_CREATED;
             case CRYPTO_WALLET_STATE_DELETED_VALUE: return CRYPTO_WALLET_STATE_DELETED;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

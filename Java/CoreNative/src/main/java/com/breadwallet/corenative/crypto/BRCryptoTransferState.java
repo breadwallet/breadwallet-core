@@ -124,7 +124,7 @@ public class BRCryptoTransferState extends Structure {
     }
 
     public BRCryptoTransferStateType type() {
-        return BRCryptoTransferStateType.fromNative(typeEnum);
+        return BRCryptoTransferStateType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

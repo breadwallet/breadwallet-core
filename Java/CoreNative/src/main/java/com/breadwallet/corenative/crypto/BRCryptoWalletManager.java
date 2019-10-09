@@ -42,8 +42,8 @@ public class BRCryptoWalletManager extends PointerType {
                         client.toByValue(),
                         account,
                         network,
-                        mode.toNative(),
-                        scheme.toNative(),
+                        mode.toCore(),
+                        scheme.toCore(),
                         path
                 )
         );
@@ -112,11 +112,11 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public BRSyncMode getMode() {
-        return BRSyncMode.fromNative(CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this));
+        return BRSyncMode.fromCore(CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this));
     }
 
     public void setMode(BRSyncMode mode) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode.toNative());
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode.toCore());
     }
 
     public String getPath() {
@@ -128,11 +128,11 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public BRCryptoAddressScheme getAddressScheme() {
-        return BRCryptoAddressScheme.fromNative(CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this));
+        return BRCryptoAddressScheme.fromCore(CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this));
     }
 
     public void setAddressScheme(BRCryptoAddressScheme scheme) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme.toNative());
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme.toCore());
     }
 
     public void connect(BRCryptoPeer peer) {
@@ -152,7 +152,7 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public void syncToDepth(BRSyncDepth depth) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toNative());
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toCore());
     }
 
     public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
@@ -250,7 +250,7 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, BRCryptoStatus status) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status.toNative());
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status.toCore());
     }
 
     public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,

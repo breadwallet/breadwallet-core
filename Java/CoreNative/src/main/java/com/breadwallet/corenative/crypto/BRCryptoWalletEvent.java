@@ -50,11 +50,11 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             public BRCryptoWalletState oldState() {
-                return BRCryptoWalletState.fromNative(oldStateEnum);
+                return BRCryptoWalletState.fromCore(oldStateEnum);
             }
 
             public BRCryptoWalletState newState() {
-                return BRCryptoWalletState.fromNative(newStateEnum);
+                return BRCryptoWalletState.fromCore(newStateEnum);
             }
 
             public static class ByReference extends state_struct implements Structure.ByReference {
@@ -182,7 +182,7 @@ public class BRCryptoWalletEvent extends Structure {
             }
 
             public BRCryptoStatus status() {
-                return BRCryptoStatus.fromNative(statusEnum);
+                return BRCryptoStatus.fromCore(statusEnum);
             }
 
             public static class ByReference extends feeBasisEstimated_struct implements Structure.ByReference {
@@ -246,7 +246,7 @@ public class BRCryptoWalletEvent extends Structure {
     }
 
     public BRCryptoWalletEventType type() {
-        return BRCryptoWalletEventType.fromNative(typeEnum);
+        return BRCryptoWalletEventType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {

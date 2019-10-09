@@ -49,7 +49,7 @@ public class BRCryptoTransfer extends PointerType {
     }
 
     public BRCryptoTransferDirection getDirection() {
-        return BRCryptoTransferDirection.fromNative(CryptoLibrary.INSTANCE.cryptoTransferGetDirection(this));
+        return BRCryptoTransferDirection.fromCore(CryptoLibrary.INSTANCE.cryptoTransferGetDirection(this));
     }
 
     public BRCryptoTransferState getState() {

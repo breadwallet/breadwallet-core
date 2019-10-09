@@ -11,70 +11,70 @@ public enum BRCryptoWalletManagerEventType {
 
     CRYPTO_WALLET_MANAGER_EVENT_CREATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_CREATED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_CHANGED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_CHANGED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_DELETED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED_VALUE;
         }
     },
 
     CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED {
         @Override
-        public int toNative() {
+        public int toCore() {
             return CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE;
         }
     };
@@ -90,7 +90,7 @@ public enum BRCryptoWalletManagerEventType {
     private static final int CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED_VALUE         = 8;
     private static final int CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE = 9;
 
-    public static BRCryptoWalletManagerEventType fromNative(int nativeValue) {
+    public static BRCryptoWalletManagerEventType fromCore(int nativeValue) {
         switch (nativeValue) {
             case CRYPTO_WALLET_MANAGER_EVENT_CREATED_VALUE:              return CRYPTO_WALLET_MANAGER_EVENT_CREATED;
             case CRYPTO_WALLET_MANAGER_EVENT_CHANGED_VALUE:              return CRYPTO_WALLET_MANAGER_EVENT_CHANGED;
@@ -102,9 +102,9 @@ public enum BRCryptoWalletManagerEventType {
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES_VALUE:       return CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED_VALUE:         return CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED;
             case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE: return CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }

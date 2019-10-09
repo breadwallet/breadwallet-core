@@ -11,28 +11,28 @@ public enum BRSyncMode {
 
     SYNC_MODE_BRD_ONLY {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_MODE_BRD_ONLY_VALUE;
         }
     },
 
     SYNC_MODE_BRD_WITH_P2P_SEND {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_MODE_BRD_WITH_P2P_SEND_VALUE;
         }
     },
 
     SYNC_MODE_P2P_WITH_BRD_SYNC {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE;
         }
     },
 
     SYNC_MODE_P2P_ONLY {
         @Override
-        public int toNative() {
+        public int toCore() {
             return SYNC_MODE_P2P_ONLY_VALUE;
         }
     };
@@ -42,15 +42,15 @@ public enum BRSyncMode {
     private static final int SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE  = 2;
     private static final int SYNC_MODE_P2P_ONLY_VALUE           = 3;
 
-    public static BRSyncMode fromNative(int nativeValue) {
+    public static BRSyncMode fromCore(int nativeValue) {
         switch (nativeValue) {
             case SYNC_MODE_BRD_ONLY_VALUE:          return SYNC_MODE_BRD_ONLY;
             case SYNC_MODE_BRD_WITH_P2P_SEND_VALUE: return SYNC_MODE_BRD_WITH_P2P_SEND;
             case SYNC_MODE_P2P_WITH_BRD_SYNC_VALUE: return SYNC_MODE_P2P_WITH_BRD_SYNC;
             case SYNC_MODE_P2P_ONLY_VALUE:          return SYNC_MODE_P2P_ONLY;
-            default: throw new IllegalArgumentException("Invalid native value");
+            default: throw new IllegalArgumentException("Invalid core value");
         }
     }
 
-    public abstract int toNative();
+    public abstract int toCore();
 }
