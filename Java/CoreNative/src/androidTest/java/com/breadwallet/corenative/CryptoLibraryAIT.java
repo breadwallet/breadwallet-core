@@ -5,7 +5,6 @@ import android.support.test.InstrumentationRegistry;
 
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
-import com.breadwallet.corenative.crypto.BRCryptoBoolean;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
@@ -153,7 +152,7 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testCryptoWithAccountAndNetwork() {
-        boolean success;
+        int success = 0;
 
         BRCryptoAccount account = BRCryptoAccount
                 .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), UnsignedLong.valueOf(epoch));
@@ -168,11 +167,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createBitcoinNetwork(true, 500000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
 
         // TESTNET
@@ -181,11 +180,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createBitcoinNetwork(false, 1500000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
 
         //
@@ -198,11 +197,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createBitcoinCashNetwork(true, 500000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
 
         // TESTNET
@@ -211,11 +210,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createBitcoinCashNetwork(false, 1500000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
 
         //
@@ -228,11 +227,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createEthereumNetwork(true, 8000000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
 
         // TESTNET
@@ -241,11 +240,11 @@ public class CryptoLibraryAIT {
             BRCryptoNetwork network = createEthereumNetwork(false, 4500000);
 
             coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+            success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                     account,
                     network,
                     coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            assertEquals(1, success);
         }
     }
 
