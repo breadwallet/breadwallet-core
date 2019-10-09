@@ -85,8 +85,8 @@ public class BRCryptoAmount extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
     }
 
-    public int compare(BRCryptoAmount o) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o);
+    public BRCryptoComparison compare(BRCryptoAmount o) {
+        return BRCryptoComparison.fromNative(CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o));
     }
 
     public boolean isCompatible(BRCryptoAmount o) {

@@ -7,9 +7,50 @@
  */
 package com.breadwallet.corenative.crypto;
 
-public interface BRCryptoComparison {
+import com.google.common.collect.ImmutableMap;
 
-    int CRYPTO_COMPARE_LT = 0;
-    int CRYPTO_COMPARE_EQ = 1;
-    int CRYPTO_COMPARE_GT = 2;
+import static com.google.common.base.Preconditions.checkState;
+
+public enum BRCryptoComparison {
+
+    CRYPTO_COMPARE_LT {
+        @Override
+        public int toNative() {
+            return 0;
+        }
+    },
+
+    CRYPTO_COMPARE_EQ {
+        @Override
+        public int toNative() {
+            return 1;
+        }
+    },
+
+    CRYPTO_COMPARE_GT {
+        @Override
+        public int toNative() {
+            return 2;
+        }
+    };
+
+    private static final ImmutableMap<Integer, BRCryptoComparison> LOOKUP;
+
+    static {
+        ImmutableMap.Builder<Integer, BRCryptoComparison> b = ImmutableMap.builder();
+
+        b.put(CRYPTO_COMPARE_LT.toNative(), CRYPTO_COMPARE_LT);
+        b.put(CRYPTO_COMPARE_EQ.toNative(), CRYPTO_COMPARE_EQ);
+        b.put(CRYPTO_COMPARE_GT.toNative(), CRYPTO_COMPARE_GT);
+
+        LOOKUP = b.build();
+    }
+
+    public static BRCryptoComparison fromNative(int nativeValue) {
+        BRCryptoComparison status = LOOKUP.get(nativeValue);
+        checkState(null != status);
+        return status;
+    }
+
+    public abstract int toNative();
 }

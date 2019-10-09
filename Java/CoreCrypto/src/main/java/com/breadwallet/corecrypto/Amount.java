@@ -181,14 +181,10 @@ final class Amount implements com.breadwallet.crypto.Amount {
     @Override
     public int compareTo(com.breadwallet.crypto.Amount o) {
         switch (core.compare(from(o).core)) {
-            case BRCryptoComparison.CRYPTO_COMPARE_EQ:
-                return 0;
-            case BRCryptoComparison.CRYPTO_COMPARE_LT:
-                return -1;
-            case BRCryptoComparison.CRYPTO_COMPARE_GT:
-                return 1;
-            default:
-                throw new IllegalStateException("Invalid amount comparison");
+            case CRYPTO_COMPARE_EQ: return 0;
+            case CRYPTO_COMPARE_LT: return -1;
+            case CRYPTO_COMPARE_GT: return 1;
+            default: throw new IllegalStateException("Invalid amount comparison");
         }
     }
 
