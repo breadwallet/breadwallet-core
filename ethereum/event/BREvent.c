@@ -190,8 +190,10 @@ eventHandlerDestroy (BREventHandler handler) {
     eventHandlerStop(handler);
 
     // ... then kill
+    pthread_mutex_lock (&handler->lock);
     assert (PTHREAD_NULL == handler->thread);
-    pthread_mutex_destroy(&handler->lock);
+    pthread_mutex_unlock  (&handler->lock);
+    pthread_mutex_destroy (&handler->lock);
 
     // release memory
     eventQueueDestroy(handler->queue);
@@ -282,14 +284,18 @@ eventHandlerStop (BREventHandler handler) {
 
 extern int
 eventHandlerIsCurrentThread (BREventHandler handler) {
-    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
-    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
-    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
+    pthread_mutex_lock(&handler->lock);
+    int result = (pthread_self() == handler->thread);
+    pthread_mutex_unlock(&handler->lock);
+    return result;
 }
 
 extern int
 eventHandlerIsRunning (BREventHandler handler) {
-    return PTHREAD_NULL != handler->thread;
+    pthread_mutex_lock(&handler->lock);
+    int result = (PTHREAD_NULL != handler->thread);
+    pthread_mutex_unlock(&handler->lock);
+    return result;
 }
 
 extern BREventStatus
