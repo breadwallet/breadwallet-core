@@ -151,8 +151,14 @@ eventHandlerThread (BREventHandler handler) {
 #else
     pthread_setname_np (handler->name);
 #endif
-
     int timeToQuit = 0;
+
+    // We have `pthread_self()` here, surely.  We'll assign it to `handler->thread` thereby
+    // ensuring that every event dispatcher has it, if needed. But that assignment must be done
+    // with `handler->lock` held.
+    pthread_mutex_lock(&handler->lock);
+    if (NULL == handler->thread) handler->thread = pthread_self();
+    pthread_mutex_unlock(&handler->lock);
 
     while (!timeToQuit) {
         // Check for a queued event
@@ -231,10 +237,18 @@ eventHandlerStart (BREventHandler handler) {
             pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
             pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
-            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
+            pthread_create (&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
             // "Before returning, a successful call to pthread_create() stores the ID of the new
             // thread in the buffer pointed to by thread; this identifier is used to refer to the
             // thread in subsequent calls to other pthreads functions."
+            //
+            // It is possible (apparently, by observation), that we arrive here whereby
+            // `eventHandlerThread` has not only run, but has also dequeued an event and
+            // dispatched on it.  That dispatched function may have attempted to access
+            // `handler->thread`.  Thus, somehow we need to ensure that `eventHandlerThread`
+            // doesn't get so far along that `handler->thread` is referenced before it is
+            // assigned.  Thankfully, we hold `handler->lock` here and can use it to prevent
+            // `eventHandlerThread` from running until `pthread_create()` returns...
             //
             // TODO: Handle an unsuccessfull call.
             // assert (NULL != handler->thread);
