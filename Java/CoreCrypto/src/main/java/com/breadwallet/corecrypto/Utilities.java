@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 final class Utilities {
 
     /* package */
-    static int walletManagerModeToCrypto(WalletManagerMode mode) {
+    static BRSyncMode walletManagerModeToCrypto(WalletManagerMode mode) {
         switch (mode) {
             case API_ONLY: return BRSyncMode.SYNC_MODE_BRD_ONLY;
             case API_WITH_P2P_SUBMIT: return BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND;
@@ -58,12 +58,12 @@ final class Utilities {
     }
 
     /* package */
-    static WalletManagerMode walletManagerModeFromCrypto(int mode) {
+    static WalletManagerMode walletManagerModeFromCrypto(BRSyncMode mode) {
         switch (mode) {
-            case BRSyncMode.SYNC_MODE_BRD_ONLY: return WalletManagerMode.API_ONLY;
-            case BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND: return WalletManagerMode.API_WITH_P2P_SUBMIT;
-            case BRSyncMode.SYNC_MODE_P2P_ONLY: return WalletManagerMode.P2P_ONLY;
-            case BRSyncMode.SYNC_MODE_P2P_WITH_BRD_SYNC: return WalletManagerMode.P2P_WITH_API_SYNC;
+            case SYNC_MODE_BRD_ONLY: return WalletManagerMode.API_ONLY;
+            case SYNC_MODE_BRD_WITH_P2P_SEND: return WalletManagerMode.API_WITH_P2P_SUBMIT;
+            case SYNC_MODE_P2P_ONLY: return WalletManagerMode.P2P_ONLY;
+            case SYNC_MODE_P2P_WITH_BRD_SYNC: return WalletManagerMode.P2P_WITH_API_SYNC;
             default: throw new IllegalArgumentException("Unsupported mode");
         }
     }

@@ -7,10 +7,57 @@
  */
 package com.breadwallet.corenative.support;
 
-public interface BRSyncMode {
+import com.google.common.collect.ImmutableMap;
 
-    int SYNC_MODE_BRD_ONLY = 0;
-    int SYNC_MODE_BRD_WITH_P2P_SEND = 1;
-    int SYNC_MODE_P2P_WITH_BRD_SYNC = 2;
-    int SYNC_MODE_P2P_ONLY = 3;
+import static com.google.common.base.Preconditions.checkState;
+
+public enum BRSyncMode {
+
+    SYNC_MODE_BRD_ONLY {
+        @Override
+        public int toNative() {
+            return 0;
+        }
+    },
+
+    SYNC_MODE_BRD_WITH_P2P_SEND {
+        @Override
+        public int toNative() {
+            return 1;
+        }
+    },
+
+    SYNC_MODE_P2P_WITH_BRD_SYNC {
+        @Override
+        public int toNative() {
+            return 2;
+        }
+    },
+
+    SYNC_MODE_P2P_ONLY {
+        @Override
+        public int toNative() {
+            return 3;
+        }
+    };
+
+    private static final ImmutableMap<Integer, BRSyncMode> LOOKUP;
+
+    static {
+        ImmutableMap.Builder<Integer, BRSyncMode> b = ImmutableMap.builder();
+
+        b.put(SYNC_MODE_BRD_ONLY.toNative(),          SYNC_MODE_BRD_ONLY);
+        b.put(SYNC_MODE_BRD_WITH_P2P_SEND.toNative(), SYNC_MODE_BRD_WITH_P2P_SEND);
+        b.put(SYNC_MODE_P2P_WITH_BRD_SYNC.toNative(), SYNC_MODE_P2P_WITH_BRD_SYNC);
+        b.put(SYNC_MODE_P2P_ONLY.toNative(),          SYNC_MODE_P2P_ONLY);
+        LOOKUP = b.build();
+    }
+
+    public static BRSyncMode fromNative(int nativeValue) {
+        BRSyncMode status = LOOKUP.get(nativeValue);
+        checkState(null != status);
+        return status;
+    }
+
+    public abstract int toNative();
 }

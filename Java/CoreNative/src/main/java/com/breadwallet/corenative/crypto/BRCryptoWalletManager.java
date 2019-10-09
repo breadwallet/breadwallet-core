@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRSyncDepth;
+import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -32,7 +33,7 @@ public class BRCryptoWalletManager extends PointerType {
                                                              BRCryptoCWMClient client,
                                                              BRCryptoAccount account,
                                                              BRCryptoNetwork network,
-                                                             int mode,
+                                                             BRSyncMode mode,
                                                              BRCryptoAddressScheme scheme,
                                                              String path) {
         return Optional.fromNullable(
@@ -41,7 +42,7 @@ public class BRCryptoWalletManager extends PointerType {
                         client.toByValue(),
                         account,
                         network,
-                        mode,
+                        mode.toNative(),
                         scheme.toNative(),
                         path
                 )
@@ -110,12 +111,12 @@ public class BRCryptoWalletManager extends PointerType {
         );
     }
 
-    public int getMode() {
-        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
+    public BRSyncMode getMode() {
+        return BRSyncMode.fromNative(CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this));
     }
 
-    public void setMode(int mode) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode);
+    public void setMode(BRSyncMode mode) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode.toNative());
     }
 
     public String getPath() {
