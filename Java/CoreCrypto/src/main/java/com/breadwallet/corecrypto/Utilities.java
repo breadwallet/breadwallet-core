@@ -12,16 +12,11 @@ import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
-import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
-import com.breadwallet.corenative.crypto.BRCryptoWalletManagerStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
-import com.breadwallet.corenative.support.BRDisconnectReasonType;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
-import com.breadwallet.corenative.support.BRSyncStoppedReasonType;
-import com.breadwallet.corenative.support.BRTransferSubmitErrorType;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -163,7 +158,7 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.fee)
-                                    .transform(BRCryptoAmount::createOwned)
+                                    .transform(BRCryptoAmount::toOwned)
                                     .transform(Amount::create)
                     )
             );
@@ -195,10 +190,10 @@ final class Utilities {
 
     /* package */
     static FeeEstimationError feeEstimationErrorFromStatus(BRCryptoStatus status) {
-        switch (status) {
-            case CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
-            default: return new FeeEstimationServiceFailureError();
+        if (status == BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED) {
+            return new FeeEstimationServiceUnavailableError();
         }
+        return new FeeEstimationServiceFailureError();
     }
 
     /* package */

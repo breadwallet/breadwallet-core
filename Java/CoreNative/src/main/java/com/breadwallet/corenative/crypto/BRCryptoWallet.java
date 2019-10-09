@@ -20,12 +20,6 @@ import java.util.List;
 
 public class BRCryptoWallet extends PointerType {
 
-    public static BRCryptoWallet createOwned(BRCryptoWallet wallet) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoWallet.OwnedBRCryptoWallet as its field, instead of BRCryptoWallet?
-        return new OwnedBRCryptoWallet(wallet.getPointer());
-    }
-
     public BRCryptoWallet(Pointer address) {
         super(address);
     }
@@ -127,6 +121,10 @@ public class BRCryptoWallet extends PointerType {
                 cookie,
                 sweeper,
                 fee);
+    }
+
+    public BRCryptoWallet toOwned() {
+        return new OwnedBRCryptoWallet(getPointer());
     }
 
     public static class OwnedBRCryptoWallet extends BRCryptoWallet {

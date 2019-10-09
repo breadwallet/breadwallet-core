@@ -49,12 +49,6 @@ public class BRCryptoWalletManager extends PointerType {
         );
     }
 
-    public static BRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoWallet.OwnedBRCryptoWallet as its field, instead of BRCryptoWallet?
-        return new OwnedBRCryptoWalletManager(manager.getPointer());
-    }
-
     public BRCryptoWalletManager(Pointer address) {
         super(address);
     }
@@ -296,6 +290,10 @@ public class BRCryptoWalletManager extends PointerType {
 
     public void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState) {
         CryptoLibrary.INSTANCE.cwmAnnounceGetNonceFailure(this, callbackState);
+    }
+
+    public BRCryptoWalletManager toOwned() {
+        return new OwnedBRCryptoWalletManager(getPointer());
     }
 
     public static class OwnedBRCryptoWalletManager extends BRCryptoWalletManager {

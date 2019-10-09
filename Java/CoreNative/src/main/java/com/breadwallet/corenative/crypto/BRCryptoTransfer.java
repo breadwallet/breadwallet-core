@@ -14,12 +14,6 @@ import com.sun.jna.PointerType;
 
 public class BRCryptoTransfer extends PointerType {
 
-    public static BRCryptoTransfer createOwned(BRCryptoTransfer transfer) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoTransfer.OwnedBRCryptoTransfer as its field, instead of BRCryptoTransfer?
-        return new OwnedBRCryptoTransfer(transfer.getPointer());
-    }
-
     public BRCryptoTransfer(Pointer address) {
         super(address);
     }
@@ -74,6 +68,10 @@ public class BRCryptoTransfer extends PointerType {
 
     public boolean isIdentical(BRCryptoTransfer other) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoTransferEqual(this, other);
+    }
+
+    public BRCryptoTransfer toOwned() {
+        return new OwnedBRCryptoTransfer(getPointer());
     }
 
     public static class OwnedBRCryptoTransfer extends BRCryptoTransfer {

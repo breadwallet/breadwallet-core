@@ -14,12 +14,6 @@ import com.sun.jna.PointerType;
 
 public class BRCryptoFeeBasis extends PointerType {
 
-    public static BRCryptoFeeBasis createOwned(BRCryptoFeeBasis basis) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoFeeBasis.OwnedBRCryptoFeeBasis as its field, instead of BRCryptoFeeBasis?
-        return new OwnedBRCryptoFeeBasis(basis.getPointer());
-    }
-
     public BRCryptoFeeBasis(Pointer address) {
         super(address);
     }
@@ -46,6 +40,10 @@ public class BRCryptoFeeBasis extends PointerType {
 
     public boolean isIdentical(BRCryptoFeeBasis other) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other);
+    }
+
+    public BRCryptoFeeBasis toOwned() {
+        return new OwnedBRCryptoFeeBasis(getPointer());
     }
 
     public static class OwnedBRCryptoFeeBasis extends BRCryptoFeeBasis {

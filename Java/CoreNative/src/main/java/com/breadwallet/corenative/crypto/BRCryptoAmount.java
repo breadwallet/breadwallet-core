@@ -36,12 +36,6 @@ public class BRCryptoAmount extends PointerType {
         );
     }
 
-    public static BRCryptoAmount createOwned(BRCryptoAmount amount) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoAmount.OwnedBRCryptoAmount as its field, instead of BRCryptoAmount?
-        return new OwnedBRCryptoAmount(amount.getPointer());
-    }
-
     public BRCryptoAmount(Pointer address) {
         super(address);
     }
@@ -105,6 +99,10 @@ public class BRCryptoAmount extends PointerType {
             Native.free(Pointer.nativeValue(ptr));
         }
 
+    }
+
+    public BRCryptoAmount toOwned() {
+        return new OwnedBRCryptoAmount(getPointer());
     }
 
     public static class OwnedBRCryptoAmount extends BRCryptoAmount {
