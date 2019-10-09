@@ -33,7 +33,7 @@ public class BRCryptoWalletManager extends PointerType {
                                                              BRCryptoAccount account,
                                                              BRCryptoNetwork network,
                                                              int mode,
-                                                             int scheme,
+                                                             BRCryptoAddressScheme scheme,
                                                              String path) {
         return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
@@ -42,7 +42,7 @@ public class BRCryptoWalletManager extends PointerType {
                         account,
                         network,
                         mode,
-                        scheme,
+                        scheme.toNative(),
                         path
                 )
         );
@@ -126,12 +126,12 @@ public class BRCryptoWalletManager extends PointerType {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetState(this);
     }
 
-    public int getAddressScheme() {
-        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this);
+    public BRCryptoAddressScheme getAddressScheme() {
+        return BRCryptoAddressScheme.fromNative(CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this));
     }
 
-    public void setAddressScheme(int scheme) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme);
+    public void setAddressScheme(BRCryptoAddressScheme scheme) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme.toNative());
     }
 
     public void connect(BRCryptoPeer peer) {

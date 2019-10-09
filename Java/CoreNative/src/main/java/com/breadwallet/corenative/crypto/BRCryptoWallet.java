@@ -90,12 +90,12 @@ public class BRCryptoWallet extends PointerType {
         CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis);
     }
 
-    public BRCryptoAddress getSourceAddress(int addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
+    public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toNative());
     }
 
-    public BRCryptoAddress getTargetAddress(int addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
+    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
+        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toNative());
     }
 
     public BRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,

@@ -48,9 +48,9 @@ public class BRCryptoWalletSweeper extends PointerType {
     public static BRCryptoWalletSweeper createAsBtc(BRCryptoNetwork network,
                                                     BRCryptoCurrency currency,
                                                     BRCryptoKey key,
-                                                    int scheme) {
+                                                    BRCryptoAddressScheme scheme) {
         return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network,
-                currency, key, scheme);
+                currency, key, scheme.toNative());
     }
 
     public BRCryptoKey getKey() {

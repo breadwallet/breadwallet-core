@@ -172,7 +172,7 @@ final class Utilities {
     }
 
     /* package */
-    static int addressSchemeToCrypto(AddressScheme scheme) {
+    static BRCryptoAddressScheme addressSchemeToCrypto(AddressScheme scheme) {
         switch (scheme) {
             case BTC_LEGACY: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY;
             case BTC_SEGWIT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT;
@@ -183,12 +183,12 @@ final class Utilities {
     }
 
     /* package */
-    static AddressScheme addressSchemeFromCrypto(int scheme) {
+    static AddressScheme addressSchemeFromCrypto(BRCryptoAddressScheme scheme) {
         switch (scheme) {
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
-            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
+            case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
+            case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
+            case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
+            case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
             default: throw new IllegalArgumentException("Unsupported scheme");
         }
     }
