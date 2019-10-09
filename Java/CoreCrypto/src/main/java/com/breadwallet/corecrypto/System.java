@@ -740,44 +740,44 @@ final class System implements com.breadwallet.crypto.System {
 
         BRCryptoWalletManager walletManager = BRCryptoWalletManager.createOwned(coreWalletManager);
 
-        switch (event.type) {
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
+        switch (event.type()) {
+            case CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
                 handleWalletManagerCreated(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CHANGED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_CHANGED: {
                 handleWalletManagerChanged(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_DELETED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_DELETED: {
                 handleWalletManagerDeleted(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED: {
                 handleWalletManagerWalletAdded(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: {
                 handleWalletManagerWalletChanged(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: {
                 handleWalletManagerWalletDeleted(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED: {
                 handleWalletManagerSyncStarted(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: {
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: {
                 handleWalletManagerSyncProgress(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED: {
                 handleWalletManagerSyncStopped(context, walletManager, event);
                 break;
             }
-            case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: {
+            case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: {
                 handleWalletManagerBlockHeightUpdated(context, walletManager, event);
                 break;
             }
