@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
@@ -83,12 +84,14 @@ final class Network implements com.breadwallet.crypto.Network {
 
         core.setConfirmationsUntilFinal(confirmationsUntilFinal);
 
-        return new Network(core);
+        return Network.create(core);
     }
 
     /* package */
     static Network create(BRCryptoNetwork core) {
-        return new Network(core);
+        Network network = new Network(core);
+        ReferenceCleaner.register(network, core::give);
+        return network;
     }
 
     /* package */
