@@ -220,13 +220,13 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletGive(BRCryptoWallet obj);
 
     // crypto/BRCryptoWalletManager.h
-    BRCryptoWalletManager.OwnedBRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
-                                                                               BRCryptoCWMClient.ByValue client,
-                                                                               BRCryptoAccount account,
-                                                                               BRCryptoNetwork network,
-                                                                               int mode,
-                                                                               int addressScheme,
-                                                                               String path);
+    BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
+                                                    BRCryptoCWMClient.ByValue client,
+                                                    BRCryptoAccount account,
+                                                    BRCryptoNetwork network,
+                                                    int mode,
+                                                    int addressScheme,
+                                                    String path);
     BRCryptoNetwork.OwnedBRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
@@ -286,6 +286,7 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceGetTokensComplete(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, int success);
     void cwmAnnounceGetNonceSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String address,String nonce);
     void cwmAnnounceGetNonceFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
+    BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager manager);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 
     // crypto/BRCryptoWalletManager.h

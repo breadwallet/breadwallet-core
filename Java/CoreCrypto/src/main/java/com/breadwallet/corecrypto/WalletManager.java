@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
@@ -57,13 +58,20 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 Utilities.addressSchemeToCrypto(addressScheme),
                 storagePath
         ).transform(
-                cwm -> new WalletManager(cwm, system, callbackCoordinator)
+                cwm -> WalletManager.create(cwm, system, callbackCoordinator)
         );
     }
 
     /* package */
+    static WalletManager takeAndCreate(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
+        return WalletManager.create(core.take(), system, callbackCoordinator);
+    }
+
+    /* package */
     static WalletManager create(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
-        return new WalletManager(core, system, callbackCoordinator);
+        WalletManager manager = new WalletManager(core, system, callbackCoordinator);
+        ReferenceCleaner.register(manager, core::give);
+        return manager;
     }
 
     private BRCryptoWalletManager core;
