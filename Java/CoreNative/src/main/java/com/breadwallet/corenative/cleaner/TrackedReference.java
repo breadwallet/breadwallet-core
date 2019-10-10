@@ -27,11 +27,7 @@ final class TrackedReference extends PhantomReference<Object> implements Runnabl
     @Override
     public void run() {
         if (REFS.remove(this)) {
-            try {
-                runnable.run();
-            } catch (Throwable t) {
-                // TODO(fix): How do we want to handle this?
-            }
+            runnable.run();
         }
     }
 }

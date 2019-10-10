@@ -1,9 +1,13 @@
 package com.breadwallet.corenative.cleaner;
 
+import android.util.Log;
+
 import java.lang.ref.ReferenceQueue;
 
 /* package */
 final class ReferenceDaemon {
+
+    private static final String TAG = ReferenceDaemon.class.getName();
 
     private final ReferenceQueue<Object> queue;
     private final ReferenceCleanerRunnable runnable;
@@ -46,13 +50,20 @@ final class ReferenceDaemon {
         @Override
         public void run() {
             while(!killed) {
-                TrackedReference ref = null;
+                TrackedReference ref;
+
                 try {
                     ref = (TrackedReference) queue.remove();
                 } catch (ClassCastException | InterruptedException e) {
+                    Log.e(TAG, "Error pumping queue", e);
                     continue;
                 }
-                ref.run();
+
+                try {
+                    ref.run();
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error cleaning up", t);
+                }
             }
         }
     }

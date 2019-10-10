@@ -1331,7 +1331,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletBalanceUpdated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletBalanceUpdated");
 
-        BRCryptoAmount coreAmount = event.u.balanceUpdated.amount.toOwned();
+        Amount amount = Amount.create(event.u.balanceUpdated.amount);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1344,7 +1344,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    Amount amount = Amount.create(coreAmount);
+
                     Log.d(TAG, String.format("WalletBalanceUpdated: %s", amount));
                     system.announceWalletEvent(walletManager, wallet, new WalletBalanceUpdatedEvent(amount));
 

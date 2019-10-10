@@ -54,9 +54,7 @@ final class Account implements com.breadwallet.crypto.Account {
      */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
         BRCryptoAccount core = BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp));
-        Account account = new Account(core);
-        ReferenceCleaner.register(account, core::give);
-        return account;
+        return Account.create(core);
     }
 
     /**
@@ -73,13 +71,8 @@ final class Account implements com.breadwallet.crypto.Account {
      *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
      */
     static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
-        Optional<BRCryptoAccount> maybeCore = BRCryptoAccount.createFromSerialization(serialization);
-        if (!maybeCore.isPresent()) return Optional.absent();
-
-        BRCryptoAccount core = maybeCore.get();
-        Account account = new Account(core);
-        ReferenceCleaner.register(account, core::give);
-        return Optional.of(account);
+        Optional<BRCryptoAccount> core = BRCryptoAccount.createFromSerialization(serialization);
+        return core.transform(Account::create);
     }
 
     static Account create(BRCryptoAccount core) {

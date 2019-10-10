@@ -101,25 +101,9 @@ public class BRCryptoAmount extends PointerType {
 
     }
 
-    public BRCryptoAmount toOwned() {
-        return new OwnedBRCryptoAmount(getPointer());
-    }
-
-    public static class OwnedBRCryptoAmount extends BRCryptoAmount {
-
-        public OwnedBRCryptoAmount(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoAmount() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoAmountGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoAmountGive(this);
         }
     }
 }
