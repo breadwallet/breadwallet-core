@@ -150,7 +150,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
     void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
     Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
+    BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
     BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
@@ -180,8 +180,8 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
     // crypto/BRCryptoTransfer.h
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
+    BRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
+    BRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
     BRCryptoAmount.OwnedBRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
     BRCryptoAmount.OwnedBRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
@@ -212,7 +212,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount.OwnedBRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
     Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
+    BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
     BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
