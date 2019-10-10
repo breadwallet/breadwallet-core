@@ -330,7 +330,7 @@ public interface CryptoLibrary extends Library {
     void cryptoHasherGive(BRCryptoHasher hasher);
 
     // crypto/BRCryptoSigner.h
-    BRCryptoSigner.OwnedBRCryptoSigner cryptoSignerCreate(int type);
+    BRCryptoSigner cryptoSignerCreate(int type);
     SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
     int cryptoSignerSign(BRCryptoSigner signer, BRCryptoKey key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
     BRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
