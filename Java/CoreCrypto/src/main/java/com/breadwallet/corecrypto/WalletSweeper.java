@@ -64,11 +64,12 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
                                                         Wallet wallet,
                                                         Key key) {
         Network network = manager.getNetwork();
+        Currency currency = wallet.getCurrency();
 
         BRCryptoKey coreKey = key.getBRCryptoKey();
         BRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
-        BRCryptoCurrency coreCurrency = coreWallet.getCurrency();
         BRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
+        BRCryptoCurrency coreCurrency = currency.getCoreBRCryptoCurrency();
 
         return statusToError(BRCryptoWalletSweeper.validateSupported(coreNetwork, coreCurrency, coreKey, coreWallet));
     }
@@ -77,11 +78,11 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
                                              Wallet wallet,
                                              Key key) {
         Network network = manager.getNetwork();
+        Currency currency = wallet.getCurrency();
 
         BRCryptoKey coreKey = key.getBRCryptoKey();
-        BRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
-        BRCryptoCurrency coreCurrency = coreWallet.getCurrency();
         BRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
+        BRCryptoCurrency coreCurrency = currency.getCoreBRCryptoCurrency();
         BRCryptoAddressScheme coreScheme = Utilities.addressSchemeToCrypto(manager.getAddressScheme());
 
         return new WalletSweeper(BRCryptoWalletSweeper.createAsBtc(coreNetwork, coreCurrency, coreKey, coreScheme), manager, wallet);

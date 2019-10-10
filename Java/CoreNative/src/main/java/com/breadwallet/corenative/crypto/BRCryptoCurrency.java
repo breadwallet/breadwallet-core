@@ -50,21 +50,9 @@ public class BRCryptoCurrency extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, o);
     }
 
-    public static class OwnedBRCryptoCurrency extends BRCryptoCurrency {
-
-        public OwnedBRCryptoCurrency(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoCurrency() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoCurrencyGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoCurrencyGive(this);
         }
     }
 }

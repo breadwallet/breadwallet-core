@@ -75,7 +75,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
+    BRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoAmountGetUnit(BRCryptoAmount brCryptoAmount);
     int cryptoAmountHasCurrency(BRCryptoAmount amount, BRCryptoCurrency currency);
     int cryptoAmountIsNegative(BRCryptoAmount amount);
@@ -137,14 +137,14 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);
     int cryptoNetworkIsMainnet(BRCryptoNetwork network);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoNetworkGetCurrency(BRCryptoNetwork network);
+    BRCryptoCurrency cryptoNetworkGetCurrency(BRCryptoNetwork network);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
     long cryptoNetworkGetHeight(BRCryptoNetwork network);
     int cryptoNetworkGetConfirmationsUntilFinal(BRCryptoNetwork network);
     void cryptoNetworkSetConfirmationsUntilFinal(BRCryptoNetwork network, int confirmationsUntilFinal);
     SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
+    BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
@@ -166,7 +166,7 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
     // crypto/BRCryptoPrivate.h
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
+    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
@@ -198,7 +198,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoUnitGetUids(BRCryptoUnit unit);
     Pointer cryptoUnitGetName(BRCryptoUnit unit);
     Pointer cryptoUnitGetSymbol(BRCryptoUnit unit);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
+    BRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
     int cryptoUnitHasCurrency(BRCryptoUnit unit, BRCryptoCurrency currency);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoUnitGetBaseUnit(BRCryptoUnit unit);
     byte cryptoUnitGetBaseDecimalOffset(BRCryptoUnit unit);
@@ -235,7 +235,7 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
+    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);

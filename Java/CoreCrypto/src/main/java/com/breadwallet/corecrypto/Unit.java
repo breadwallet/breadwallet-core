@@ -59,10 +59,10 @@ final class Unit implements com.breadwallet.crypto.Unit {
         // don't cache base unit to avoid recursion; cost of get is cheap
 
         this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
-        this.nameSupplier = Suppliers.memoize(() -> core.getName());
-        this.symbolSupplier = Suppliers.memoize(() -> core.getSymbol());
-        this.uidsSupplier = Suppliers.memoize(() -> core.getUids());
-        this.decimalsSupplier = Suppliers.memoize(() -> core.getDecimals());
+        this.nameSupplier = Suppliers.memoize(core::getName);
+        this.symbolSupplier = Suppliers.memoize(core::getSymbol);
+        this.uidsSupplier = Suppliers.memoize(core::getUids);
+        this.decimalsSupplier = Suppliers.memoize(core::getDecimals);
     }
 
     @Override
