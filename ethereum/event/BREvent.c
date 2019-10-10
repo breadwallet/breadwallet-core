@@ -187,6 +187,10 @@ eventHandlerThread (BREventHandler handler) {
         }
     }
 
+    pthread_mutex_lock(&handler->lock);
+    if (NULL != handler->thread) handler->thread = PTHREAD_NULL;
+    pthread_mutex_unlock(&handler->lock);
+
     return NULL;
 }
 
@@ -284,10 +288,16 @@ eventHandlerStop (BREventHandler handler) {
         // Quit the thread by aborting the queue wait.
         eventQueueDequeueWaitAbort (handler->queue);
 
-        // Wait for the thread.
+        // Wait for the thread.  We must release the lock here because the `eventHandlerThread`
+        // could itself be waiting on the lock (only as part of a running, dispatched function).
+        // Once we give the lock, the dispatched function will complete, the `eventHandlerThread`
+        // will return to the EventQueue and see the above 'Wait Abort' cond-var signaled.  At
+        // that point, `eventHandlerThread` will finish and the following 'join' returns.
+
+        // TODO: Race on 'start/stop' here
+        pthread_mutex_unlock(&handler->lock);
         pthread_join (handler->thread, NULL);
-        // A mini-race here?
-        handler->thread = PTHREAD_NULL;
+        pthread_mutex_lock(&handler->lock);
 
         // TODO: Empty the queue completely?  Or not?
         eventQueueDequeueWaitAbortReset (handler->queue);
