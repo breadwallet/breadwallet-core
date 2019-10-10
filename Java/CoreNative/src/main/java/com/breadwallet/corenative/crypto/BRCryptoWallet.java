@@ -123,25 +123,13 @@ public class BRCryptoWallet extends PointerType {
                 fee);
     }
 
-    public BRCryptoWallet toOwned() {
-        return new OwnedBRCryptoWallet(getPointer());
+    public BRCryptoWallet take() {
+        return CryptoLibrary.INSTANCE.cryptoWalletTake(this);
     }
 
-    public static class OwnedBRCryptoWallet extends BRCryptoWallet {
-
-        public OwnedBRCryptoWallet(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoWallet() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoWalletGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoWalletGive(this);
         }
     }
 }

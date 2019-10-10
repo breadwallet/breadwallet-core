@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
@@ -34,8 +35,15 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private static final String TAG = Wallet.class.getName();
 
     /* package */
-    static Wallet create(BRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
-        return new Wallet(wallet, walletManager, callbackCoordinator);
+    static Wallet takeAndCreate(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        return Wallet.create(core.take(), walletManager, callbackCoordinator);
+    }
+
+    /* package */
+    static Wallet create(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        Wallet wallet = new Wallet(core, walletManager, callbackCoordinator);
+        ReferenceCleaner.register(wallet, core::give);
+        return wallet;
     }
 
     /* package */

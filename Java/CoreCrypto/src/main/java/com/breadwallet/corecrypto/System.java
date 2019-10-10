@@ -847,95 +847,107 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerWalletAdded(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        Log.d(TAG, "WalletManagerWalletAdded");
+        BRCryptoWallet coreWallet = event.u.wallet.value;
+        try {
+            Log.d(TAG, "WalletManagerWalletAdded");
 
-        BRCryptoWallet coreWallet = event.u.wallet.value.toOwned();
+            Optional<System> optSystem = getSystem(context);
+            if (optSystem.isPresent()) {
+                System system = optSystem.get();
 
-        Optional<System> optSystem = getSystem(context);
-        if (optSystem.isPresent()) {
-            System system = optSystem.get();
+                Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                if (optWalletManager.isPresent()) {
+                    WalletManager walletManager = optWalletManager.get();
 
-            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-            if (optWalletManager.isPresent()) {
-                WalletManager walletManager = optWalletManager.get();
+                    Optional<Wallet> optional = walletManager.getWallet(coreWallet);
+                    if (optional.isPresent()) {
+                        Wallet wallet = optional.get();
+                        system.announceWalletManagerEvent(walletManager, new WalletManagerWalletAddedEvent(wallet));
 
-                Optional<Wallet> optional = walletManager.getWallet(coreWallet);
-                if (optional.isPresent()) {
-                    Wallet wallet = optional.get();
-                    system.announceWalletManagerEvent(walletManager, new WalletManagerWalletAddedEvent(wallet));
+                    } else {
+                        Log.e(TAG, "WalletManagerWalletAdded: missed wallet");
+                    }
 
                 } else {
-                    Log.e(TAG, "WalletManagerWalletAdded: missed wallet");
+                    Log.e(TAG, "WalletManagerWalletAdded: missed wallet manager");
                 }
 
             } else {
-                Log.e(TAG, "WalletManagerWalletAdded: missed wallet manager");
+                Log.e(TAG, "WalletManagerWalletAdded: missed system");
             }
 
-        } else {
-            Log.e(TAG, "WalletManagerWalletAdded: missed system");
+        } finally {
+            coreWallet.give();
         }
     }
 
     private static void handleWalletManagerWalletChanged(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        Log.d(TAG, "WalletManagerWalletChanged");
+        BRCryptoWallet coreWallet = event.u.wallet.value;
+        try {
+            Log.d(TAG, "WalletManagerWalletChanged");
 
-        BRCryptoWallet coreWallet = event.u.wallet.value.toOwned();
+            Optional<System> optSystem = getSystem(context);
+            if (optSystem.isPresent()) {
+                System system = optSystem.get();
 
-        Optional<System> optSystem = getSystem(context);
-        if (optSystem.isPresent()) {
-            System system = optSystem.get();
+                Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                if (optWalletManager.isPresent()) {
+                    WalletManager walletManager = optWalletManager.get();
 
-            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-            if (optWalletManager.isPresent()) {
-                WalletManager walletManager = optWalletManager.get();
+                    Optional<Wallet> optional = walletManager.getWallet(coreWallet);
+                    if (optional.isPresent()) {
+                        Wallet wallet = optional.get();
+                        system.announceWalletManagerEvent(walletManager, new WalletManagerWalletChangedEvent(wallet));
 
-                Optional<Wallet> optional = walletManager.getWallet(coreWallet);
-                if (optional.isPresent()) {
-                    Wallet wallet = optional.get();
-                    system.announceWalletManagerEvent(walletManager, new WalletManagerWalletChangedEvent(wallet));
+                    } else {
+                        Log.e(TAG, "WalletManagerWalletChanged: missed wallet");
+                    }
 
                 } else {
-                    Log.e(TAG, "WalletManagerWalletChanged: missed wallet");
+                    Log.e(TAG, "WalletManagerWalletChanged: missed wallet manager");
                 }
 
             } else {
-                Log.e(TAG, "WalletManagerWalletChanged: missed wallet manager");
+                Log.e(TAG, "WalletManagerWalletChanged: missed system");
             }
 
-        } else {
-            Log.e(TAG, "WalletManagerWalletChanged: missed system");
+        } finally {
+            coreWallet.give();
         }
     }
 
     private static void handleWalletManagerWalletDeleted(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        Log.d(TAG, "WalletManagerWalletDeleted");
+        BRCryptoWallet coreWallet = event.u.wallet.value;
+        try {
+            Log.d(TAG, "WalletManagerWalletDeleted");
 
-        BRCryptoWallet coreWallet = event.u.wallet.value.toOwned();
+            Optional<System> optSystem = getSystem(context);
+            if (optSystem.isPresent()) {
+                System system = optSystem.get();
 
-        Optional<System> optSystem = getSystem(context);
-        if (optSystem.isPresent()) {
-            System system = optSystem.get();
+                Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                if (optWalletManager.isPresent()) {
+                    WalletManager walletManager = optWalletManager.get();
 
-            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-            if (optWalletManager.isPresent()) {
-                WalletManager walletManager = optWalletManager.get();
+                    Optional<Wallet> optional = walletManager.getWallet(coreWallet);
+                    if (optional.isPresent()) {
+                        Wallet wallet = optional.get();
+                        system.announceWalletManagerEvent(walletManager, new WalletManagerWalletDeletedEvent(wallet));
 
-                Optional<Wallet> optional = walletManager.getWallet(coreWallet);
-                if (optional.isPresent()) {
-                    Wallet wallet = optional.get();
-                    system.announceWalletManagerEvent(walletManager, new WalletManagerWalletDeletedEvent(wallet));
+                    } else {
+                        Log.e(TAG, "WalletManagerWalletDeleted: missed wallet");
+                    }
 
                 } else {
-                    Log.e(TAG, "WalletManagerWalletDeleted: missed wallet");
+                    Log.e(TAG, "WalletManagerWalletDeleted: missed wallet manager");
                 }
 
             } else {
-                Log.e(TAG, "WalletManagerWalletDeleted: missed wallet manager");
+                Log.e(TAG, "WalletManagerWalletDeleted: missed system");
             }
 
-        } else {
-            Log.e(TAG, "WalletManagerWalletDeleted: missed system");
+        } finally {
+            coreWallet.give();
         }
     }
 
@@ -1040,43 +1052,41 @@ final class System implements com.breadwallet.crypto.System {
         try {
             Log.d(TAG, "WalletEventCallback");
 
-            BRCryptoWallet wallet = coreWallet.toOwned();
-
             switch (event.type()) {
                 case CRYPTO_WALLET_EVENT_CREATED: {
-                    handleWalletCreated(context, coreWalletManager, wallet);
+                    handleWalletCreated(context, coreWalletManager, coreWallet);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_CHANGED: {
-                    handleWalletChanged(context, coreWalletManager, wallet, event);
+                    handleWalletChanged(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_DELETED: {
-                    handleWalletDeleted(context, coreWalletManager, wallet);
+                    handleWalletDeleted(context, coreWalletManager, coreWallet);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_TRANSFER_ADDED: {
-                    handleWalletTransferAdded(context, coreWalletManager, wallet, event);
+                    handleWalletTransferAdded(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: {
-                    handleWalletTransferChanged(context, coreWalletManager, wallet, event);
+                    handleWalletTransferChanged(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: {
-                    handleWalletTransferSubmitted(context, coreWalletManager, wallet, event);
+                    handleWalletTransferSubmitted(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_TRANSFER_DELETED: {
-                    handleWalletTransferDeleted(context, coreWalletManager, wallet, event);
+                    handleWalletTransferDeleted(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED: {
-                    handleWalletBalanceUpdated(context, coreWalletManager, wallet, event);
+                    handleWalletBalanceUpdated(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
-                    handleWalletFeeBasisUpdated(context, coreWalletManager, wallet, event);
+                    handleWalletFeeBasisUpdated(context, coreWalletManager, coreWallet, event);
                     break;
                 }
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: {
@@ -1085,6 +1095,7 @@ final class System implements com.breadwallet.crypto.System {
                 }
             }
         } finally {
+            coreWallet.give();
             coreWalletManager.give();
         }
     }
@@ -1439,24 +1450,24 @@ final class System implements com.breadwallet.crypto.System {
         try {
             Log.d(TAG, "TransferEventCallback");
 
-            BRCryptoWallet wallet = coreWallet.toOwned();
             BRCryptoTransfer transfer = coreTransfer.toOwned();
 
             switch (event.type()) {
                 case CRYPTO_TRANSFER_EVENT_CREATED: {
-                    handleTransferCreated(context, coreWalletManager, wallet, transfer);
+                    handleTransferCreated(context, coreWalletManager, coreWallet, transfer);
                     break;
                 }
                 case CRYPTO_TRANSFER_EVENT_CHANGED: {
-                    handleTransferChanged(context, coreWalletManager, wallet, transfer, event);
+                    handleTransferChanged(context, coreWalletManager, coreWallet, transfer, event);
                     break;
                 }
                 case CRYPTO_TRANSFER_EVENT_DELETED: {
-                    handleTransferDeleted(context, coreWalletManager, wallet, transfer);
+                    handleTransferDeleted(context, coreWalletManager, coreWallet, transfer);
                     break;
                 }
             }
         } finally {
+            coreWallet.give();
             coreWalletManager.give();
         }
     }

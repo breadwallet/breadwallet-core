@@ -78,7 +78,7 @@ public class BRCryptoWalletManager extends PointerType {
             try {
                 int walletsSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
-                    wallets.add(new BRCryptoWallet.OwnedBRCryptoWallet(walletPtr));
+                    wallets.add(new BRCryptoWallet(walletPtr));
                 }
 
             } finally {
