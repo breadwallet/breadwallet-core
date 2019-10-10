@@ -290,7 +290,7 @@ public interface CryptoLibrary extends Library {
 
     // crypto/BRCryptoWalletManager.h
     int cryptoWalletSweeperValidateSupported(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, BRCryptoWallet wallet);
-    BRCryptoWalletSweeper.OwnedBRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
+    BRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
     BRCryptoKey.OwnedBRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
     BRCryptoAmount cryptoWalletSweeperGetBalance(BRCryptoWalletSweeper sweeper);
     Pointer cryptoWalletSweeperGetAddress(BRCryptoWalletSweeper sweeper);
