@@ -86,7 +86,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoAmountNegate(BRCryptoAmount amount);
     BRCryptoAmount cryptoAmountConvertToUnit(BRCryptoAmount amount, BRCryptoUnit unit);
     double cryptoAmountGetDouble(BRCryptoAmount amount, BRCryptoUnit unit, IntByReference overflow);
-    long cryptoAmountGetIntegerRaw(BRCryptoAmount amount, IntByReference overflow);
     UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
     void cryptoAmountGive(BRCryptoAmount obj);
 
@@ -100,7 +99,6 @@ public interface CryptoLibrary extends Library {
     void cryptoCurrencyGive(BRCryptoCurrency obj);
 
     // crypto/BRCryptoFeeBasis.h
-    int cryptoFeeBasisGetType(BRCryptoFeeBasis feeBasis);
     BRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
     BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
     double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
@@ -189,8 +187,8 @@ public interface CryptoLibrary extends Library {
     BRCryptoHash.OwnedBRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
     void cryptoTransferGive(BRCryptoTransfer obj);
 
@@ -213,7 +211,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
     BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
+    BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);

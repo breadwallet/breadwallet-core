@@ -42,25 +42,9 @@ public class BRCryptoFeeBasis extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other);
     }
 
-    public BRCryptoFeeBasis toOwned() {
-        return new OwnedBRCryptoFeeBasis(getPointer());
-    }
-
-    public static class OwnedBRCryptoFeeBasis extends BRCryptoFeeBasis {
-
-        public OwnedBRCryptoFeeBasis(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoFeeBasis() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoFeeBasisGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoFeeBasisGive(this);
         }
     }
 }

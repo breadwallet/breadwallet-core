@@ -1364,7 +1364,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletFeeBasisUpdated(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletFeeBasisUpdate");
 
-        BRCryptoFeeBasis coreFeeBasis = event.u.feeBasisUpdated.basis.toOwned();
+        TransferFeeBasis feeBasis = TransferFeeBasis.create(event.u.feeBasisUpdated.basis);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1377,7 +1377,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
+
                     Log.d(TAG, String.format("WalletFeeBasisUpdate: %s", feeBasis));
                     system.announceWalletEvent(walletManager, wallet, new WalletFeeBasisUpdatedEvent(feeBasis));
 
@@ -1400,14 +1400,13 @@ final class System implements com.breadwallet.crypto.System {
         Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
 
         boolean success = status == BRCryptoStatus.CRYPTO_SUCCESS;
-        BRCryptoFeeBasis coreFeeBasis = success ? event.u.feeBasisEstimated.basis.toOwned() : null;
+        TransferFeeBasis feeBasis = success ? TransferFeeBasis.create(event.u.feeBasisEstimated.basis) : null;
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             if (success) {
-                TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
                 Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", feeBasis));
                 system.callbackCoordinator.completeFeeBasisEstimateHandlerWithSuccess(event.u.feeBasisEstimated.cookie, feeBasis);
             } else {
