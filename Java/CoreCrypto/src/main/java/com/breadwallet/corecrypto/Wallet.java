@@ -84,7 +84,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
-        return Optional.of(Transfer.create(core.createTransfer(coreAddress, coreAmount, coreFeeBasis), this));
+        return core.createTransfer(coreAddress, coreAmount, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
     /* package */
@@ -218,7 +218,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     /* package */
     Optional<Transfer> getTransfer(BRCryptoTransfer transfer) {
         return core.containsTransfer(transfer) ?
-                Optional.of(Transfer.create(transfer, this)) :
+                Optional.of(Transfer.takeAndCreate(transfer, this)) :
                 Optional.absent();
     }
 
@@ -230,7 +230,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
         } else {
             Log.d(TAG, "Transfer not found, creating wrapping instance");
-            return Optional.of(Transfer.create(transfer, this));
+            return Optional.of(Transfer.takeAndCreate(transfer, this));
         }
     }
 
