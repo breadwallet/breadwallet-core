@@ -149,6 +149,7 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
     Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
     BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
+    BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
     BRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
