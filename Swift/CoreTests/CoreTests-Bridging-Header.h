@@ -49,5 +49,9 @@ extern void runCryptoTests (void);
 extern void
 runRippleTest (void /* ... */);
 
+// Hedera
+extern void
+runHederaTest (void /* ... */);
+
 #include "test.h"
 
