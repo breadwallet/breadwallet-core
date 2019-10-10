@@ -142,9 +142,9 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
     public Optional<Transfer> submit(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
         Optional<Transfer> maybeTransfer = wallet.createTransfer(this, feeBasis);
         if (maybeTransfer.isPresent()) {
-            Key key = Key.create(core.getKey());
             Transfer transfer = maybeTransfer.get();
-            manager.submit(transfer, key.getBRCryptoKey());
+            Key key = Key.create(core.getKey());
+            manager.submit(transfer, key);
         }
         return maybeTransfer;
     }

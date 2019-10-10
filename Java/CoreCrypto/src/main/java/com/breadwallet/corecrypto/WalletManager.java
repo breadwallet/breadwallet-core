@@ -141,10 +141,10 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    void submit(com.breadwallet.crypto.Transfer transfer, BRCryptoKey key) {
+    void submit(com.breadwallet.crypto.Transfer transfer, Key key) {
         Transfer cryptoTransfer = Transfer.from(transfer);
         Wallet cryptoWallet = cryptoTransfer.getWallet();
-        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key);
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key.getBRCryptoKey());
     }
 
     @Override
