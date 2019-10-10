@@ -55,8 +55,8 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoAccount.h
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
+    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
+    BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
     Pointer cryptoAccountGetFileSystemIdentifier(BRCryptoAccount account);
     Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
@@ -230,7 +230,7 @@ public interface CryptoLibrary extends Library {
                                                                                int addressScheme,
                                                                                String path);
     BRCryptoNetwork.OwnedBRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
+    BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);
     BRCryptoUnit.OwnedBRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);

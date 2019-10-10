@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.google.common.base.Optional;
 
@@ -16,38 +17,6 @@ import java.lang.String;
 
 /* package */
 final class Account implements com.breadwallet.crypto.Account {
-
-    /**
-     * Recover an account from a BIP-39 'paper key'.
-     *
-     * @apiNote The caller should take appropriate security measures, like enclosing this method's call in a
-     * try-finally block that wipes the phraseUtf8 value, to ensure that it is purged from memory
-     * upon completion.
-     *
-     * @param phraseUtf8 The UTF-8 NFKD normalized BIP-39 paper key
-     * @param timestamp The timestamp of when this account was first created
-     * @param uids The unique identifier of this account
-     */
-    static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        return new Account(BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp)));
-    }
-
-    /**
-     * Create an account based on an account serialization.
-     *
-     * @param serialization The result of a prior call to {@link Account#serialize()}
-     * @param uids The unique identifier of this account
-     *
-     * @return The serialization's corresponding account or {@link Optional#absent()} if the serialization is invalid.
-     *         If the serialization is invalid then the account <b>must be recreated</b> from the `phrase`
-     *         (aka 'Paper Key').  A serialization will be invald when the serialization format changes
-     *         which will <b>always occur</b> when a new blockchain is added.  For example, when XRP is added
-     *         the XRP public key must be serialized; the old serialization w/o the XRP public key will
-     *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
-     */
-    static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
-        return BRCryptoAccount.createFromSerialization(serialization).transform(Account::new);
-    }
 
     /**
      * Generate a BIP-39 'paper Key'
@@ -72,8 +41,51 @@ final class Account implements com.breadwallet.crypto.Account {
         return BRCryptoAccount.validatePhrase(phraseUtf8, words);
     }
 
+    /**
+     * Recover an account from a BIP-39 'paper key'.
+     *
+     * @apiNote The caller should take appropriate security measures, like enclosing this method's call in a
+     * try-finally block that wipes the phraseUtf8 value, to ensure that it is purged from memory
+     * upon completion.
+     *
+     * @param phraseUtf8 The UTF-8 NFKD normalized BIP-39 paper key
+     * @param timestamp The timestamp of when this account was first created
+     * @param uids The unique identifier of this account
+     */
+    static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
+        BRCryptoAccount core = BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp));
+        Account account = new Account(core);
+        ReferenceCleaner.register(account, core::give);
+        return account;
+    }
+
+    /**
+     * Create an account based on an account serialization.
+     *
+     * @param serialization The result of a prior call to {@link Account#serialize()}
+     * @param uids The unique identifier of this account
+     *
+     * @return The serialization's corresponding account or {@link Optional#absent()} if the serialization is invalid.
+     *         If the serialization is invalid then the account <b>must be recreated</b> from the `phrase`
+     *         (aka 'Paper Key').  A serialization will be invald when the serialization format changes
+     *         which will <b>always occur</b> when a new blockchain is added.  For example, when XRP is added
+     *         the XRP public key must be serialized; the old serialization w/o the XRP public key will
+     *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
+     */
+    static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
+        Optional<BRCryptoAccount> maybeCore = BRCryptoAccount.createFromSerialization(serialization);
+        if (!maybeCore.isPresent()) return Optional.absent();
+
+        BRCryptoAccount core = maybeCore.get();
+        Account account = new Account(core);
+        ReferenceCleaner.register(account, core::give);
+        return Optional.of(account);
+    }
+
     static Account create(BRCryptoAccount core) {
-        return new Account(core);
+        Account account = new Account(core);
+        ReferenceCleaner.register(account, core::give);
+        return account;
     }
 
     /* package */
