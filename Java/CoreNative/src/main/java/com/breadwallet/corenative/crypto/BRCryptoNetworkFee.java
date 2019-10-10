@@ -40,8 +40,6 @@ public class BRCryptoNetworkFee extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
     }
 }

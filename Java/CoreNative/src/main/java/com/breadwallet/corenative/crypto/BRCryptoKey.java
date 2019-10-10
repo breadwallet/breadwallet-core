@@ -225,8 +225,6 @@ public class BRCryptoKey extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoKeyGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoKeyGive(this);
     }
 }

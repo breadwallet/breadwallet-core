@@ -75,8 +75,6 @@ public class BRCryptoTransfer extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoTransferGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoTransferGive(this);
     }
 }

@@ -297,8 +297,6 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoWalletManagerGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoWalletManagerGive(this);
     }
 }

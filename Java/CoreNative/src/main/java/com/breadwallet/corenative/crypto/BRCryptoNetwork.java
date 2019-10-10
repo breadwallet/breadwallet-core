@@ -176,8 +176,6 @@ public class BRCryptoNetwork extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoNetworkGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoNetworkGive(this);
     }
 }

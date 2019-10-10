@@ -74,8 +74,6 @@ public class BRCryptoCipher extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoCipherGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoCipherGive(this);
     }
 }

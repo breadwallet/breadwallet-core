@@ -50,8 +50,6 @@ public class BRCryptoPeer extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoPeerGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoPeerGive(this);
     }
 }

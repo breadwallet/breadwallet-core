@@ -70,8 +70,6 @@ public class BRCryptoUnit extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoUnitGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoUnitGive(this);
     }
 }

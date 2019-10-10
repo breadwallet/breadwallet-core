@@ -37,8 +37,6 @@ public class BRCryptoAddress extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoAddressGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoAddressGive(this);
     }
 }

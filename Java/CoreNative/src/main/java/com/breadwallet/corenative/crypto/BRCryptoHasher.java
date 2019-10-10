@@ -108,8 +108,6 @@ public class BRCryptoHasher extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoHasherGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoHasherGive(this);
     }
 }

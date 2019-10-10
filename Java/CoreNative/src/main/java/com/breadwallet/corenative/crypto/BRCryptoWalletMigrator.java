@@ -66,8 +66,6 @@ public class BRCryptoWalletMigrator extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoWalletMigratorRelease(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoWalletMigratorRelease(this);
     }
 }

@@ -73,8 +73,6 @@ public class BRCryptoSigner extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoSignerGive(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoSignerGive(this);
     }
 }

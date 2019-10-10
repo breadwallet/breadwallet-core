@@ -78,8 +78,6 @@ public class BRCryptoWalletSweeper extends PointerType {
     }
 
     public void give() {
-        if (null != getPointer()) {
-            CryptoLibrary.INSTANCE.cryptoWalletSweeperRelease(this);
-        }
+        CryptoLibrary.INSTANCE.cryptoWalletSweeperRelease(this);
     }
 }
