@@ -46,14 +46,12 @@ public class CoreCryptoApplication extends Application {
 
     private static final String BDB_AUTH_TOKEN = BuildConfig.BDB_AUTH_TOKEN;
 
-    private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
     private static final String EXTRA_PAPER_KEY = "PAPER_KEY";
     private static final String EXTRA_MODE = "MODE";
     private static final String EXTRA_IS_MAINNET = "IS_MAINNET";
 
     private static final boolean DEFAULT_IS_MAINNET = true;
-    private static final boolean DEFAULT_WIPE = true;
     private static final long DEFAULT_TIMESTAMP = 0;
     private static final String DEFAULT_PAPER_KEY = "boring head harsh green empty clip fatal typical found crane dinner timber";
     private static final WalletManagerMode DEFAULT_MODE = WalletManagerMode.API_ONLY;
@@ -130,7 +128,6 @@ public class CoreCryptoApplication extends Application {
 
             isMainnet = intent.getBooleanExtra(EXTRA_IS_MAINNET, DEFAULT_IS_MAINNET);
 
-            boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
@@ -157,7 +154,7 @@ public class CoreCryptoApplication extends Application {
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
-            System.wipeAll(storageFile.getAbsolutePath(), wipe ? Collections.emptyList() : Collections.singletonList(system));
+            System.wipeAll(storageFile.getAbsolutePath(), Collections.singletonList(system));
 
             connectivityReceiver = new ConnectivityBroadcastReceiver();
             registerReceiver(connectivityReceiver , new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
