@@ -94,7 +94,7 @@ public class BRCryptoNetwork extends PointerType {
             try {
                 int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
-                    fees.add(new BRCryptoNetworkFee.OwnedBRCryptoNetworkFee(feePtr));
+                    fees.add(new BRCryptoNetworkFee(feePtr));
                 }
 
             } finally {

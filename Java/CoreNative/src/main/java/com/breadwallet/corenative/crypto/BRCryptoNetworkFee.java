@@ -39,21 +39,9 @@ public class BRCryptoNetworkFee extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkFeeEqual(this, other);
     }
 
-    public static class OwnedBRCryptoNetworkFee extends BRCryptoNetworkFee {
-
-        public OwnedBRCryptoNetworkFee(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoNetworkFee() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
         }
     }
 }
