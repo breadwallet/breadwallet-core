@@ -324,7 +324,7 @@ public interface CryptoLibrary extends Library {
     void cryptoCipherGive(BRCryptoCipher cipher);
 
     // crypto/BRCryptoHasher.h
-    BRCryptoHasher.OwnedBRCryptoHasher cryptoHasherCreate(int type);
+    BRCryptoHasher cryptoHasherCreate(int type);
     SizeT cryptoHasherLength(BRCryptoHasher hasher);
     int cryptoHasherHash(BRCryptoHasher hasher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     void cryptoHasherGive(BRCryptoHasher hasher);

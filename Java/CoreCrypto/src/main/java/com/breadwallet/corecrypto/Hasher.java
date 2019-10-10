@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoHasher;
 import com.google.common.base.Optional;
 
@@ -55,7 +56,13 @@ final class Hasher implements com.breadwallet.crypto.Hasher {
         }
 
         checkNotNull(core);
-        return new Hasher(core);
+        return Hasher.create(core);
+    }
+
+    private static Hasher create(BRCryptoHasher core) {
+        Hasher hasher = new Hasher(core);
+        ReferenceCleaner.register(hasher, core::give);
+        return hasher;
     }
 
     private final BRCryptoHasher core;
