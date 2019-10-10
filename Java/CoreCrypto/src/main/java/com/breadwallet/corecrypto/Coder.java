@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCoder;
 import com.google.common.base.Optional;
 
@@ -31,7 +32,13 @@ final class Coder implements com.breadwallet.crypto.Coder {
         }
 
         checkNotNull(core);
-        return new Coder(core);
+        return Coder.create(core);
+    }
+
+    private static Coder create(BRCryptoCoder core) {
+        Coder coder = new Coder(core);
+        ReferenceCleaner.register(coder, core::give);
+        return coder;
     }
 
     private final BRCryptoCoder core;

@@ -306,7 +306,7 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletMigratorRelease(BRCryptoWalletMigrator migrator);
 
     // crypto/BRCryptoCoder.h
-    BRCryptoCoder.OwnedBRCryptoCoder cryptoCoderCreate(int type);
+    BRCryptoCoder cryptoCoderCreate(int type);
     SizeT cryptoCoderEncodeLength(BRCryptoCoder coder, byte[] src, SizeT srcLen);
     int cryptoCoderEncode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     SizeT cryptoCoderDecodeLength(BRCryptoCoder coder, byte[] src);
