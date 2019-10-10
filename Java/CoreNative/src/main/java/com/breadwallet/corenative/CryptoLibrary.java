@@ -299,7 +299,7 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletSweeperRelease(BRCryptoWalletSweeper sweeper);
 
     // crypto/BRCryptoWalletManager.h
-    BRCryptoWalletMigrator.OwnedBRCryptoWalletMigrator cryptoWalletMigratorCreate(BRCryptoNetwork network, String storagePath);
+    BRCryptoWalletMigrator cryptoWalletMigratorCreate(BRCryptoNetwork network, String storagePath);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator, byte[] bytes, SizeT bytesCount, int blockHeight, int timestamp);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleBlockBytesAsBTC(BRCryptoWalletMigrator migrator, byte[] buffer, SizeT bufferLen, int height);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator, int address, short port, long services, int timestamp);

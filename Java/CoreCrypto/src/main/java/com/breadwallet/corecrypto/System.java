@@ -644,13 +644,12 @@ final class System implements com.breadwallet.crypto.System {
                                       List<TransactionBlob> transactionBlobs,
                                       List<BlockBlob> blockBlobs,
                                       List<PeerBlob> peerBlobs) throws MigrateError {
-        Optional<BRCryptoWalletMigrator> maybeMigrator = BRCryptoWalletMigrator.create(
-                Network.from(network).getCoreBRCryptoNetwork(), storagePath);
+        Optional<WalletMigrator> maybeMigrator = WalletMigrator.create(network, storagePath);
         if (!maybeMigrator.isPresent()) {
             throw new MigrateCreateError();
         }
 
-        BRCryptoWalletMigrator migrator = maybeMigrator.get();
+        WalletMigrator migrator = maybeMigrator.get();
 
         for (TransactionBlob blob: transactionBlobs) {
             Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
