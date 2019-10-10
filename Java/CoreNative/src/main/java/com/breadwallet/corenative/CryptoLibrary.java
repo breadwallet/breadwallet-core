@@ -184,7 +184,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
     BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
-    BRCryptoHash.OwnedBRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
+    BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
     BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
     BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);

@@ -40,21 +40,9 @@ public class BRCryptoHash extends PointerType {
         }
     }
 
-    public static class OwnedBRCryptoHash extends BRCryptoHash {
-
-        public OwnedBRCryptoHash(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoHash() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoHashGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoHashGive(this);
         }
     }
 }
