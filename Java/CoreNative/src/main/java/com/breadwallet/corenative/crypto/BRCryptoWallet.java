@@ -72,16 +72,8 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoWalletState.fromCore(CryptoLibrary.INSTANCE.cryptoWalletGetState(this));
     }
 
-    public void setState(BRCryptoWalletState state) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state.toCore());
-    }
-
     public BRCryptoFeeBasis getDefaultFeeBasis() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
-    }
-
-    public void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis);
     }
 
     public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {

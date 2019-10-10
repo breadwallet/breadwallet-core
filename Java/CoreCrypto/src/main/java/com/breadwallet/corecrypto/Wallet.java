@@ -206,16 +206,6 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    void setDefaultFeeBasis(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        core.setDefaultFeeBasis(TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis());
-    }
-
-    /* package */
-    void setState(WalletState newState) {
-        core.setState(Utilities.walletStateToCrypto(newState));
-    }
-
-    /* package */
     Optional<Transfer> getTransfer(BRCryptoTransfer transfer) {
         return core.containsTransfer(transfer) ?
                 Optional.of(Transfer.takeAndCreate(transfer, this)) :
