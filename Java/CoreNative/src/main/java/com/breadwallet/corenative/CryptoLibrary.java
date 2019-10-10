@@ -314,9 +314,9 @@ public interface CryptoLibrary extends Library {
     void cryptoCoderGive(BRCryptoCoder coder);
 
     // crypto/BRCryptoCipher.h
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
+    BRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
+    BRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
+    BRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
     SizeT cryptoCipherEncryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
     int cryptoCipherEncrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     SizeT cryptoCipherDecryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
