@@ -135,17 +135,23 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
     @Override
     public void estimate(NetworkFee fee,
                          CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> completion) {
-        wallet.estimateFee(core, fee, completion);
+        wallet.estimateFee(this, fee, completion);
     }
 
     @Override
     public Optional<Transfer> submit(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        Optional<Transfer> maybeTransfer = wallet.createTransfer(core, feeBasis);
+        Optional<Transfer> maybeTransfer = wallet.createTransfer(this, feeBasis);
         if (maybeTransfer.isPresent()) {
+            Key key = Key.create(core.getKey());
             Transfer transfer = maybeTransfer.get();
-            manager.submit(transfer, core.getKey());
+            manager.submit(transfer, key.getBRCryptoKey());
         }
         return maybeTransfer;
+    }
+
+    /* package */
+    BRCryptoWalletSweeper getCoreBRWalletSweeper() {
+        return core;
     }
 
     private void initAsBtc(BlockchainDb bdb,

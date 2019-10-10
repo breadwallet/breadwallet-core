@@ -80,10 +80,11 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    public Optional<Transfer> createTransfer(BRCryptoWalletSweeper sweeper,
-                                             com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+    Optional<Transfer> createTransfer(WalletSweeper sweeper,
+                                      com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+        BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
-        return core.createTransferForWalletSweep(sweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
+        return core.createTransferForWalletSweep(coreSweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
     @Override
@@ -96,10 +97,11 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    void estimateFee(BRCryptoWalletSweeper sweeper,
+    void estimateFee(WalletSweeper sweeper,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), sweeper, coreFee);
+        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
     }
 
     @Override

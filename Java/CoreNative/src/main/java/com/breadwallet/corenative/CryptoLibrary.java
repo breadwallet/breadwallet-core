@@ -108,14 +108,14 @@ public interface CryptoLibrary extends Library {
 
     // crypto/BRCryptoKey.h
     int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
+    BRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
+    BRCryptoKey cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
+    BRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
+    BRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
+    BRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
     void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
     int cryptoKeyHasSecret(BRCryptoKey key);
     int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
@@ -291,7 +291,7 @@ public interface CryptoLibrary extends Library {
     // crypto/BRCryptoWalletManager.h
     int cryptoWalletSweeperValidateSupported(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, BRCryptoWallet wallet);
     BRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
-    BRCryptoKey.OwnedBRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
+    BRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
     BRCryptoAmount cryptoWalletSweeperGetBalance(BRCryptoWalletSweeper sweeper);
     Pointer cryptoWalletSweeperGetAddress(BRCryptoWalletSweeper sweeper);
     int cryptoWalletSweeperHandleTransactionAsBTC(BRCryptoWalletSweeper sweeper, byte[] transaction, SizeT transactionLen);
@@ -333,7 +333,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoSigner.OwnedBRCryptoSigner cryptoSignerCreate(int type);
     SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
     int cryptoSignerSign(BRCryptoSigner signer, BRCryptoKey key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
-    BRCryptoKey.OwnedBRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
+    BRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
     void cryptoSignerGive(BRCryptoSigner signer);
 
     // ethereum/util/BRUtilMath.h

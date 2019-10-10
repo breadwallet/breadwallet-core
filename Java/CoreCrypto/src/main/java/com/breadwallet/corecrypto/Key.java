@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -46,27 +47,32 @@ final class Key implements com.breadwallet.crypto.Key {
             return Optional.absent();
         }
 
-        return BRCryptoKey.createFromPhrase(phraseUtf8, words).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createFromPhrase(phraseUtf8, words);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8) {
-        return BRCryptoKey.createFromPrivateKeyString(keyStringUtf8).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createFromPrivateKeyString(keyStringUtf8);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8, byte[] phraseUtf8) {
-        return BRCryptoKey.createFromPrivateKeyString(keyStringUtf8, phraseUtf8).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createFromPrivateKeyString(keyStringUtf8, phraseUtf8);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8) {
-        return BRCryptoKey.createFromPublicKeyString(keyStringUtf8).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createFromPublicKeyString(keyStringUtf8);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Optional<Key> createForPigeon(com.breadwallet.crypto.Key key, byte[] nonce) {
-        return BRCryptoKey.createForPigeon(from(key).core, nonce).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createForPigeon(from(key).core, nonce);
+        return core.transform(Key::create);
     }
 
     /* package */
@@ -79,7 +85,8 @@ final class Key implements com.breadwallet.crypto.Key {
             return Optional.absent();
         }
 
-        return BRCryptoKey.createForBIP32ApiAuth(phraseUtf8, words).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createForBIP32ApiAuth(phraseUtf8, words);
+        return core.transform(Key::create);
     }
 
     /* package */
@@ -92,17 +99,21 @@ final class Key implements com.breadwallet.crypto.Key {
             return Optional.absent();
         }
 
-        return BRCryptoKey.createForBIP32BitID(phraseUtf8, index, uri, words).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.createForBIP32BitID(phraseUtf8, index, uri, words);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Optional<Key> createFromSecret(byte[] secret) {
-        return BRCryptoKey.cryptoKeyCreateFromSecret(secret).transform(Key::new);
+        Optional<BRCryptoKey> core = BRCryptoKey.cryptoKeyCreateFromSecret(secret);
+        return core.transform(Key::create);
     }
 
     /* package */
     static Key create(BRCryptoKey core) {
-        return new Key(core);
+        Key key = new Key(core);
+        ReferenceCleaner.register(key, core::give);
+        return key;
     }
 
     /* package */

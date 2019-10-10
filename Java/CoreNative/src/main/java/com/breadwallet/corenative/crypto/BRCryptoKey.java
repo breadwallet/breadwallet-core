@@ -224,21 +224,9 @@ public class BRCryptoKey extends PointerType {
         CryptoLibrary.INSTANCE.cryptoKeyProvidePublicKey(this, useCompressed, compressed);
     }
 
-    public static class OwnedBRCryptoKey extends BRCryptoKey {
-
-        public OwnedBRCryptoKey(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoKey() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoKeyGive(this);
-            }
+    public void give() {
+        if (null != getPointer()) {
+            CryptoLibrary.INSTANCE.cryptoKeyGive(this);
         }
     }
 }
