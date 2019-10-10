@@ -113,7 +113,7 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
 
     private static WalletSweeper create(BRCryptoWalletSweeper core, WalletManager manager, Wallet wallet) {
         WalletSweeper sweeper = new WalletSweeper(core, manager, wallet);
-        ReferenceCleaner.register(core, core::give);
+        ReferenceCleaner.register(sweeper, core::give);
         return sweeper;
     }
 
