@@ -12,7 +12,6 @@ import android.support.annotation.Nullable;
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 
 import java.util.List;
 
