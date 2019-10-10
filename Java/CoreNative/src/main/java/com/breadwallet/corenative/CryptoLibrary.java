@@ -151,7 +151,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
-    BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
+    BRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
     BRCryptoNetwork.OwnedBRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
     Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
     Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
