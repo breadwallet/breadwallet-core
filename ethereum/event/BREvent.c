@@ -215,6 +215,7 @@ eventHandlerDestroy (BREventHandler handler) {
     assert (PTHREAD_NULL == handler->thread);
     pthread_mutex_unlock  (&handler->lock);
     pthread_mutex_destroy (&handler->lock);
+    pthread_cond_destroy (&handler->threadExit);
 
     // release memory
     eventQueueDestroy(handler->queue);
