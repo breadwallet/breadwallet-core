@@ -1191,8 +1191,7 @@ extension System {
                     walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.network.height = event.u.blockHeight.value
-                    // No event?
+                    walletManagerEvent = WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value)
 
                 default: precondition(false)
                 }
