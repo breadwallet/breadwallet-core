@@ -100,11 +100,13 @@ bwmSignalTxUpdated (BRWalletManager manager,
 
 extern void
 bwmHandleTxDeleted (BRWalletManager manager,
-                    UInt256 hash);
+                    UInt256 hash,
+                    int recommendRescan);
 
 extern void
 bwmSignalTxDeleted (BRWalletManager manager,
-                    UInt256 hash);
+                    UInt256 hash,
+                    int recommendRescan);
 
 /// Mark: - WalletManager Events
 

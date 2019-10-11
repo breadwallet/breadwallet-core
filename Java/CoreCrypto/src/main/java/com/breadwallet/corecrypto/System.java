@@ -37,6 +37,7 @@ import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
+import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerSyncStoppedReason;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
@@ -85,6 +86,7 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerCreatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerDeletedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncProgressEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncRecommendedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStartedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent;
@@ -776,6 +778,10 @@ final class System implements com.breadwallet.crypto.System {
                     handleWalletManagerSyncStopped(context, coreWalletManager, event);
                     break;
                 }
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED: {
+                    handleWalletManagerSyncRecommended(context, coreWalletManager, event);
+                    break;
+                }
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: {
                     handleWalletManagerBlockHeightUpdated(context, coreWalletManager, event);
                     break;
@@ -1015,6 +1021,28 @@ final class System implements com.breadwallet.crypto.System {
 
         } else {
             Log.e(TAG, "WalletManagerSyncStopped: missed system");
+        }
+    }
+
+    private static void handleWalletManagerSyncRecommended(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
+        WalletManagerSyncDepth depth = Utilities.syncDepthFromCrypto(event.u.syncRecommended.depth());
+        Log.d(TAG, String.format("WalletManagerSyncRecommended: (%s)", depth));
+
+        Optional<System> optSystem = getSystem(context);
+        if (optSystem.isPresent()) {
+            System system = optSystem.get();
+
+            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+            if (optWalletManager.isPresent()) {
+                WalletManager walletManager = optWalletManager.get();
+                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncRecommendedEvent(depth));
+
+            } else {
+                Log.e(TAG, "WalletManagerSyncRecommended: missed wallet manager");
+            }
+
+        } else {
+            Log.e(TAG, "WalletManagerSyncRecommended: missed system");
         }
     }
 
