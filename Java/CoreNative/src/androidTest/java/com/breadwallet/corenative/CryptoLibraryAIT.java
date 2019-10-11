@@ -87,50 +87,56 @@ public class CryptoLibraryAIT {
     }
 
     @Test
-    public void testBitcoinWalletManagerSyncModes () {
-        int success = 0;
-        int isBTC = 0;
-        int isMainnet = 0;
-        long blockHeight = 0;
-
-        // BTC mainnet
-
-        isBTC = 1;
-        isMainnet = 1;
-        blockHeight = 500000;
+    public void testBitcoinWalletManagerSyncStressBtc() {
+        int success;
 
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                500000,
+                1,
+                1
+        );
         assertEquals(1, success);
 
-        // BTC testnet
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                1500000,
+                1,
+                0
+        );
+        assertEquals(1, success);
+    }
 
-        isBTC = 1;
-        isMainnet = 0;
-        blockHeight = 1500000;
+    @Test
+    public void testBitcoinWalletManagerSyncStressBch() {
+        int success;
 
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                500000,
+                0,
+                1
+        );
         assertEquals(1, success);
 
-        // BCH mainnet
-
-        isBTC = 0;
-        isMainnet = 1;
-        blockHeight = 500000;
-
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
-        assertEquals(1, success);
-
-        // BCH testnet
-
-        isBTC = 0;
-        isMainnet = 0;
-        blockHeight = 1500000;
-
-        coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                1500000,
+                0,
+                0
+        );
         assertEquals(1, success);
     }
 
@@ -149,27 +155,19 @@ public class CryptoLibraryAIT {
     }
 
     @Test
-    public void testCryptoWithAccountAndNetwork() {
-        int success = 0;
+    public void testCryptoWithAccountAndNetworkBtc() {
         BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
                 paperKey.getBytes(StandardCharsets.UTF_8),
                 UnsignedLong.valueOf(epoch)
         );
 
         try {
-
             BRCryptoNetwork network;
-
-            //
-            // BTC
-            //
-
-            // MAINNET
 
             network = createBitcoinNetwork(true, 500000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());
@@ -177,13 +175,11 @@ public class CryptoLibraryAIT {
             } finally {
                 network.give();
             }
-
-            // TESTNET
 
             network = createBitcoinNetwork(false, 1500000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());
@@ -192,16 +188,25 @@ public class CryptoLibraryAIT {
                 network.give();
             }
 
-            //
-            // BCH
-            //
+        } finally {
+            account.give();
+        }
+    }
 
-            // MAINNET
+    @Test
+    public void testCryptoWithAccountAndNetworkBch() {
+        BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
+                paperKey.getBytes(StandardCharsets.UTF_8),
+                UnsignedLong.valueOf(epoch)
+        );
+
+        try {
+            BRCryptoNetwork network;
 
             network = createBitcoinCashNetwork(true, 500000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());
@@ -209,13 +214,11 @@ public class CryptoLibraryAIT {
             } finally {
                 network.give();
             }
-
-            // TESTNET
 
             network = createBitcoinCashNetwork(false, 1500000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());
@@ -223,17 +226,25 @@ public class CryptoLibraryAIT {
             } finally {
                 network.give();
             }
+        } finally {
+            account.give();
+        }
+    }
 
-            //
-            // ETH
-            //
+    @Test
+    public void testCryptoWithAccountAndNetworkEth() {
+        BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
+                paperKey.getBytes(StandardCharsets.UTF_8),
+                UnsignedLong.valueOf(epoch)
+        );
 
-            // MAINNET
+        try {
+            BRCryptoNetwork network;
 
             network = createEthereumNetwork(true, 8000000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());
@@ -244,12 +255,10 @@ public class CryptoLibraryAIT {
                 network.give();
             }
 
-            // TESTNET
-
             network = createEthereumNetwork(false, 4500000);
             try {
                 coreDirClear();
-                success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
                         account,
                         network,
                         coreDataDir.getAbsolutePath());

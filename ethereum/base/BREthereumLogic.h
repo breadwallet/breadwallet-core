@@ -15,8 +15,14 @@
 extern "C" {
 #endif
 
-#define private_extern  extern
-    
+#if !defined (private_extern)
+#  if defined (DEBUG)
+#    define private_extern
+#  else
+#    define private_extern          extern
+#  endif
+#endif /* !defined (private_extern) */
+
 //
 // Etherum Boolean
 //
