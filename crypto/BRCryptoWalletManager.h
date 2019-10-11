@@ -61,6 +61,7 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED,
         CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
         CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+        CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED,
 
         CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
     } BRCryptoWalletManagerEventType;
@@ -89,6 +90,10 @@ extern "C" {
             struct {
                 BRSyncStoppedReason reason;
             } syncStopped;
+
+            struct {
+                BRSyncDepth depth;
+            } syncRecommended;
 
             struct {
                 uint64_t value;

@@ -267,6 +267,15 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             cryptoWalletManagerSetState (cwm, state);
             break;
         }
+        case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED: {
+            cwmEvent = (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED,
+                { .syncRecommended = {
+                    event.u.syncRecommended.depth,
+                }}
+            };
+            break;
+        }
         case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
