@@ -65,6 +65,9 @@ struct BREventHandlerRecord {
     // The thread handling events.
     pthread_t thread;
 
+    // A cond-var for exiting the thread.
+    pthread_cond_t threadExit;
+
     // A lock on internal state
     pthread_mutex_t lock;
 
@@ -112,6 +115,13 @@ eventHandlerCreate (const char *name,
         pthread_mutexattr_destroy(&attr);
     }
 
+    {
+        pthread_condattr_t attr;
+        pthread_condattr_init(&attr);
+        pthread_cond_init(&handler->threadExit, &attr);
+        pthread_condattr_destroy(&attr);
+    }
+
     handler->thread = PTHREAD_NULL;
 
     handler->scratch = (BREvent*) calloc (1, handler->eventSize);
@@ -157,7 +167,7 @@ eventHandlerThread (BREventHandler handler) {
     // ensuring that every event dispatcher has it, if needed. But that assignment must be done
     // with `handler->lock` held.
     pthread_mutex_lock(&handler->lock);
-    if (NULL == handler->thread) handler->thread = pthread_self();
+    if (PTHREAD_NULL == handler->thread) handler->thread = pthread_self();
     pthread_mutex_unlock(&handler->lock);
 
     while (!timeToQuit) {
@@ -188,7 +198,8 @@ eventHandlerThread (BREventHandler handler) {
     }
 
     pthread_mutex_lock(&handler->lock);
-    if (NULL != handler->thread) handler->thread = PTHREAD_NULL;
+    if (PTHREAD_NULL != handler->thread) handler->thread = PTHREAD_NULL;
+    pthread_cond_signal (&handler->threadExit);
     pthread_mutex_unlock(&handler->lock);
 
     return NULL;
@@ -292,12 +303,13 @@ eventHandlerStop (BREventHandler handler) {
         // could itself be waiting on the lock (only as part of a running, dispatched function).
         // Once we give the lock, the dispatched function will complete, the `eventHandlerThread`
         // will return to the EventQueue and see the above 'Wait Abort' cond-var signaled.  At
-        // that point, `eventHandlerThread` will finish and the following 'join' returns.
-
-        // TODO: Race on 'start/stop' here
-        pthread_mutex_unlock(&handler->lock);
-        pthread_join (handler->thread, NULL);
-        pthread_mutex_lock(&handler->lock);
+        // that point, `eventHandlerThread` will finish and signal 'threadExit`.  The following
+        // cond_wait will complete and reaquire the lock.
+        //
+        // Note, while we wait we will not hold the lock but handle->thread will be non-NULL; so,
+        // we don't have a start/stop race.
+        //
+        pthread_cond_wait (&handler->threadExit, &handler->lock);
 
         // TODO: Empty the queue completely?  Or not?
         eventQueueDequeueWaitAbortReset (handler->queue);
