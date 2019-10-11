@@ -291,6 +291,8 @@ extern void
 eventHandlerStop (BREventHandler handler) {
     pthread_mutex_lock(&handler->lock);
     if (PTHREAD_NULL != handler->thread) {
+        pthread_t thread = handler->thread;
+
         // Remove a timeout alarm, if it exists.
         if (ALARM_ID_NONE != handler->timeoutAlarmId) {
             alarmClockRemAlarm (alarmClock, handler->timeoutAlarmId);
@@ -311,7 +313,8 @@ eventHandlerStop (BREventHandler handler) {
         // we don't have a start/stop race.
         //
         pthread_cond_wait (&handler->threadExit, &handler->lock);
-
+        pthread_detach (thread);
+        
         // TODO: Empty the queue completely?  Or not?
         eventQueueDequeueWaitAbortReset (handler->queue);
         eventHandlerClear (handler);
