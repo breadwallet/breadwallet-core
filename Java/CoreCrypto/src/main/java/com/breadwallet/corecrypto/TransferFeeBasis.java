@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -18,7 +19,9 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     /* package */
     static TransferFeeBasis create(BRCryptoFeeBasis core) {
-        return new TransferFeeBasis(core);
+        TransferFeeBasis feeBasis = new TransferFeeBasis(core);
+        ReferenceCleaner.register(feeBasis, core::give);
+        return feeBasis;
     }
 
     /* package */

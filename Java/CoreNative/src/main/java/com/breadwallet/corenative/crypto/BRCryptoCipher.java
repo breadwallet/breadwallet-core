@@ -73,21 +73,7 @@ public class BRCryptoCipher extends PointerType {
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
-    public static class OwnedBRCryptoCipher extends BRCryptoCipher {
-
-        public OwnedBRCryptoCipher(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoCipher() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoCipherGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoCipherGive(this);
     }
 }

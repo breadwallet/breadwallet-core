@@ -77,21 +77,7 @@ public class BRCryptoWalletSweeper extends PointerType {
         );
     }
 
-    public static class OwnedBRCryptoWalletSweeper extends BRCryptoWalletSweeper {
-
-        public OwnedBRCryptoWalletSweeper(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoWalletSweeper() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoWalletSweeperRelease(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoWalletSweeperRelease(this);
     }
 }

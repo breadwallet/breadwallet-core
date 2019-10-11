@@ -55,8 +55,8 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoAccount.h
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
+    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
+    BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
     Pointer cryptoAccountGetFileSystemIdentifier(BRCryptoAccount account);
     Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
@@ -72,21 +72,20 @@ public interface CryptoLibrary extends Library {
     void cryptoAddressGive(BRCryptoAddress obj);
 
     // crypto/BRCryptoAmount.h
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoAmountGetUnit(BRCryptoAmount brCryptoAmount);
+    BRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
+    BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
+    BRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
+    BRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
+    BRCryptoUnit cryptoAmountGetUnit(BRCryptoAmount brCryptoAmount);
     int cryptoAmountHasCurrency(BRCryptoAmount amount, BRCryptoCurrency currency);
     int cryptoAmountIsNegative(BRCryptoAmount amount);
     int cryptoAmountIsCompatible(BRCryptoAmount a1, BRCryptoAmount a2);
     int cryptoAmountCompare(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountAdd(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountSub(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountNegate(BRCryptoAmount amount);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoAmountConvertToUnit(BRCryptoAmount amount, BRCryptoUnit unit);
+    BRCryptoAmount cryptoAmountAdd(BRCryptoAmount a1, BRCryptoAmount a2);
+    BRCryptoAmount cryptoAmountSub(BRCryptoAmount a1, BRCryptoAmount a2);
+    BRCryptoAmount cryptoAmountNegate(BRCryptoAmount amount);
+    BRCryptoAmount cryptoAmountConvertToUnit(BRCryptoAmount amount, BRCryptoUnit unit);
     double cryptoAmountGetDouble(BRCryptoAmount amount, BRCryptoUnit unit, IntByReference overflow);
-    long cryptoAmountGetIntegerRaw(BRCryptoAmount amount, IntByReference overflow);
     UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
     void cryptoAmountGive(BRCryptoAmount obj);
 
@@ -100,24 +99,23 @@ public interface CryptoLibrary extends Library {
     void cryptoCurrencyGive(BRCryptoCurrency obj);
 
     // crypto/BRCryptoFeeBasis.h
-    int cryptoFeeBasisGetType(BRCryptoFeeBasis feeBasis);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
+    BRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
+    BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
     double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
+    BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
     int cryptoFeeBasisIsIdentical(BRCryptoFeeBasis f1, BRCryptoFeeBasis f2);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
 
     // crypto/BRCryptoKey.h
     int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
-    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
+    BRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
+    BRCryptoKey cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
+    BRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
+    BRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
+    BRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    BRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
     void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
     int cryptoKeyHasSecret(BRCryptoKey key);
     int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
@@ -137,24 +135,25 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);
     int cryptoNetworkIsMainnet(BRCryptoNetwork network);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoNetworkGetCurrency(BRCryptoNetwork network);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
+    BRCryptoCurrency cryptoNetworkGetCurrency(BRCryptoNetwork network);
+    BRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
+    BRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
     long cryptoNetworkGetHeight(BRCryptoNetwork network);
     int cryptoNetworkGetConfirmationsUntilFinal(BRCryptoNetwork network);
     void cryptoNetworkSetConfirmationsUntilFinal(BRCryptoNetwork network, int confirmationsUntilFinal);
     SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
+    BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
+    BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
     void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
     Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
+    BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
+    BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
-    BRCryptoPeer.OwnedBRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
-    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
+    BRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
+    BRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
     Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
     Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
     short cryptoPeerGetPort(BRCryptoPeer peer);
@@ -166,41 +165,42 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
     // crypto/BRCryptoPrivate.h
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
+    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
-    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
-    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
+    BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
+    BRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
+    BRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
     void cryptoNetworkAddCurrency(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
     void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoUnitCreate(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, byte decimals);
-    BRCryptoNetworkFee.OwnedBRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
+    BRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);
+    BRCryptoUnit cryptoUnitCreate(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, byte decimals);
+    BRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
     void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
     // crypto/BRCryptoTransfer.h
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
+    BRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
+    BRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
+    BRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
+    BRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
     BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
-    BRCryptoHash.OwnedBRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
+    BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
+    BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
+    BRCryptoTransfer cryptoTransferTake(BRCryptoTransfer obj);
     void cryptoTransferGive(BRCryptoTransfer obj);
 
     // crypto/BRCryptoUnit.h
     Pointer cryptoUnitGetUids(BRCryptoUnit unit);
     Pointer cryptoUnitGetName(BRCryptoUnit unit);
     Pointer cryptoUnitGetSymbol(BRCryptoUnit unit);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
+    BRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
     int cryptoUnitHasCurrency(BRCryptoUnit unit, BRCryptoCurrency currency);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoUnitGetBaseUnit(BRCryptoUnit unit);
+    BRCryptoUnit cryptoUnitGetBaseUnit(BRCryptoUnit unit);
     byte cryptoUnitGetBaseDecimalOffset(BRCryptoUnit unit);
     int cryptoUnitIsCompatible(BRCryptoUnit u1, BRCryptoUnit u2);
     int cryptoUnitIsIdentical(BRCryptoUnit u1, BRCryptoUnit u2);
@@ -208,43 +208,42 @@ public interface CryptoLibrary extends Library {
 
     // crypto/BRCryptoWallet.h
     int cryptoWalletGetState(BRCryptoWallet wallet);
-    void cryptoWalletSetState(BRCryptoWallet wallet, int state);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
+    BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
     Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    BRCryptoAddress.OwnedBRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
-    BRCryptoFeeBasis.OwnedBRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
-    void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
-    BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoTransfer.OwnedBRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);
+    BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
+    BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
+    BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
+    BRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);
     void cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
     void cryptoWalletEstimateFeeBasisForWalletSweep(BRCryptoWallet wallet, Pointer cookie, BRCryptoWalletSweeper sweeper, BRCryptoNetworkFee fee);
+    BRCryptoWallet cryptoWalletTake(BRCryptoWallet wallet);
     void cryptoWalletGive(BRCryptoWallet obj);
 
     // crypto/BRCryptoWalletManager.h
-    BRCryptoWalletManager.OwnedBRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
-                                                                               BRCryptoCWMClient.ByValue client,
-                                                                               BRCryptoAccount account,
-                                                                               BRCryptoNetwork network,
-                                                                               int mode,
-                                                                               int addressScheme,
-                                                                               String path);
-    BRCryptoNetwork.OwnedBRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
-    BRCryptoAccount.OwnedBRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
+    BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
+                                                    BRCryptoCWMClient.ByValue client,
+                                                    BRCryptoAccount account,
+                                                    BRCryptoNetwork network,
+                                                    int mode,
+                                                    int addressScheme,
+                                                    String path);
+    BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
+    BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
-    BRCryptoUnit.OwnedBRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
-    BRCryptoCurrency.OwnedBRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
+    BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
+    BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
+    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetNetworkReachable(BRCryptoWalletManager manager, int isNetworkReachable);
-    BRCryptoWallet.OwnedBRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
+    BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-    BRCryptoWallet.OwnedBRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
+    BRCryptoWallet cryptoWalletManagerRegisterWallet(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm, BRCryptoPeer peer);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
@@ -288,27 +287,28 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceGetTokensComplete(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, int success);
     void cwmAnnounceGetNonceSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String address,String nonce);
     void cwmAnnounceGetNonceFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
+    BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 
     // crypto/BRCryptoWalletManager.h
     int cryptoWalletSweeperValidateSupported(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, BRCryptoWallet wallet);
-    BRCryptoWalletSweeper.OwnedBRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
-    BRCryptoKey.OwnedBRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
-    BRCryptoAmount.OwnedBRCryptoAmount cryptoWalletSweeperGetBalance(BRCryptoWalletSweeper sweeper);
+    BRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
+    BRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
+    BRCryptoAmount cryptoWalletSweeperGetBalance(BRCryptoWalletSweeper sweeper);
     Pointer cryptoWalletSweeperGetAddress(BRCryptoWalletSweeper sweeper);
     int cryptoWalletSweeperHandleTransactionAsBTC(BRCryptoWalletSweeper sweeper, byte[] transaction, SizeT transactionLen);
     int cryptoWalletSweeperValidate(BRCryptoWalletSweeper sweeper);
     void cryptoWalletSweeperRelease(BRCryptoWalletSweeper sweeper);
 
     // crypto/BRCryptoWalletManager.h
-    BRCryptoWalletMigrator.OwnedBRCryptoWalletMigrator cryptoWalletMigratorCreate(BRCryptoNetwork network, String storagePath);
+    BRCryptoWalletMigrator cryptoWalletMigratorCreate(BRCryptoNetwork network, String storagePath);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator, byte[] bytes, SizeT bytesCount, int blockHeight, int timestamp);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleBlockBytesAsBTC(BRCryptoWalletMigrator migrator, byte[] buffer, SizeT bufferLen, int height);
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator, int address, short port, long services, int timestamp);
     void cryptoWalletMigratorRelease(BRCryptoWalletMigrator migrator);
 
     // crypto/BRCryptoCoder.h
-    BRCryptoCoder.OwnedBRCryptoCoder cryptoCoderCreate(int type);
+    BRCryptoCoder cryptoCoderCreate(int type);
     SizeT cryptoCoderEncodeLength(BRCryptoCoder coder, byte[] src, SizeT srcLen);
     int cryptoCoderEncode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     SizeT cryptoCoderDecodeLength(BRCryptoCoder coder, byte[] src);
@@ -316,9 +316,9 @@ public interface CryptoLibrary extends Library {
     void cryptoCoderGive(BRCryptoCoder coder);
 
     // crypto/BRCryptoCipher.h
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
-    BRCryptoCipher.OwnedBRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
+    BRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
+    BRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
+    BRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
     SizeT cryptoCipherEncryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
     int cryptoCipherEncrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     SizeT cryptoCipherDecryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
@@ -326,16 +326,16 @@ public interface CryptoLibrary extends Library {
     void cryptoCipherGive(BRCryptoCipher cipher);
 
     // crypto/BRCryptoHasher.h
-    BRCryptoHasher.OwnedBRCryptoHasher cryptoHasherCreate(int type);
+    BRCryptoHasher cryptoHasherCreate(int type);
     SizeT cryptoHasherLength(BRCryptoHasher hasher);
     int cryptoHasherHash(BRCryptoHasher hasher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     void cryptoHasherGive(BRCryptoHasher hasher);
 
     // crypto/BRCryptoSigner.h
-    BRCryptoSigner.OwnedBRCryptoSigner cryptoSignerCreate(int type);
+    BRCryptoSigner cryptoSignerCreate(int type);
     SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
     int cryptoSignerSign(BRCryptoSigner signer, BRCryptoKey key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
-    BRCryptoKey.OwnedBRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
+    BRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
     void cryptoSignerGive(BRCryptoSigner signer);
 
     // ethereum/util/BRUtilMath.h

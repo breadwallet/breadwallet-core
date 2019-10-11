@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -18,18 +19,22 @@ import java.util.Objects;
 final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
-    static Unit create(BRCryptoUnit core) {
-        return new Unit(core);
-    }
-
-    /* package */
     static Unit create(Currency currency, String uids, String name, String symbol) {
-        return new Unit(BRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol));
+        BRCryptoUnit core = BRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol);
+        return Unit.create(core);
     }
 
     /* package */
     static Unit create(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
-        return new Unit(BRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals));
+        BRCryptoUnit core = BRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals);
+        return Unit.create(core);
+    }
+
+    /* package */
+    static Unit create(BRCryptoUnit core) {
+        Unit unit = new Unit(core);
+        ReferenceCleaner.register(unit, core::give);
+        return unit;
     }
 
     /* package */
@@ -59,10 +64,10 @@ final class Unit implements com.breadwallet.crypto.Unit {
         // don't cache base unit to avoid recursion; cost of get is cheap
 
         this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
-        this.nameSupplier = Suppliers.memoize(() -> core.getName());
-        this.symbolSupplier = Suppliers.memoize(() -> core.getSymbol());
-        this.uidsSupplier = Suppliers.memoize(() -> core.getUids());
-        this.decimalsSupplier = Suppliers.memoize(() -> core.getDecimals());
+        this.nameSupplier = Suppliers.memoize(core::getName);
+        this.symbolSupplier = Suppliers.memoize(core::getSymbol);
+        this.uidsSupplier = Suppliers.memoize(core::getUids);
+        this.decimalsSupplier = Suppliers.memoize(core::getDecimals);
     }
 
     @Override
@@ -82,7 +87,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public Unit getBase() {
-        return new Unit(core.getBaseUnit());
+        return Unit.create(core.getBaseUnit());
     }
 
     @Override

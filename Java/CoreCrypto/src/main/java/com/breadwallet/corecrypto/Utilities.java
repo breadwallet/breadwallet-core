@@ -158,7 +158,6 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.fee)
-                                    .transform(BRCryptoAmount::toOwned)
                                     .transform(Amount::create)
                     )
             );

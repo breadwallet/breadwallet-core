@@ -21,18 +21,18 @@ import java.util.List;
 
 public class BRCryptoWalletMigrator extends PointerType {
 
+    public static Optional<BRCryptoWalletMigrator> create(BRCryptoNetwork network, String storagePath) {
+        return Optional.fromNullable(
+            CryptoLibrary.INSTANCE.cryptoWalletMigratorCreate(network, storagePath)
+        );
+    }
+
     public BRCryptoWalletMigrator(Pointer address) {
         super(address);
     }
 
     public BRCryptoWalletMigrator() {
         super();
-    }
-
-    public static Optional<BRCryptoWalletMigrator> create(BRCryptoNetwork network, String storagePath) {
-        return Optional.fromNullable(
-            CryptoLibrary.INSTANCE.cryptoWalletMigratorCreate(network, storagePath)
-        );
     }
 
     public boolean handleTransactionAsBtc(byte[] bytes, UnsignedInteger blockHeight, UnsignedInteger timestamp) {
@@ -65,21 +65,7 @@ public class BRCryptoWalletMigrator extends PointerType {
         return BRCryptoWalletMigratorStatus.CRYPTO_WALLET_MIGRATOR_SUCCESS == status.type;
     }
 
-    public static class OwnedBRCryptoWalletMigrator extends BRCryptoWalletMigrator {
-
-        public OwnedBRCryptoWalletMigrator(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoWalletMigrator() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoWalletMigratorRelease(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoWalletMigratorRelease(this);
     }
 }

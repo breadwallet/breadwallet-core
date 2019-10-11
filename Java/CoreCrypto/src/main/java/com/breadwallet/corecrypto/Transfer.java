@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
@@ -20,8 +21,15 @@ import java.util.Objects;
 final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
-    static Transfer create(BRCryptoTransfer transfer, Wallet wallet) {
-        return new Transfer(transfer, wallet);
+    static Transfer takeAndCreate(BRCryptoTransfer core, Wallet wallet) {
+        return Transfer.create(core.take(), wallet);
+    }
+
+    /* package */
+    static Transfer create(BRCryptoTransfer core, Wallet wallet) {
+        Transfer transfer = new Transfer(core, wallet);
+        ReferenceCleaner.register(transfer, core::give);
+        return transfer;
     }
 
     /* package */

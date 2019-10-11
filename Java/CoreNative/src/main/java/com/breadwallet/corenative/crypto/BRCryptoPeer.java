@@ -49,21 +49,7 @@ public class BRCryptoPeer extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoPeerIsIdentical(this, core);
     }
 
-    public static class OwnedBRCryptoPeer extends BRCryptoPeer {
-
-        public OwnedBRCryptoPeer(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoPeer() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoPeerGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoPeerGive(this);
     }
 }

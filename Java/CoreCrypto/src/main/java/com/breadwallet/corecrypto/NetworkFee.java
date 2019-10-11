@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.google.common.primitives.UnsignedLong;
 
@@ -18,15 +19,20 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
     /* package */
     static NetworkFee create(UnsignedLong timeIntervalInMilliseconds,
                              Amount pricePerCostFactor) {
-        return new NetworkFee(BRCryptoNetworkFee.create(
-                timeIntervalInMilliseconds,
-                pricePerCostFactor.getCoreBRCryptoAmount(),
-                pricePerCostFactor.getUnit().getCoreBRCryptoUnit()));
+        return NetworkFee.create(
+                BRCryptoNetworkFee.create(
+                        timeIntervalInMilliseconds,
+                        pricePerCostFactor.getCoreBRCryptoAmount(),
+                        pricePerCostFactor.getUnit().getCoreBRCryptoUnit()
+                )
+        );
     }
 
     /* package */
     static NetworkFee create(BRCryptoNetworkFee core) {
-        return new NetworkFee(core);
+        NetworkFee fee = new NetworkFee(core);
+        ReferenceCleaner.register(fee, core::give);
+        return fee;
     }
 
     /* package */
