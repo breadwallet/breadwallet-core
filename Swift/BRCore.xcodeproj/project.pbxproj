@@ -185,6 +185,14 @@
 		3CA6396F2301FD97006DD57B /* BRSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA6396E2301FD97006DD57B /* BRSupportTests.swift */; };
 		3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
 		3CA639742305B4DF006DD57B /* BRCryptoDebugSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA639732305B4DF006DD57B /* BRCryptoDebugSupport.swift */; };
+		3CA7BA552350DDA600F40414 /* testHedera.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCFD234FDF81000AB7DE /* testHedera.c */; };
+		3CA7BA562350DDD600F40414 /* ge.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE9234FDE0C000AB7DE /* ge.c */; };
+		3CA7BA572350DDD600F40414 /* keypair.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCEB234FDE0C000AB7DE /* keypair.c */; };
+		3CA7BA582350DDD600F40414 /* sc.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE5234FDE0C000AB7DE /* sc.c */; };
+		3CA7BA592350DDD600F40414 /* sha512.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE8234FDE0C000AB7DE /* sha512.c */; };
+		3CA7BA5A2350DDD600F40414 /* sign.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCF2234FDE0D000AB7DE /* sign.c */; };
+		3CA7BA5B2350DDD600F40414 /* verify.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE6234FDE0C000AB7DE /* verify.c */; };
+		3CA7BA5C2350DDDE00F40414 /* fe.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE7234FDE0C000AB7DE /* fe.c */; };
 		3CA8B7162346963A0076B8EB /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
@@ -291,7 +299,6 @@
 		C32ADCF8234FDE0D000AB7DE /* ge.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE9234FDE0C000AB7DE /* ge.c */; };
 		C32ADCF9234FDE0D000AB7DE /* keypair.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCEB234FDE0C000AB7DE /* keypair.c */; };
 		C32ADCFA234FDE0D000AB7DE /* sign.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCF2234FDE0D000AB7DE /* sign.c */; };
-		C32ADCFE234FDF81000AB7DE /* testHedera.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCFD234FDF81000AB7DE /* testHedera.c */; };
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
@@ -1289,8 +1296,8 @@
 		3C6AE1252329855300016196 /* vendor */ = {
 			isa = PBXGroup;
 			children = (
-				C32ADCE4234FDD83000AB7DE /* ed25519 */,
 				3C5E1804232D574A00A558C7 /* README */,
+				C32ADCE4234FDD83000AB7DE /* ed25519 */,
 				3C5E17F2232D55A000A558C7 /* secp256k1 */,
 				3C6AE1262329855300016196 /* sqlite3 */,
 			);
@@ -1459,19 +1466,19 @@
 		C32ADCE4234FDD83000AB7DE /* ed25519 */ = {
 			isa = PBXGroup;
 			children = (
+				C32ADCEF234FDE0C000AB7DE /* license.txt */,
 				C32ADCEC234FDE0C000AB7DE /* ed25519.h */,
+				C32ADCEA234FDE0C000AB7DE /* precomp_data.h */,
+				C32ADCF3234FDE0D000AB7DE /* fixedint.h */,
 				C32ADCF0234FDE0D000AB7DE /* fe.h */,
 				C32ADCE7234FDE0C000AB7DE /* fe.c */,
-				C32ADCF3234FDE0D000AB7DE /* fixedint.h */,
 				C32ADCED234FDE0C000AB7DE /* ge.h */,
 				C32ADCE9234FDE0C000AB7DE /* ge.c */,
-				C32ADCEB234FDE0C000AB7DE /* keypair.c */,
-				C32ADCEF234FDE0C000AB7DE /* license.txt */,
-				C32ADCEA234FDE0C000AB7DE /* precomp_data.h */,
 				C32ADCEE234FDE0C000AB7DE /* sc.h */,
 				C32ADCE5234FDE0C000AB7DE /* sc.c */,
 				C32ADCF1234FDE0D000AB7DE /* sha512.h */,
 				C32ADCE8234FDE0C000AB7DE /* sha512.c */,
+				C32ADCEB234FDE0C000AB7DE /* keypair.c */,
 				C32ADCF2234FDE0D000AB7DE /* sign.c */,
 				C32ADCE6234FDE0C000AB7DE /* verify.c */,
 			);
@@ -1926,6 +1933,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3CA7BA5C2350DDDE00F40414 /* fe.c in Sources */,
 				3C0D297C216FD0DB003838E9 /* BREthereumMessagePIP.c in Sources */,
 				3C7BE5AC230EFD43005FD4CD /* BRCryptoWalletManager.c in Sources */,
 				3C9B8DF222BD55CA0060C3A9 /* BRRippleSignature.c in Sources */,
@@ -1938,9 +1946,11 @@
 				3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */,
 				3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */,
 				3C9B8DEE22BD52940060C3A9 /* BRGenericHandlers.c in Sources */,
+				3CA7BA592350DDD600F40414 /* sha512.c in Sources */,
 				3C6B17402131CE12003C313B /* BREthereumNetwork.c in Sources */,
 				CE5E43C523390FBB001E9238 /* BRCryptoCoder.c in Sources */,
 				3C97E2362241658E003FD88F /* BRCryptoCurrency.c in Sources */,
+				3CA7BA5B2350DDD600F40414 /* verify.c in Sources */,
 				3C6B17412131CE12003C313B /* BREthereumTransactionReceipt.c in Sources */,
 				3C0D297A216FD0DB003838E9 /* BREthereumMessageDIS.c in Sources */,
 				3C6B17422131CE12003C313B /* BREthereumAccountState.c in Sources */,
@@ -1964,6 +1974,8 @@
 				3C6B174E2131CE12003C313B /* BREthereumLES.c in Sources */,
 				CE5E43C9233930F1001E9238 /* BRCryptoSigner.c in Sources */,
 				3C6B174F2131CE12003C313B /* BREthereumBCSEvent.c in Sources */,
+				3CA7BA572350DDD600F40414 /* keypair.c in Sources */,
+				3CA7BA5A2350DDD600F40414 /* sign.c in Sources */,
 				3C9B8DEC22BD52940060C3A9 /* BRGenericWalletManager.c in Sources */,
 				3C97E25222416AB1003FD88F /* BRCryptoAmount.c in Sources */,
 				3C7BE5A6230EFD14005FD4CD /* BRCryptoHash.c in Sources */,
@@ -1985,6 +1997,7 @@
 				3C6B17582131CE12003C313B /* BRBCashAddr.c in Sources */,
 				3C0D297B216FD0DB003838E9 /* BREthereumMessageLES.c in Sources */,
 				3C6B17592131CE12003C313B /* BRAddress.c in Sources */,
+				3CA7BA562350DDD600F40414 /* ge.c in Sources */,
 				3C6B175A2131CE12003C313B /* BRBase58.c in Sources */,
 				3CEF5FD52208C6E40010A811 /* BRAssert.c in Sources */,
 				3C9B8DF022BD55CA0060C3A9 /* BRRippleBase58.c in Sources */,
@@ -2007,6 +2020,7 @@
 				3C6B17622131CE12003C313B /* BREthereumNode.c in Sources */,
 				3C6B17632131CE12003C313B /* BRBIP39Mnemonic.c in Sources */,
 				3C6B17642131CE12003C313B /* BRBloomFilter.c in Sources */,
+				3CA7BA582350DDD600F40414 /* sc.c in Sources */,
 				3C6B17652131CE12003C313B /* BRCrypto.c in Sources */,
 				3C7BE5A4230EFD0B005FD4CD /* BRCryptoFeeBasis.c in Sources */,
 				3C6B17662131CE12003C313B /* BRKeyECIES.c in Sources */,
@@ -2100,7 +2114,6 @@
 				3CAB60D220AF8D1A00810CE4 /* BRUtilMath.c in Sources */,
 				3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */,
 				C32ADCF7234FDE0D000AB7DE /* sha512.c in Sources */,
-				C32ADCFE234FDF81000AB7DE /* testHedera.c in Sources */,
 				3CF66AE722A8358200C1E9BB /* BRCryptoNetwork.c in Sources */,
 				3CAB60D320AF8D1A00810CE4 /* BRUtilMathParse.c in Sources */,
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
@@ -2165,6 +2178,7 @@
 				3C9025FB2106613600143B69 /* testContract.c in Sources */,
 				CEE6CDE92305DDC8006724EB /* testBwm.c in Sources */,
 				3CAB60E820AF8EE000810CE4 /* test.c in Sources */,
+				3CA7BA552350DDA600F40414 /* testHedera.c in Sources */,
 				3C9025F92106511700143B69 /* testEwm.c in Sources */,
 				3C812EC22266721E0007D335 /* testRipple.c in Sources */,
 				3C9025F121063BDC00143B69 /* testRlp.c in Sources */,
