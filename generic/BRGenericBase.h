@@ -17,12 +17,15 @@
 extern "C" {
 #endif
 
-    typedef void *BRGenericAccount;
-    typedef void *BRGenericAddress;
-    typedef void *BRGenericTransfer;
-    typedef void *BRGenericWallet;
-    typedef void *BRGenericNetwork;
-    typedef void *BRGenericFeeBasis;
+    typedef struct BRGenericAccountRecord  *BRGenericAccount;
+    typedef struct BRGenericNetworkRecord  *BRGenericNetwork;
+    typedef struct BRGenericAddressRecord  *BRGenericAddress;
+    typedef struct BRGenericFeeBasisRecord *BRGenericFeeBasis;
+    typedef struct BRGenericTransferRecord *BRGenericTransfer;
+    typedef struct BRGenericWalletRecord   *BRGenericWallet;
+    typedef struct BRGenericManagerRecord  *BRGenericManager;
+
+    // MARK: - Generic Hash
 
     typedef struct {
         UInt256 value;
@@ -48,6 +51,12 @@ extern "C" {
         return gen.value.u32[0];
     }
 
+    // MARK: Generic API Sync Type
+
+    typedef enum {
+        GENERIC_SYNC_TYPE_TRANSACTION,
+        GENERIC_SYNC_TYPE_TRANSFER
+    } BRGenericAPISyncType;
 
 #ifdef __cplusplus
 }

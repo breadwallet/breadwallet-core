@@ -1692,7 +1692,7 @@ cwmGetNonceAsETH (BREthereumClientContext context,
 
 static void
 cwmGetBlockNumberAsGEN (BRGenericClientContext context,
-                        BRGenericWalletManager manager,
+                        BRGenericManager manager,
                         int rid) {
     // Extract CWM, checking to make sure it still lives
     BRCryptoWalletManager cwm = cryptoWalletManagerTakeWeak(context);
@@ -1711,7 +1711,7 @@ cwmGetBlockNumberAsGEN (BRGenericClientContext context,
 
 static void
 cwmGetTransactionsAsGEN (BRGenericClientContext context,
-                         BRGenericWalletManager manager,
+                         BRGenericManager manager,
                          const char *address,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
@@ -1735,7 +1735,7 @@ cwmGetTransactionsAsGEN (BRGenericClientContext context,
 
 static void
 cwmGetTransfersAsGEN (BRGenericClientContext context,
-                       BRGenericWalletManager manager,
+                       BRGenericManager manager,
                        const char *address,
                        uint64_t begBlockNumber,
                        uint64_t endBlockNumber,
@@ -1757,7 +1757,7 @@ cwmGetTransfersAsGEN (BRGenericClientContext context,
 
 static void
 cwmSubmitTransactionAsGEN (BRGenericClientContext context,
-                           BRGenericWalletManager manager,
+                           BRGenericManager manager,
                            BRGenericWallet wallet,
                            BRGenericTransfer transfer,
                            uint8_t *tx,

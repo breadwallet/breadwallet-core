@@ -11,6 +11,7 @@
 #ifndef BRRipple_account_h
 #define BRRipple_account_h
 
+#include "generic/BRGeneric.h"
 #include "BRRippleTransaction.h"
 #include "BRKey.h"
 

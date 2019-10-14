@@ -24,7 +24,7 @@ static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
 #include "generic/BRGenericHandlers.h"
 
 static void _accounts_init (void) {
-    genericHandlersInstall (genericRippleHandlers);
+    genHandlersInstall (genericRippleHandlers);
     // ...
 }
 

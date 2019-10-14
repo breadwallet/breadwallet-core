@@ -754,8 +754,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
         case BLOCK_CHAIN_TYPE_GEN: {
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
-            gwmWalletSubmitTransfer (cwm->u.gen,
-                                     cryptoWalletAsGEN (wallet),
+            gwmWalletSubmitTransfer (cryptoWalletAsGEN (wallet),
                                      cryptoTransferAsGEN (transfer),
                                      seed);
 
@@ -856,7 +855,7 @@ cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
 
 private_extern BRCryptoBoolean
 cryptoWalletManagerHasGEN (BRCryptoWalletManager manager,
-                           BRGenericWalletManager gwm) {
+                           BRGenericManager gwm) {
     return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == manager->type && gwm == manager->u.gen);
 }
 
@@ -916,7 +915,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
 
     // Create the generic transfers...
-    BRCryptoTransfer transfer = cryptoTransferCreateAsGEN (unit, unitForFee, cwm->u.gen, transferGeneric);
+    BRCryptoTransfer transfer = cryptoTransferCreateAsGEN (unit, unitForFee, transferGeneric);
 
     // TODO: Determine the wallet from transfer/transferGeneric
     BRCryptoWallet   wallet   = cwm->wallet;

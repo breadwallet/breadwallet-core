@@ -21,38 +21,64 @@
 extern "C" {
 #endif
 
-    typedef enum {
-        GENERIC_SYNC_TYPE_TRANSACTION,
-        GENERIC_SYNC_TYPE_TRANSFER
-    } BRGenericAPISyncType;
+     // MARK: - Generic Network
 
-    typedef struct BRGenericHandersRecord *BRGenericHandlers;
+     typedef BRGenericAddress (*BRGenericNetworkAddressCreate) (const char * address);
+     typedef void (*BRGenericNetworkAddressFree) (BRGenericAddress address);
 
-    typedef struct BRGenericAccountWithTypeRecord {
-        BRGenericHandlers handlers;
-        BRGenericAccount base;
-    } *BRGenericAccountWithType;;
+     typedef struct {
+         BRGenericNetworkAddressCreate networkAddressCreate;
+         BRGenericNetworkAddressFree networkAddressFree;
+     } BRGenericNetworkHandlers;
 
-    typedef struct {
-        BRGenericHandlers handlers;
-    } BRGenericNetworkRecord;
 
-    // MARK: - Generic Account
+     // MARK: - Generic Account
 
-    typedef void * (*BRGenericAccountCreate) (const char *type, UInt512 seed);
-    typedef void * (*BRGenericAccountCreateWithPublicKey) (const char *type, BRKey key);
-    typedef void * (*BRGenericAccountCreateWithSerialization) (const char *type, uint8_t *bytes, size_t bytesCount);
+    typedef BRGenericAccount (*BRGenericAccountCreate) (const char *type, UInt512 seed);
+    typedef BRGenericAccount (*BRGenericAccountCreateWithPublicKey) (const char *type, BRKey key);
+    typedef BRGenericAccount (*BRGenericAccountCreateWithSerialization) (const char *type, uint8_t *bytes, size_t bytesCount);
     typedef void (*BRGenericAccountFree) (BRGenericAccount account);
     typedef BRGenericAddress (*BRGenericAccountGetAddress) (BRGenericAccount account);
     typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccount account, size_t *bytesCount);
     typedef void (*BRGenericAccountSerializeTransfer) (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed);
 
+    typedef struct {
+        BRGenericAccountCreate create;
+        BRGenericAccountCreateWithPublicKey createWithPublicKey;
+        BRGenericAccountCreateWithSerialization createWithSerialization;
+        BRGenericAccountFree free;
+        BRGenericAccountGetAddress getAddress;
+        BRGenericAccountGetSerialization getSerialization;
+        BRGenericAccountSerializeTransfer serializeTransfer;
+    } BRGenericAccountHandlers;
+
     // MARK: - Generic Address
+
     typedef char * (*BRGenericAddressAsString) (BRGenericAddress address);
     typedef int (*BRGenericAddressEqual) (BRGenericAddress address1,
                                           BRGenericAddress address2);
 
-    // MARK: - Generic Treansfer
+    typedef struct {
+        BRGenericAddressAsString asString;
+        BRGenericAddressEqual equal;
+    } BRGenericAddressHandlers;
+
+    // MARK: - FeeBasis
+
+    typedef UInt256 (*BRGenericFeeBasisGetPricePerCostFactor) (BRGenericFeeBasis feeBasis);
+    typedef double (*BRGenericFeeBasisGetCostFactor) (BRGenericFeeBasis feeBasis);
+    typedef uint32_t (*BRGenericFeeBasisIsEqual) (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
+    typedef void (*BRGenericFeeBasisFree) (BRGenericFeeBasis feeBasis);
+
+    typedef struct {
+        BRGenericFeeBasisGetPricePerCostFactor pricePerCostFactor;
+        BRGenericFeeBasisGetCostFactor costFactor;
+        BRGenericFeeBasisIsEqual feeBasisIsEqual;
+        BRGenericFeeBasisFree free;
+    } BRGenericFeeBasisHandlers;
+
+    // MARK: - Generic Transfer
+
     typedef BRGenericTransfer (*BRGenericTransferCreate) (BRGenericAddress source,
                                                           BRGenericAddress target,
                                                           UInt256 amount);
@@ -65,12 +91,38 @@ extern "C" {
     typedef BRGenericHash (*BRGenericTransferGetHash) (BRGenericTransfer transfer);
     typedef uint8_t * (*BRGenericTransferGetSerialization) (BRGenericTransfer transfer, size_t *bytesCount);
 
+    typedef struct {
+        BRGenericTransferCreate create;
+        BRGenericTransferFree   free;
+        BRGenericTransferGetSourceAddress sourceAddress;
+        BRGenericTransferGetTargetAddress targetAddress;
+        BRGenericTransferGetAmount amount;
+        BRGenericTransferGetFee fee;
+        BRGenericTransferGetFeeBasis feeBasis;
+        BRGenericTransferGetHash hash;
+        BRGenericTransferGetSerialization getSerialization;
+    } BRGenericTransferHandlers;
+
     // MARK: - Generic Wallet
+
     typedef BRGenericWallet (*BRGenericWalletCreate) (BRGenericAccount account);
     typedef void (*BRGenericWalletFree) (BRGenericWallet wallet);
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
+    typedef BRGenericTransfer (*BRGenericWalletCreateTransfer) (BRGenericWallet wallet,
+                                                                BRGenericAddress address,
+                                                                UInt256 amount);
 
-    // MARK: - Generic Wallet Manager
+    typedef struct {
+        BRGenericWalletCreate create;
+        BRGenericWalletFree free;
+        BRGenericWalletGetBalance balance;
+        // set balance
+        // ...
+        BRGenericWalletCreateTransfer createTransfer;
+    } BRGenericWalletHandlers;
+
+    // MARK: - Generic (Wallet) Manager
+
     // Create a transfer from the
     typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
                                                                         const char *from,
@@ -81,7 +133,7 @@ extern "C" {
                                                                         uint64_t blockHeight);
 
     typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
-                                                                        size_t   bytesCount);
+                                                                                                      size_t   bytesCount);
 
     typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
                                                                  BRFileService fileService);
@@ -91,83 +143,32 @@ extern "C" {
 
     typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
 
-    // MARK: - FeeBasis
-    typedef UInt256 (*BRGenericFeeBasisGetPricePerCostFactor) (BRGenericFeeBasis feeBasis);
-    typedef double (*BRGenericFeeBasisGetCostFactor) (BRGenericFeeBasis feeBasis);
-    typedef uint32_t (*BRGenericFeeBasisIsEqual) (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
-    typedef void (*BRGenericFeeBasisFree) (BRGenericFeeBasis feeBasis);
-
-    // MARK: - Network
-
-    typedef BRGenericAddress (*BRGenericNetworkAddressCreate) (const char * address);
-    typedef void (*BRGenericNetworkAddressFree) (BRGenericAddress address);
+    typedef struct {
+        BRGenericWalletManagerRecoverTransfer transferRecover;
+        BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
+        BRGenericWalletManagerInitializeFileService fileServiceInit;
+        BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
+        BRGenericWalletManagerGetAPISyncType apiSyncType;
+    } BRGenericManagerHandlers;
 
     // MARK: - Generic Handlers
 
-    struct BRGenericHandersRecord {
+    typedef struct BRGenericHandersRecord {
         const char *type;
-        struct {
-            BRGenericAccountCreate create;
-            BRGenericAccountCreateWithPublicKey createWithPublicKey;
-            BRGenericAccountCreateWithSerialization createWithSerialization;
-            BRGenericAccountFree free;
-            BRGenericAccountGetAddress getAddress;
-            BRGenericAccountGetSerialization getSerialization;
-            BRGenericAccountSerializeTransfer serializeTransfer;
-        } account;
-
-        struct {
-            BRGenericAddressAsString asString;
-            BRGenericAddressEqual equal;
-        } address;
-        
-        struct {
-            BRGenericTransferCreate create;
-            BRGenericTransferFree   free;
-            BRGenericTransferGetSourceAddress sourceAddress;
-            BRGenericTransferGetTargetAddress targetAddress;
-            BRGenericTransferGetAmount amount;
-            BRGenericTransferGetFee fee;
-            BRGenericTransferGetFeeBasis feeBasis;
-            BRGenericTransferGetHash hash;
-            BRGenericTransferGetSerialization getSerialization;
-        } transfer;
-
-        struct {
-            BRGenericWalletCreate create;
-            BRGenericWalletFree free;
-            BRGenericWalletGetBalance balance;
-            // set balance
-
-            // ...
-        } wallet;
-
-        struct {
-            BRGenericWalletManagerRecoverTransfer transferRecover;
-            BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
-            BRGenericWalletManagerInitializeFileService fileServiceInit;
-            BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
-            BRGenericWalletManagerGetAPISyncType apiSyncType;
-        } manager;
-
-        struct {
-            BRGenericFeeBasisGetPricePerCostFactor pricePerCostFactor;
-            BRGenericFeeBasisGetCostFactor costFactor;
-            BRGenericFeeBasisIsEqual feeBasisIsEqual;
-            BRGenericFeeBasisFree free;
-        } feebasis;
-
-        struct {
-            BRGenericNetworkAddressCreate networkAddressCreate;
-            BRGenericNetworkAddressFree networkAddressFree;
-        } network;
-    };
+        BRGenericNetworkHandlers network;
+        BRGenericAccountHandlers account;
+        BRGenericAddressHandlers address;
+        BRGenericFeeBasisHandlers feeBasis;
+        BRGenericTransferHandlers transfer;
+        BRGenericWalletHandlers wallet;
+        BRGenericManagerHandlers manager;
+    } *BRGenericHandlers;
 
     extern void
-    genericHandlersInstall (const BRGenericHandlers handlers);
+    genHandlersInstall (const BRGenericHandlers handlers);
 
     extern const BRGenericHandlers
-    genericHandlerLookup (const char *symbol);
+    genHandlerLookup (const char *symbol);
 
 #ifdef __cplusplus
 }

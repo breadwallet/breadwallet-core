@@ -12,225 +12,213 @@
 #include <assert.h>
 #include <string.h>
 
-#include "BRGeneric.h"
-#include "BRGenericHandlers.h"
+#include "BRGenericPrivate.h"
+
+// MARK: - Network
+
+IMPLEMENT_GENERIC_TYPE(Network,network)
 
 extern BRGenericNetwork
-gwmNetworkCreate(const char * type) {
-    BRGenericNetworkRecord * network = calloc(1, sizeof(BRGenericNetworkRecord));
-    network->handlers = genericHandlerLookup(type);
-    return network;
+gwmNetworkCreate (const char *type) {
+    // There is no 'gen handler' for network create
+    return genNetworkAllocAndInit (type, sizeof (struct BRGenericNetworkRecord));
 }
 
 extern void
-gwmNetworkRelease(BRGenericNetwork network) {
-    BRGenericNetworkRecord * networkToRelease = network;
-    free(networkToRelease);
-}
-
-extern BRGenericHandlers
-gwmNetworkGetHandlers(BRGenericNetwork network) {
-    return ((BRGenericNetworkRecord *) network)->handlers;
+gwmNetworkRelease (BRGenericNetwork network) {
+    free (network);
 }
 
 extern BRGenericAddress
-gwmNetworkAddressCreate(BRGenericNetwork network, const char * address) {
-    BRGenericNetworkRecord * networkRecord = network;
-    return networkRecord->handlers->network.networkAddressCreate(address);
+gwmNetworkAddressCreate (BRGenericNetwork network, const char * address) {
+    return network->handlers.networkAddressCreate(address);
 }
 
 extern void
-gwmNetworkAddressRelease(BRGenericNetwork network, BRGenericAddress address) {
-    BRGenericNetworkRecord * networkRecord = network;
-    return networkRecord->handlers->network.networkAddressFree(address);
+gwmNetworkAddressRelease (BRGenericNetwork network, BRGenericAddress address) {
+    return network->handlers.networkAddressFree(address);
 }
 
 // This is, admittedly, a little odd.
 
-static BRGenericAccount
-gwmAccountCreateInternal (BRGenericHandlers handlers, void *base) {
+// MARK: - Account
 
-    BRGenericAccountWithType account = calloc (1, sizeof (struct BRGenericAccountWithTypeRecord));
-
-    account->handlers = handlers;
-    account->base = base;
-
-    return account;
-}
+IMPLEMENT_GENERIC_TYPE(Account, account)
 
 extern BRGenericAccount
 gwmAccountCreate (const char *type,
                   UInt512 seed) {
-    BRGenericHandlers handlers = genericHandlerLookup(type);
-    assert (NULL != handlers);
-
-    return gwmAccountCreateInternal (handlers, handlers->account.create (type, seed));
+    return genHandlerLookup(type)->account.create (type, seed);
 }
 
 extern BRGenericAccount
 gwmAccountCreateWithPublicKey (const char *type,
                                BRKey publicKey) {
-    BRGenericHandlers handlers = genericHandlerLookup(type);
-    assert (NULL != handlers);
-
-    return gwmAccountCreateInternal (handlers, handlers->account.createWithPublicKey (type, publicKey));
+    return genHandlerLookup(type)->account.createWithPublicKey (type, publicKey);
 }
 
 extern BRGenericAccount
 gwmAccountCreateWithSerialization(const char *type,
                                   uint8_t *bytes,
                                   size_t   bytesCount) {
-    BRGenericHandlers handlers = genericHandlerLookup(type);
-    assert (NULL != handlers);
-
-    return gwmAccountCreateInternal (handlers, handlers->account.createWithSerialization (type, bytes, bytesCount));
+    return genHandlerLookup(type)->account.createWithSerialization (type, bytes, bytesCount);
 }
 
 extern void
 gwmAccountRelease (BRGenericAccount account) {
-    BRGenericAccountWithType accountWithType = account;
-    accountWithType->handlers->account.free (accountWithType->base);
-    free (accountWithType);
+    account->handlers.free (account);
 }
 
 extern const char *
 gwmAccountGetType (BRGenericAccount account) {
-    BRGenericAccountWithType accountWithType = account;
-    return accountWithType->handlers->type;
+    return account->type;
 }
 
 extern int
 gwmAccountHasType (BRGenericAccount account,
                    const char *type) {
-    BRGenericAccountWithType accountWithType = account;
-    return 0 == strcmp (type, accountWithType->handlers->type);
+    return type == account->type || 0 == strcmp  (type, account->type);
 }
 
 extern BRGenericAddress
 gwmAccountGetAddress (BRGenericAccount account) {
-    BRGenericAccountWithType accountWithType = account;
-    return accountWithType->handlers->account.getAddress (accountWithType->base);
+    return account->handlers.getAddress (account);
 }
 
 extern uint8_t *
 gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount) {
-    assert (NULL != bytesCount);
-
-    BRGenericAccountWithType accountWithType = account;
-    return accountWithType->handlers->account.getSerialization(accountWithType->base, bytesCount);
+    return account->handlers.getSerialization (account, bytesCount);
 }
 
 // MARK: - Address
 
+IMPLEMENT_GENERIC_TYPE(Address, address)
+
 extern char *
 gwmAddressAsString (BRGenericNetwork nid,
                     BRGenericAddress aid) {
-    return gwmNetworkGetHandlers(nid)->address.asString (aid);
+    return aid->handlers.asString (aid);
 }
 
 extern int
 gwmAddressEqual (BRGenericNetwork nid,
                  BRGenericAddress aid1,
                  BRGenericAddress aid2) {
-    return gwmNetworkGetHandlers(nid)->address.equal (aid1, aid2);
+    assert (0 == strcmp (aid1->type, aid2->type));
+    return aid1->handlers.equal (aid1, aid2);
 }
+
+// MARK: Fee Basis
+
+IMPLEMENT_GENERIC_TYPE(FeeBasis, feeBasis)
+
+extern UInt256
+gwmGetFeeBasisPricePerCostFactor (BRGenericFeeBasis feeBasis) {
+    return feeBasis->handlers.pricePerCostFactor (feeBasis);
+}
+
+extern double
+gwmGetFeeBasisCostFactor (BRGenericFeeBasis feeBasis) {
+    return feeBasis->handlers.costFactor (feeBasis);
+}
+
+extern uint32_t gwmGetFeeBasisIsEqual (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2) {
+    assert (0 == strcmp (fb1->type, fb2->type));
+    return fb1->handlers.feeBasisIsEqual (fb1, fb2);
+}
+
+extern void gwmFeeBasisRelease(BRGenericFeeBasis feeBasis) {
+    feeBasis->handlers.free (feeBasis);
+}
+
 
 // MARK: - Transfer
 
-extern void gwmTransferRelease (BRGenericWalletManager gwm, BRGenericTransfer transfer) {
-    gwmGetHandlers(gwm)->transfer.free(transfer);
+IMPLEMENT_GENERIC_TYPE(Transfer, transfer)
+
+extern void
+gwmTransferRelease (BRGenericTransfer transfer) {
+    transfer->handlers.free (transfer);
 }
 
 extern BRGenericAddress
-gwmTransferGetSourceAddress (BRGenericWalletManager gwm,
-                             BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.sourceAddress (tid);
+gwmTransferGetSourceAddress (BRGenericTransfer transfer) {
+    return transfer->handlers.sourceAddress (transfer);
 }
 
 extern BRGenericAddress
-gwmTransferGetTargetAddress (BRGenericWalletManager gwm,
-                             BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.targetAddress (tid);
+gwmTransferGetTargetAddress (BRGenericTransfer transfer) {
+    return transfer->handlers.targetAddress (transfer);
 }
 
 extern UInt256
-gwmTransferGetAmount (BRGenericWalletManager gwm,
-                      BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.amount (tid);
+gwmTransferGetAmount (BRGenericTransfer transfer) {
+    return transfer->handlers.amount (transfer);
 }
 
 // TODO: Direction is needed?
 
 extern UInt256
-gwmTransferGetFee (BRGenericWalletManager gwm,
-                   BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.fee (tid);
+gwmTransferGetFee (BRGenericTransfer transfer) {
+    return transfer->handlers.fee (transfer);
 }
 
 extern BRGenericFeeBasis
-gwmTransferGetFeeBasis (BRGenericWalletManager gwm,
-                        BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.feeBasis (tid);
+gwmTransferGetFeeBasis (BRGenericTransfer transfer) {
+    return transfer->handlers.feeBasis (transfer);
 }
 
 extern BRGenericHash
-gwmTransferGetHash (BRGenericWalletManager gwm,
-                    BRGenericTransfer tid) {
-    return gwmGetHandlers(gwm)->transfer.hash (tid);
+gwmTransferGetHash (BRGenericTransfer transfer) {
+    return transfer->handlers.hash (transfer);
 }
 
 // MARK: - Wallet
 
+IMPLEMENT_GENERIC_TYPE(Wallet, wallet)
+
 extern BRGenericWallet
-gwmWalletCreate (BRGenericWalletManager gwm) {
-    return gwmGetHandlers(gwm)->wallet.create (gwmGetAccount(gwm));
+gwmWalletCreate (BRGenericAccount account) {
+    return genHandlerLookup(account->type)->wallet.create (account);
 }
 
 extern void
-gwmWalletRelease (BRGenericWalletManager gwm, BRGenericWallet wallet) {
-    gwmGetHandlers(gwm)->wallet.free (wallet);
+gwmWalletRelease (BRGenericWallet wallet) {
+    wallet->handlers.free (wallet);
 }
 
 extern UInt256
-gwmWalletGetBalance (BRGenericWalletManager gwm,
-                     BRGenericWallet wallet) {
-    return gwmGetHandlers(gwm)->wallet.balance (wallet);
+gwmWalletGetBalance (BRGenericWallet wallet) {
+    return wallet->handlers.balance (wallet);
 }
 
 // TODO: Set Balance?  Add transfer/directed-amount?
 
 extern BRGenericAddress
-gwmWalletGetAddress (BRGenericWalletManager gwm,
-                     BRGenericWallet wid) {
+gwmWalletGetAddress (BRGenericWallet wid) {
     return NULL;
 }
 
 extern BRGenericFeeBasis
-gwmWalletGetDefaultFeeBasis (BRGenericWalletManager gwm,
-                             BRGenericWallet wid) {
+gwmWalletGetDefaultFeeBasis (BRGenericWallet wid) {
     return NULL;
 }
 
 extern void
-gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
-                             BRGenericWallet wid,
+gwmWalletSetDefaultFeeBasis (BRGenericWallet wid,
                              BRGenericFeeBasis bid) {
     return;
 }
 
 extern BRGenericTransfer
-gwmWalletCreateTransfer (BRGenericWalletManager gwm,
-                         BRGenericWallet wid,
+gwmWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount) {
-    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
-    BRGenericAddress accountAddress = accountWithType->handlers->account.getAddress(accountWithType->base);
-    return gwmGetHandlers(gwm)->transfer.create(accountAddress, target, amount);
+    return wallet->handlers.createTransfer (wallet, target, amount);
 }
 
 extern UInt256
-gwmWalletEstimateTransferFee (BRGenericWalletManager gwm,
-                              BRGenericWallet wid,
+gwmWalletEstimateTransferFee (BRGenericWallet wid,
                               UInt256 amount,
                               BRGenericFeeBasis feeBasis,
                               int *overflow) {
@@ -238,20 +226,19 @@ gwmWalletEstimateTransferFee (BRGenericWalletManager gwm,
 }
 
 extern void
-gwmWalletSubmitTransfer (BRGenericWalletManager gwm,
-                         BRGenericWallet wid,
-                         BRGenericTransfer tid,
+gwmWalletSubmitTransfer (BRGenericWallet wid,
+                         BRGenericTransfer transfer,
                          UInt512 seed) {
     // Sign and serialize
-    BRGenericAccountWithType accountWithType = gwmGetAccount(gwm);
-    accountWithType->handlers->account.serializeTransfer(accountWithType->base, tid, seed);
+    BRGenericAccount account = gwmGetAccount(gwm);
+    account->handlers.serializeTransfer (account, transfer, seed);
 
     // Get the raw bytes
     size_t txSize = 0;
-    uint8_t * tx = gwmGetHandlers(gwm)->transfer.getSerialization(tid, &txSize);
+    uint8_t * tx = transfer->handlers.getSerialization(transfer, &txSize);
     // Get the hash
-    BRGenericHash hash = gwmGetHandlers(gwm)->transfer.hash(tid);
+    BRGenericHash hash = transfer->handlers.hash(transfer);
     BRGenericClient client = gwmGetClient(gwm);
-    client.submitTransaction(client.context, gwm, wid, tid, tx, txSize, hash, 0);
+    client.submitTransaction(client.context, gwm, wid, transfer, tx, txSize, hash, 0);
 }
 

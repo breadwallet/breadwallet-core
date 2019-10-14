@@ -1,5 +1,5 @@
 //
-//  BRGenericWalletManager.c
+//  BRGenericManager.c
 //  BRCore
 //
 //  Created by Ed Gamble on 6/20/19.
@@ -12,7 +12,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "BRGeneric.h"
+#include "BRGenericPrivate.h"
 
 #include "support/BRFileService.h"
 #include "ethereum/event/BREvent.h"
@@ -32,7 +32,7 @@ extern const unsigned int gwmEventTypesCount;
 #endif
 
 static void
-gwmInstallFileService (BRGenericWalletManager gwm,
+gwmInstallFileService (BRGenericManager gwm,
                        const char *storagePath,
                        const char *currencyName,
                        const char *networkName);
@@ -40,7 +40,7 @@ gwmInstallFileService (BRGenericWalletManager gwm,
 ///
 ///
 ///
-struct BRGenericWalletManagerRecord {
+struct BRGenericManagerRecord {
     BRGenericHandlers handlers;
     BRGenericNetwork network;
     BRGenericAccount account;
@@ -84,7 +84,7 @@ struct BRGenericWalletManagerRecord {
     } brdSync;
 };
 
-extern BRGenericWalletManager
+extern BRGenericManager
 gwmCreate (BRGenericClient client,
            const char *type,
            BRGenericNetwork network,
@@ -93,9 +93,9 @@ gwmCreate (BRGenericClient client,
            const char *storagePath,
            uint32_t syncPeriodInSeconds,
            uint64_t blockHeight) {
-    BRGenericWalletManager gwm = calloc (1, sizeof (struct BRGenericWalletManagerRecord));
+    BRGenericManager gwm = calloc (1, sizeof (struct BRGenericManagerRecord));
 
-    gwm->handlers = genericHandlerLookup (type);
+    gwm->handlers = genHandlerLookup (type);
     assert (NULL != gwm->handlers);
 
     gwm->network = network;
@@ -154,68 +154,64 @@ gwmCreate (BRGenericClient client,
 }
 
 extern void
-gwmRelease (BRGenericWalletManager gwm) {
+gwmRelease (BRGenericManager gwm) {
     gwmDisconnect (gwm);
     free (gwm);
 }
 
 extern void
-gwmStop (BRGenericWalletManager gwm) {
+gwmStop (BRGenericManager gwm) {
     eventHandlerStop (gwm->handler);
     fileServiceClose (gwm->fileService);
 }
 
 extern BRGenericNetwork
-gwmGetNetwork (BRGenericWalletManager gwm) {
+gwmGetNetwork (BRGenericManager gwm) {
     return gwm->network;
 }
 
-extern BRGenericHandlers
-gwmGetHandlers (BRGenericWalletManager gwm) {
-    return gwm->handlers;
-}
-
 extern BRGenericAccount
-gwmGetAccount (BRGenericWalletManager gwm) {
+gwmGetAccount (BRGenericManager gwm) {
     return gwm->account;
 }
 
 extern BRGenericClient
-gwmGetClient (BRGenericWalletManager gwm) {
+gwmGetClient (BRGenericManager gwm) {
     return gwm->client;
 }
 
 extern void
-gwmConnect (BRGenericWalletManager gwm) {
+gwmConnect (BRGenericManager gwm) {
     eventHandlerStart (gwm->handler);
     // Event
 }
 
 extern void
-gwmDisconnect (BRGenericWalletManager gwm) {
+gwmDisconnect (BRGenericManager gwm) {
     gwmStop (gwm);  // This is questionable.
     // Event
 
 }
 
 extern void
-gwmSync (BRGenericWalletManager gwm) {
+gwmSync (BRGenericManager gwm) {
     return;
 }
 
 
 extern BRGenericAddress
-gwmGetAccountAddress (BRGenericWalletManager gwm) {
+gwmGetAccountAddress (BRGenericManager gwm) {
     return gwmAccountGetAddress (gwm->account);
 }
 
 extern BRGenericWallet
-gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
-    return gwmWalletCreate(gwm);
+gwmCreatePrimaryWallet (BRGenericManager gwm) {
+    return gwmWalletCreate(gwm->account);
 }
 
 extern BRGenericTransfer
-gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+gwmRecoverTransfer (BRGenericManager gwm,
+                    BRGenericWallet wallet,
                     const char *hash,
                     const char *from,
                     const char *to,
@@ -223,19 +219,19 @@ gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
                     const char *currency,
                     uint64_t timestamp,
                     uint64_t blockHeight) {
-    return gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
+    return gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
 }
 
 extern BRArrayOf(BRGenericTransfer)
-gwmRecoverTransfersFromRawTransaction (BRGenericWalletManager gwm,
+gwmRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                        uint8_t *bytes,
                                        size_t   bytesCount)
 {
-    return gwmGetHandlers(gwm)->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
+    return gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
 }
 
 extern BRArrayOf(BRGenericTransfer)
-gwmLoadTransfers (BRGenericWalletManager gwm) {
+gwmLoadTransfers (BRGenericManager gwm) {
     return gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
 }
 
@@ -244,7 +240,7 @@ gwmLoadTransfers (BRGenericWalletManager gwm) {
 static void
 gwmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
-    BRGenericWalletManager gwm = (BRGenericWalletManager) event->context;
+    BRGenericManager gwm = (BRGenericManager) event->context;
 
     gwm->client.getBlockNumber (gwm->client.context,
                                 gwm,
@@ -309,7 +305,7 @@ gwmPeriodicDispatcher (BREventHandler handler,
 // signal transfer
 
 extern int
-gwmAnnounceBlockNumber (BRGenericWalletManager manager,
+gwmAnnounceBlockNumber (BRGenericManager manager,
                         int rid,
                         uint64_t height) {
     pthread_mutex_lock (&manager->lock);
@@ -322,7 +318,7 @@ gwmAnnounceBlockNumber (BRGenericWalletManager manager,
 }
 
 extern int // success - data is valid
-gwmAnnounceTransfer (BRGenericWalletManager manager,
+gwmAnnounceTransfer (BRGenericManager manager,
                      int rid,
                      BRGenericTransfer transfer) {
     // Add transfer ?? EVent
@@ -330,7 +326,7 @@ gwmAnnounceTransfer (BRGenericWalletManager manager,
 }
 
 extern void
-gwmAnnounceTransferComplete (BRGenericWalletManager manager,
+gwmAnnounceTransferComplete (BRGenericManager manager,
                              int rid,
                              int success) {
     pthread_mutex_lock (&manager->lock);
@@ -340,7 +336,7 @@ gwmAnnounceTransferComplete (BRGenericWalletManager manager,
 }
 
 extern void
-gwmAnnounceSubmit (BRGenericWalletManager manager,
+gwmAnnounceSubmit (BRGenericManager manager,
                    int rid,
                    BRGenericTransfer transfer,
                    int error) {
@@ -348,33 +344,13 @@ gwmAnnounceSubmit (BRGenericWalletManager manager,
 }
 
 static void
-gwmInstallFileService(BRGenericWalletManager gwm,
+gwmInstallFileService(BRGenericManager gwm,
                       const char *storagePath,
                       const char *currencyName,
                       const char *networkName) {
     gwm->fileService = fileServiceCreate (storagePath, currencyName, networkName, gwm, NULL);
 
     gwm->handlers->manager.fileServiceInit (gwm, gwm->fileService);
-}
-
-/// MARK: - Fee Basis
-
-extern UInt256
-gwmGetFeeBasisPricePerCostFactor (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis) {
-    return gwm->handlers->feebasis.pricePerCostFactor (feeBasis);
-}
-
-extern double
-gwmGetFeeBasisCostFactor (BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis) {
-    return gwm->handlers->feebasis.costFactor (feeBasis);
-}
-
-extern uint32_t gwmGetFeeBasisIsEqual (BRGenericWalletManager gwm, BRGenericFeeBasis fb1, BRGenericFeeBasis fb2) {
-    return gwm->handlers->feebasis.feeBasisIsEqual (fb1, fb2);
-}
-
-extern void gwmFeeBasisRelease(BRGenericWalletManager gwm, BRGenericFeeBasis feeBasis) {
-    gwm->handlers->feebasis.free (feeBasis);
 }
 
 /// MARK: - Events

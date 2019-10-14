@@ -48,10 +48,7 @@ struct BRCryptoTransferRecord {
             BREthereumTransfer tid;
             BREthereumAddress accountAddress;
         } eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericTransfer tid;
-        } gen;
+        BRGenericTransfer gen;
     } u;
 
     BRCryptoAddress sourceAddress;
@@ -248,18 +245,16 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 extern BRCryptoTransfer
 cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
-                           BRGenericWalletManager gwm,
                            BRGenericTransfer tid) {
     BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
-    transfer->u.gen.gwm = gwm;
-    transfer->u.gen.tid = tid;
+    transfer->u.gen = tid;
 
-    BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (gwm, tid); // Will give ownership
-    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, gwmFeeBasis);
+    BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (tid); // Will give ownership
+    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwmFeeBasis);
 
     BRGenericNetwork nid = gwmGetNetwork(gwm);
-    transfer->sourceAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetSourceAddress (gwm, tid));
-    transfer->targetAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetTargetAddress (gwm, tid));
+    transfer->sourceAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetSourceAddress (tid));
+    transfer->targetAddress = cryptoAddressCreateAsGEN (nid, gwmTransferGetTargetAddress (tid));
 
     return transfer;
 }
@@ -353,12 +348,11 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
+            BRGenericTransfer tid = transfer->u.gen;
 
             amount = cryptoAmountCreate (transfer->unit,
                                          isNegative,
-                                         gwmTransferGetAmount (gwm, tid));
+                                         gwmTransferGetAmount (tid));
             break;
         }
     }
@@ -535,16 +529,15 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
+            BRGenericTransfer tid = transfer->u.gen;
 
-            BRGenericAddress source = gwmTransferGetSourceAddress (gwm, tid);
-            BRGenericAddress target = gwmTransferGetTargetAddress (gwm, tid);
+            BRGenericAddress source = gwmTransferGetSourceAddress (tid);
+            BRGenericAddress target = gwmTransferGetTargetAddress (tid);
 
             BRGenericAddress address = gwmGetAccountAddress (gwm);
 
-            int accountIsSource = gwmAddressEqual (gwm, source, address);
-            int accountIsTarget = gwmAddressEqual (gwm, target, address);
+            int accountIsSource = gwmAddressEqual (NULL, source, address);
+            int accountIsTarget = gwmAddressEqual (NULL, target, address);
 
             // TODO: BRGenericAddress - release source, target, address
 
@@ -579,10 +572,9 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
+            BRGenericTransfer tid = transfer->u.gen;
 
-            BRGenericHash hash = gwmTransferGetHash (gwm, tid);
+            BRGenericHash hash = gwmTransferGetHash (tid);
             return (genericHashIsEmpty (hash)
                     ? NULL
                     : cryptoHashCreateAsGEN (hash));
@@ -679,7 +671,7 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
 private_extern BRGenericTransfer
 cryptoTransferAsGEN (BRCryptoTransfer transfer) {
     assert (BLOCK_CHAIN_TYPE_GEN == transfer->type);
-    return transfer->u.gen.tid;
+    return transfer->u.gen;
 }
 
 private_extern BRCryptoBoolean
@@ -697,7 +689,7 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 private_extern BRCryptoBoolean
 cryptoTransferHasGEN (BRCryptoTransfer transfer,
                       BRGenericTransfer gen) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type && gen == transfer->u.gen.tid);
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type && gen == transfer->u.gen);
 }
 
 static int
@@ -712,8 +704,7 @@ cryptoTransferEqualAsETH (BRCryptoTransfer t1, BRCryptoTransfer t2) {
 
 static int
 cryptoTransferEqualAsGEN (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    return (t1->u.gen.gwm == t2->u.gen.gwm &&
-            t1->u.gen.tid == t2->u.gen.tid);
+    return (t1->u.gen == t2->u.gen);
 }
 
 extern BRCryptoBoolean

@@ -174,7 +174,6 @@ extern "C" {
 
     private_extern BRCryptoFeeBasis
     cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
-                               BRGenericWalletManager gwm,
                                OwnershipGiven BRGenericFeeBasis bid);
 
     /// MARK: Transfer
@@ -200,7 +199,6 @@ extern "C" {
     extern BRCryptoTransfer
     cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
-                               BRGenericWalletManager gwm,
                                BRGenericTransfer tid);
 
     private_extern void
@@ -359,7 +357,7 @@ extern "C" {
     private_extern BRCryptoWallet
     cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
-                             BRGenericWalletManager gwm,
+                             BRGenericManager gwm,
                              BRGenericWallet wid);
 
     private_extern BRCryptoTransfer
@@ -412,7 +410,7 @@ extern "C" {
 
     private_extern BRCryptoBoolean
     cryptoWalletManagerHasGEN (BRCryptoWalletManager manager,
-                               BRGenericWalletManager gwm);
+                               BRGenericManager gwm);
 
     private_extern BRCryptoWallet
     cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager manager,

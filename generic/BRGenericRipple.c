@@ -9,7 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRGenericRipple.h"
-#include "BRGenericWalletManager.h"
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
 #include "ripple/BRRippleFeeBasis.h"
@@ -17,17 +16,17 @@
 #include "ethereum/util/BRUtilHex.h"
 
 // Account
-static void *
+static BRGenericAccount
 genericRippleAccountCreate (const char *type, UInt512 seed) {
     return rippleAccountCreateWithSeed (seed);
 }
 
-static void *
+static BRGenericAccount
 genericRippleAccountCreateWithPublicKey (const char *type, BRKey key) {
     return rippleAccountCreateWithKey (key);
 }
 
-static void *
+static BRGenericAccount
 genericRippleAccountCreateWithSerialization (const char *type, uint8_t *bytes, size_t   bytesCount) {
     return rippleAccountCreateWithSerialization (bytes, bytesCount);
 }
@@ -159,8 +158,7 @@ static uint8_t * genericRippleTransferGetSerialization (BRGenericTransfer transf
 
 static BRGenericWallet
 genericRippleWalletCreate (BRGenericAccount account) {
-    BRGenericAccountWithType accountWithType = account;
-    return rippleWalletCreate(accountWithType->base);
+    return rippleWalletCreate(account);
 }
 
 static void
@@ -329,6 +327,11 @@ genericRippleNetworkAddressFree (BRGenericAddress address) {
 
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
+    { // Network
+        genericRippleNetworkAddressCreate,
+        genericRippleNetworkAddressFree
+    },
+
     {    // Account
         genericRippleAccountCreate,
         genericRippleAccountCreateWithPublicKey,
@@ -342,6 +345,14 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     {    // Address
         genericRippleAddressAsString,
         genericRippleAddressEqual
+    },
+
+
+    { // fee basis
+        genericRippleFeeBasisGetPricePerCostFactor,
+        genericRippleFeeBasisGetCostFactor,
+        genericRippleFeeBasisIsEqual,
+        genericRippleFeeBasisFree
     },
 
     {    // Transfer
@@ -369,18 +380,6 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletManagerInitializeFileService,
         genericRippleWalletManagerLoadTransfers,
         genericRippleWalletManagerGetAPISyncType,
-    },
-
-    { // fee basis
-        genericRippleFeeBasisGetPricePerCostFactor,
-        genericRippleFeeBasisGetCostFactor,
-        genericRippleFeeBasisIsEqual,
-        genericRippleFeeBasisFree
-    },
-
-    { // Network
-        genericRippleNetworkAddressCreate,
-        genericRippleNetworkAddressFree
     },
 };
 
