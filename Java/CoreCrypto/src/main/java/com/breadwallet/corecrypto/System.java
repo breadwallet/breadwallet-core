@@ -111,6 +111,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -619,7 +620,7 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public boolean migrateRequired(com.breadwallet.crypto.Network network) {
-        String code = network.getCurrency().getCode().toLowerCase();
+        String code = network.getCurrency().getCode().toLowerCase(Locale.ROOT);
         return Currency.CODE_AS_BCH.equals(code) || Currency.CODE_AS_BTC.equals(code);
     }
 
@@ -632,7 +633,7 @@ final class System implements com.breadwallet.crypto.System {
             throw new MigrateInvalidError();
         }
 
-        switch (network.getCurrency().getCode().toLowerCase()) {
+        switch (network.getCurrency().getCode().toLowerCase(Locale.ROOT)) {
             case Currency.CODE_AS_BTC:
             case Currency.CODE_AS_BCH:
                 migrateStorageAsBtc(network, transactionBlobs, blockBlobs, peerBlobs);

@@ -22,6 +22,7 @@ import com.google.common.primitives.UnsignedLong;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -185,7 +186,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Currency> getCurrencyByIssuer(String issuer) {
-        String issuerLowercased = issuer.toLowerCase();
+        String issuerLowercased = issuer.toLowerCase(Locale.ROOT);
         for (Currency currency: getCurrencies()) {
             if (issuerLowercased.equals(currency.getIssuer().orNull())) {
                 return Optional.of(currency);
