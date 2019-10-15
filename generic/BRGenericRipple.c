@@ -281,31 +281,6 @@ genericRippleWalletManagerGetAPISyncType (void) {
     return GENERIC_SYNC_TYPE_TRANSFER;
 }
 
-static UInt256
-genericRippleFeeBasisGetPricePerCostFactor (BRGenericFeeBasis feeBasis)
-{
-    BRRippleUnitDrops pricePerCostFactor = rippleFeeBasisGetPricePerCostFactor(feeBasis);
-    return createUInt256(pricePerCostFactor);
-}
-
-static double
-genericRippleFeeBasisGetCostFactor (BRGenericFeeBasis feeBasis)
-{
-    return rippleFeeBasisGetCostFactor(feeBasis);
-}
-
-static uint32_t
-genericRippleFeeBasisIsEqual (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2)
-{
-    return rippleFeeBasisIsEqual(fb1, fb2);
-}
-
-static void
-genericRippleFeeBasisFree (BRGenericFeeBasis feeBasis) {
-    BRRippleFeeBasis *rippleFeeBasis = feeBasis;
-    free (rippleFeeBasis);
-}
-
 static BRGenericAddress
 genericRippleNetworkAddressCreate (const char* address) {
     BRRippleAddress *genericAddress = calloc(1, sizeof(BRRippleAddress));
@@ -345,14 +320,6 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     {    // Address
         genericRippleAddressAsString,
         genericRippleAddressEqual
-    },
-
-
-    { // fee basis
-        genericRippleFeeBasisGetPricePerCostFactor,
-        genericRippleFeeBasisGetCostFactor,
-        genericRippleFeeBasisIsEqual,
-        genericRippleFeeBasisFree
     },
 
     {    // Transfer

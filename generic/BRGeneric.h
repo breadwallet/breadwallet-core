@@ -78,15 +78,6 @@ extern "C" {
                      BRGenericAddress aid1,
                      BRGenericAddress aid2);
 
-// Fee Basis
-    // MARK: Fee Basis
-
-extern UInt256 gwmGetFeeBasisPricePerCostFactor (BRGenericFeeBasis feeBasis);
-extern double gwmGetFeeBasisCostFactor (BRGenericFeeBasis feeBasis);
-extern uint32_t gwmGetFeeBasisIsEqual (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
-extern void gwmFeeBasisRelease (BRGenericFeeBasis feeBasis);
-
-
     // Transfer
 
     extern void

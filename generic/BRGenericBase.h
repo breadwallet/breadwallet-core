@@ -11,6 +11,7 @@
 #ifndef BRGenericBase_h
 #define BRGenericBase_h
 
+#include <math.h>   // fabs() - via static inline
 #include "ethereum/util/BRUtil.h"
 
 #ifdef __cplusplus
@@ -20,7 +21,6 @@ extern "C" {
     typedef struct BRGenericAccountRecord  *BRGenericAccount;
     typedef struct BRGenericNetworkRecord  *BRGenericNetwork;
     typedef struct BRGenericAddressRecord  *BRGenericAddress;
-    typedef struct BRGenericFeeBasisRecord *BRGenericFeeBasis;
     typedef struct BRGenericTransferRecord *BRGenericTransfer;
     typedef struct BRGenericWalletRecord   *BRGenericWallet;
     typedef struct BRGenericManagerRecord  *BRGenericManager;
@@ -49,6 +49,49 @@ extern "C" {
     static inline uint32_t
     genericHashSetValue (BRGenericHash gen) {
         return gen.value.u32[0];
+    }
+
+    // MARK: Generic Fee Basis
+
+    typedef struct {
+        UInt256 pricePerCostFactor;
+        double  costFactor;
+    } BRGenericFeeBasis;
+
+    static inline BRGenericFeeBasis
+    genFeeBasisCreate (UInt256 pricePerCostFactor, double costFactor) {
+        return (BRGenericFeeBasis) {
+            pricePerCostFactor,
+            fabs (costFactor)
+        };
+    }
+
+    static inline UInt256
+    genFeeBasisGetPricePerCostFactor (const BRGenericFeeBasis *feeBasis) {
+        return feeBasis->pricePerCostFactor;
+    }
+
+    static inline double
+    genFeeBasisGetCostFactor (const BRGenericFeeBasis *feeBasis) {
+        return feeBasis->costFactor;
+    }
+
+    static inline UInt256
+    genFeeBasisGetFee (const BRGenericFeeBasis *feeBasis, int *overflow) {
+        double rem;
+        int negative;
+
+        return mulUInt256_Double (feeBasis->pricePerCostFactor,
+                                  feeBasis->costFactor,
+                                  overflow,
+                                  &negative,
+                                  &rem);
+    }
+
+    static inline int genFeeBasisIsEqual (const BRGenericFeeBasis *fb1,
+                                             const BRGenericFeeBasis *fb2) {
+        return (eqUInt256 (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
+                fb1->costFactor == fb2->costFactor);
     }
 
     // MARK: Generic API Sync Type

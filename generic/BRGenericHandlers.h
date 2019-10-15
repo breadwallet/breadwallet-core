@@ -63,20 +63,6 @@ extern "C" {
         BRGenericAddressEqual equal;
     } BRGenericAddressHandlers;
 
-    // MARK: - FeeBasis
-
-    typedef UInt256 (*BRGenericFeeBasisGetPricePerCostFactor) (BRGenericFeeBasis feeBasis);
-    typedef double (*BRGenericFeeBasisGetCostFactor) (BRGenericFeeBasis feeBasis);
-    typedef uint32_t (*BRGenericFeeBasisIsEqual) (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2);
-    typedef void (*BRGenericFeeBasisFree) (BRGenericFeeBasis feeBasis);
-
-    typedef struct {
-        BRGenericFeeBasisGetPricePerCostFactor pricePerCostFactor;
-        BRGenericFeeBasisGetCostFactor costFactor;
-        BRGenericFeeBasisIsEqual feeBasisIsEqual;
-        BRGenericFeeBasisFree free;
-    } BRGenericFeeBasisHandlers;
-
     // MARK: - Generic Transfer
 
     typedef BRGenericTransfer (*BRGenericTransferCreate) (BRGenericAddress source,
@@ -158,7 +144,6 @@ extern "C" {
         BRGenericNetworkHandlers network;
         BRGenericAccountHandlers account;
         BRGenericAddressHandlers address;
-        BRGenericFeeBasisHandlers feeBasis;
         BRGenericTransferHandlers transfer;
         BRGenericWalletHandlers wallet;
         BRGenericManagerHandlers manager;

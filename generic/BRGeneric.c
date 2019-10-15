@@ -108,30 +108,6 @@ gwmAddressEqual (BRGenericNetwork nid,
     return aid1->handlers.equal (aid1, aid2);
 }
 
-// MARK: Fee Basis
-
-IMPLEMENT_GENERIC_TYPE(FeeBasis, feeBasis)
-
-extern UInt256
-gwmGetFeeBasisPricePerCostFactor (BRGenericFeeBasis feeBasis) {
-    return feeBasis->handlers.pricePerCostFactor (feeBasis);
-}
-
-extern double
-gwmGetFeeBasisCostFactor (BRGenericFeeBasis feeBasis) {
-    return feeBasis->handlers.costFactor (feeBasis);
-}
-
-extern uint32_t gwmGetFeeBasisIsEqual (BRGenericFeeBasis fb1, BRGenericFeeBasis fb2) {
-    assert (0 == strcmp (fb1->type, fb2->type));
-    return fb1->handlers.feeBasisIsEqual (fb1, fb2);
-}
-
-extern void gwmFeeBasisRelease(BRGenericFeeBasis feeBasis) {
-    feeBasis->handlers.free (feeBasis);
-}
-
-
 // MARK: - Transfer
 
 IMPLEMENT_GENERIC_TYPE(Transfer, transfer)

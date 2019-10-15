@@ -787,7 +787,7 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericFeeBasis feeBasis = NULL;
+            BRGenericFeeBasis feeBasis = gwmWalletGetDefaultFeeBasis (wallet->u.gen);
             return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, feeBasis);
         }
     }
