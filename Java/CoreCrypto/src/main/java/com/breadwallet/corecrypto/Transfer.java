@@ -17,6 +17,8 @@ import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /* package */
 final class Transfer implements com.breadwallet.crypto.Transfer {
 
@@ -99,8 +101,9 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Amount getFee() {
-        // TODO(fix): Unchecked get here
-        return getConfirmedFeeBasis().or(getEstimatedFeeBasis().get()).getFee();
+        Optional<TransferFeeBasis> maybeFee = getConfirmedFeeBasis().or(getEstimatedFeeBasis());
+        checkState(maybeFee.isPresent());
+        return maybeFee.get().getFee();
     }
 
     @Override
