@@ -94,10 +94,17 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         this.networkCurrencySupplier = Suppliers.memoize(() -> getNetwork().getCurrency());
         this.pathSupplier = Suppliers.memoize(core::getPath);
 
-        // TODO(fix): Unchecked get here
         this.networkFeeSupplier = Suppliers.memoize(() -> getNetwork().getMinimumFee());
-        this.networkBaseUnitSupplier = Suppliers.memoize(() -> getNetwork().baseUnitFor(getCurrency()).get());
-        this.networkDefaultUnitSupplier = Suppliers.memoize(() -> getNetwork().defaultUnitFor(getCurrency()).get());
+        this.networkBaseUnitSupplier = Suppliers.memoize(() -> {
+            Optional<Unit> maybeUnit = getNetwork().baseUnitFor(getCurrency());
+            checkState(maybeUnit.isPresent());
+            return maybeUnit.get();
+        });
+        this.networkDefaultUnitSupplier = Suppliers.memoize(() -> {
+            Optional<Unit> maybeUnit = getNetwork().defaultUnitFor(getCurrency());
+            checkState(maybeUnit.isPresent());
+            return maybeUnit.get();
+        });
     }
 
     @Override
