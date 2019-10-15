@@ -97,12 +97,8 @@ extern "C" {
 #define CRYPTO_REF_ASSIGN(release)  (BRCryptoRef) { 1, CRYPTO_AS_FREE (release) }
 
 #if !defined (private_extern)
-#  if defined (DEBUG)
-#    define private_extern
-#  else
-#    define private_extern          extern
-#  endif
-#endif /* !defined (private_extern) */
+#  define private_extern          extern
+#endif
 
 #ifdef __cplusplus
 }
