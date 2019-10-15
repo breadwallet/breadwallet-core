@@ -528,25 +528,12 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             assert(0);
         }
 
-        case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericTransfer tid = transfer->u.gen;
-
-            BRGenericAddress source = gwmTransferGetSourceAddress (tid);
-            BRGenericAddress target = gwmTransferGetTargetAddress (tid);
-
-            BRGenericAddress address = gwmGetAccountAddress (gwm);
-
-            int accountIsSource = gwmAddressEqual (NULL, source, address);
-            int accountIsTarget = gwmAddressEqual (NULL, target, address);
-
-            // TODO: BRGenericAddress - release source, target, address
-
-            if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
-            else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
-            else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECEIVED;
-
-            assert (0);
-        }
+        case BLOCK_CHAIN_TYPE_GEN:
+            switch (gwmTransferGetDirection (transfer->u.gen)) {
+                case GENERiC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
+                case GENERIC_TRANSFER_RECEIVED:  return CRYPTO_TRANSFER_RECEIVED;
+                case GENERIC_TRANSFER_RECOVERED: return CRYPTO_TRANSFER_RECOVERED;
+            }
     }
 }
 

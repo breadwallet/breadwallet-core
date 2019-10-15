@@ -144,6 +144,11 @@ gwmTransferGetFeeBasis (BRGenericTransfer transfer) {
     return transfer->handlers.feeBasis (transfer);
 }
 
+extern BRGenericTransferDirection
+gwmTransferGetDirection (BRGenericTransfer transfer) {
+    return transfer->handlers.direction (transfer);
+}
+
 extern BRGenericHash
 gwmTransferGetHash (BRGenericTransfer transfer) {
     return transfer->handlers.hash (transfer);

@@ -101,6 +101,13 @@ extern "C" {
         GENERIC_SYNC_TYPE_TRANSFER
     } BRGenericAPISyncType;
 
+    // MARK: Generic Transfer Direction
+    typedef enum {
+        GENERiC_TRANSFER_SENT,
+        GENERIC_TRANSFER_RECEIVED,
+        GENERIC_TRANSFER_RECOVERED
+    } BRGenericTransferDirection;
+
 #ifdef __cplusplus
 }
 #endif

@@ -98,6 +98,9 @@ extern "C" {
     extern BRGenericFeeBasis
     gwmTransferGetFeeBasis (BRGenericTransfer transfer);
 
+    extern BRGenericTransferDirection
+    gwmTransferGetDirection (BRGenericTransfer transfer);
+
     extern BRGenericHash
     gwmTransferGetHash (BRGenericTransfer transfer);
 
