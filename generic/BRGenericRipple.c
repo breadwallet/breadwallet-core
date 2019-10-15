@@ -186,6 +186,37 @@ genericRippleWalletGetBalance (BRGenericWallet wallet) {
     return createUInt256(rippleWalletGetBalance(ripple));
 }
 
+static BRGenericTransfer
+genericRippleWalletCreateTransfer (BRGenericWallet wallet,
+                                   BRGenericAddress target,
+                                   UInt256 amount,
+                                   BRGenericFeeBasis estimatedFeeBasis) {
+    BRRippleUnitDrops amountDrops = UInt64GetLE(amount.u8);
+    BRRippleAddress *from = source;
+    BRRippleAddress *to = target;
+    BRRippleTransfer transfer = rippleTransferCreateNew(*from, *to, amountDrops);
+    return transfer;
+
+
+    BRRippleWallet    ripple = wallet;
+    BRRippleAddress   source = rippleWalletGetSourceAddress (wallet);
+    BRRippleUnitDrops drops  = amount.u64[0];
+    return rippleTransferCreateNew (source,
+                                    target,
+                                    drops);
+}
+
+static BRGenericFeeBasis
+genericRippleWalletEstimateFeeBasis (BRGenericWallet wallet,
+                                                              BRGenericAddress address,
+                                                              UInt256 amount,
+                                     UInt256 pricePerCostFactor) {
+    return (BRGenericFeeBasis) {
+        pricePerCostFactor,
+        1
+    };
+}
+
 static BRArrayOf(BRGenericTransfer)
 genericRippleWalletManagerRecoverTransfersFromRawTransaction (uint8_t *bytes,
                                                             size_t   bytesCount) {
@@ -353,7 +384,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletCreate,
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
-        // ...
+        genericRippleWalletCreateTransfer,
+        genericRippleWalletEstimateFeeBasis
     },
 
     { // Wallet Manager

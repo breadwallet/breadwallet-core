@@ -666,22 +666,28 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            // TODO - get the estimated fee basis.  For now just do nothing
-            // so that the demo can run (with a hacked in feeBasis)
-            // CORE-622 is the JIRA item for this.
-            //BRGenericWalletManager gwm = wallet->u.gen.gwm;
+            BRGenericWallet  wid = wallet->u.gen;
 
-            /*
-
-            BRGenericWallet wid = wallet->u.gen.wid;
-            UInt256 genValue = cryptoAmountGetValue(amount);
-
-            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (feeBasis);
             int overflow = 0;
-            UInt256 genFee = gwmWalletEstimateTransferFee (gwm, wid, genValue, genFeeBasis, &overflow);
+
+            // We estimate the fee directly here... but if like ETH we might need support from
+            // some BRD endpoint.  If so, need to be asynchronous.
+            //
+            // We have `cookie` above which for an asynchronous case connects the receiver.
+            //
+            // But BTC and ETH each announce BTC and ETH-specific events.  And those events have
+            // a listener (which the BWM, and EWM have been configured with.  The GWM doesn't have
+            // events; nor, obviously, an event listener.
+            UInt256 genFee = gwmWalletEstimateTransferFee (wid,
+                                                           cryptoAddressAsGEN (target),
+                                                           cryptoAmountGetValue(amount),
+                                                           createUInt256 (cryptoNetworkFeeAsGEN(fee)),
+                                                           &overflow);
             assert (!overflow);
-            feeValue = genFee;
-             */
+
+            // Now what?  We don't 
+
+            (void) genFee;
         }
     }
 }

@@ -200,9 +200,15 @@ gwmWalletCreateTransfer (BRGenericWallet wallet,
 }
 
 extern UInt256
-gwmWalletEstimateTransferFee (BRGenericWallet wid,
+gwmWalletEstimateTransferFee (BRGenericWallet wallet,
+                              BRGenericAddress target,
                               UInt256 amount,
-                              BRGenericFeeBasis feeBasis,
+                              UInt256 pricePerCostFactor,
                               int *overflow) {
-    return UINT256_ZERO;
+    BRGenericFeeBasis feeBasis = wallet->handlers.estimateFeeBasis (wallet,
+                                                                    target,
+                                                                    amount,
+                                                                    pricePerCostFactor);
+
+    return genFeeBasisGetFee (&feeBasis, overflow);
 }

@@ -98,10 +98,15 @@ extern "C" {
     typedef BRGenericWallet (*BRGenericWalletCreate) (BRGenericAccount account);
     typedef void (*BRGenericWalletFree) (BRGenericWallet wallet);
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
+    // Unneeded?
     typedef BRGenericTransfer (*BRGenericWalletCreateTransfer) (BRGenericWallet wallet,
-                                                                BRGenericAddress address,
+                                                                BRGenericAddress target,
                                                                 UInt256 amount,
                                                                 BRGenericFeeBasis estimatedFeeBasis);
+    typedef BRGenericFeeBasis (*BRGenericWalletEstimateFeeBasis) (BRGenericWallet wallet,
+                                                                  BRGenericAddress address,
+                                                                  UInt256 amount,
+                                                                  UInt256 pricePerCostFactor);
 
     typedef struct {
         BRGenericWalletCreate create;
@@ -109,7 +114,8 @@ extern "C" {
         BRGenericWalletGetBalance balance;
         // set balance
         // ...
-        BRGenericWalletCreateTransfer createTransfer;
+        BRGenericWalletCreateTransfer createTransfer; // Unneeded.
+        BRGenericWalletEstimateFeeBasis estimateFeeBasis;
     } BRGenericWalletHandlers;
 
     // MARK: - Generic (Wallet) Manager
