@@ -31,6 +31,14 @@ android {
             buildConfigField 'String', 'BDB_AUTH_TOKEN', '"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"'
         }
     }
+
+    lintOptions {
+        quiet false
+        explainIssues true
+        abortOnError true
+        ignoreWarnings false
+        checkReleaseBuilds false
+    }
 }
 
 dependencies {

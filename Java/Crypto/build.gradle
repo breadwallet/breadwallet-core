@@ -32,6 +32,14 @@ android {
             buildConfigField 'String', 'API_BASE_URL', '"https://stage2.breadwallet.com"'
         }
     }
+
+    lintOptions {
+        quiet false
+        explainIssues true
+        abortOnError true
+        ignoreWarnings false
+        checkReleaseBuilds false
+    }
 }
 
 dependencies {

@@ -46,6 +46,14 @@ android {
             }
         }
     }
+
+    lintOptions {
+        quiet false
+        explainIssues true
+        abortOnError true
+        ignoreWarnings false
+        checkReleaseBuilds false
+    }
 }
 
 dependencies {
