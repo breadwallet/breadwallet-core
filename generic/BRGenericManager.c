@@ -209,6 +209,50 @@ gwmCreatePrimaryWallet (BRGenericManager gwm) {
     return gwmWalletCreate(gwm->account);
 }
 
+extern int
+gwmSignTransfer (BRGenericManager gwm,
+                 BRGenericWallet wid,
+                 BRGenericTransfer transfer,
+                 UInt512 seed) {
+    // Use the 'account' to sign the transfer.  The account likely holds information needed for
+    // signing - such as an account nonce.
+    BRGenericAccount account = gwmGetAccount(gwm);
+    account->handlers.signTransferWithSeed (account, transfer, seed);
+
+    // TODO: Always success?
+    return 1;
+}
+
+extern int
+gwmSignTransferWithKey (BRGenericManager gwm,
+                        BRGenericWallet wid,
+                        BRGenericTransfer transfer,
+                        BRKey *key) {
+    BRGenericAccount account = gwmGetAccount(gwm);
+    account->handlers.signTransferWithKey (account, transfer, key);
+
+    // TODO: Always success?
+    return 1;
+}
+
+extern void
+gwmSubmitTransfer (BRGenericManager gwm,
+                   BRGenericWallet wid,
+                   BRGenericTransfer transfer) {
+    // Get the serialization, as raw bytes', for the transfer.  We assert if the raw bytes
+    // don't exist which implies that transfer was not signed.
+    size_t txSize = 0;
+    uint8_t * tx = transfer->handlers.getSerialization (transfer, &txSize);
+    assert (NULL != tx);
+
+    // Get the hash
+    BRGenericHash hash = transfer->handlers.hash (transfer);
+
+    // Submit the raw bytes to the client.
+    BRGenericClient client = gwmGetClient(gwm);
+    client.submitTransaction (client.context, gwm, wid, transfer, tx, txSize, hash, 0);
+}
+
 extern BRGenericTransfer
 gwmRecoverTransfer (BRGenericManager gwm,
                     BRGenericWallet wallet,

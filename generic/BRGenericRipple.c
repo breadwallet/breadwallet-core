@@ -54,7 +54,7 @@ genericRippleAccountGetSerialization (void *account, size_t *bytesCount) {
 }
 
 static void
-genericRippleAccountSerializeTransfer (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
+genericRippleAccountSignTransferWithSeed (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
 {
     // Get the transaction pointer from this transfer
     BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
@@ -62,6 +62,19 @@ genericRippleAccountSerializeTransfer (BRGenericAccount account, BRGenericTransf
         // Hard code the sequence to 7
         rippleAccountSetSequence(account, 7);
         rippleAccountSignTransaction(account, transaction, seed);
+    }
+}
+
+static void
+genericRippleAccountSignTransferWithKey (BRGenericAccount account, BRGenericTransfer transfer, BRKey *key)
+{
+    // Get the transaction pointer from this transfer
+    BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
+    if (transaction) {
+        // Hard code the sequence to 7
+        rippleAccountSetSequence(account, 7);
+//        rippleAccountSignTransaction(account, transaction, seed);
+        assert (0);
     }
 }
 
@@ -314,7 +327,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleAccountFree,
         genericRippleAccountGetAddress,
         genericRippleAccountGetSerialization,
-        genericRippleAccountSerializeTransfer,
+        genericRippleAccountSignTransferWithSeed,
+        genericRippleAccountSignTransferWithKey,
     },
 
     {    // Address

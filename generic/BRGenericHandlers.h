@@ -40,7 +40,8 @@ extern "C" {
     typedef void (*BRGenericAccountFree) (BRGenericAccount account);
     typedef BRGenericAddress (*BRGenericAccountGetAddress) (BRGenericAccount account);
     typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccount account, size_t *bytesCount);
-    typedef void (*BRGenericAccountSerializeTransfer) (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed);
+    typedef void (*BRGenericAccountSignTransferWithSeed) (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed);
+    typedef void (*BRGenericAccountSignTransferWithKey) (BRGenericAccount account, BRGenericTransfer transfer, BRKey *key);
 
     typedef struct {
         BRGenericAccountCreate create;
@@ -49,7 +50,8 @@ extern "C" {
         BRGenericAccountFree free;
         BRGenericAccountGetAddress getAddress;
         BRGenericAccountGetSerialization getSerialization;
-        BRGenericAccountSerializeTransfer serializeTransfer;
+        BRGenericAccountSignTransferWithSeed signTransferWithSeed;
+        BRGenericAccountSignTransferWithKey signTransferWithKey;
     } BRGenericAccountHandlers;
 
     // MARK: - Generic Address

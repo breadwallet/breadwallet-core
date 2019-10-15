@@ -693,26 +693,33 @@ cryptoWalletManagerSign (BRCryptoWalletManager cwm,
                          const char *paperKey) {
     BRCryptoBoolean success = CRYPTO_FALSE;
 
+    // Derived the seed used for signing.
+    UInt512 seed = cryptoAccountDeriveSeed(paperKey);
+
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
-            UInt512 seed = cryptoAccountDeriveSeed(paperKey);
             success = AS_CRYPTO_BOOLEAN (BRWalletManagerSignTransaction (cwm->u.btc,
                                                                          cryptoWalletAsBTC (wallet),
                                                                          cryptoTransferAsBTC(transfer),
                                                                          &seed,
                                                                          sizeof (seed)));
-            seed = UINT512_ZERO;
             break;
         }
 
         case BLOCK_CHAIN_TYPE_ETH:
             // TODO(fix): ewmWalletSignTransferWithPaperKey() doesn't return a status
-        case BLOCK_CHAIN_TYPE_GEN: {
-            // TODO(fix): no gwmWalletSignTransfer() exists; need one
-            assert (0);
             break;
-        }
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            success = AS_CRYPTO_BOOLEAN (gwmSignTransfer (cwm->u.gen,
+                                                          cryptoWalletAsGEN (wallet),
+                                                          cryptoTransferAsGEN (transfer),
+                                                          seed));
+            break;
     }
+
+    // Zero-out the seed.
+    seed = UINT512_ZERO;
 
     return success;
 }
@@ -722,9 +729,12 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                            BRCryptoWallet wallet,
                            BRCryptoTransfer transfer,
                            const char *paperKey) {
+
+    // Derive the seed used for signing
+    UInt512 seed = cryptoAccountDeriveSeed(paperKey);
+
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
-            UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
             if (BRWalletManagerSignTransaction (cwm->u.btc,
                                                 cryptoWalletAsBTC (wallet),
@@ -735,7 +745,6 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                   cryptoWalletAsBTC (wallet),
                                                   cryptoTransferAsBTC(transfer));
             }
-            seed = UINT512_ZERO;
             break;
         }
 
@@ -752,17 +761,22 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            UInt512 seed = cryptoAccountDeriveSeed(paperKey);
+            BRGenericWallet genWallet = cryptoWalletAsGEN (wallet);
+            BRGenericTransfer genTransfer = cryptoTransferAsGEN (transfer);
 
-            gwmWalletSubmitTransfer (cryptoWalletAsGEN (wallet),
-                                     cryptoTransferAsGEN (transfer),
-                                     seed);
-
-            seed = UINT512_ZERO; (void) &seed;
-
+            // Sign the transfer
+            if (gwmSignTransfer (cwm->u.gen, genWallet, genTransfer, seed)) {
+                // Submt the transfer
+                gwmSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+            }
             break;
         }
     }
+
+    // Zero-out the seed.
+    seed = UINT512_ZERO;
+
+    return;
 }
 
 extern void
@@ -770,10 +784,12 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                  BRCryptoWallet wallet,
                                  BRCryptoTransfer transfer,
                                  BRCryptoKey key) {
+    // Signing requires `key` to have a secret (that is, be a private key).
+    if (!cryptoKeyHasSecret(key)) return;
+
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
-            if (cryptoKeyHasSecret (key) &&
-                BRWalletManagerSignTransactionForKey (cwm->u.btc,
+            if (BRWalletManagerSignTransactionForKey (cwm->u.btc,
                                                       cryptoWalletAsBTC (wallet),
                                                       cryptoTransferAsBTC(transfer),
                                                       cryptoKeyGetCore (key))) {
@@ -797,7 +813,12 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            assert (0);
+            BRGenericWallet genWallet = cryptoWalletAsGEN (wallet);
+            BRGenericTransfer genTransfer = cryptoTransferAsGEN (transfer);
+
+            if (gwmSignTransferWithKey (cwm->u.gen, genWallet, genTransfer, cryptoKeyGetCore (key))) {
+                gwmSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+            }
             break;
         }
     }
@@ -823,7 +844,9 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            assert (0);
+            gwmSubmitTransfer (cwm->u.gen,
+                               cryptoWalletAsGEN (wallet),
+                               cryptoTransferAsGEN (transfer));
             break;
         }
     }

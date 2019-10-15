@@ -142,11 +142,6 @@ extern "C" {
                                   BRGenericFeeBasis feeBasis,
                                   int *overflow);
 
-    extern void
-    gwmWalletSubmitTransfer (BRGenericWallet wid,
-                             BRGenericTransfer transfer,
-                             UInt512 seed);
-
 // MARK: Generic (Wallet) Manager
 
     extern BRGenericManager
@@ -198,7 +193,8 @@ extern "C" {
     gwmGetClient (BRGenericManager gwm);
 
     extern BRGenericTransfer
-    gwmRecoverTransfer (BRGenericManager gwm, BRGenericWallet wallet,
+    gwmRecoverTransfer (BRGenericManager gwm,
+                        BRGenericWallet wallet,
                         const char *hash,
                         const char *from,
                         const char *to,
@@ -211,6 +207,24 @@ extern "C" {
     gwmRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                            uint8_t *bytes,
                                            size_t   bytesCount);
+
+    extern int
+    gwmSignTransfer (BRGenericManager gwm,
+                     BRGenericWallet wid,
+                     BRGenericTransfer transfer,
+                     UInt512 seed);
+
+    extern int
+    gwmSignTransferWithKey (BRGenericManager gwm,
+                            BRGenericWallet wid,
+                            BRGenericTransfer transfer,
+                            BRKey *key);
+
+    extern void
+    gwmSubmitTransfer (BRGenericManager gwm,
+                       BRGenericWallet wid,
+                       BRGenericTransfer transfer);
+
 
 extern BRArrayOf(BRGenericTransfer)
 gwmLoadTransfers (BRGenericManager gwm);

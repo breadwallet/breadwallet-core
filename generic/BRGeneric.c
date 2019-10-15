@@ -206,21 +206,3 @@ gwmWalletEstimateTransferFee (BRGenericWallet wid,
                               int *overflow) {
     return UINT256_ZERO;
 }
-
-extern void
-gwmWalletSubmitTransfer (BRGenericWallet wid,
-                         BRGenericTransfer transfer,
-                         UInt512 seed) {
-    // Sign and serialize
-    BRGenericAccount account = gwmGetAccount(gwm);
-    account->handlers.serializeTransfer (account, transfer, seed);
-
-    // Get the raw bytes
-    size_t txSize = 0;
-    uint8_t * tx = transfer->handlers.getSerialization(transfer, &txSize);
-    // Get the hash
-    BRGenericHash hash = transfer->handlers.hash(transfer);
-    BRGenericClient client = gwmGetClient(gwm);
-    client.submitTransaction(client.context, gwm, wid, transfer, tx, txSize, hash, 0);
-}
-
