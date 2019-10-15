@@ -395,24 +395,6 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
     return feeBasis;
 }
 
-static void
-cryptoWalletSetDefaultFeeBasisAsETH (BRCryptoWallet wallet,
-                                     BREthereumFeeBasis ethFeeBasis) {
-    BREthereumEWM ewm = wallet->u.eth.ewm;
-    BREthereumWallet wid =wallet->u.eth.wid;
-
-    // These will generate EWM WALLET_EVENT_DEFAULT_GAS_{LIMIT,PRICE}_UPDATED events
-    ewmWalletSetDefaultGasLimit (ewm, wid, ethFeeBasis.u.gas.limit);
-    ewmWalletSetDefaultGasPrice (ewm, wid, ethFeeBasis.u.gas.price);
-}
-
-static void
-cryptoWalletSetDefaultFeeBasisAsBTC (BRCryptoWallet wallet,
-                                     uint64_t btcFeeBasis) { // SAT-per-KB
-    // This will generate a BTC BITCOIN_WALLET_PER_PER_KB_UPDATED event.
-    BRWalletManagerUpdateFeePerKB (wallet->u.btc.bwm, wallet->u.btc.wid, btcFeeBasis);
-}
-
 extern void
 cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoFeeBasis feeBasis) {
@@ -420,17 +402,27 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            cryptoWalletSetDefaultFeeBasisAsBTC (wallet, cryptoFeeBasisAsBTC(feeBasis));
+            // This will generate a BTC BITCOIN_WALLET_PER_PER_KB_UPDATED event.
+             BRWalletManagerUpdateFeePerKB (wallet->u.btc.bwm,
+                                            wallet->u.btc.wid,
+                                            cryptoFeeBasisAsBTC(feeBasis));
             break;
 
         case BLOCK_CHAIN_TYPE_ETH: {
-            cryptoWalletSetDefaultFeeBasisAsETH (wallet, cryptoFeeBasisAsETH (feeBasis));
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid =wallet->u.eth.wid;
+            BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (feeBasis);
+
+            // These will generate EWM WALLET_EVENT_DEFAULT_GAS_{LIMIT,PRICE}_UPDATED events
+            ewmWalletSetDefaultGasLimit (ewm, wid, ethFeeBasis.u.gas.limit);
+            ewmWalletSetDefaultGasPrice (ewm, wid, ethFeeBasis.u.gas.price);
             break;
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
             BRGenericWallet wid = wallet->u.gen;
 
+            // This will not generate any GEN events (GEN events don't exist);
             gwmWalletSetDefaultFeeBasis (wid, cryptoFeeBasisAsGEN(feeBasis));
             break;
         }
@@ -527,8 +519,9 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
             UInt256 genValue  = cryptoAmountGetValue (amount);
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
+            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
-            BRGenericTransfer tid = gwmWalletCreateTransfer (wid, genAddr, genValue);
+            BRGenericTransfer tid = gwmWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }
@@ -787,8 +780,11 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericFeeBasis feeBasis = gwmWalletGetDefaultFeeBasis (wallet->u.gen);
-            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, feeBasis);
+            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee,
+                                              (BRGenericFeeBasis) {
+                value,
+                costFactor
+            });
         }
     }
 }

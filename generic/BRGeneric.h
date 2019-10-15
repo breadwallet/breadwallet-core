@@ -104,12 +104,13 @@ extern "C" {
     extern BRGenericHash
     gwmTransferGetHash (BRGenericTransfer transfer);
 
-    // Wallet
+    // MARK: - Generic Wallet
 
-
-    /**
-     * Create the PrimaryWallet for `gwm`
-     */
+    /// Create the primary wallet.  The `account` is provided because wallet's create transfers which
+    /// requires addresses that are derived from account properties.
+    ///
+    /// @param account The account to use for addresses derived from public keys, tyically.
+    ///
     extern BRGenericWallet
     gwmWalletCreate (BRGenericAccount account);
 
@@ -132,8 +133,8 @@ extern "C" {
     extern BRGenericTransfer
     gwmWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,
-                             UInt256 amount);
-                             // ...
+                             UInt256 amount,
+                             BRGenericFeeBasis estimatedFeeBasis);
 
     extern UInt256
     gwmWalletEstimateTransferFee (BRGenericWallet wid,

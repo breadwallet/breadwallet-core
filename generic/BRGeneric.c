@@ -194,8 +194,9 @@ gwmWalletSetDefaultFeeBasis (BRGenericWallet wid,
 extern BRGenericTransfer
 gwmWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
-                         UInt256 amount) {
-    return wallet->handlers.createTransfer (wallet, target, amount);
+                         UInt256 amount,
+                         BRGenericFeeBasis estimatedFeeBasis) {
+    return wallet->handlers.createTransfer (wallet, target, amount, estimatedFeeBasis);
 }
 
 extern UInt256

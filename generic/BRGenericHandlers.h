@@ -98,7 +98,8 @@ extern "C" {
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
     typedef BRGenericTransfer (*BRGenericWalletCreateTransfer) (BRGenericWallet wallet,
                                                                 BRGenericAddress address,
-                                                                UInt256 amount);
+                                                                UInt256 amount,
+                                                                BRGenericFeeBasis estimatedFeeBasis);
 
     typedef struct {
         BRGenericWalletCreate create;
