@@ -3,7 +3,7 @@
 //  CoreDemo
 //
 //  Created by Ed Gamble on 8/9/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -54,16 +54,6 @@ class TransferTableViewCell: UITableViewCell {
         }
     }
 
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        let amount = amount.coerce(unit: amount.currency.defaultUnit)
-
-        var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
-        if result == "." || result == "" || result == "0." || result == ".0" {
-            result = "0.0"
-        }
-        return sign + result + " " + amount.unit.symbol
-    }
-    
     func updateView () {
         if let transfer = transfer {
             let date: Date? = transfer.confirmation.map {
@@ -73,8 +63,8 @@ class TransferTableViewCell: UITableViewCell {
 
             dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
             addrLabel.text = "Hash: \(hash.map { $0.description } ?? "<pending>")"
-            amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
-            feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: ""))"
+            amountLabel.text = transfer.amountDirected.description
+            feeLabel.text = "Fee: \(transfer.fee)"
             dotView.mainColor = colorForState()
             dotView.setNeedsDisplay()
         }

@@ -374,7 +374,9 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, const
     for (size_t i = 0; i < outCount; i++) {
         array_add(details->outputs, _BRPaymentProtocolOutput(outputs[i].amount, outputs[i].script, outputs[i].scriptLen));
     }
-    
+
+    details->outCount = array_count(details->outputs);
+
     details->time = time;
     details->expires = expires;
     if (memo) _ProtoBufString(&details->memo, memo, strlen(memo));
@@ -676,8 +678,9 @@ void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *req)
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
                                                       BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
-                                                      const BRAddress refundToAddresses[], size_t refundToCount,
-                                                      const char *memo)
+                                                      BRAddressParams params,
+                                                      const BRAddress refundToAddresses[],
+                                                      size_t refundToCount, const char *memo)
 {
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(*payment) + sizeof(ProtoBufContext));
     ProtoBufContext *ctx = (ProtoBufContext *)&payment[1];
@@ -701,8 +704,8 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
     array_new(payment->refundTo, refundToCount);
         
     for (size_t i = 0; i < refundToCount; i++) {
-        uint8_t script[BRAddressScriptPubKey(NULL, 0, refundToAddresses[i].s)];
-        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), refundToAddresses[i].s);
+        uint8_t script[BRAddressScriptPubKey(NULL, 0, params, refundToAddresses[i].s)];
+        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), params, refundToAddresses[i].s);
             
         array_add(payment->refundTo, _BRPaymentProtocolOutput(refundToAmounts[i], script, scriptLen));
     }
@@ -1232,10 +1235,7 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     assert(message != NULL || msgLen == 0);
     assert(receiverKey != NULL);
     assert(senderKey != NULL);
-
-    size_t recPriKeyLen = BRKeyPrivKey(receiverKey, NULL, 0);
-    size_t sndPriKeyLen = BRKeyPrivKey(senderKey, NULL, 0);
-    assert(recPriKeyLen != 0 || sndPriKeyLen != 0);
+    assert(BRKeyIsPrivKey(receiverKey) || BRKeyIsPrivKey(senderKey));
     
     array_new(ctx->defaults, encrypted_msg_status_msg + 1);
     array_set_count(ctx->defaults, encrypted_msg_status_msg + 1);
@@ -1248,7 +1248,7 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     if (identifier) msg->identLen = _ProtoBufBytes(&msg->identifier, identifier, identLen);
     msg->statusCode = statusCode;
     if (statusMsg) _ProtoBufString(&msg->statusMsg, statusMsg, strlen(statusMsg));
-    privKey = (BRKeyPrivKey(receiverKey, NULL, 0) != 0) ? receiverKey : senderKey;
+    privKey = (BRKeyIsPrivKey(receiverKey)) ? receiverKey : senderKey;
     _BRPaymentProtocolEncryptedMessageCEK(msg, cek, iv, privKey);
     snprintf(ad, adLen, "%"PRIu64"%s", statusCode, (statusMsg) ? statusMsg : "");
     bufLen = BRChacha20Poly1305AEADEncrypt(buf, bufLen, cek, iv, message, msgLen, ad, strlen(ad));

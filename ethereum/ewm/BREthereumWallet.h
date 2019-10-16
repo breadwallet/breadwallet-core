@@ -1,9 +1,9 @@
 //
 //  BBREthereumWallet.h
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -235,12 +235,6 @@ walletGetTransferCount (BREthereumWallet wallet);
 // TODO: Make 'static'
 //
 
-// Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
-// then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
-// contract's function call, in the transaction.data field).
-private_extern BREthereumEther
-transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
-
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
@@ -277,6 +271,46 @@ walletUnhandleTransfer (BREthereumWallet wallet,
 private_extern int
 walletHasTransfer (BREthereumWallet wallet,
                    BREthereumTransfer transaction);
+
+/// MARK: - Persisted Wallet State;
+
+typedef struct BREthereumWalletStateRecord *BREthereumWalletState;
+
+extern BREthereumWalletState
+walletStateCreate (const BREthereumWallet wallet);
+
+extern void
+walletStateRelease (BREthereumWalletState state);
+
+/**
+ * If WalletState holds Ether, then the address will be EMPTY_ADDRESS_INIT
+ */
+extern BREthereumAddress
+walletStateGetAddress (const BREthereumWalletState walletState);
+
+extern UInt256
+walletStateGetAmount (const BREthereumWalletState walletState);
+
+extern uint64_t
+walletStateGetNonce (const BREthereumWalletState walletState);
+
+extern void
+walletStateSetNonce (BREthereumWalletState walletState,
+                     uint64_t nonce);
+
+extern BRRlpItem
+walletStateEncode (const BREthereumWalletState walletState,
+                   BRRlpCoder coder);
+
+extern BREthereumWalletState
+walletStateDecode (BRRlpItem item,
+                   BRRlpCoder coder);
+
+extern BREthereumHash
+walletStateGetHash (const BREthereumWalletState walletState);
+
+extern BRSetOf(BREthereumWalletState)
+walletStateSetCreate (size_t capacity);
 
 #ifdef __cplusplus
 }

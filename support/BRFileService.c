@@ -30,9 +30,83 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <pthread.h>
+#include "../vendor/sqlite3/sqlite3.h"
+typedef int sqlite3_status_code;
 
 #define FILE_SERVICE_INITIAL_TYPE_COUNT    (5)
 #define FILE_SERVICE_INITIAL_HANDLER_COUNT    (2)
+
+#define FILE_SERVICE_SDB_FILENAME      "entities.db"
+
+#define FILE_SERVICE_SDB_ENTITY_TABLE     \
+"CREATE TABLE IF NOT EXISTS Entity(     \n\
+  Type      CHAR(64)    NOT NULL,       \n\
+  Hash      CHAR(64)    NOT NULL,       \n\
+  Data      TEXT        NOT NULL,       \n\
+  PRIMARY KEY (Type, Hash));"
+
+typedef char FileServiceSQL[1024];
+
+#define FILE_SERVICE_SDB_INSERT_ENTITY    \
+"INSERT OR REPLACE INTO Entity (Type, Hash, Data) VALUES (?, ?, ?);"
+
+#define FILE_SERVICE_SDB_QUERY_ENTITY     \
+"SELECT Data FROM Entity WHERE Type = ? AND Hash = ?;"
+
+#define FILE_SERVICE_SDB_QUERY_ALL_ENTITY     \
+"SELECT Hash, Data FROM Entity WHERE Type = ?;"
+
+#define FILE_SERVICE_SDB_UPDATE_ENTITY     \
+"UPDATE Entity SET Data = ? WHERE Type = ? AND Hash = ?;"
+
+#define FILE_SERVICE_SDB_DELETE_ENTITY     \
+"DELETE FROM Entity WHERE Type = ? AND Hash = ?;"
+
+#define FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY     \
+"DELETE FROM Entity WHERE Type = ?;"
+
+#define FILE_SERVICE_SDB_DELETE_ALL_ENTITY     \
+"DELETE FROM Entity;"
+
+#if defined(DEBUG)
+static int needSQLiteCompileOptions = 1;
+#endif
+// HEX Encode/Decode - Cribbed from ethereum/util/BRUtilHex.c
+
+// Convert a char into uint8_t (decode)
+#define decodeChar(c)           ((uint8_t) _hexu(c))
+
+// Convert a uint8_t into a char (encode)
+#define encodeChar(u)           ((char)    _hexc(u))
+
+static void
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
+    //
+    assert (0 == sourceLen % 2);
+    assert (2 * targetLen == sourceLen);
+
+    for (int i = 0; i < targetLen; i++) {
+        target[i] = (uint8_t) ((decodeChar(source[2*i]) << 4) | decodeChar(source[(2*i)+1]));
+    }
+}
+
+static void
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
+    assert (targetLen == 2 * sourceLen  + 1);
+
+    for (int i = 0; i < sourceLen; i++) {
+        target[2*i + 0] = encodeChar (source[i] >> 4);
+        target[2*i + 1] = encodeChar (source[i]);
+    }
+    target[2*sourceLen] = '\0';
+}
+
+/** Forward Declarations */
+static int
+fileServiceFailedSDB (BRFileService fs,
+                      int releaseLock,
+                      sqlite3_status_code code);
 
 /// Return 0 on success, -1 otherwise
 static int directoryMake (const char *path) {
@@ -103,11 +177,36 @@ fileServiceEntityTypeAddHandler (BRFileServiceEntityType *entityType,
 ///
 ///
 struct BRFileServiceRecord {
-    const char *pathToType;
+    char    *sdbPath;
+    sqlite3 *sdb;
+    sqlite3_stmt *sdbInsertStmt;
+    sqlite3_stmt *sdbSelectStmt;
+    sqlite3_stmt *sdbSelectAllStmt;
+    sqlite3_stmt *sdbUpdateStmt;
+    sqlite3_stmt *sdbDeleteStmt;
+    sqlite3_stmt *sdbDeleteAllTypeStmt;
+    sqlite3_stmt *sdbDeleteAllStmt;
+    uint8_t  sdbClosed;
+
+    char *currency;
+    char *network;
+
+    pthread_mutex_t lock;
+    
     BRArrayOf(BRFileServiceEntityType) entityTypes;
     BRFileServiceContext context;
     BRFileServiceErrorHandler handler;
 };
+
+static BRFileService
+fileServiceCreateReturnError (BRFileService fs,
+                              int releaseLock,
+                              BRFileServiceError error) {
+    // Nothing with 'error' at this point; a placeholder for now.
+    if (releaseLock) pthread_mutex_unlock (&fs->lock);
+    fileServiceRelease (fs);
+    return NULL;
+}
 
 extern BRFileService
 fileServiceCreate (const char *basePath,
@@ -115,6 +214,10 @@ fileServiceCreate (const char *basePath,
                    const char *network,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler) {
+    if (NULL == basePath || 0 == strlen(basePath)) return NULL;
+    if (NULL == currency || 0 == strlen(currency)) return NULL;
+    if (NULL == network  || 0 == strlen(network))  return NULL;
+
     // Reasonable limits on `network` and `currency` (ensure subsequent stack allocation works).
     if (strlen(network) > FILENAME_MAX || strlen(currency) > FILENAME_MAX)
         return NULL;
@@ -127,34 +230,179 @@ fileServiceCreate (const char *basePath,
     if (NULL == dir) return NULL;
     closedir(dir);
 
-    // Create the directory hierarchy
-    size_t pathToTypeSize = strlen(basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1;
-    char dirPath[pathToTypeSize];
+    // Require SQLite to support 'MULTI_THREADED' or 'SERIALIZED'.  We'll lock our connection.
+    // and thus 'MULTI_THREADED' is appropriate.
+    if (0 == sqlite3_threadsafe()) return NULL;
 
-    sprintf (dirPath, "%s/%s", basePath, currency);
-    if (-1 == directoryMake(dirPath)) return NULL;
-
-    sprintf(dirPath, "%s/%s/%s", basePath, currency, network);
-    if (-1 == directoryMake(dirPath)) return NULL;
-
+    // Create the file service itself
     BRFileService fs = calloc (1, sizeof (struct BRFileServiceRecord));
 
-    fs->pathToType = strdup(dirPath);
-    array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
 
+        pthread_mutex_init(&fs->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    // Set the error handler - early
     fileServiceSetErrorHandler (fs, context, handler);
 
+    fs->sdb = NULL;
+    fs->sdbPath = NULL;
+    fs->sdbClosed = 0;
+
+    // Save currency and network
+    fs->currency = strdup (currency);
+    fs->network  = strdup (network);
+
+    // Locate the SQLITE Database
+    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
+    fs->sdbPath = malloc (sdbPathLength);
+    sprintf (fs->sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+
+    // Create/Open the SQLITE Database
+    sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
+    if (SQLITE_OK != status) {
+        fileServiceRelease (fs);
+        return NULL;
+    }
+
+    // Create the SQLite 'Entity' Table
+    sqlite3_stmt *sdbCreateTableStmt;
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_ENTITY_TABLE, -1, &sdbCreateTableStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    if (SQLITE_DONE != sqlite3_step(sdbCreateTableStmt))
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+    sqlite3_finalize(sdbCreateTableStmt);
+
+    // Create the SQLITE 'Insert into Entity' Statement
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_INSERT_ENTITY, -1, &fs->sdbInsertStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    // Create the SQLITE "Select Entity By Hash' Statement
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_QUERY_ENTITY, -1, &fs->sdbSelectStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    // Create the SQLITE "Select Entity ' Statement
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_QUERY_ALL_ENTITY, -1, &fs->sdbSelectAllStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_UPDATE_ENTITY, -1, &fs->sdbUpdateStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_DELETE_ENTITY, -1, &fs->sdbDeleteStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY, -1, &fs->sdbDeleteAllTypeStmt, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
+            FILE_SERVICE_SDB,
+            { .sdb = { status }}
+        });
+
+    // Allocate the `entityTypes` array
+    array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
+
+#if defined(DEBUG)
+    if (needSQLiteCompileOptions) {
+        needSQLiteCompileOptions = 0;
+        printf ("SQLITE ThreadSafe Mutex: %d\n", sqlite3_threadsafe());
+        printf ("SQLITE Compile Options:\n");
+        const char *option = NULL;
+        for (int index = 0;
+             NULL != (option = sqlite3_compileoption_get(index));
+             index++) {
+            printf ("-DSQLITE_%s\n", option);
+        }
+    }
+#endif
     return fs;
 }
 
+static void
+_fileServiceFinalizeStmt (BRFileService fs, sqlite3_stmt **stmt) {
+    if (NULL != stmt && NULL != *stmt) {
+        sqlite3_finalize (*stmt);
+        *stmt = NULL;
+    }
+}
+
+static void
+_fileServiceCloseInternal (BRFileService fs) {
+    if (fs->sdbClosed) return;
+
+    fs->sdbClosed = 1;
+    _fileServiceFinalizeStmt (fs, &fs->sdbInsertStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbSelectStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbSelectAllStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbUpdateStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteAllTypeStmt);
+    _fileServiceFinalizeStmt (fs, &fs->sdbDeleteAllStmt);
+
+    if (NULL != fs->sdb) sqlite3_close (fs->sdb);
+    fs->sdb = NULL;
+}
+
+extern void
+fileServiceClose (BRFileService fs) {
+    pthread_mutex_lock (&fs->lock);
+    _fileServiceCloseInternal(fs);
+    pthread_mutex_unlock (&fs->lock);
+}
+
+// This is callable with a partially allocated BRFileService.  So, be
+// careful with fields that might not yet exist.
 extern void
 fileServiceRelease (BRFileService fs) {
-    size_t typesCount = array_count(fs->entityTypes);
-    for (size_t index = 0; index < typesCount; index++)
-        fileServiceEntityTypeRelease (&fs->entityTypes[index]);
+    pthread_mutex_lock (&fs->lock);
 
-    free ((char *) fs->pathToType);
-    if (NULL != fs->entityTypes) array_free (fs->entityTypes);
+    _fileServiceCloseInternal(fs);
+
+    if (NULL != fs->entityTypes) {
+        size_t typesCount = array_count(fs->entityTypes);
+        for (size_t index = 0; index < typesCount; index++)
+            fileServiceEntityTypeRelease (&fs->entityTypes[index]);
+        array_free(fs->entityTypes);
+    }
+
+    if (NULL != fs->network)  free (fs->network);
+    if (NULL != fs->currency) free (fs->currency);
+    if (NULL != fs->sdbPath)  free (fs->sdbPath);
+
+    pthread_mutex_unlock (&fs->lock);
+    pthread_mutex_destroy(&fs->lock);
+
     free (fs);
 }
 
@@ -203,12 +451,15 @@ fileServiceLookupEntityHandler (const BRFileService fs,
 
 static int
 fileServiceFailedInternal (BRFileService fs,
-                               void* bufferToFree,
-                               FILE* fileToClose,
-                               BRFileServiceError error) {
+                           int releaseLock,
+                           void* bufferToFree,
+                           FILE* fileToClose,
+                           BRFileServiceError error) {
     if (NULL != bufferToFree) free (bufferToFree);
     if (NULL != fileToClose)  fclose (fileToClose);
+    if (releaseLock) pthread_mutex_unlock (&fs->lock);
 
+    // Handler invoked w/o the lock.  Avoid a possible recursive use of FS.
     if (NULL != fs->handler)
         fs->handler (fs->context, fs, error);
 
@@ -217,39 +468,157 @@ fileServiceFailedInternal (BRFileService fs,
 
 static int
 fileServiceFailedImpl(BRFileService fs,
-                          void* bufferToFree,
-                          FILE* fileToClose,
-                          const char *reason) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_IMPL,
-                                              { .impl = { reason }}
-                                          });
+                      int releaseLock,
+                      void* bufferToFree,
+                      FILE* fileToClose,
+                      const char *reason) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_IMPL,
+                                          { .impl = { reason }}
+                                      });
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static int
 fileServiceFailedUnix(BRFileService fs,
-                          void* bufferToFree,
-                          FILE* fileToClose,
-                          int error) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_UNIX,
-                                              { .unix = { error }}
-                                          });
+                      int releaseLock,
+                      void* bufferToFree,
+                      FILE* fileToClose,
+                      int error) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_UNIX,
+                                          { .unix = { error }}
+                                      });
+}
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
+static int
+fileServiceFailedSDB (BRFileService fs,
+                      int releaseLock,
+                      sqlite3_status_code code) {
+    return fileServiceFailedInternal (fs, releaseLock, NULL, NULL,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_SDB,
+                                          { .sdb = { code, sqlite3_errstr(code) }}
+                                      });
 }
 
 static int
 fileServiceFailedEntity(BRFileService fs,
-                            void* bufferToFree,
-                            FILE* fileToClose,
-                            const char *type,
-                            const char *reason) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_ENTITY,
-                                              { .entity = { type, reason }}
-                                          });
+                        int releaseLock,
+                        void* bufferToFree,
+                        FILE* fileToClose,
+                        const char *type,
+                        const char *reason) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_ENTITY,
+                                          { .entity = { type, reason }}
+                                      });
+}
+
+/// MARK: - Save
+
+static int
+_fileServiceSave (BRFileService fs,
+                  const char *type,  /* block, peers, transactions, logs, ... */
+                  const void *entity,
+                  int needLock) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+
+    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
+    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return 0; };
+
+    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
+    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return 0; };
+
+    // Get then hex-encode the identifer
+    UInt256 identifier = handler->identifier (handler->context, fs, entity);
+    const char *hash = u256hex(identifier);
+
+    // Get the entity bytes
+    uint32_t entityBytesCount;
+    uint8_t *entityBytes = handler->writer (handler->context, fs, entity, &entityBytesCount);
+
+    // Always, always write the header for the currentHeaderFormatVersion
+
+    // Extend the entity bytes with the current header format, which is:
+    //   {HeaderFormatVersion, Current(Type)Version, EntityBytesCount, EntityBytes}
+    size_t  offset = 0;
+    size_t  bytesCount = 1 + 1 + sizeof(uint32_t) + entityBytesCount;
+    uint8_t *bytes = malloc (bytesCount);
+
+    bytes[offset] = (uint8_t) currentHeaderFormatVersion;
+    offset += 1;
+
+    bytes[offset] = (uint8_t) entityType->currentVersion;
+    offset += 1;
+
+    UInt32SetBE (&bytes[offset], entityBytesCount);
+    offset += sizeof (uint32_t);
+
+    memcpy (&bytes[offset], entityBytes, entityBytesCount);
+    free (entityBytes);
+
+    // Nex encode bytes
+    size_t dataCount = 2 * bytesCount + 1;
+    char *data = malloc (dataCount);
+    encodeHex (data, dataCount, bytes, bytesCount);
+    free (bytes);
+
+    // Fill out the SQL statement
+    sqlite3_status_code status;
+
+    if (needLock)
+        pthread_mutex_lock (&fs->lock);
+
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, needLock, NULL, NULL, "closed");
+
+    sqlite3_reset (fs->sdbInsertStmt);
+    sqlite3_clear_bindings(fs->sdbInsertStmt);
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 1, type, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 2, hash, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    status = sqlite3_step (fs->sdbInsertStmt);
+    if (SQLITE_DONE != status) {
+        free (data);
+        return fileServiceFailedSDB (fs, needLock, status);
+    }
+
+    if (needLock)
+        pthread_mutex_unlock (&fs->lock);
+
+    free (data);
+    return 1;
+}
+
+extern int
+fileServiceSave (BRFileService fs,
+                 const char *type,  /* block, peers, transactions, logs, ... */
+                 const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+    return _fileServiceSave (fs, type, entity, 1);
 }
 
 /// MARK: - Load
@@ -260,213 +629,209 @@ fileServiceLoad (BRFileService fs,
                  const char *type,
                  int updateVersion) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+    if (NULL == entityType) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     BRFileServiceEntityHandler *entityHandlerCurrent = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == entityHandlerCurrent) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
+    if (NULL == entityHandlerCurrent) return fileServiceFailedImpl (fs,  0, NULL, NULL, "missed type handler");
 
-    DIR *dir;
-    struct dirent *dirEntry;
+    sqlite3_status_code status;
 
-    char dirPath[strlen(fs->pathToType) + 1 + strlen(type) + 1];
-    sprintf (dirPath, "%s/%s", fs->pathToType, type);
+    pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
-    char filename[strlen(dirPath) + 1 + 2 * sizeof(UInt256) + 1];
+    sqlite3_reset (fs->sdbSelectAllStmt);
 
-    if (-1 == directoryMake(dirPath) || NULL == (dir = opendir(dirPath)))
-        return fileServiceFailedUnix (fs, NULL, NULL, errno);
+    status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
 
-    // Allocate some storage for entity bytes;
-    size_t bufferSize = 8 * 1024;
-    uint8_t *buffer = malloc (bufferSize);
-    if (NULL == buffer) return fileServiceFailedUnix (fs, NULL, NULL, ENOMEM);
+    uint8_t  dataBytesBuffer[8196];
+    uint8_t *dataBytes = dataBytesBuffer;
+    size_t   dataBytesCount = 8196;
 
-    // Process each directory entry.
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG) {
-            sprintf (filename, "%s/%s", dirPath, dirEntry->d_name);
-            FILE *file = fopen (filename, "rb");
-            if (NULL == file) return fileServiceFailedUnix (fs, buffer, NULL, errno);
+    while (SQLITE_ROW == sqlite3_step(fs->sdbSelectAllStmt)) {
+        const char *hash = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 0);
+        const char *data = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 1);
 
+        if (NULL == hash || NULL == data)
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                          "missed query `hash` or `data`");
 
-            BRFileServiceVersion version;
-            uint32_t bytesCount;
-
-            // read the header version
-            BRFileServiceHeaderFormatVersion headerVersion;
-            if (1 != fread (&headerVersion, sizeof(BRFileServiceHeaderFormatVersion), 1, file))
-                return fileServiceFailedUnix (fs, buffer, file, errno);
-
-            // read the header
-            switch (headerVersion) {
-                case HEADER_FORMAT_1: {
-                    // read the version
-                    if (1 != fread (&version, sizeof(BRFileServiceVersion), 1, file) ||
-                        // read the checksum
-                        // read the bytesCount
-                        1 != fread (&bytesCount, sizeof(uint32_t), 1, file))
-                        return fileServiceFailedUnix (fs, buffer, file, errno);
-
-                    break;
-                }
-            }
-
-            // Ensure `buffer` is large enough
-            if (bytesCount > bufferSize) {
-                bufferSize = bytesCount;
-
-                uint8_t *bufferNew = realloc (buffer, bufferSize);
-                if (NULL == bufferNew) return fileServiceFailedUnix (fs, buffer, NULL, ENOMEM);
-                buffer = bufferNew;
-            }
-
-            // read the bytes - multiple might be required
-            if (bytesCount != fread (buffer, 1, bytesCount, file))
-                return fileServiceFailedUnix (fs, buffer, file, errno);
-
-            // All file reading is complete; next read should be EOF.
-
-            // Done with file.
-            if (0 != fclose (file))
-                return fileServiceFailedUnix (fs, buffer, NULL, errno);
-
-            // We now have everything
-
-            // This will need some later rework.  If a header includes some data, like a checksum,
-            // we won't have that value in this context when needed.
-
-            // Do something header specific
-            switch (headerVersion) {
-                case HEADER_FORMAT_1:
-                    // compute the checksum
-                    // compare the checksum
-                   break;
-            }
-
-            // Look up the entity handler
-            BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, version);
-            if (NULL == handler) return fileServiceFailedImpl (fs,  buffer, NULL, "missed type handler");
-
-            // Read the entity from buffer and add to results.
-            void *entity = handler->reader (handler->context, fs, buffer, bytesCount);
-            if (NULL == entity) return fileServiceFailedEntity (fs, buffer, NULL, type, "reader");
-
-            // Update restuls with the newly restored entity
-            BRSetAdd (results, entity);
-
-            // If the read version is not the current version, update
-            if (updateVersion &&
-                (version != entityType->currentVersion ||
-                 headerVersion != currentHeaderFormatVersion))
-                fileServiceSave (fs, type, entity);
+        assert (64 == strlen (hash));
+        
+        // Ensure `dataBytes` is large enough for hex-decoded `data`
+        size_t dataCount = strlen (data);
+        assert (0 == dataCount % 2);  // Surely 'even'
+        if ((dataCount/2) > dataBytesCount) {
+            if (dataBytes != dataBytesBuffer) free (dataBytes);
+            dataBytesCount = dataCount/2;
+            dataBytes = malloc (dataBytesCount);
         }
 
-    free (buffer);
-    closedir (dir);
+        // Actually decode `data` into `dataBytes`
+        decodeHex (dataBytes, dataCount/2, data, dataCount);
+
+        size_t offset = 0;
+        BRFileServiceVersion version;
+        uint32_t  entityBytesCount;
+        uint8_t  *entityBytes;
+
+        BRFileServiceHeaderFormatVersion headerVersion = dataBytes[offset];
+        offset += 1;
+
+        switch (headerVersion) {
+            case HEADER_FORMAT_1:
+                version = dataBytes[offset];
+                offset += 1;
+
+                entityBytesCount = UInt32GetBE (&dataBytes[offset]);
+                offset += sizeof (uint32_t);
+
+                break;
+        }
+
+        // Assert entityBytesCount remain in dataBytes
+        if (offset + entityBytesCount > dataBytesCount) {
+            assert (0); // In DEBUG builds.
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                          "missed bytes count");
+        }
+
+        entityBytes = &dataBytes[offset];
+
+        switch (headerVersion) {
+            case HEADER_FORMAT_1:
+                // compute then compare checksum
+                break;
+        }
+
+        // Look up the entity handler
+        BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, version);
+        if (NULL == handler)
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                          "missed type handler");
+
+        // Read the entity from buffer and add to results.
+        void *entity = handler->reader (handler->context, fs, entityBytes, entityBytesCount);
+        if (NULL == entity)
+            return fileServiceFailedEntity (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                            type, "reader");
+
+        // Update restuls with the newly restored entity
+        BRSetAdd (results, entity);
+
+        // If the read version is not the current version, update
+        if (updateVersion &&
+            (version != entityType->currentVersion ||
+             headerVersion != currentHeaderFormatVersion))
+            // This could signal an error.  Perhaps we should test the return result and
+            // if `0` skip out here?  We won't - we couldn't save the entity in the new format
+            // but we'll continue and will try next time we load it.
+            _fileServiceSave (fs, type, entity, 0);
+    }
+    pthread_mutex_unlock (&fs->lock);
+
+    if (dataBytes != dataBytesBuffer) free (dataBytes);
 
     return 1;
 }
 
-/// MARK: - Save
-
-extern void /* error code? */
-fileServiceSave (BRFileService fs,
-                 const char *type,  /* block, peers, transactions, logs, ... */
-                 const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
-    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
-
-    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == handler) { fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler"); return; };
-
-    UInt256 identifier = handler->identifier (handler->context, fs, entity);
-
-    uint32_t bytesCount;
-    uint8_t *bytes = handler->writer (handler->context, fs, entity, &bytesCount);
-
-    char filename[strlen(fs->pathToType) + 1 + strlen(type) + 1 + 2*sizeof(UInt256) + 1];
-    sprintf (filename, "%s/%s/%s", fs->pathToType, type, u256hex(identifier));
-
-    FILE *file = fopen (filename, "wb");
-    if (NULL == file) { fileServiceFailedUnix (fs, bytes, NULL, errno); return; }
-
-
-    // Always, always write the header for the currentHeaderFormatVersion
-
-    if (// write the header version
-        1 != fwrite(&currentHeaderFormatVersion, sizeof(BRFileServiceHeaderFormatVersion), 1, file) ||
-        // then the version
-        1 != fwrite (&entityType->currentVersion, sizeof(BRFileServiceVersion), 1, file) ||
-        // then the checksum?
-        // write the bytesCount
-        1 != fwrite(&bytesCount, sizeof (uint32_t), 1, file)) {
-        fileServiceFailedUnix (fs, bytes, file, errno);
-        return;
-    }
-
-    // write the bytes.
-    if (bytesCount != fwrite(bytes, 1, bytesCount, file)) {
-        fileServiceFailedUnix (fs, bytes, file, errno);
-        return;
-    }
-
-    if (0 != fclose (file)) {  fileServiceFailedUnix (fs, bytes, NULL, errno); return; }
-
-    free (bytes);
-}
-
 /// MARK: - Remove, Clear
 
-extern void
+extern int
 fileServiceRemove (BRFileService fs,
                    const char *type,
                    UInt256 identifier) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
+    if (NULL == entityType)
+        return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
-    char filename[strlen(fs->pathToType) + 1 + strlen(type) + 1 + 2*sizeof(UInt256) + 1];
-    sprintf (filename, "%s/%s/%s", fs->pathToType, type, u256hex(identifier));
+    // Hex-Encode identifier
+    const char *hash = u256hex(identifier);
 
-    // If failed, then what?
-    remove (filename);
+    sqlite3_status_code status;
+
+    pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+
+    sqlite3_reset (fs->sdbDeleteStmt);
+
+    status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    status = sqlite3_bind_text (fs->sdbDeleteStmt, 2, hash, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    status = sqlite3_step (fs->sdbDeleteStmt);
+    if (SQLITE_DONE != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    pthread_mutex_unlock (&fs->lock);
+
+    return 1;
 }
 
-static void
+static int
 fileServiceClearForType (BRFileService fs,
                          BRFileServiceEntityType *entityType) {
-    DIR *dir;
-    struct dirent *dirEntry;
+    const char *type = entityType->type;
 
-    char dirPath[strlen(fs->pathToType) + 1 + strlen(entityType->type) + 1];
-    sprintf (dirPath, "%s/%s", fs->pathToType, entityType->type);
+    sqlite3_status_code status;
 
-    if (-1 == directoryMake(dirPath) || NULL == (dir = opendir(dirPath))) {
-        fileServiceFailedUnix (fs, NULL, NULL, errno);
-        return;
-    }
+    pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG)
-            remove (dirEntry->d_name); // If failed, then what?
+    sqlite3_reset (fs->sdbDeleteAllTypeStmt);
 
-    closedir(dir);
+    status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    status = sqlite3_step (fs->sdbDeleteAllTypeStmt);
+    if (SQLITE_DONE != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    pthread_mutex_unlock (&fs->lock);
+
+    return 1;
 }
 
-extern void
+extern int
 fileServiceClear (BRFileService fs,
                   const char *type) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
+    if (NULL == entityType)
+        return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
-    fileServiceClearForType(fs, entityType);
+    return fileServiceClearForType(fs, entityType);
 }
 
-extern void
+extern int
 fileServiceClearAll (BRFileService fs) {
+    int success = 1;
     size_t typeCount = array_count(fs->entityTypes);
     for (size_t index = 0; index < typeCount; index++)
-        fileServiceClearForType (fs, &fs->entityTypes[index]);
+        success &= fileServiceClearForType (fs, &fs->entityTypes[index]);
+    return success;
+}
 
+extern UInt256
+fileServiceGetIdentifier (BRFileService fs,
+                          const char *type,
+                          const void *entity) {
+
+    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
+    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return UINT256_ZERO; };
+
+    BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
+    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return UINT256_ZERO; };
+
+    return handler->identifier (handler->context, fs, entity);
 }
 
 extern int
@@ -502,13 +867,6 @@ fileServiceDefineType (BRFileService fs,
     
     // otherwise add one
     else {
-        // Confirm that the directory can be made.
-        char dirPath[strlen(fs->pathToType) + 1 + strlen(type) + 1];
-        sprintf (dirPath, "%s/%s", fs->pathToType, type);
-
-        if (-1 == directoryMake(dirPath))
-            return fileServiceFailedUnix (fs, NULL, NULL, errno);
-
         fileServiceEntityTypeAddHandler (entityType, &newEntityHander);
     }
 
@@ -521,14 +879,54 @@ fileServiceDefineCurrentVersion (BRFileService fs,
                                  BRFileServiceVersion version) {
     // Find the entityType for `type`
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+    if (NULL == entityType) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     // Find the entityHandler, for version.
     BRFileServiceEntityHandler *entityHandler = fileServiceEntityTypeLookupHandler (entityType, version);
-    if (NULL == entityHandler) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
+    if (NULL == entityHandler) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler");
 
     // We have a handler, therefore it can be the current one.
     entityType->currentVersion = version;
 
     return 1;
+}
+
+extern BRFileService
+fileServiceCreateFromTypeSpecfications (const char *basePath,
+                                        const char *currency,
+                                        const char *network,
+                                        BRFileServiceContext context,
+                                        BRFileServiceErrorHandler handler,
+                                        size_t specificationsCount,
+                                        BRFileServiceTypeSpecification *specfications) {
+    int success = 1;
+
+    BRFileService fileService = fileServiceCreate (basePath,
+                                                   currency,
+                                                   network,
+                                                   context,
+                                                   handler);
+    if (NULL == fileService) return NULL;
+
+    for (size_t index = 0; index < specificationsCount; index++) {
+        BRFileServiceTypeSpecification *specification = &specfications[index];
+        for (size_t vindex = 0; vindex < specification->versionsCount; vindex++) {
+            success &= fileServiceDefineType (fileService,
+                                              specification->type,
+                                              specification->versions[vindex].version,
+                                              context,
+                                              specification->versions[vindex].identifier,
+                                              specification->versions[vindex].reader,
+                                              specification->versions[vindex].writer);
+            if (!success) break;
+        }
+
+        success &= fileServiceDefineCurrentVersion (fileService,
+                                                    specification->type,
+                                                    specification->defaultVersion);
+        if (!success) break;
+    }
+
+    if (success) return fileService;
+    else { fileServiceRelease (fileService); return NULL; }
 }

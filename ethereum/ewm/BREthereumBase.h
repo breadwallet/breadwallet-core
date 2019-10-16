@@ -3,8 +3,10 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 11/19/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BREthereumBase_h
 #define BREthereumBase_h
@@ -108,30 +110,16 @@ typedef struct BREthereumWalletRecord *BREthereumWallet;
  */
 typedef struct BREthereumEWMRecord *BREthereumEWM;
 
-typedef enum {
-    FEE_BASIS_NONE,
-    FEE_BASIS_GAS
-} BREthereumFeeBasisType;
-
-typedef struct {
-    BREthereumFeeBasisType type;
-    union {
-        struct {
-            BREthereumGas limit;
-            BREthereumGasPrice price;
-        } gas;
-    } u;
-} BREthereumFeeBasis;
-
-extern BREthereumFeeBasis
-feeBasisCreate (BREthereumGas limit,
-                BREthereumGasPrice price);
-
 //
 // Errors - Right Up Front - 'The Emperor Has No Clothes' ??
 //
 typedef enum {
     SUCCESS,
+
+    // Generic catch-all failure. This should only be used as if creating a
+    // specific error code does not make sense (you really should create
+    // a specifc error code...).
+    ERROR_FAILED,
 
     // Reference access
     ERROR_UNKNOWN_NODE,

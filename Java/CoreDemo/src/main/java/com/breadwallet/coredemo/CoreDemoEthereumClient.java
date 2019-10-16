@@ -2,7 +2,7 @@
  * CoreDemoEthereumClient
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -42,7 +42,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                                   String storagePath,
                                   String paperKey) {
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, storagePath, paperKey, words);
+        this.ewm = new BREthereumEWM (this, BREthereumEWM.Mode.API_ONLY, network, storagePath, paperKey, words);
     }
 
     @Override

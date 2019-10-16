@@ -3,12 +3,15 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 7/23/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #include "BRUtil.h"
 
 //
@@ -157,7 +160,7 @@ runMathMulTests () {
 static void
 runMathMulDoubleTests () {
     BRCoreParseStatus status;
-    int over, neg; double rem;
+    int over, neg; double rem, v;
     UInt256 ai, ao, r;
 
     ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
@@ -205,7 +208,11 @@ runMathMulDoubleTests () {
     assert (over == 0 && eqUInt256(r, ao));
     assert (0 == strcmp ("2", coerceString(r, 10)));
 
-    // overflow...
+    double x = 25.25434525155732538797258871;
+    r = createUInt256Double(x, 18, &over);
+    assert (!over && !eqUInt256(r, UINT256_ZERO));
+    v  = coerceDouble(r, &over);
+    assert(!over && fabs(v*1e-18 - x) / x < 1e-10);
 }
 
 static void

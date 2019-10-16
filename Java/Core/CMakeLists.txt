@@ -15,6 +15,29 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_STL=gnustl_static -DANDRO
 # -Wint-conversion -Wbool-conversion -Wenum-conversion -Wassign-enum -Wno-shorten-64-to-32 -Wpointer-sign -Wnewline-eof
 # -Wdeprecated-declarations -Wno-sign-conversion
 
+#
+# sqlite3 build
+#
+
+add_library(sqlite3
+            STATIC)
+
+target_sources (sqlite3
+                PRIVATE
+                src/main/cpp/core/vendor/sqlite3/sqlite3.c
+                src/main/cpp/core/vendor/sqlite3/sqlite3.h)
+
+target_include_directories(sqlite3
+                           INTERFACE
+                           ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/sqlite3)
+
+target_compile_definitions (sqlite3
+                            PRIVATE
+                            _HAVE_SQLITE_CONFIG_H=1)
+
+#
+# core build
+#
 
 add_library( # Sets the name of the library.
              core
@@ -32,6 +55,7 @@ target_sources (core
                 src/main/cpp/core/support/BRAssert.c
                 src/main/cpp/core/support/BRAssert.h
                 src/main/cpp/core/support/BRArray.h
+                src/main/cpp/core/support/BRBase.h
                 src/main/cpp/core/support/BRBIP32Sequence.c
                 src/main/cpp/core/support/BRBIP32Sequence.h
                 src/main/cpp/core/support/BRBIP39Mnemonic.c
@@ -52,6 +76,8 @@ target_sources (core
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
 
                 # Bitcoin
                 src/main/cpp/core/bitcoin/BRBIP38Key.c
@@ -68,12 +94,16 @@ target_sources (core
                 src/main/cpp/core/bitcoin/BRPeer.h
                 src/main/cpp/core/bitcoin/BRPeerManager.c
                 src/main/cpp/core/bitcoin/BRPeerManager.h
+                src/main/cpp/core/bitcoin/BRSyncManager.c
+                src/main/cpp/core/bitcoin/BRSyncManager.h
                 src/main/cpp/core/bitcoin/BRTransaction.c
                 src/main/cpp/core/bitcoin/BRTransaction.h
                 src/main/cpp/core/bitcoin/BRWallet.c
                 src/main/cpp/core/bitcoin/BRWallet.h
                 src/main/cpp/core/bitcoin/BRWalletManager.c
                 src/main/cpp/core/bitcoin/BRWalletManager.h
+                src/main/cpp/core/bitcoin/BRWalletManagerEvent.c
+                src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h
 
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c
@@ -155,6 +185,8 @@ target_sources (core
                 src/main/cpp/core/ethereum/base/BREthereumEther.h
                 src/main/cpp/core/ethereum/base/BREthereumGas.c
                 src/main/cpp/core/ethereum/base/BREthereumGas.h
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.c
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.h
                 src/main/cpp/core/ethereum/base/BREthereumHash.c
                 src/main/cpp/core/ethereum/base/BREthereumHash.h
                 src/main/cpp/core/ethereum/base/BREthereumData.c
@@ -258,6 +290,7 @@ target_sources (core
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
+                src/main/cpp/core/ethereum/ewm/BREthereumEWMPersist.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
 #                src/main/cpp/core/ethereum/ewm/testEwm.c
                 )
@@ -282,7 +315,7 @@ include_directories(src/main/cpp/core/support)
 include_directories(src/main/cpp/core/bitcoin)
 include_directories(src/main/cpp/core/bcash)
 include_directories(src/main/cpp/core/ethereum/)
-include_directories(src/main/cpp/core/secp256k1/)
+include_directories(src/main/cpp/core/vendor/secp256k1/)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -306,4 +339,5 @@ target_link_libraries( # Specifies the target library.
 
                        # Links the target library to the log library
                        # included in the NDK.
-                       ${log-lib} )
+                       ${log-lib}
+                       sqlite3 )

@@ -2,28 +2,32 @@
  * Currency
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
 
-public class Currency {
-    public final String code;
-    public final String symbol;
-    public final String name;
-    public final int decimals;
+import com.google.common.base.Optional;
 
-    public final Unit baseUnit;
-    public final Unit defaultUnit;
+public interface Currency {
 
-    public Currency(String code, String symbol, String name, int decimals, String baseUnitName, String baseUnitSymbol) {
-        this.code = code;
-        this.symbol = symbol;
-        this.name = name;
-        this.decimals = decimals;
-        this.baseUnit    = new Unit (this, baseUnitName, baseUnitSymbol);
-        this.defaultUnit = new Unit (code, symbol, (long) Math.pow (10, decimals), this.baseUnit);
-    }
+    String CODE_AS_BTC = "btc";
+    String CODE_AS_BCH = "bch";
+    String CODE_AS_ETH = "eth";
+
+    String getUids();
+
+    String getName();
+
+    String getCode();
+
+    String getType();
+
+    Optional<String> getIssuer();
+
+    boolean equals(Object o);
+
+    int hashCode();
 }

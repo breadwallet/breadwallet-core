@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -62,24 +62,21 @@ struct BREventHandlerRecord {
     ///
     BREventAlarmId timeoutAlarmId;
 
-    // Pthread
-
+    // The thread handling events.
     pthread_t thread;
-    pthread_cond_t cond;
+
+    // A lock on internal state
     pthread_mutex_t lock;
-    pthread_mutex_t lockOnStartStop;
 
-    pthread_mutex_t *lockToUse;
-
-    // Boolean to identify if the thread should quit.
-    int threadQuit;
+    // A lock for protecting the dispatch call.  Optional but recommended.
+    pthread_mutex_t *lockOnDispatch;
 };
 
 extern BREventHandler
 eventHandlerCreate (const char *name,
                     const BREventType *types[],
                     unsigned int typesCount,
-                    pthread_mutex_t *lock) {
+                    pthread_mutex_t *lockOnDispatch) {
     BREventHandler handler = calloc (1, sizeof (struct BREventHandlerRecord));
 
     // Fill in the timeout event.  Leave the dispatcher NULL until the dispatcher is provided.
@@ -103,35 +100,15 @@ eventHandlerCreate (const char *name,
     }
 
     handler->timeoutAlarmId = ALARM_ID_NONE;
-
-    // Create the PTHREAD CONDition variable
-    {
-        pthread_condattr_t attr;
-        pthread_condattr_init(&attr);
-        pthread_cond_init(&handler->cond, &attr);
-        pthread_condattr_destroy(&attr);
-    }
+    handler->lockOnDispatch = lockOnDispatch;
 
     // Create the PTHREAD LOCK variable
-    if (NULL != lock) handler->lockToUse = lock;
-    else {
-        // The cacheLock is a normal, non-recursive lock
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(&handler->lock, &attr);
-        pthread_mutexattr_destroy(&attr);
-
-        handler->lockToUse = &handler->lock;
-    }
-
-    // Create the PTHREAD LOCK-ON-START-STOP variable
     {
         // The cacheLock is a normal, non-recursive lock
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
-        pthread_mutex_init(&handler->lockOnStartStop, &attr);
+        pthread_mutex_init(&handler->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
 
@@ -148,15 +125,12 @@ eventHandlerSetTimeoutDispatcher (BREventHandler handler,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
                                   BREventTimeoutContext context) {
-    pthread_mutex_lock (handler->lockToUse);
+    pthread_mutex_lock (&handler->lock);
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
     handler->timeoutContext = context;
     handler->timeoutEventType.eventDispatcher = dispatcher;
-    pthread_mutex_unlock (handler->lockToUse);
-
-    // Signal an event - so that the 'timedwait' starts.
-    pthread_cond_signal(&handler->cond);
+    pthread_mutex_unlock (&handler->lock);
 }
 
 static void
@@ -168,47 +142,44 @@ eventHandlerAlarmCallback (BREventHandler handler,
     eventHandlerSignalEventOOB (handler, (BREvent*) &event);
 }
 
-
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
 eventHandlerThread (BREventHandler handler) {
-
 #if defined (__ANDROID__)
-    pthread_setname_np(handler->thread, handler->name);
+    pthread_setname_np (pthread_self(), handler->name);
 #else
-    pthread_setname_np(handler->name);
+    pthread_setname_np (handler->name);
 #endif
 
-    pthread_mutex_lock (handler->lockToUse);
+    int timeToQuit = 0;
 
-    handler->threadQuit = 0;
-
-    while (!handler->threadQuit) {
+    while (!timeToQuit) {
         // Check for a queued event
-        switch (eventQueueDequeue(handler->queue, handler->scratch)) {
-            case EVENT_STATUS_SUCCESS: {
-                // If we have one, dispatch
-                BREventType *type = handler->scratch->type;
-                type->eventDispatcher (handler, handler->scratch);
+        switch (eventQueueDequeueWait (handler->queue, handler->scratch)) {
+            case EVENT_STATUS_SUCCESS:
+                // We got an event, dispatch
+                if (handler->lockOnDispatch) pthread_mutex_lock (handler->lockOnDispatch);
+                handler->scratch->type->eventDispatcher (handler, handler->scratch);
+                if (handler->lockOnDispatch) pthread_mutex_unlock (handler->lockOnDispatch);
                 break;
-            }
+
+            case EVENT_STATUS_WAIT_ABORT:
+                timeToQuit = 1;
+                break;
+
+            case EVENT_STATUS_WAIT_ERROR:
+                // Just try again.
+                break;
 
             case EVENT_STATUS_NOT_STARTED:
             case EVENT_STATUS_UNKNOWN_TYPE:
             case EVENT_STATUS_NULL_EVENT:
-                // impossible?
-                // fall through
-
             case EVENT_STATUS_NONE_PENDING:
-                // ... otherwise wait for an event ...
-                pthread_cond_wait(&handler->cond, handler->lockToUse);
+                assert (0);
                 break;
         }
     }
-
-    // Requires as `cond_wait` takes its mutex when signalled.
-    pthread_mutex_unlock (handler->lockToUse);
 
     return NULL;
 }
@@ -220,10 +191,7 @@ eventHandlerDestroy (BREventHandler handler) {
 
     // ... then kill
     assert (PTHREAD_NULL == handler->thread);
-    pthread_cond_destroy(&handler->cond);
-    if (handler->lockToUse == &handler->lock)
-        pthread_mutex_destroy(&handler->lock);
-    pthread_mutex_destroy(&handler->lockOnStartStop);
+    pthread_mutex_destroy(&handler->lock);
 
     // release memory
     eventQueueDestroy(handler->queue);
@@ -244,7 +212,7 @@ eventHandlerDestroy (BREventHandler handler) {
 extern void
 eventHandlerStart (BREventHandler handler) {
     alarmClockCreateIfNecessary(1);
-    pthread_mutex_lock(&handler->lockOnStartStop);
+    pthread_mutex_lock(&handler->lock);
     if (PTHREAD_NULL == handler->thread) {
         // If we have an timeout event dispatcher, then add an alarm.
         if (NULL != handler->timeoutEventType.eventDispatcher) {
@@ -262,10 +230,17 @@ eventHandlerStart (BREventHandler handler) {
             pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
             pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
+            // "Before returning, a successful call to pthread_create() stores the ID of the new
+            // thread in the buffer pointed to by thread; this identifier is used to refer to the
+            // thread in subsequent calls to other pthreads functions."
+            //
+            // TODO: Handle an unsuccessfull call.
+            // assert (NULL != handler->thread);
+
             pthread_attr_destroy(&attr);
         }
     }
-    pthread_mutex_unlock(&handler->lockOnStartStop);
+    pthread_mutex_unlock(&handler->lock);
 }
 
 
@@ -282,28 +257,34 @@ eventHandlerStart (BREventHandler handler) {
  */
 extern void
 eventHandlerStop (BREventHandler handler) {
-    pthread_mutex_lock(&handler->lockOnStartStop);
+    pthread_mutex_lock(&handler->lock);
     if (PTHREAD_NULL != handler->thread) {
-        pthread_mutex_lock (handler->lockToUse);
-
         // Remove a timeout alarm, if it exists.
         if (ALARM_ID_NONE != handler->timeoutAlarmId) {
             alarmClockRemAlarm (alarmClock, handler->timeoutAlarmId);
             handler->timeoutAlarmId = ALARM_ID_NONE;
         }
 
-        // Quit the thread.
-        handler->threadQuit = 1;
-        pthread_cond_signal(&handler->cond);
-        pthread_mutex_unlock (handler->lockToUse);
-        pthread_join(handler->thread, NULL);
+        // Quit the thread by aborting the queue wait.
+        eventQueueDequeueWaitAbort (handler->queue);
+
+        // Wait for the thread.
+        pthread_join (handler->thread, NULL);
         // A mini-race here?
         handler->thread = PTHREAD_NULL;
 
-        // Empty the queue completely.
+        // TODO: Empty the queue completely?  Or not?
+        eventQueueDequeueWaitAbortReset (handler->queue);
         eventHandlerClear (handler);
     }
-    pthread_mutex_unlock(&handler->lockOnStartStop);
+    pthread_mutex_unlock(&handler->lock);
+}
+
+extern int
+eventHandlerIsCurrentThread (BREventHandler handler) {
+    // TODO(fix): This is a hack; fix the ordering such that `handler->thread` is
+    //            is properly set by the time `eventHandlerThread()` runs (CORE-564)
+    return PTHREAD_NULL == handler->thread || pthread_self() == handler->thread;
 }
 
 extern int
@@ -314,16 +295,14 @@ eventHandlerIsRunning (BREventHandler handler) {
 extern BREventStatus
 eventHandlerSignalEvent (BREventHandler handler,
                          BREvent *event) {
-    eventQueueEnqueueTail(handler->queue, event);
-    pthread_cond_signal(&handler->cond);
+    eventQueueEnqueueTailSignal (handler->queue, event);
     return EVENT_STATUS_SUCCESS;
 }
 
 extern BREventStatus
 eventHandlerSignalEventOOB (BREventHandler handler,
                             BREvent *event) {
-    eventQueueEnqueueHead(handler->queue, event);
-    pthread_cond_signal(&handler->cond);
+    eventQueueEnqueueHeadSignal (handler->queue, event);
     return EVENT_STATUS_SUCCESS;
 }
 

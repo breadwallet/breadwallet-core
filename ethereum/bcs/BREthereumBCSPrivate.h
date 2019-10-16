@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/24/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -82,7 +82,7 @@ struct BREthereumBCSStruct {
     /**
      * The sync mode
      */
-    BREthereumMode mode;
+    BRSyncMode mode;
     
     /**
      * A BloomFilter with address for application to transactions

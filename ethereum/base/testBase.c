@@ -3,8 +3,10 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 7/23/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdio.h>
 #include <assert.h>
@@ -121,6 +123,8 @@ runEtherParseTests () {
 #define SIGNING_DATA_2 "f86c258502540be40083035b609482e041e84074fc5f5947d4d27e3c44f824b7a1a187b1a2bc2ec500008078a04a7db627266fa9a4116e3f6b33f5d245db40983234eb356261f36808909d2848a0166fa098a2ce3bda87af6000ed0083e3bf7cc31c6686b670bd85cbc6da2d6e85"
 #define SIGNING_HASH_2 "58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
 
+#define ETHEREUM_ADDRESS_PARAMS  ((BRAddressParams) { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, BITCOIN_BECH32_PREFIX })
+
 static void runSignatureTests1 (void) {
     printf ("\n== Signature 1\n");
     UInt256 digest;
@@ -139,7 +143,7 @@ static void runSignatureTests1 (void) {
     assert (0 == strcmp (digestString, signingHash));
 
     BRKey privateKeyUncompressed;
-    BRKeySetPrivKey(&privateKeyUncompressed, SIGNATURE_PRIVATE_KEY);
+    BRKeySetPrivKey(&privateKeyUncompressed, ETHEREUM_ADDRESS_PARAMS, SIGNATURE_PRIVATE_KEY);
 
     size_t signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
                                            NULL, 0,

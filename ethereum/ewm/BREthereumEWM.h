@@ -1,9 +1,9 @@
 //
 //  BREthereumEWM
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/5/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -27,28 +27,52 @@ extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumMode mode,
+           BRSyncMode mode,
            BREthereumClient client,
-           const char *storagePath);
+           const char *storagePath,
+           uint64_t blockHeight,
+           uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
-                       BREthereumMode mode,
+                       BRSyncMode mode,
                        BREthereumClient client,
-                       const char *storagePath);
+                       const char *storagePath,
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRKey publicKey,
                         BREthereumTimestamp accountTimestamp,
-                        BREthereumMode mode,
+                        BRSyncMode mode,
                         BREthereumClient client,
-                        const char *storagePath);
+                        const char *storagePath,
+                        uint64_t blockHeight,
+                        uint64_t confirmationsUntilFinal);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);
+
+/// MARK: Start Stop
+
+/**
+ * Starts the EWM event queue.  Must be called after ewmCreate() and ewmStop()
+ *
+ * @param ewm
+ */
+extern void
+ewmStart (BREthereumEWM ewm);
+
+/**
+ * Stops the EWM event queue (but does not purge existing, queued events).
+ *
+ * @param ewm 
+ */
+extern void
+ewmStop (BREthereumEWM ewm);
 
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm);
@@ -92,25 +116,27 @@ extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm,
          BREthereumBoolean pendExistingTransfers);
 
-extern void
-ewmLock (BREthereumEWM ewm);
+extern BREthereumBoolean
+ewmSyncToDepth (BREthereumEWM ewm,
+                BREthereumBoolean pendExistingTransfers,
+                BRSyncDepth depth);
+
+extern BRSyncMode
+ewmGetMode (BREthereumEWM ewm);
 
 extern void
-ewmUnlock (BREthereumEWM ewm);
+ewmUpdateMode (BREthereumEWM ewm,
+               BRSyncMode mode);
 
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
-
-extern void
-ewmUpdateBlockHeight(BREthereumEWM ewm,
-                     uint64_t blockHeight);
 
 /// MARK: - Wallets
 
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm);
 
-extern unsigned int
+extern size_t
 ewmGetWalletsCount (BREthereumEWM ewm);
 
 extern BREthereumWallet
@@ -129,10 +155,6 @@ ewmWalletGetToken (BREthereumEWM ewm,
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet);
-
-extern void
-ewmUpdateWalletBalance(BREthereumEWM ewm,
-                       BREthereumWallet wallet);
 
 extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
@@ -198,10 +220,28 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                      BREthereumAmount amount,
                                      BREthereumFeeBasis feeBasis);
 extern BREthereumEther
-ewmWalletEstimateTransferFee(BREthereumEWM ewm,
-                             BREthereumWallet wallet,
-                             BREthereumAmount amount,
-                             int *overflow);
+ewmWalletEstimateTransferFee (BREthereumEWM ewm,
+                              BREthereumWallet wallet,
+                              BREthereumAmount amount,
+                              int *overflow);
+
+extern BREthereumEther
+ewmWalletEstimateTransferFeeForBasis (BREthereumEWM ewm,
+                                      BREthereumWallet wallet,
+                                      BREthereumAmount amount,
+                                      BREthereumGasPrice price,
+                                      BREthereumGas gas,
+                                      int *overflow);
+
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumCookie cookie,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         BREthereumAmount amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit);
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
@@ -281,18 +321,22 @@ extern BREthereumGas
 ewmTransferGetGasLimit(BREthereumEWM ewm,
                        BREthereumTransfer transfer);
 
+extern BREthereumFeeBasis
+ewmTransferGetFeeBasis (BREthereumEWM ewm,
+                        BREthereumTransfer transfer);
+
 extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer);
 
-
-extern BREthereumGas
-ewmTransferGetGasUsed(BREthereumEWM ewm,
-                      BREthereumTransfer transfer);
-
-extern uint64_t
-ewmTransferGetTransactionIndex(BREthereumEWM ewm,
-                               BREthereumTransfer transfer);
+extern BREthereumBoolean
+ewmTransferExtractStatusIncluded (BREthereumEWM ewm,
+                                  BREthereumTransfer transfer,
+                                  BREthereumHash *blockHash,
+                                  uint64_t *blockNumber,
+                                  uint64_t *blockTransactionIndex,
+                                  uint64_t *blockTimestamp,
+                                  BREthereumGas *gasUsed);
 
 extern BREthereumHash
 ewmTransferGetBlockHash(BREthereumEWM ewm,
@@ -303,8 +347,16 @@ ewmTransferGetBlockNumber(BREthereumEWM ewm,
                           BREthereumTransfer transfer);
 
 extern uint64_t
+ewmTransferGetTransactionIndex(BREthereumEWM ewm,
+                               BREthereumTransfer transfer);
+
+extern uint64_t
 ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
                               BREthereumTransfer transfer);
+
+extern BREthereumGas
+ewmTransferGetGasUsed(BREthereumEWM ewm,
+                      BREthereumTransfer transfer);
 
 extern uint64_t
 ewmTransferGetBlockConfirmations(BREthereumEWM ewm,
@@ -393,6 +445,22 @@ ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
                                    const char *strBlockNumber,
                                    int rid);
 
+/// MARK: Token
+
+extern BREthereumToken
+ewmLookupToken (BREthereumEWM ewm,
+                BREthereumAddress address);
+
+extern BREthereumToken
+ewmCreateToken (BREthereumEWM ewm,
+                const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice);
+
 ///
 //extern void // status, error
 //ewmWalletSubmitTransferCancel(BREthereumEWM ewm,
@@ -411,10 +479,6 @@ ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
 //
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm);
-
-extern void
-ewmUpdateBlockHeight(BREthereumEWM ewm,
-                     uint64_t blockHeight);
 
 extern const char *
 ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,

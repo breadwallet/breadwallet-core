@@ -1,9 +1,9 @@
 //
 //  BBRUtilMath.c
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -20,6 +20,22 @@ extern UInt256
 createUInt256 (uint64_t value) {
     UInt256 result = { .u64 = { value, 0, 0, 0}};
     return result;
+}
+
+extern UInt256
+createUInt256Double (double value, int decimals, int *overflow) {
+    assert (NULL != overflow);
+
+    UInt256 result = UINT256_ZERO;
+    long double y = fabs(value) * powl (10.0, decimals);
+
+    y = roundl(y);  // (extraneous) Axe any fraction; can't participate in a UInt
+
+    for (size_t index = 0; index < 4; index++)
+        result.u64[index] = UINT64_MAX * modfl(y/UINT64_MAX, &y);
+    *overflow = (y != 0);
+
+    return *overflow ? UINT256_ZERO : result;
 }
 
 extern UInt256
@@ -274,3 +290,21 @@ coerceUInt64 (UInt256 value, int *overflow) {
     return *overflow ? 0 : value.u64[0];
 }
 
+extern double
+coerceDouble (UInt256 value, int *overflow) {
+    long double result = coerceLongDouble (value, overflow);
+    if (!*overflow)
+        *overflow = !isfinite ((double) result);
+    return (double) result;
+}
+
+extern long double
+coerceLongDouble (UInt256 value, int *overflow) {
+    long double scale = powl ((long double) 2.0, (long double) 64.0);
+    long double result = 0;
+    for (ssize_t index = 3; index >= 0; index--)
+        result = ((long double) value.u64[index] + scale * result);
+
+    *overflow = !isfinite(result);
+    return result;
+}

@@ -1,34 +1,25 @@
-module BRCore [system] [extern_c] {
-    textual header "../../secp256k1/src/basic-config.h"
-    textual header "../../secp256k1/src/secp256k1.c"
-    header "../../support/BRInt.h"
-    header "../../support/BRArray.h"
-    header "../../support/BRSet.h"
-    header "../../support/BRCrypto.h"
-    header "../../support/BRBase58.h"
-    header "../../support/BRAddress.h"
-    header "../../support/BRBech32.h"
-    header "../../support/BRBIP32Sequence.h"
-    header "../../support/BRKey.h"
-    header "../../support/BRKeyECIES.h"
-    header "../../support/BRBIP39Mnemonic.h"
-    header "../../bitcoin/BRBIP38Key.h"
-    header "../../bitcoin/BRBloomFilter.h"
-    header "../../bitcoin/BRMerkleBlock.h"
-    header "../../bitcoin/BRPeer.h"
-    header "../../bitcoin/BRTransaction.h"
-    header "../../bitcoin/BRPaymentProtocol.h"
-    header "../../bitcoin/BRWallet.h"
-    header "../../bitcoin/BRWalletManager.h"
-    header "../../bitcoin/BRPeerManager.h"
-    header "../../bitcoin/BRChainParams.h"
-    header "../../bcash/BRBCashParams.h"
-    header "../../bcash/BRBCashAddr.h"
-    export *
+module BRCryptoC [system] [extern_c] {
+    header "../../crypto/BRCryptoStatus.h"
+    header "../../crypto/BRCryptoHash.h"
+    header "../../crypto/BRCryptoCurrency.h"
+    header "../../crypto/BRCryptoUnit.h"
+    header "../../crypto/BRCryptoAmount.h"
+    header "../../crypto/BRCryptoAccount.h"
+    header "../../crypto/BRCryptoCipher.h"
+    header "../../crypto/BRCryptoCoder.h"
+    header "../../crypto/BRCryptoHasher.h"
+    header "../../crypto/BRCryptoKey.h"
+    header "../../crypto/BRCryptoSigner.h"
+    header "../../crypto/BRCryptoAddress.h"
+    header "../../crypto/BRCryptoFeeBasis.h"
+    header "../../crypto/BRCryptoNetwork.h"
+    header "../../crypto/BRCryptoPeer.h"
+    header "../../crypto/BRCryptoTransfer.h"
+    header "../../crypto/BRCryptoPayment.h"
+    header "../../crypto/BRCryptoWallet.h"
+    header "../../crypto/BRCryptoWalletManager.h"
 
-    explicit module Ethereum {
-        header "../../ethereum/BREthereum.h"
-        header "../../ethereum/contract/BREthereumToken.h"
-        export *
-    }
+    header "../../crypto/BRCryptoPrivate.h"
+
+    export * // size_t, free()
 }

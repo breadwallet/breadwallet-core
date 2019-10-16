@@ -29,13 +29,23 @@
 #include "BRBCashParams.h"
 
 static const char *BRBCashDNSSeeds[] = {
-    "seed-abc.breadwallet.com.", "seed.bitcoinabc.org.", "seed-abc.bitcoinforks.org.", "seed.bitcoinunlimited.info.",
-    "seed.bitprim.org.", "seed.deadalnix.me.", NULL
+    "seed-abc.breadwallet.com.",
+    "seed.bitcoinabc.org.",
+    "seed-abc.bitcoinforks.org.",
+    "seed.bitcoinunlimited.info.",
+    "seed.bitprim.org.",
+    "seed.deadalnix.me.",
+    NULL
 };
 
 static const char *BRBCashTestNetDNSSeeds[] = {
-    "testnet-seed.bitcoinabc.org", "testnet-seed-abc.bitcoinforks.org", "testnet-seed.bitprim.org",
-    "testnet-seed.deadalnix.me", "testnet-seeder.criptolayer.net", NULL
+    "testnet-seed-abc.breadwallet.com",
+    "testnet-seed.bitcoinabc.org",
+    "testnet-seed-abc.bitcoinforks.org",
+    "testnet-seed.bitprim.org",
+    "testnet-seed.deadalnix.me",
+    "testnet-seeder.criptolayer.net",
+    NULL
 };
 
 static const BRCheckPoint BRBCashTestNetCheckpoints[] = {
@@ -170,6 +180,8 @@ static const BRChainParams BRBCashParamsRecord = {
     BRBCashVerifyDifficulty,
     BRBCashCheckpoints,
     sizeof(BRBCashCheckpoints)/sizeof(*BRBCashCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, NULL },
+    BCASH_FORKID
 };
 const BRChainParams *BRBCashParams = &BRBCashParamsRecord;
 
@@ -180,6 +192,8 @@ static const BRChainParams BRBCashTestNetParamsRecord = {
     SERVICES_NODE_BCASH, // services
     BRBCashTestNetVerifyDifficulty,
     BRBCashTestNetCheckpoints,
-    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashTestNetCheckpoints)
+    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashTestNetCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX_TEST, BITCOIN_SCRIPT_PREFIX_TEST, BITCOIN_PRIVKEY_PREFIX_TEST, NULL },
+    BCASH_FORKID
 };
 const BRChainParams *BRBCashTestNetParams = &BRBCashTestNetParamsRecord;

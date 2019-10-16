@@ -1,9 +1,9 @@
 //
 //  BBREthereumTransaction.h
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -75,15 +75,28 @@ extern BREthereumEther
 transactionGetAmount(BREthereumTransaction transaction);
 
 /**
- * Return the fee (in Ether) for transaction.  If the transaction is confirmed (aka blocked) then
- * the value returned is the actual fee paid (as gasUsed * gasPrice); if the transaction is not
- * confirmed then an estimated fee is returned (as gasEstimate * gasPrice).
+ * Return the feeBais for transaction.  If the transaction is confirmed (aka blocked) then
+ * the value returned is the actual feeBasis paid {gasUsed, gasPrice}; if the transaction is not
+ * confirmed then an estimated feeBasis is returned {gasEstimate, gasPrice}.
+ */
+extern BREthereumFeeBasis
+transactionGetFeeBasis (BREthereumTransaction transaction);
+
+/**
+ * Return the fee (in Ether) for transaction based on `transactionGetFeeBasis()`
  */
 extern BREthereumEther
 transactionGetFee (BREthereumTransaction transaction, int *overflow);
 
 /**
- * Return the maximum fee (in Ether) for transaction (as gasLimit * gasPrice).
+ * Return the feeBasis for transaction {gasLimit, gasPrice}
+ */
+extern BREthereumFeeBasis
+transactionGetFeeBasisLimit (BREthereumTransaction transaction);
+
+/**
+ * Return the maximum fee (in Ether) for transaction (as gasLimit * gasPrice) from
+ * transactionGetFeeBasisLimit()
  */
 extern BREthereumEther
 transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow);

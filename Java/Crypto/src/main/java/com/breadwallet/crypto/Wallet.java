@@ -2,61 +2,46 @@
  * Wallet
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
 
-public abstract class Wallet {
-    public final WalletManager manager;
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
 
-    public final String name;
+import java.util.List;
 
-    public final Currency currency;
+public interface Wallet {
 
-    public abstract Amount getBalance ();
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis);
 
-    public abstract Transfer[] getTransfers();
+    void estimateFee(Address target, Amount amount, NetworkFee fee, CompletionHandler<TransferFeeBasis, FeeEstimationError> completion);
 
+    WalletManager getWalletManager();
 
-    /*
-    /// The owning manager
-    var manager: WalletManager { get }
+    Unit getUnit();
 
-    /// The name
-    var name: String { get }
+    Unit getUnitForFee();
 
-    /// The current balance for currency
-    var balance: Amount { get }
+    Amount getBalance();
 
-    /// The transfers of currency yielding `balance`
-    var transfers: [Transfer] { get }
+    List<? extends Transfer> getTransfers();
 
-    /// Use a hash to lookup a transfer
-    func lookup (transfer: TransferHash) -> Transfer?
+    Optional<? extends Transfer> getTransferByHash(TransferHash hash);
 
-    /// The current state.
-    var state: WalletState { get }
+    Address getTarget();
 
-    /// The default TransferFeeBasis for created transfers.
-    var defaultFeeBasis: TransferFeeBasis { get set }
+    Address getTargetForScheme(AddressScheme scheme);
 
-    /// The default TransferFactory for creating transfers.
-    var transferFactory: TransferFactory { get set }
+    Address getSource();
 
-    // func sign (transfer: Transfer)
-    // submit
-    // ... cancel, replace - if appropriate
+    Currency getCurrency();
 
-    /// An address suitable for a transfer target (receiving).
-    var target: Address { get }
-*/
+    String getName();
 
-    public Wallet (WalletManager manager, Currency currency, String name) {
-        this.manager = manager;
-        this.currency = currency;
-        this.name = name;
-    }
+    WalletState getState();
 }

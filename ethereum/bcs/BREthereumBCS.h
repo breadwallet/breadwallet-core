@@ -3,7 +3,7 @@
 //  Core
 //
 //  Created by Ed Gamble on 5/24/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -52,7 +52,6 @@ typedef void
                                     BREthereumHash headBlockHash,
                                     uint64_t headBlockNumber,
                                     uint64_t headBlockTimestamp);
-
 
 /**
  * The BCS account state has been updated.
@@ -161,7 +160,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BREthereumMode syncMode,
+           BRSyncMode syncMode,
            BRSetOf(BREthereumNodeConfig) peers,
            BRSetOf(BREthereumBlock) blocks,
            BRSetOf(BREthereumTransaction) transactions,

@@ -3,7 +3,7 @@
 //  CoreDemo
 //
 //  Created by Ed Gamble on 8/22/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -12,8 +12,7 @@
 import UIKit
 import BRCrypto
 
-class TransferViewController: UIViewController {
-
+class TransferViewController: UIViewController, TransferListener, WalletManagerListener {
     var transfer : Transfer!
     var wallet  : Wallet!
 
@@ -26,16 +25,29 @@ class TransferViewController: UIViewController {
             dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         }
-        // Do any additional setup after loading the view.
     }
 
     override func viewWillAppear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+            listener.add (transferListener: self)
+        }
+        
         super.viewWillAppear(animated);
         updateView ()
     }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+            listener.remove (transferListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
     func colorForState() -> UIColor {
@@ -51,20 +63,10 @@ class TransferViewController: UIViewController {
 
         case .signed: return UIColor.yellow
         case .pending: return UIColor.yellow
-        case .failed(let _ /* reason */): return UIColor.red
+        case .failed /*(let reason )*/: return UIColor.red
         }
     }
 
-
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        let amount = amount.coerce(unit: amount.currency.defaultUnit)
-
-        var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
-        if result == "." || result == "" || result == "0." || result == ".0" {
-            result = "0.0"
-        }
-        return sign + result + " " + amount.unit.symbol
-    }
 
     func updateView () {
 //        let address = UIApplication.sharedClient.node.address
@@ -72,15 +74,21 @@ class TransferViewController: UIViewController {
             : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
         let hash = transfer.hash
 
-        amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
-        feeLabel.text  = canonicalAmount(transfer.fee, sign: "")
+        amountLabel.text = transfer.amountDirected.description
+        feeLabel.text  =  transfer.fee.description
         dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
-        sendLabel.text = transfer.source?.description ?? "<unknown>"
-        recvLabel.text = transfer.target?.description ?? "<unknown>"
+        sendButton.setTitle(transfer.source?.description ?? "<unknown>", for: .normal)
+        recvButton.setTitle(transfer.target?.description ?? "<unknown>", for: .normal)
 
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
+        confCountLabel.text = transfer.confirmations?.description ?? ""
+
+        if (Currency.codeAsETH != wallet.currency.code) {
+            nonceTitleLabel.isHidden = true
+            nonceLabel.isHidden = true;
+        }
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -97,83 +105,83 @@ class TransferViewController: UIViewController {
             resubmitButton.isEnabled = false
        }
 
-        nonceLabel.text = (transfer as? EthereumTransfer)?.nonce.description ?? "N/A"
+//        nonceLabel.text = (transfer as? EthereumTransfer)?.nonce.description ?? "N/A"
         dotView.mainColor = colorForState()
     }
 
     @IBAction func doResubmit(_ sender: UIButton) {
-        NSLog ("Want to Resubmit")
-        if case .failed(let error) = transfer.state {
-            var alertMessage: String = "Okay to resubmit?"
-            var alertAction: UIAlertAction?
-            var alert: UIAlertController!
-
+        print ("APP: TVC: Want to Resubmit")
+//        if case .failed(let error) = transfer.state {
+//            var alertMessage: String = "Okay to resubmit?"
+//            var alertAction: UIAlertAction?
+//            var alert: UIAlertController!
+//
 //            switch error {
 //            case .nonceTooLow:
 //                alertMessage = "Okay to update nonce and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateNonce: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateNonce: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .gasPriceTooLow:
 //                alertMessage = "Okay to double gasPrice (fee doubles) and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasPrice: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasPrice: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .gasTooLow:
 //                alertMessage = "Okay to double gasLimit (fee doubles) and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasLimit: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasLimit: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
+////
 //            case .invalidSignature,
 //                 .replacementUnderPriced:
 //                alertMessage = "Unsupported error";
-//                alertAction = UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .balanceTooLow,  // money arrived?
 //                 .dropped,
 //                 .unknown:
 //                alertMessage = "Okay to double fee and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasPrice: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasPrice: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
 //            }
-
-            if let actionOnOkay = alertAction {
-                alert = UIAlertController (title: "Resubmit",
-                                           message: alertMessage,
-                                           preferredStyle: UIAlertController.Style.alert)
-                alert.addAction (actionOnOkay)
-                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
-
-                self.present (alert, animated: true) {}
-            }
-        }
+//
+//            if let actionOnOkay = alertAction {
+//                alert = UIAlertController (title: "Resubmit",
+//                                           message: alertMessage,
+//                                           preferredStyle: UIAlertController.Style.alert)
+//                alert.addAction (actionOnOkay)
+//                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
+//
+//                self.present (alert, animated: true) {}
+//            }
+//        }
     }
 
     /*
@@ -182,7 +190,7 @@ class TransferViewController: UIViewController {
      * the blockchain" / "being stuck"
      */
     @IBAction func doCancel(_ sender: UIButton) {
-        NSLog ("Want to Cancel")
+        print ("APP: TVC: Want to Cancel")
         let alert = UIAlertController (title: "Cancel Transaction for <small-fee> ETH",
                                        message: "Are you sure?",
                                        preferredStyle: UIAlertController.Style.actionSheet)
@@ -214,14 +222,40 @@ class TransferViewController: UIViewController {
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var dateLabel: UILabel!
-    @IBOutlet var sendLabel: CopyableLabel!
-    @IBOutlet var recvLabel: CopyableLabel!
+    @IBOutlet var sendButton: UIButton!
+    @IBOutlet var recvButton: UIButton!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+    @IBOutlet var confCountLabel: UILabel!
     @IBOutlet var stateLabel: UILabel!
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
+    @IBOutlet var nonceTitleLabel: UILabel!
     @IBOutlet var nonceLabel: UILabel!
     @IBOutlet var dotView: Dot!
+    @IBAction func toPasteBoard(_ sender: UIButton) {
+        UIPasteboard.general.string = sender.titleLabel?.text
+    }
+
+    func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
+        DispatchQueue.main.async {
+            print ("APP: TVC: ManagerEvent: \(event)")
+            guard self.wallet.manager == manager /* && view is visible */  else { return }
+            switch event {
+            case .blockUpdated:
+                self.updateView()
+            default:
+                break
+            }
+        }
+    }
+    
+    func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        DispatchQueue.main.async {
+            print ("APP: TVC: TransferEvent: \(event)")
+            guard self.wallet.manager == manager && self.wallet == wallet && self.transfer == transfer  else { return }
+            self.updateView()
+        }
+    }
 }
 

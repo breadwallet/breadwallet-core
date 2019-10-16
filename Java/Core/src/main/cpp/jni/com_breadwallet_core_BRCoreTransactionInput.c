@@ -72,14 +72,15 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_createT
  */
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_getAddress
         (JNIEnv *env, jobject thisObject) {
-    BRTxInput *input = (BRTxInput *) getJNIReference (env, thisObject);
-    
-    size_t addressLen = sizeof (input->address);
-    char address[1 + addressLen];
-    memcpy (address, input->address, addressLen);
-    address[addressLen] = '\0';
-
-    return (*env)->NewStringUTF (env, address);
+//    BRTxInput *input = (BRTxInput *) getJNIReference (env, thisObject);
+//
+//    size_t addressLen = sizeof (input->address);
+//    char address[1 + addressLen];
+//    memcpy (address, input->address, addressLen);
+//    address[addressLen] = '\0';
+//
+//    return (*env)->NewStringUTF (env, address);
+    return NULL;
 }
 
 /*
@@ -89,16 +90,16 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_getAd
  */
 JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_setAddress
         (JNIEnv *env, jobject thisObject , jstring addressObject) {
-    BRTxInput *input = (BRTxInput *) getJNIReference (env, thisObject);
-    
-    size_t addressLen = sizeof (input->address);
-
-    size_t addressDataLen = (size_t) (*env)->GetStringLength (env, addressObject);
-    const jchar *addressData = (*env)->GetStringChars (env, addressObject, 0);
-    assert (addressDataLen <= addressLen);
-
-    memset (input->address, '\0', addressLen);
-    memcpy (input->address, addressData, addressDataLen);
+//    BRTxInput *input = (BRTxInput *) getJNIReference (env, thisObject);
+//
+//    size_t addressLen = sizeof (input->address);
+//
+//    size_t addressDataLen = (size_t) (*env)->GetStringLength (env, addressObject);
+//    const jchar *addressData = (*env)->GetStringChars (env, addressObject, 0);
+//    assert (addressDataLen <= addressLen);
+//
+//    memset (input->address, '\0', addressLen);
+//    memcpy (input->address, addressData, addressDataLen);
 
 }
 

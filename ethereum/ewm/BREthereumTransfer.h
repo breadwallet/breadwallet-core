@@ -3,7 +3,7 @@
 //  Core
 //
 //  Created by Ed Gamble on 7/9/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -24,16 +24,6 @@ extern "C" {
 #endif
 
 #define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
-
-static inline BREthereumGas
-feeBasisGetGasLimit (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
-}
-
-static inline BREthereumGasPrice
-feeBasisGetGasPrice (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
-}
 
 typedef enum  {
     TRANSFER_BASIS_TRANSACTION,
@@ -238,6 +228,19 @@ transferStatusEqual (BREthereumTransferStatus status1,
 
 extern BREthereumTransferStatus
 transferStatusCreate (BREthereumTransactionStatus status);
+
+// Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
+// then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
+// contract's function call, in the transaction.data field).
+private_extern BREthereumEther
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
+
+private_extern BREthereumAddress
+transferGetEffectiveTargetAddress (BREthereumTransfer transfer);
+
+private_extern BREthereumAddress
+transferGetEffectiveSourceAddress (BREthereumTransfer transfer);
+
 
 #ifdef __cplusplus
 }

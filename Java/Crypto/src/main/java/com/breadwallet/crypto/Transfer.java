@@ -2,58 +2,83 @@
  * Transfer
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
 
-public abstract class Transfer {
-    public Wallet wallet;
+import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
+import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
-    public Address source;
+public interface Transfer {
 
-    public Address target;
+    Wallet getWallet();
 
-    public Amount amount;
+    Optional<? extends Address> getSource();
 
-    public Amount fee;
+    Optional<? extends Address> getTarget();
 
-    /*
-    /// The owning wallet
-    var wallet: Wallet { get }
+    Amount getAmount();
 
-    /// The source pays the fee and sends the amount.
-    var source: Address? { get }
+    Amount getAmountDirected();
 
-    /// The target receives the amount
-    var target: Address? { get }
+    Amount getFee();
 
-    /// The amount to transfer
-    var amount: Amount { get }
+    Optional<? extends TransferFeeBasis> getEstimatedFeeBasis();
 
-    /// The fee paid - before the transfer is confirmed, this is the estimated fee.
-    var fee: Amount { get }
+    Optional<? extends TransferFeeBasis> getConfirmedFeeBasis();
 
-    /// The basis for the fee.
-    var feeBasis: TransferFeeBasis { get }
+    TransferDirection getDirection();
 
-    /// An optional confirmation.
-    var confirmation: TransferConfirmation? { get }
+    Optional<? extends TransferHash> getHash();
 
-    /// An optional hash
-    var hash: TransferHash? { get }
+    Unit getUnit();
 
-    /// The current state
-    var state: TransferState { get }
-*/
+    Unit getUnitForFee();
 
-    protected Transfer(Wallet wallet, Address source, Address target, Amount amount, Amount fee) {
-        this.wallet = wallet;
-        this.source = source;
-        this.target = target;
-        this.amount = amount;
-        this.fee = fee;
+    default Optional<TransferConfirmation> getConfirmation() {
+        return getState().getIncludedConfirmation();
     }
+
+    /**
+     * Get the number of confirmations of transfer at a provided <code>blockHeight</code>.
+     *
+     * If the transfer has not been confirmed or if the <code>blockHeight</code> is less than the confirmation height,
+     * <code>absent</code> is returned.
+     *
+     * The minimum returned value is 1; if <code>blockHeight</code> is the same as the confirmation block, then the
+     * transfer has been confirmed once.
+     */
+    default Optional<UnsignedLong> getConfirmationsAt(UnsignedLong blockHeight) {
+        Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
+        if (optionalConfirmation.isPresent()) {
+            TransferConfirmation confirmation = optionalConfirmation.get();
+            UnsignedLong blockNumber = confirmation.getBlockNumber();
+            return blockHeight.compareTo(blockNumber) >= 0 ? Optional.of(UnsignedLong.ONE.plus(blockHeight).minus(blockNumber)) : Optional.absent();
+        }
+        return Optional.absent();
+    }
+
+    /**
+     * Get the number of confirmations of transfer at the current network height.
+     *
+     * Since this value is calculated based on the associated network's height, it is recommended that a developer
+     * refreshes any cached result in response to {@link WalletManagerBlockUpdatedEvent} events on the owning
+     * WalletManager, in addition to further {@link TransferChangedEvent} events on this Transfer.
+     *
+     * If the transfer has not been confirmed or if the network's height is less than the confirmation height,
+     * <code>absent</code> is returned.
+     *
+     * The minimum returned value is 1; if the height is the same as the confirmation block, then the transfer has
+     * been confirmed once.
+     */
+    default Optional<UnsignedLong> getConfirmations() {
+        return getConfirmationsAt(getWallet().getWalletManager().getNetwork().getHeight());
+    }
+
+    TransferState getState();
 }

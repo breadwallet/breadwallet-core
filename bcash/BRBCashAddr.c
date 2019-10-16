@@ -35,9 +35,6 @@
 
 // b-cash address format: https://github.com/bitcoincashorg/spec/blob/master/cashaddr.md
 
-#define BCASH_PUBKEY_ADDRESS 28
-#define BCASH_SCRIPT_ADDRESS 40
-
 #define polymod(x) ((((x) & 0x07ffffffff) << 5) ^ (-(((x) >> 35) & 1) & 0x98f2bc8e61) ^\
     (-(((x) >> 36) & 1) & 0x79b76d99e2) ^ (-(((x) >> 37) & 1) & 0xf33e5fb3c4) ^\
     (-(((x) >> 38) & 1) & 0xae2eabe2a8) ^ (-(((x) >> 39) & 1) & 0x1e4f43e470))
@@ -146,17 +143,17 @@ size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
     
     if (_BRBCashAddrDecode(hrp, data, bCashAddr) == 21) {
         if (strcmp(hrp, "bitcoincash") == 0) {
-            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS;
-            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS;
+            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_PREFIX;
+            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_PREFIX;
         }
         else if (strcmp(hrp, "bchtest") == 0 || strcmp(hrp, "bchreg") == 0) {
-            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS_TEST;
-            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS_TEST;
+            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_PREFIX_TEST;
+            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_PREFIX_TEST;
         }
     }
     else if (BRBase58CheckDecode(data, sizeof(data), bCashAddr) == 21) {
-        if (data[0] == BCASH_PUBKEY_ADDRESS) ver = BITCOIN_PUBKEY_ADDRESS;
-        if (data[0] == BCASH_SCRIPT_ADDRESS) ver = BITCOIN_SCRIPT_ADDRESS;
+        if (data[0] == BITCOIN_PUBKEY_PREFIX) ver = BITCOIN_PUBKEY_PREFIX;
+        if (data[0] == BITCOIN_SCRIPT_PREFIX) ver = BITCOIN_SCRIPT_PREFIX;
     }
     else { // try adding various address prefixes
         strncpy(&bchaddr[12], bCashAddr, 42), bchaddr[54] = '\0';
@@ -167,13 +164,13 @@ size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
         strncpy(&BCHreg[7], bCashAddr, 47), BCHreg[54] = '\0';
 
         if (_BRBCashAddrDecode(hrp, data, bchaddr) == 21 || _BRBCashAddrDecode(hrp, data, BCHaddr) == 21) {
-            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS;
-            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS;
+            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_PREFIX;
+            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_PREFIX;
         }
         else if (_BRBCashAddrDecode(hrp, data, bchtest) == 21 || _BRBCashAddrDecode(hrp, data, BCHtest) == 21 ||
                  _BRBCashAddrDecode(hrp, data, bchreg) == 21 || _BRBCashAddrDecode(hrp, data, BCHreg) == 21) {
-            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS_TEST;
-            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS_TEST;
+            if (data[0] == 0x00) ver = BITCOIN_PUBKEY_PREFIX_TEST;
+            if (data[0] == 0x08) ver = BITCOIN_SCRIPT_PREFIX_TEST;
         }
     }
 
@@ -190,10 +187,10 @@ size_t BRBCashAddrEncode(char *bCashAddr55, const char *bitcoinAddr)
     assert(bCashAddr55 != NULL);
     assert(bitcoinAddr != NULL);
     if (BRBase58CheckDecode(data, sizeof(data), bitcoinAddr) != 21) return 0;
-    if (data[0] == BITCOIN_PUBKEY_ADDRESS) ver = 0x00, hrp = "bitcoincash";
-    if (data[0] == BITCOIN_SCRIPT_ADDRESS) ver = 0x08, hrp = "bitcoincash";
-    if (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST) ver = 0x00, hrp = "bchtest";
-    if (data[0] == BITCOIN_SCRIPT_ADDRESS_TEST) ver = 0x08, hrp = "bchtest";
+    if (data[0] == BITCOIN_PUBKEY_PREFIX) ver = 0x00, hrp = "bitcoincash";
+    if (data[0] == BITCOIN_SCRIPT_PREFIX) ver = 0x08, hrp = "bitcoincash";
+    if (data[0] == BITCOIN_PUBKEY_PREFIX_TEST) ver = 0x00, hrp = "bchtest";
+    if (data[0] == BITCOIN_SCRIPT_PREFIX_TEST) ver = 0x08, hrp = "bchtest";
     data[0] = ver;
     return _BRBCashAddrEncode(bCashAddr55, hrp, data, 21);
 }

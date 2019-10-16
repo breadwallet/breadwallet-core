@@ -281,7 +281,9 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     BRAddress *addrs = malloc(addrsCount*sizeof(*addrs));
     size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
     BRUTXO *utxos = malloc(utxosCount*sizeof(*utxos));
+    UInt160 hash;
     uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
+    uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
     size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
     BRTransaction **transactions = malloc(txCount*sizeof(*transactions));
     BRBloomFilter *filter;
@@ -296,11 +298,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
                               BLOOM_UPDATE_ALL); // BUG: XXX txCount not the same as number of spent wallet outputs
     
     for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
-        UInt160 hash = UINT160_ZERO;
-        
-        BRAddressHash160(&hash, addrs[i].s);
-        
-        if (! UInt160IsZero(hash) && ! BRBloomFilterContainsData(filter, hash.u8, sizeof(hash))) {
+        if (BRAddressHash160(&hash, manager->params->addrParams, addrs[i].s) &&
+            ! BRBloomFilterContainsData(filter, hash.u8, sizeof(hash))) {
             BRBloomFilterInsertData(filter, hash.u8, sizeof(hash));
         }
     }
@@ -308,8 +307,6 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     free(addrs);
         
     for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
-        uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
-        
         UInt256Set(o, utxos[i].hash);
         UInt32SetLE(&o[sizeof(UInt256)], utxos[i].n);
         if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
@@ -318,16 +315,11 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     free(utxos);
         
     for (size_t i = 0; i < txCount; i++) { // also add TXOs spent within the last 100 blocks
-        for (size_t j = 0; j < transactions[i]->inCount; j++) {
-            BRTxInput *input = &transactions[i]->inputs[j];
-            BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, input->txHash);
-            uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
-            
-            if (tx && input->index < tx->outCount &&
-                BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
-                UInt256Set(o, input->txHash);
-                UInt32SetLE(&o[sizeof(UInt256)], input->index);
-                if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
+        if (BRWalletAmountSentByTx(manager->wallet, transactions[i]) > 0) {
+            for (size_t j = 0; j < transactions[i]->inCount; j++) {
+                UInt256Set(o, transactions[i]->inputs[j].txHash);
+                UInt32SetLE(&o[sizeof(UInt256)], transactions[i]->inputs[j].index);
+                if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
             }
         }
     }
@@ -980,7 +972,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
             BRWalletUnusedAddrs(manager->wallet, addrs + SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
 
             for (size_t i = 0; i < SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL; i++) {
-                if (! BRAddressHash160(&hash, addrs[i].s) ||
+                if (! BRAddressHash160(&hash, manager->params->addrParams, addrs[i].s) ||
                     BRBloomFilterContainsData(manager->bloomFilter, hash.u8, sizeof(hash))) continue;
                 if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
                 manager->bloomFilter = NULL; // reset bloom filter so it's recreated with new wallet addresses
@@ -1187,7 +1179,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
 
     // ignore block headers that are newer than one week before earliestKeyTime (it's a header if it has 0 totalTx)
-    if (block->totalTx == 0 && block->timestamp + 7*24*60*60 > manager->earliestKeyTime + 2*60*60) {
+    if (block->totalTx == 0 && block->timestamp + 7*24*60*60 - 2*60*60 > manager->earliestKeyTime) {
         BRMerkleBlockFree(block);
         block = NULL;
     }
@@ -1563,12 +1555,20 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t port)
 {
     assert(manager != NULL);
-    BRPeerManagerDisconnect(manager);
+
     pthread_mutex_lock(&manager->lock);
-    manager->maxConnectCount = UInt128IsZero(address) ? PEER_MAX_CONNECTIONS : 1;
-    manager->fixedPeer = ((const BRPeer) { address, port, 0, 0, 0 });
-    array_clear(manager->peers);
+    int samePeer = (UInt128Eq(address, manager->fixedPeer.address) &&
+                    (port == manager->fixedPeer.port || UInt128IsZero(address)));
     pthread_mutex_unlock(&manager->lock);
+
+    if (!samePeer) {
+        BRPeerManagerDisconnect(manager);
+        pthread_mutex_lock(&manager->lock);
+        manager->maxConnectCount = UInt128IsZero(address) ? PEER_MAX_CONNECTIONS : 1;
+        manager->fixedPeer = ((const BRPeer) { address, port, 0, 0, 0 });
+        array_clear(manager->peers);
+        pthread_mutex_unlock(&manager->lock);
+    }
 }
 
 // current connect status

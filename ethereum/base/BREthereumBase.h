@@ -1,9 +1,9 @@
 //
 //  BREthereumBase
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/22/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -12,7 +12,9 @@
 #define BR_Ethereum_Base_H
 
 #include "support/BRArray.h"
+#include "support/BRBase.h"
 #include "support/BRSet.h"
+#include "support/BRSyncMode.h"
 #include "ethereum/util/BRUtil.h"
 #include "ethereum/rlp/BRRlp.h"
 
@@ -20,6 +22,7 @@
 #include "BREthereumLogic.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
+#include "BREthereumFeeBasis.h"
 #include "BREthereumHash.h"
 #include "BREthereumData.h"
 #include "BREthereumAddress.h"
@@ -31,9 +34,6 @@ extern "C" {
 
 #define REPEAT(index, count) \
 for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)
-
-#define OwnershipGiven
-#define OwnershipKept
 
 typedef uint64_t BREthereumTimestamp;  // A Unix time
 #define ETHEREUM_TIMESTAMP_UNKNOWN    ((uint64_t) 0)
@@ -53,43 +53,6 @@ typedef enum {
     RLP_TYPE_TRANSACTION_UNSIGNED,
     RLP_TYPE_TRANSACTION_SIGNED = RLP_TYPE_NETWORK,
 } BREthereumRlpType;
-
-
-/**
- * An Ethereum Sync mode specifies how an EWM interfaces with the Ethereum P2P network or with 'BRD
- * Server Assisted' interfaces) to determine a User's transfers.
- *
- * There are four modes; they differ in the extent of BRD vs P2P interaction.
- */
-typedef enum {
-    /**
-     * Use the BRD backend for all Core blockchain state.  The BRD backend provides: account state
-     * (balance + nonce), transactions, logs, block chain head number, etc.  (The BRD backend
-     * offers an etherscan.io-like HTTP interface).  The BRD backend includes a 'submit transaction'
-     * interface.
-     */
-    BRD_ONLY,
-
-    /*
-     * Use the BRD backend for everything other than 'submit transaction'
-     */
-    BRD_WITH_P2P_SEND,
-
-    /**
-     * We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
-     * where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
-     * blocks in the chain.
-     */
-    P2P_WITH_BRD_SYNC,
-
-    /**
-     * We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
-     * use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
-     * BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
-     * SOURCE.
-     */
-    P2P_ONLY
-} BREthereumMode;
 
 /**
  * An Ehtereum Sync Interest specifies what a 'BRD Service Assisted' mode sync shoul provide data

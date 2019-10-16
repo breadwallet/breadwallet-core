@@ -3,7 +3,7 @@
 //  CorePerf
 //
 //  Created by Ed Gamble on 10/11/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -23,7 +23,7 @@ runEWM_freeClient (BREthereumClient client);
 
 static void
 runSyncMany (BREthereumNetwork newtork,
-             BREthereumMode mode,
+             BRSyncMode mode,
              unsigned int durationInSeconds,
              unsigned int accounts) {
 
@@ -54,7 +54,7 @@ runSyncMany (BREthereumNetwork newtork,
 
         clients[i] = runEWM_createClient();
 
-        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath);
+        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath, 0, 6);
         ewms[i] = ewm;
 
         char *address = ewmGetAccountPrimaryAddress(ewm);
@@ -81,7 +81,7 @@ runSyncMany (BREthereumNetwork newtork,
 
 
 int main(int argc, const char * argv[]) {
-    BREthereumMode mode = BRD_WITH_P2P_SEND;
+    BRSyncMode mode = SYNC_MODE_BRD_WITH_P2P_SEND;
 
     const char *paperKey = (argc > 1 ? argv[1] : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
     BREthereumAccount account = createAccount(paperKey);

@@ -16,10 +16,6 @@ libcore.jnilib
 # Android Studio
 local.properties
 Java.iml
-Core.iml
-CoreLibrary.iml
-CoreDemo.iml
-Crypto.iml
 .idea/misc.xml
 .idea/vcs.xml
 

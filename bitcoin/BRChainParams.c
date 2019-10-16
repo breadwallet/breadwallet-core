@@ -23,8 +23,6 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-//
-
 #include "BRChainParams.h"
 
 static const char *BRMainNetDNSSeeds[] = {
@@ -116,6 +114,20 @@ static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bl
     return 1; // XXX skip testnet difficulty check for now
 }
 
+extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp) {
+    for (ssize_t index = params->checkpointsCount - 1; index >= 0; index--)
+        if (params->checkpoints[index].timestamp < timestamp)
+            return &params->checkpoints[index];
+   return NULL;
+}
+
+extern const BRCheckPoint *BRChainParamsGetCheckpointBeforeBlockNumber (const BRChainParams *params, uint32_t blockNumber) {
+    for (ssize_t index = params->checkpointsCount - 1; index >= 0; index--)
+        if (params->checkpoints[index].height < blockNumber)
+            return &params->checkpoints[index];
+   return NULL;
+}
+
 static const BRChainParams BRMainNetParamsRecord = {
     BRMainNetDNSSeeds,
     8333,                  // standardPort
@@ -123,7 +135,9 @@ static const BRChainParams BRMainNetParamsRecord = {
     SERVICES_NODE_WITNESS, // services
     BRMainNetVerifyDifficulty,
     BRMainNetCheckpoints,
-    sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
+    sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, BITCOIN_BECH32_PREFIX },
+    BITCOIN_FORKID
 };
 const BRChainParams *BRMainNetParams = &BRMainNetParamsRecord;
 
@@ -134,6 +148,9 @@ static const BRChainParams BRTestNetParamsRecord = {
     SERVICES_NODE_WITNESS, // services
     BRTestNetVerifyDifficulty,
     BRTestNetCheckpoints,
-    sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)
+    sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX_TEST, BITCOIN_SCRIPT_PREFIX_TEST, BITCOIN_PRIVKEY_PREFIX_TEST, BITCOIN_BECH32_PREFIX_TEST },
+    BITCOIN_FORKID
 };
+
 const BRChainParams *BRTestNetParams = &BRTestNetParamsRecord;

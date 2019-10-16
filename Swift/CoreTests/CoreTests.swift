@@ -3,7 +3,7 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 5/18/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Copyright © 2018-2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -12,21 +12,37 @@ import XCTest
 
 class CoreTests: XCTestCase {
 
-    static let PAPER_KEY_MAINNET = "paperKeysMainnet"
-    static let PAPER_KEY_TESTNET = "paperKeysTestnet"
+    struct AccountSpecification {
+        let identifier: String
+        let network: String
+        let paperKey: String
+        let timestamp: Date
 
-    var isMainnet: Int32! = 1
-    var isBTC: Int32! = 1
+        init (dict: [String: String]) {
+            self.identifier = dict["identifier"]! //as! String
+            self.network    = dict["network"]!
+            self.paperKey   = dict["paperKey"]!
 
-    var paperKeys: [String] = []
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
 
-    var paperKey: String! {
-        return (paperKeys.count > 0
-            ? paperKeys[0]
-            : nil)
+            self.timestamp = dateFormatter.date(from: dict["timestamp"]!)!
+        }
     }
 
-    let configPath = Bundle(for: CoreTests.self).path(forResource: "CoreTestsConfig", ofType: "plist")!
+    var accountSpecifications: [AccountSpecification] = []
+    var accountSpecification: AccountSpecification! {
+        return accountSpecifications.count > 0
+            ? accountSpecifications[0]
+            : nil
+    }
+    var paperKey: String! = nil
+
+    var isMainnet = true
+    var isBTC: Int32! = 1
+
+    let configPath = Bundle(for: CoreTests.self).path(forResource: "CoreTestsConfig", ofType: "json")!
 
     var account: BREthereumAccount!
 
@@ -59,23 +75,52 @@ class CoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        #if TESTNET
-        isMainnet = 0
-        #endif
+        // Get the paperKey from `configPath`
+        if FileManager.default.fileExists(atPath: configPath) {
+            let configFile = URL(fileURLWithPath: configPath)
+            let configData = try! Data.init(contentsOf: configFile)
+            let json = try! JSONSerialization.jsonObject(with: configData, options: []) as! [[String:String]]
+            accountSpecifications = json
+                .map { AccountSpecification (dict: $0) }
+                .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
+        }
+        else {
+            accountSpecifications = [
+                AccountSpecification (dict: [
+                    "identifier": "ginger",
+                    "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+                    "timestamp":  "2018-01-01",
+                    "network":    (isMainnet ? "mainnet" : "testnet")
+                    ])
+            ]
+        }
+
+        let fakeEthAccount: String = (isMainnet
+            ? "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+            : "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc")
+
+
+        paperKey = (nil != accountSpecification
+            ? accountSpecification.paperKey
+            : "ginger settle marine tissue robot crane night number ramp coast roast critic")
+
+        account = createAccount (nil != accountSpecification
+            ? accountSpecification.paperKey
+            : fakeEthAccount)
+
+        #if false
 
         // Eth Account for the non-compromised, mainnet paperKey "e...a"
-        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+        let fakeEthAccount: String = (isMainnet
+            ? "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+            : "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc")
 
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
             let configData = try! Data.init(contentsOf: configFile)
             let configPropertyList = try! PropertyListSerialization.propertyList(from: configData, options: [], format: nil) as! [String: [String]]
 
-            #if TESTNET
-            paperKeys = configPropertyList [CoreTests.PAPER_KEY_TESTNET]!
-            #else
             paperKeys = configPropertyList [CoreTests.PAPER_KEY_MAINNET]!
-            #endif
         }
         else if 0 == isMainnet /* testnet */ {
             // This is a compromised testnet paperkey
@@ -85,6 +130,7 @@ class CoreTests: XCTestCase {
 
         account = createAccount (nil != paperKey ? paperKey : fakeEthAccount)
 
+        #endif
         coreDataDir = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
@@ -93,7 +139,7 @@ class CoreTests: XCTestCase {
         coreDirClear()
 
     }
-    
+
     override func tearDown() {
         super.tearDown()
     }
@@ -101,11 +147,171 @@ class CoreTests: XCTestCase {
     func testBitcoinSupport () {
         XCTAssert(1 == BRRunSupTests ())
     }
-    
+
     func testBitcoin () {
         XCTAssert(1 == BRRunTests())
+        XCTAssert(1 == BRRunTestsBWM (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0)));
     }
 
+    // Crypto
+    func testCrypto () {
+        runCryptoTests ()
+    }
+
+    func testCryptoWithAccountAndNetworkBTC() {
+        let account = cryptoAccountCreate(paperKey, 0)
+        defer { cryptoAccountGive (account) }
+
+        let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
+        configurations.forEach { (isMainnet, blockHeight) in
+            coreDirClear();
+
+            let network = createBitcoinNetwork (isMainnet: isMainnet, blockHeight: blockHeight)
+            defer { cryptoNetworkGive (network) }
+
+            let success = runCryptoTestsWithAccountAndNetwork (account, network, coreDataDir)
+            XCTAssertEqual(CRYPTO_TRUE, success)
+        }
+    }
+
+    func testCryptoWithAccountAndNetworkBCH() {
+        let account = cryptoAccountCreate(paperKey, 0)
+        defer { cryptoAccountGive (account) }
+
+        let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
+        configurations.forEach { (isMainnet, blockHeight) in
+            coreDirClear();
+
+            let network = createBitcoinCashNetwork (isMainnet: isMainnet, blockHeight: blockHeight)
+            defer { cryptoNetworkGive (network) }
+
+            let success = runCryptoTestsWithAccountAndNetwork (account, network, coreDataDir)
+            XCTAssertEqual(CRYPTO_TRUE, success)
+        }
+    }
+
+    func testCryptoWithAccountAndNetworkETH() {
+        let account = cryptoAccountCreate(paperKey, 0)
+        defer { cryptoAccountGive (account) }
+
+        let configurations: [(Bool, UInt64)] = [(true, 8_000_000), (false, 4_500_000),]
+        configurations.forEach { (isMainnet, blockHeight) in
+            coreDirClear();
+
+            let network = createEthereumNetwork (isMainnet: isMainnet, blockHeight: blockHeight)
+            defer { cryptoNetworkGive (network) }
+
+            let success = runCryptoTestsWithAccountAndNetwork (account, network, coreDataDir)
+            XCTAssertEqual(CRYPTO_TRUE, success)
+        }
+    }
+
+    private func createBitcoinNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
+        let uids = "bitcoin-" + (isMainnet ? "mainnet" : "testnet")
+        let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
+        let network = cryptoNetworkCreateAsBTC (uids, "bitcoin", chainParams!.pointee.forkId, chainParams)
+        defer { cryptoNetworkGive (network) }
+
+        let currency = cryptoCurrencyCreate ("bitcoin", "bitcoin", "btc", "native", nil)
+        defer { cryptoCurrencyGive (currency) }
+
+        let satUnit = cryptoUnitCreateAsBase (currency, "sat", "satoshis", "SAT")
+        defer { cryptoUnitGive (satUnit) }
+
+        let btcUnit = cryptoUnitCreate (currency, "btc", "bitcoin", "B", satUnit, 8)
+        defer { cryptoUnitGive (btcUnit) }
+
+        let factor = cryptoAmountCreateInteger (1_000, satUnit)
+        defer { cryptoAmountGive (factor) }
+
+        let fee = cryptoNetworkFeeCreate (30_000, factor, satUnit)
+        defer { cryptoNetworkFeeGive (fee) }
+
+        cryptoNetworkSetHeight (network, blockHeight)
+
+        cryptoNetworkSetCurrency (network, currency)
+        cryptoNetworkAddCurrency (network, currency, satUnit, btcUnit)
+
+        cryptoNetworkAddCurrencyUnit(network, currency, satUnit)
+        cryptoNetworkAddCurrencyUnit(network, currency, btcUnit)
+
+        cryptoNetworkAddNetworkFee(network, fee)
+
+        return cryptoNetworkTake (network)
+    }
+
+    private func createBitcoinCashNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
+        let uids = "bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet")
+        let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
+        let network = cryptoNetworkCreateAsBTC (uids, "bitcoin-cash", chainParams!.pointee.forkId, chainParams)
+        defer { cryptoNetworkGive (network) }
+
+        let currency = cryptoCurrencyCreate ("bitcoin-cash", "bitcoin cash", "bch", "native", nil)
+        defer { cryptoCurrencyGive (currency) }
+
+        let satUnit = cryptoUnitCreateAsBase (currency, "sat", "satoshis", "SAT")
+        defer { cryptoUnitGive (satUnit) }
+
+        let btcUnit = cryptoUnitCreate (currency, "btc", "bitcoin", "B", satUnit, 8)
+        defer { cryptoUnitGive (btcUnit) }
+
+        let factor = cryptoAmountCreateInteger (1_000, satUnit)
+        defer { cryptoAmountGive (factor) }
+
+        let fee = cryptoNetworkFeeCreate (30_000, factor, satUnit)
+        defer { cryptoNetworkFeeGive (fee) }
+
+        cryptoNetworkSetHeight (network, blockHeight)
+
+        cryptoNetworkSetCurrency (network, currency)
+        cryptoNetworkAddCurrency (network, currency, satUnit, btcUnit)
+
+        cryptoNetworkAddCurrencyUnit(network, currency, satUnit)
+        cryptoNetworkAddCurrencyUnit(network, currency, btcUnit)
+
+        cryptoNetworkAddNetworkFee(network, fee)
+
+        return cryptoNetworkTake (network)
+    }
+
+    private func createEthereumNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
+        let uids = "ethereum-" + (isMainnet ? "mainnet" : "testnet")
+        let ethNetwork = (isMainnet ? ethereumMainnet : ethereumTestnet)
+        let ethChainId = UInt32(networkGetChainId (ethNetwork))
+        let network = cryptoNetworkCreateAsETH (uids, "ethereum", ethChainId, ethNetwork)
+        defer { cryptoNetworkGive (network) }
+
+        let currency = cryptoCurrencyCreate ("ethereum", "ethereum", "eth", "native", nil)
+        defer { cryptoCurrencyGive (currency) }
+
+        let weiUnit = cryptoUnitCreateAsBase (currency, "wei", "wei", "wei")
+        defer { cryptoUnitGive (weiUnit) }
+
+        let gweiUnit = cryptoUnitCreate (currency, "gwei", "gwei", "gwei", weiUnit, 9)
+        defer { cryptoUnitGive (gweiUnit) }
+
+        let etherUnit = cryptoUnitCreate (currency, "ether", "ether", "ether", weiUnit, 18)
+        defer { cryptoUnitGive (etherUnit) }
+
+        let factor = cryptoAmountCreateDouble (2.0, gweiUnit)
+        defer { cryptoAmountGive (factor) }
+
+        let fee = cryptoNetworkFeeCreate (1_000, factor, gweiUnit)
+        defer { cryptoNetworkFeeGive (fee) }
+
+        cryptoNetworkSetHeight (network, blockHeight)
+
+        cryptoNetworkSetCurrency (network, currency)
+        cryptoNetworkAddCurrency (network, currency, weiUnit, etherUnit)
+
+        cryptoNetworkAddCurrencyUnit(network, currency, weiUnit)
+        cryptoNetworkAddCurrencyUnit(network, currency, gweiUnit)
+        cryptoNetworkAddCurrencyUnit(network, currency, etherUnit)
+
+        cryptoNetworkAddNetworkFee(network, fee)
+
+        return cryptoNetworkTake (network)
+    }
     //
     // Ethereum
     //
@@ -124,7 +330,7 @@ class CoreTests: XCTestCase {
     func testEthereumBase () {
         runBaseTests()
     }
-    
+
     func testEthereumBlockChain () {
         runBcTests()
     }
@@ -132,7 +338,7 @@ class CoreTests: XCTestCase {
     func testEthereumContract () {
         runContractTests ();
     }
-    
+
     func testEthereumBasics() {
         runTests(0)
     }
@@ -146,6 +352,12 @@ class CoreTests: XCTestCase {
         runNodeTests()
     }
 
+    ///
+    /// Ripple
+    ///
+    func testRipple () {
+        runRippleTest ()
+    }
 
     /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
     /// start from the saved state of the first sync.
@@ -155,10 +367,10 @@ class CoreTests: XCTestCase {
     /// - Throws: something
     ///
     func testEthereumSyncStorage () throws {
-        let mode = P2P_ONLY; // BRD_WITH_P2P_SEND; // BRD_ONLY;  P2P_WITH_BRD_SYNC; // P2P_ONLY,  BRD_WITH_P2P_SEND
+        let mode = SYNC_MODE_P2P_ONLY;
         let timestamp : UInt64 = 0
 
-        let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
+        let network = (isMainnet ? ethereumMainnet : ethereumTestnet)
 
         print ("ETH: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
@@ -169,7 +381,7 @@ class CoreTests: XCTestCase {
     /// Run a single bitcoin sync using the provided paperKey
     ///
     func testBitcoinSyncOne() {
-        BRRunTestsSync (paperKey, isBTC, isMainnet);
+        BRRunTestsSync (paperKey, isBTC, (isMainnet ? 1 : 0));
     }
 
     /// Run 25 simultaneous bitcoin syncs using the provided paperKeys and random keys after
@@ -181,8 +393,8 @@ class CoreTests: XCTestCase {
             DispatchQueue.init(label: "Sync \(i)")
                 .async {
                     group.enter()
-                    let paperKey = i <= self.paperKeys.count ? self.paperKeys[i - 1] : nil
-                    BRRunTestsSync (paperKey, self.isBTC, self.isMainnet);
+                    let paperKey = i <= self.accountSpecifications.count ? self.accountSpecifications[i - 1].paperKey : nil
+                    BRRunTestsSync (paperKey, self.isBTC, (self.isMainnet ? 1 : 0));
                     group.leave()
             }
         }
@@ -196,9 +408,27 @@ class CoreTests: XCTestCase {
     func testBitcoinWalletManagerSync () {
         print ("ETH: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
-        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
-        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
-   }
+        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));
+        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));
+    }
+
+    func testBitcoinWalletManagerSyncStressBTC() {
+        let configurations: [(Int32, UInt64)] = [(1, 500_000), (0, 1_500_000),]
+        configurations.forEach { (isMainnet, blockHeight) in
+            coreDirClear();
+            let success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, 1, isMainnet);
+            XCTAssertEqual(1, success)
+        }
+    }
+
+    func testBitcoinWalletManagerSyncStressBCH() {
+        let configurations: [(Int32, UInt64)] = [(1, 500_000), (0, 1_500_000),]
+        configurations.forEach { (isMainnet, blockHeight) in
+            coreDirClear();
+            let success = BRRunTestWalletManagerSyncStress(paperKey, coreDataDir, 0, blockHeight, 0, isMainnet);
+            XCTAssertEqual(1, success)
+        }
+    }
 
     func testPerformanceExample() {
 //        runTests(0);

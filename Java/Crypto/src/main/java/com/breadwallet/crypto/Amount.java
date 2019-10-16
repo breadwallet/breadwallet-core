@@ -2,27 +2,64 @@
  * Amount
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
- * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ * Copyright (c) 2018-2019 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
 
-import java.math.BigInteger;
+import com.google.common.base.Optional;
 
-public class Amount {
-    public final BigInteger value;  // UInt256 *core
-    public final Unit unit;
-    public final boolean isNegative;
+import java.text.NumberFormat;
 
-    private Amount (BigInteger value, Unit unit) {
-        this.value = value;
-        this.unit  = unit;
-        this.isNegative = -1 == value.signum();
+public interface Amount extends Comparable<Amount> {
+
+    static Amount create(double value, Unit unit) {
+        return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
 
-    public Amount (long value, Unit unit) {
-        this (BigInteger.valueOf(value), unit);
+    static Amount create(long value, Unit unit) {
+        return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
+
+    static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
+        return CryptoApi.getProvider().amountProvider().create(value, isNegative, unit);
+    }
+
+    Currency getCurrency();
+
+    Unit getUnit();
+
+    boolean hasCurrency(Currency currency);
+
+    boolean isCompatible(Amount withAmount);
+
+    boolean isNegative();
+
+    Optional<? extends Amount> add(Amount o);
+
+    Optional<? extends Amount> sub(Amount o);
+
+    Amount negate();
+
+    Optional<? extends Amount> convert(Unit toUnit);
+
+    Optional<String> toStringAsUnit(Unit asUnit);
+
+    Optional<String> toStringAsUnit(Unit asUnit, NumberFormat numberFormatter);
+
+    Optional<String> toStringFromPair(CurrencyPair pair);
+
+    Optional<String> toStringFromPair(CurrencyPair pair, NumberFormat numberFormatter);
+
+    String toStringWithBase(int base, String preface);
+
+    String toString();
+
+    boolean equals(Object o);
+
+    int hashCode();
+
+    Optional<Double> doubleAmount(Unit asUnit);
 }

@@ -7,7 +7,9 @@
 //
 
 #include <stdio.h>
+#include <pthread.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <ftw.h>
 #include <errno.h>
 #include <unistd.h>
@@ -15,6 +17,23 @@
 
 #include "BRFileService.h"
 #include "BRAssert.h"
+
+/// MARK: - Helpers
+
+static int _pthread_cond_timedwait_relative (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *reltime) {
+#if defined(__ANDROID__)
+        struct timeval t;
+        gettimeofday(&t, NULL);
+
+        struct timespec timeout;
+        timeout.tv_sec  = reltime->tv_sec + t.tv_sec;
+        timeout.tv_nsec = reltime->tv_nsec +t.tv_usec*1000;
+
+        return pthread_cond_timedwait (cond, mutex, &timeout);
+#else
+        return pthread_cond_timedwait_relative_np (cond, mutex, reltime);
+#endif
+}
 
 /// MARK: - File Service Tests
 
@@ -72,21 +91,10 @@ static int runSupFileServiceTests (void) {
     if (NULL == fs) return fileServiceTestDone(path, 0);
 
     // Confirm the full path exists.
-    char fullpath[1024];
-    sprintf (fullpath, "%s/%s/%s", path,  currency, network);
-    if (0 != stat (fullpath, &dirStat)) return fileServiceTestDone (path, 0);
+    char dbpath[1024];
+    sprintf (dbpath, "%s/%s-%s-entities.db", path,  currency, network);
+    if (0 != stat (dbpath, &dirStat)) return fileServiceTestDone (path, 0);
 
-    // change the fullpath permissions; expect 'defineType' to fail.
-    chmod (fullpath, 0000);
-    if (1 == fileServiceDefineType(fs, type1, 0, NULL, NULL, NULL, NULL))
-        return fileServiceTestDone (path, 0);
-
-    // and can't set the current version on a bad type
-    if (1 == fileServiceDefineCurrentVersion(fs, type1, 0))
-        return fileServiceTestDone (path, 0);
-
-    // change the permission to allow writing
-    chmod (fullpath, 0700);
     if (1 != fileServiceDefineType(fs, type1, 0, NULL, NULL, NULL, NULL))
         return fileServiceTestDone (path, 0);
 
@@ -163,7 +171,7 @@ supWorkerThread (SupWorker worker) {
 
     pthread_mutex_lock(&worker->lock);
     while (1) {
-        switch (pthread_cond_timedwait_relative_np (&worker->cond, &worker->lock, &timeout)) {
+        switch (_pthread_cond_timedwait_relative (&worker->cond, &worker->lock, &timeout)) {
             case ETIMEDOUT:
                 if (0 == arc4random_uniform (10 * DEFAULT_WORKERS)) {
                     printf ("Work (%p): Fail\n", worker);
@@ -340,7 +348,7 @@ supRunOnce (SupMain *mains) {
     // We wait for supAssertHandler to signal that we've handled a worker BRFail.
 
     pthread_mutex_lock (&done_lock);
-    switch (pthread_cond_timedwait_relative_np (&done_cond, &done_lock, &timeout)) {
+    switch (_pthread_cond_timedwait_relative (&done_cond, &done_lock, &timeout)) {
         case ETIMEDOUT: break;
         default: success = 1; break;
     }
@@ -386,7 +394,7 @@ runSupAssertTests (void) {
         supMainRelease (mains[index]);
 
     BRAssertUninstall();
-    printf ("==== SUP:Assert Donen");
+    printf ("==== SUP:Assert Done");
     return success;
 }
 

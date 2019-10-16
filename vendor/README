@@ -1,0 +1,14 @@
+#
+# secp256k1 - update
+#
+cd ./vendor/secp256k1
+git fetch origin
+git checkout <commit>
+cd ../..
+git add --all
+git commit -m 'Update secp256k1 to <commit>'
+
+#
+# sqlite - update
+#
+# ...

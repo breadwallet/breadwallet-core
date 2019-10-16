@@ -1,9 +1,9 @@
 //
 //  BBREthereumWallet.c
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -202,13 +202,13 @@ walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets) {
 //
 extern BREthereumEther
 walletEstimateTransferFee (BREthereumWallet wallet,
-                              BREthereumAmount amount,
-                              int *overflow) {
-    return walletEstimateTransferFeeDetailed(wallet,
-                                                amount,
-                                                wallet->defaultGasPrice,
-                                                amountGetGasEstimate(amount),
-                                                overflow);
+                           BREthereumAmount amount,
+                           int *overflow) {
+    return walletEstimateTransferFeeDetailed (wallet,
+                                              amount,
+                                              wallet->defaultGasPrice,
+                                              amountGetGasEstimate(amount),
+                                              overflow);
 }
 
 /**
@@ -216,13 +216,13 @@ walletEstimateTransferFee (BREthereumWallet wallet,
  */
 extern BREthereumEther
 walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
-                                      BREthereumAmount amount,
-                                      BREthereumGasPrice price,
-                                      BREthereumGas gas,
-                                      int *overflow) {
-    return etherCreate(mulUInt256_Overflow(price.etherPerGas.valueInWEI,
-                                           createUInt256(gas.amountOfGas),
-                                           overflow));
+                                   BREthereumAmount amount,
+                                   BREthereumGasPrice price,
+                                   BREthereumGas gas,
+                                   int *overflow) {
+    return etherCreate (mulUInt256_Overflow (price.etherPerGas.valueInWEI,
+                                             createUInt256(gas.amountOfGas),
+                                             overflow));
 }
 
 //
@@ -243,16 +243,16 @@ walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
 
 extern BREthereumTransfer
 walletCreateTransfer(BREthereumWallet wallet,
-                        BREthereumAddress recvAddress,
-                        BREthereumAmount amount) {
-
-    return walletCreateTransferWithFeeBasis(wallet, recvAddress, amount,
-                                            (BREthereumFeeBasis) {
-                                                FEE_BASIS_GAS,
-                                                { .gas = {
-                                                    wallet->defaultGasLimit,
-                                                    wallet->defaultGasPrice
-                                                }}});
+                     BREthereumAddress recvAddress,
+                     BREthereumAmount amount) {
+    
+    return walletCreateTransferWithFeeBasis (wallet, recvAddress, amount,
+                                             (BREthereumFeeBasis) {
+                                                 FEE_BASIS_GAS,
+                                                 { .gas = {
+                                                     wallet->defaultGasLimit,
+                                                     wallet->defaultGasPrice
+                                                 }}});
 }
 
 extern BREthereumTransfer
@@ -604,6 +604,128 @@ walletTransferErrored (BREthereumWallet wallet,
                          transactionStatusCreateErrored(reason));
 }
 #endif // 0
+
+/// MARK: - Wallet State
+
+struct BREthereumWalletStateRecord {
+    // This is a token address or, if Ether, FAKE_ETHER_ADDRESS_INIT
+    BREthereumAddress address;
+
+    // Normally we would save the wallet's balance as `BREthereumAmount` but that concept includes
+    // the `BREthereumToken` if the amount is 'token based'.  In the context of WalletState we
+    // do not have tokens available (tokens are held as `BRSet` in `BREthereumEWM`, not globally).
+    // So, we'll save the balance as `UInt256` and then when recovering the wallet use this
+    // `amount` with the above `address` to create a proper balance.
+    UInt256 amount;
+
+    // Include the account nonce if the this wallet state is for ETHER.  Hackily.
+    uint64_t nonce;
+};
+
+#define FAKE_ETHER_ADDRESS_INIT   ((const BREthereumAddress) { \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff,   \
+0xff, 0xff, 0xff, 0xff \
+})
+
+extern BREthereumWalletState
+walletStateCreate (const BREthereumWallet wallet) {
+    BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
+
+    state->nonce = 0;
+    
+    BREthereumAmount balance = walletGetBalance(wallet);
+    BREthereumToken  token   = walletGetToken (wallet);
+
+    if (NULL == token) {
+        state->address = FAKE_ETHER_ADDRESS_INIT;
+        state->amount  = etherGetValue (amountGetEther(balance), WEI);
+    }
+    else {
+        state->address = tokenGetAddressRaw(token);
+        state->amount  = amountGetTokenQuantity(balance).valueAsInteger;
+    }
+
+    return state;
+}
+
+extern void
+walletStateRelease (BREthereumWalletState state) {
+    free (state);
+}
+
+extern BREthereumAddress
+walletStateGetAddress (const BREthereumWalletState walletState) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
+            ? EMPTY_ADDRESS_INIT
+            : walletState->address);
+}
+
+extern UInt256
+walletStateGetAmount (const BREthereumWalletState walletState) {
+    return walletState->amount;
+}
+
+extern uint64_t
+walletStateGetNonce (const BREthereumWalletState walletState) {
+    return walletState->nonce;
+}
+
+extern void
+walletStateSetNonce (BREthereumWalletState walletState,
+                     uint64_t nonce) {
+    walletState->nonce = nonce;
+}
+
+extern BRRlpItem
+walletStateEncode (const BREthereumWalletState state,
+                   BRRlpCoder coder) {
+    return rlpEncodeList (coder, 3,
+                          addressRlpEncode (state->address, coder),
+                          rlpEncodeUInt256 (coder, state->amount, 0),
+                          rlpEncodeUInt64  (coder, state->nonce, 0));
+}
+
+extern BREthereumWalletState
+walletStateDecode (BRRlpItem item,
+                   BRRlpCoder coder) {
+    BREthereumWalletState state = malloc (sizeof (struct BREthereumWalletStateRecord));
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (3 == itemsCount);
+
+    state->address = addressRlpDecode (items[0], coder);
+    state->amount  = rlpDecodeUInt256 (coder, items[1], 0);
+    state->nonce   = rlpDecodeUInt64  (coder, items[2], 0);
+
+    return state;
+}
+
+extern BREthereumHash
+walletStateGetHash (const BREthereumWalletState state) {
+    return addressGetHash (state->address);
+}
+
+static inline size_t
+walletStateHashValue (const void *t)
+{
+    return addressHashValue(((BREthereumWalletState) t)->address);
+}
+
+static inline int
+walletStateHashEqual (const void *t1, const void *t2) {
+    return t1 == t2 || addressHashEqual (((BREthereumWalletState) t1)->address,
+                                         ((BREthereumWalletState) t2)->address);
+}
+
+extern BRSetOf(BREthereumWalletState)
+walletStateSetCreate (size_t capacity) {
+    return BRSetNew (walletStateHashValue, walletStateHashEqual, capacity);
+}
+
 /*
  * https://medium.com/blockchain-musings/how-to-create-raw-transfers-in-ethereum-part-1-1df91abdba7c
  *

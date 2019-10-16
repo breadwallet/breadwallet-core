@@ -23,16 +23,12 @@
 //  THE SOFTWARE.
 
 #include "BRKey.h"
-#include "BRAddress.h"
 #include "BRBase58.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>             // getpid()
 #include <pthread.h>
-
-#define BITCOIN_PRIVKEY      128
-#define BITCOIN_PRIVKEY_TEST 239
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
     __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
@@ -52,8 +48,8 @@
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-#include "secp256k1/src/basic-config.h"
-#include "secp256k1/src/secp256k1.c"
+#include "vendor/secp256k1/src/basic-config.h"
+#include "vendor/secp256k1/src/secp256k1.c"
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
@@ -156,7 +152,7 @@ void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey)
 
 // returns true if privKey is a valid private key
 // supported formats are wallet import format (WIF), mini private key format, or hex string
-int BRPrivKeyIsValid(const char *privKey)
+int BRPrivKeyIsValid(BRAddressParams params, const char *privKey)
 {
     uint8_t data[34];
     size_t dataLen, strLen;
@@ -168,11 +164,7 @@ int BRPrivKeyIsValid(const char *privKey)
     strLen = strlen(privKey);
     
     if (dataLen == 33 || dataLen == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
-#if BITCOIN_TESTNET
-        r = (data[0] == BITCOIN_PRIVKEY_TEST);
-#else
-        r = (data[0] == BITCOIN_PRIVKEY);
-#endif
+        r = (data[0] == params.privKeyPrefix);
     }
     else if ((strLen == 30 || strLen == 22) && privKey[0] == 'S') { // mini private key format
         char s[strLen + 2];
@@ -204,22 +196,18 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
 
 // assigns privKey to key and returns true on success
 // privKey must be wallet import format (WIF), mini private key format, or hex string
-int BRKeySetPrivKey(BRKey *key, const char *privKey)
+int BRKeySetPrivKey(BRKey *key, BRAddressParams params, const char *privKey)
 {
     size_t len = strlen(privKey);
-    uint8_t data[34], version = BITCOIN_PRIVKEY;
+    uint8_t data[34];
     int r = 0;
     
-#if BITCOIN_TESTNET
-    version = BITCOIN_PRIVKEY_TEST;
-#endif
-
     assert(key != NULL);
     assert(privKey != NULL);
     
     // mini private key format
     if ((len == 30 || len == 22) && privKey[0] == 'S') {
-        if (! BRPrivKeyIsValid(privKey)) return 0;
+        if (! BRPrivKeyIsValid(params, privKey)) return 0;
         BRSHA256(data, privKey, strlen(privKey));
         r = BRKeySetSecret(key, (UInt256 *)data, 0);
     }
@@ -233,7 +221,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
             }
         }
 
-        if ((len == sizeof(UInt256) + 1 || len == sizeof(UInt256) + 2) && data[0] == version) {
+        if ((len == sizeof(UInt256) + 1 || len == sizeof(UInt256) + 2) && data[0] == params.privKeyPrefix) {
             r = BRKeySetSecret(key, (UInt256 *)&data[1], (len == sizeof(UInt256) + 2));
         }
         else if (len == sizeof(UInt256)) {
@@ -261,20 +249,23 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
     return secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, pkLen);
 }
 
+// returns true if key contains a valid private key
+int BRKeyIsPrivKey(const BRKey *key)
+{
+    assert(key != NULL);
+    return secp256k1_ec_seckey_verify(_ctx, key->secret.u8);
+}
+
 // writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
-size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen, BRAddressParams params)
 {
     uint8_t data[34];
 
     assert(key != NULL);
     
     if (secp256k1_ec_seckey_verify(_ctx, key->secret.u8)) {
-        data[0] = BITCOIN_PRIVKEY;
-#if BITCOIN_TESTNET
-        data[0] = BITCOIN_PRIVKEY_TEST;
-#endif
-        
+        data[0] = params.privKeyPrefix;
         UInt256Set(&data[1], key->secret);
         if (key->compressed) data[33] = 0x01;
         pkLen = BRBase58CheckEncode(privKey, pkLen, data, (key->compressed) ? 34 : 33);
@@ -342,19 +333,19 @@ UInt160 BRKeyHash160(BRKey *key)
 
 // writes the bech32 pay-to-witness-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, BRAddressParams params)
 {
     UInt160 hash;
     
     assert(key != NULL);
     
     hash = BRKeyHash160(key);
-    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, &hash) : 0;
+    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, params, &hash) : 0;
 }
 
 // writes the legacy pay-to-pubkey-hash bitcoin address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams params)
 {
     UInt160 hash;
     uint8_t data[21];
@@ -362,10 +353,7 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
     assert(key != NULL);
     
     hash = BRKeyHash160(key);
-    data[0] = BITCOIN_PUBKEY_ADDRESS;
-#if BITCOIN_TESTNET
-    data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
-#endif
+    data[0] = params.pubKeyPrefix;
     UInt160Set(&data[1], hash);
 
     if (! UInt160IsZero(hash)) {
@@ -376,21 +364,81 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
     return addrLen;
 }
 
-// signs md with key and writes signature to sig
+// signs md with key and writes signature to sig in compact/JOSE format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignJOSE(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
+{
+    secp256k1_ecdsa_signature s;
+    
+    uint8_t compactSig[64];
+    size_t compactSigLen = 64;
+    
+    assert(key != NULL);
+    
+    if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
+        if (! secp256k1_ecdsa_signature_serialize_compact(_ctx, compactSig, &s)) compactSigLen = 0;
+    }
+    else compactSigLen = 0;
+    
+    if (NULL != sig && sigLen >= compactSigLen) {
+        memcpy (sig, compactSig, compactSigLen);
+        return compactSigLen;
+    }
+    else if (NULL != sig)
+        return 0; // failed, `sig` is too small
+    else
+        return compactSigLen;
+}
+
+// returns true if the signature for md is verified to have been made by key
+int BRKeyVerifyJOSE(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
+{
+    secp256k1_pubkey pk;
+    secp256k1_ecdsa_signature s;
+    size_t len;
+    int r = 0;
+    
+    assert(key != NULL);
+    assert(sig != NULL || sigLen == 0);
+    assert(sigLen == 64);
+    
+    len = BRKeyPubKey(key, NULL, 0);
+    
+    if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len) &&
+        secp256k1_ecdsa_signature_parse_compact(_ctx, &s, sig)) {
+        if (secp256k1_ecdsa_verify(_ctx, &s, md.u8, &pk) == 1) r = 1; // success is 1, all other values are fail
+    }
+    
+    return r;
+}
+
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
+
+    uint8_t safeSig[73];
+    size_t  safeSigLen = 73;
     
     assert(key != NULL);
     
     if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
-        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &sigLen, &s)) sigLen = 0;
+        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, safeSig, &safeSigLen, &s)) safeSigLen = 0;
     }
-    else sigLen = 0;
-    
-    return sigLen;
+    else safeSigLen = 0;
+
+
+    if (NULL != sig && sigLen >= safeSigLen) {
+        memcpy (sig, safeSig, safeSigLen);
+        return safeSigLen;
+    }
+    else if (NULL != sig)
+        return 0; // failed, `sig` is too small
+    else
+        return safeSigLen;
 }
 
 // returns true if the signature for md is verified to have been made by key
@@ -526,4 +574,19 @@ int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, s
     }
 
     return r;
+}
+
+int BRKeySetCompressed (BRKey *key, int compressed) {
+    compressed = (compressed ? 1 : 0); // as 1 or 0
+
+    // If no secret, we can't clear the pubKey
+    if (UInt256Eq (key->secret, UINT256_ZERO)) return 0;
+
+    // On a difference, clear the pubKey and assign compressed.
+    if (compressed != key->compressed) {
+        memset (key->pubKey, 0, 65);
+        key->compressed = compressed;
+        return 1;
+    }
+    else return 0;
 }

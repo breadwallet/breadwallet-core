@@ -1,9 +1,9 @@
 //
 //  BBRUtilMath.h
-//  breadwallet-core Ethereum
+//  Core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -36,6 +36,9 @@ typedef enum {
 extern UInt256
 createUInt256 (uint64_t value);
 
+extern UInt256
+createUInt256Double (double value, int decimals, int *overflow);
+
 /**
  * Create as `(expt 10 power)` where power < 20 is required.
  */
@@ -50,11 +53,12 @@ createUInt256Power2 (uint8_t power);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
- * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse.
+ * in the base and optionally the '0x' prefix.  No decimal points; this is an integer parse.  There
+ * must not be a sign of either '-' or '+'; this is an unsigned integer parse.
  *
  * The string must be in big-endian format, always.  Generally this is only an issue for hex
- * (and perhaps) binary strings.  That is, for decimal strings you would expect "12.3" to some
- * who wind up with the number 3.21.  But for 0x0102, maybe not so clear.
+ * (and perhaps) binary strings.  That is, for decimal strings you would not expect "12.3" to some
+ * how wind up with the number 3.21.  But for 0x0102, maybe not so clear.
  *
  * @param number - an integer value expressed in `base` in big-endian format.
  * @param base - must only be one of 2, 10, or 16.
@@ -149,8 +153,20 @@ extern uint64_t
 coerceUInt64 (UInt256 x, int *overflow);
 
 /**
+ * Coerce `x`, a UInt256, to a double.  If `x` is too big then overflow is set to 1 and
+ * zero is returned.
+ */
+extern double
+coerceDouble (UInt256 value, int *overflow);
+
+extern long double
+coerceLongDouble (UInt256 value, int *overflow);
+
+/**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
- * will be in big-endian format.
+ * will be in big-endian format (as you expect).
+ *
+ * base must be one of {2, 10, 16}
  *
  * @warn YOU OWN THE RETURNED MEMORY
  */

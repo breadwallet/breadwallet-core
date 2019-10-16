@@ -2,7 +2,7 @@
 //  BRChainParams.h
 //
 //  Created by Aaron Voisine on 1/10/18.
-//  Copyright (c) 2019 breadwallet LLC
+//  Copyright (c) 2018-2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,14 @@
 #include "BRMerkleBlock.h"
 #include "BRSet.h"
 #include "BRPeer.h"
+#include "BRAddress.h"
 #include <assert.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
+#define BITCOIN_FORKID 0x00
 
 typedef struct {
     uint32_t height;
@@ -45,6 +52,8 @@ typedef struct {
     int (*verifyDifficulty)(const BRMerkleBlock *block, const BRSet *blockSet); // blockSet must have last 2016 blocks
     const BRCheckPoint *checkpoints;
     size_t checkpointsCount;
+    BRAddressParams addrParams;
+    uint8_t forkId;
 } BRChainParams;
 
 extern const BRChainParams *BRMainNetParams;
@@ -53,5 +62,17 @@ extern const BRChainParams *BRTestNetParams;
 static inline const BRChainParams *BRChainParamsGetBitcoin (int mainnet) {
     return mainnet ? BRMainNetParams : BRTestNetParams;
 }
+
+static inline int BRChainParamsIsBitcoin (const BRChainParams *params) {
+    return BRMainNetParams == params || BRTestNetParams == params;
+}
+
+extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp);
+
+extern const BRCheckPoint *BRChainParamsGetCheckpointBeforeBlockNumber (const BRChainParams *params, uint32_t blockNumber);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRChainParams_h

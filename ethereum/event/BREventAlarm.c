@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright © 2018 Breadwinner AG.  All rights reserved.
+//  Copyright © 2018-2019 Breadwinner AG.  All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -137,8 +137,12 @@ alarmIsPeriodic (BREventAlarm *alarm) {
 
 static void
 alarmPeriodUpdate (BREventAlarm *alarm) {
-    if (alarmIsPeriodic(alarm)) {
-        timespecInc(&alarm->expiration, &alarm->period);
+    timespecInc(&alarm->expiration, &alarm->period);
+
+    // ensure that expiration does not occur in the past
+    struct timespec now = getTime();
+    if (-1 == timespecCompare(&alarm->expiration, &now)) {
+        alarm->expiration = now;
     }
 }
 
@@ -278,6 +282,13 @@ alarmClockThread (BREventAlarmClock clock) {
 
         switch (pthread_cond_timedwait (&clock->cond, &clock->lock, &clock->timeout)) {
             case ETIMEDOUT: {
+                // Check if alarm was removed while we slept...
+                if (0 == array_count(clock->alarms) ||
+                    0 != timespecCompare(&clock->alarms[0].expiration, &clock->timeout)) {
+                    // ... ignore the timeout, its alarm is for the birds now
+                    break;
+                }
+
                 // If we timed-out, then get the alarm that has expired...
                 BREventAlarm alarm = clock->alarms[0];
                 // ... and remove it from the clock's alarms (for now; if periodic, add it back)

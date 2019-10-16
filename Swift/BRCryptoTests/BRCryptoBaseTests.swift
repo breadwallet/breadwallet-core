@@ -1,9 +1,9 @@
 //
-//  BRCryptoTests.swift
-//  BRCrypto
+//  BRCryptoBaseTests.swift
+//  BRCryptoTests
 //
-//  Created by Ed Gamble on 10/30/18.
-//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//  Created by Ed Gamble on 3/28/19.
+//  Copyright © 2019 Breadwallet AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
@@ -13,150 +13,416 @@ import XCTest
 @testable import BRCrypto
 
 class BRCryptoBaseTests: XCTestCase {
-
-    override func setUp() {
+    var accountSpecifications: [AccountSpecification] = []
+    var accountSpecification: AccountSpecification! {
+        return accountSpecifications.count > 0
+            ? accountSpecifications[0]
+            : nil
     }
+
+    var isMainnet = true
+
+    let configPath = Bundle(for: BRCryptoBaseTests.self).path(forResource: "CoreTestsConfig", ofType: "json")!
+
+    var coreDataDir: String!
+
+    func coreDirClear () {
+        do {
+            if FileManager.default.fileExists(atPath: coreDataDir) {
+                try FileManager.default.removeItem(atPath: coreDataDir)
+            }
+        }
+        catch {
+            print ("Error: \(error)")
+            XCTAssert(false)
+        }
+    }
+
+    func coreDirCreate () {
+        do {
+            try FileManager.default.createDirectory (atPath: coreDataDir,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch {
+            XCTAssert(false)
+        }
+    }
+
+    var account: Account!
+
+    func prepareAccount (_ spec: AccountSpecification? = nil, identifier: String? = nil) {
+        let defaultSpecification = AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ])
+
+        self.accountSpecifications = (spec != nil
+            ? [spec!]
+            : AccountSpecification.loadFrom(configPath: configPath, defaultSpecification: defaultSpecification))
+            .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
+
+        // If there is an identifier, filter
+        if let id = identifier {
+            self.accountSpecifications.removeAll { $0.identifier != id }
+        }
+        let specifiction = accountSpecification!
+
+        /// Create the account
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        account = Account.createFrom (phrase: specifiction.paperKey,
+                                      timestamp: specifiction.timestamp,
+                                      uids: walletId)
+    }
+    
+    override func setUp() {
+        super.setUp()
+
+        /// Create the 'storagePath'
+        coreDataDir = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Core").path
+
+        coreDirCreate()
+        coreDirClear()
+        XCTAssert (nil != coreDataDir)
+
+        print ("TST: StoragePath: \(coreDataDir ?? "<none>")");
+   }
 
     override func tearDown() {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+}
+
+///
+/// Listeners
+///
+
+class TestWalletManagerListener: WalletManagerListener {
+    let handler: WalletManagerEventHandler
+
+    init (_ handler: @escaping WalletManagerEventHandler) {
+        self.handler = handler
     }
 
-    func testCurrency() {
-        let btc = Bitcoin.currency
-        let eth = Ethereum.currency
+    func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+        handler (system, manager, event)
+    }
+}
 
-        XCTAssert ("BTC" == btc.code)
-        XCTAssert (btc == btc)
-        XCTAssert (btc != eth)
+class TestWalletListener: WalletListener {
+    let handler: WalletEventHandler
+
+    init (_ handler: @escaping WalletEventHandler) {
+        self.handler = handler
     }
 
-    func testUnit () {
-        XCTAssertFalse(Ethereum.Units.ETHER.isCompatible(Bitcoin.Units.SATOSHI))
+    func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
+        handler (system, manager, wallet, event)
+    }
+}
+
+class TestTransferListener: TransferListener {
+    let handler: TransferEventHandler
+
+    init (_ handler: @escaping TransferEventHandler) {
+        self.handler = handler
     }
 
-    func testAmount () {
-        let ETHER = Ethereum.Units.ETHER
-        let WEI   = Ethereum.Units.WEI
-        let GWEI  = Ethereum.Units.GWEI
+    func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        handler (system, manager, wallet, transfer, event)
+    }
+}
 
-        XCTAssert (nil != Amount (exactly: 1.5, unit: ETHER))
-        XCTAssert (nil != Amount (exactly: 1.0, unit: ETHER))
-        XCTAssert (nil == Amount (exactly: 1.5, unit: WEI))
+class TestNetworkListener: NetworkListener {
+    let handler: NetworkEventHandler
 
-        XCTAssert (1.5 == Amount (exactly: 1.5, unit: ETHER)?.double)
-        XCTAssert (1.5 * 1e9 == Amount (exactly: 1.5, unit: ETHER)?.coerce(unit: GWEI).double)
+    init (_ handler: @escaping NetworkEventHandler) {
+        self.handler = handler
+    }
+    func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
+        handler (system, network, event)
+    }
+}
 
-        XCTAssert (+10 == Amount(value: +10, unit: ETHER).double)
-        XCTAssert (-10 == Amount(value: -10, unit: ETHER).double)
+class CryptoTestSystemListener: SystemListener {
 
-        XCTAssert (-10 == Amount(value: -10.0, unit: ETHER).double)
+    private let isMainnet: Bool
+    private let networkCurrencyCodesToMode: [String:WalletManagerMode]
+    private let registerCurrencyCodes: [String]
 
-        XCTAssertEqual(25.0, Amount(value: 10.0, unit: ETHER).scale(by: 2.5)?.double ?? 0.0, accuracy: 1e-6)
-        XCTAssertEqual( 2.0, Amount(value: 10.0, unit: ETHER).scale(by: 1/5)?.double ?? 0.0, accuracy: 1e-6)
-
-        XCTAssert(Amount (value: 1, unit: ETHER) >  Amount (value: 1, unit: GWEI))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) != Amount (value: 2, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1e9, unit: GWEI))
-        XCTAssert(Amount (value: 1e-3, unit: ETHER) == Amount (value: 1e6, unit: GWEI))
-
-        XCTAssert(Amount (value: 2.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) + Amount (value: 1.0, unit: ETHER))
-        XCTAssert(Amount (value: 0.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) - Amount (value: 1.0, unit: ETHER))
-
-        let a1 = Amount (value: 1, unit: ETHER)
-        let a2 = Amount (value: 1, unit: Bitcoin.Units.SATOSHI)
-        XCTAssertTrue  (a1.isCompatible(a1))
-        XCTAssertFalse (a1.isCompatible(a2))
-
-        XCTAssertEqual(a1.description, "1.0 \(Ethereum.currency.symbol)")
-
-        XCTAssertEqual    ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: false))
-        XCTAssertNotEqual ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 4, withSymbol: false))
-        XCTAssertEqual    ("9.123 \(ETHER.symbol)", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: true))
+    public init (networkCurrencyCodesToMode: [String:WalletManagerMode],
+                 registerCurrencyCodes: [String],
+                 isMainnet: Bool) {
+        self.networkCurrencyCodesToMode = networkCurrencyCodesToMode
+        self.registerCurrencyCodes = registerCurrencyCodes;
+        self.isMainnet = isMainnet
     }
 
-    func testCurrencyPair () {
-        let BTC = Bitcoin.currency.defaultUnit!
-        let USD = Fiat.US.defaultUnit!
+    var systemHandlers: [SystemEventHandler] = []
+    var systemEvents: [SystemEvent] = []
 
-        let pair = CurrencyPair (baseUnit: BTC, quoteUnit: USD, exchangeRate: 6000)
+    func handleSystemEvent(system: System, event: SystemEvent) {
+        print ("TST: System Event: \(event)")
+        systemEvents.append (event)
+        switch event {
+        case .networkAdded (let network):
+            if isMainnet == network.isMainnet,
+                 network.currencies.contains(where: { nil != networkCurrencyCodesToMode[$0.code] }),
+                 let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
+                 // Get a valid mode, ideally from `currencyMode`
 
-        // BTC -> USD
-        let inUSD = pair.exchange(asBase: Amount (value: 1.0, unit: BTC))
-        XCTAssertEqual(6000, inUSD?.double ?? 0, accuracy: 1e-6)
+                 let mode = system.supportsMode (network: network, currencyMode)
+                     ? currencyMode
+                     : system.defaultMode(network: network)
 
-        // USD -> BTC
-        let inBTC = pair.exchange(asQuote: Amount (value: 6000.0, unit: USD))
-        XCTAssertEqual(1.0, inBTC?.double ?? 0, accuracy: 1e-6)
+                 let scheme = system.defaultAddressScheme(network: network)
 
-        XCTAssertEqual("\(BTC.name)/\(USD.name)=\(6000.0)", pair.description)
+                 let currencies = network.currencies
+                     .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
+
+                 let success = system.createWalletManager (network: network,
+                                                           mode: mode,
+                                                           addressScheme: scheme,
+                                                           currencies: currencies)
+                XCTAssertTrue(success)
+
+//            if isMainnet == network.isMainnet &&
+//                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
+//                let mode = modeMap[network.currency.code] ?? system.defaultMode(network: network)
+//                XCTAssertTrue (system.supportsMode(network: network, mode))
+//
+//                let scheme = system.defaultAddressScheme(network: network)
+//                let _ = system.createWalletManager (network: network,
+//                                                    mode: mode,
+//                                                    addressScheme: scheme,
+//                                                    currencies: Set<Currency>())
+            }
+            networkExpectation.fulfill()
+
+        case .managerAdded:
+            managerExpectation.fulfill()
+
+        default: break
+        }
+
+        systemHandlers.forEach { $0 (system, event) }
     }
 
-    func testAccount () {
-        let _ = Account (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
-        let s1 = Account.deriveSeed(phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
-        let _ = Account (seed: s1)
+    func checkSystemEvents (_ expected: [SystemEvent], strict: Bool = false) -> Bool {
+        return checkSystemEvents (expected.map { EventMatcher (event: $0, strict: strict, scan: false) })
     }
 
-    func testNetwork () {
-        // ==
-        XCTAssertEqual (Bitcoin.Networks.mainnet, Bitcoin.Networks.mainnet)
-        XCTAssertEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.rinkeby)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Bitcoin.Networks.testnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.mainnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.ropsten)
-        XCTAssertNotEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.ropsten)
-
-        // name
-        XCTAssertEqual("BTC Mainnet", Bitcoin.Networks.mainnet.name)
-        XCTAssertEqual("BCH Mainnet", Bitcash.Networks.mainnet.name)
-        XCTAssertEqual("ETH Mainnet", Ethereum.Networks.mainnet.name)
-
-        // description
-        XCTAssertEqual(Bitcoin.Networks.mainnet.description, Bitcoin.Networks.mainnet.name)
-
-        // currency
-        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.mainnet.currency)
-        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.testnet.currency)
-        XCTAssertEqual(Bitcash.currency, Bitcash.Networks.mainnet.currency)
-        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.mainnet.currency)
-        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.foundation.currency)
-
-
-        // hashable
-        let networks = Set (arrayLiteral: Bitcoin.Networks.mainnet,
-                                            Bitcash.Networks.mainnet,
-                                           Ethereum.Networks.mainnet)
-        XCTAssertTrue(networks.contains(Bitcash.Networks.mainnet))
-        XCTAssertFalse(networks.contains(Bitcoin.Networks.testnet))
+    func checkSystemEvents (_ matchers: [EventMatcher<SystemEvent>]) -> Bool {
+        return systemEvents.match(matchers)
     }
 
-    func testAddress () {
-        let r1 = Address (raw: "foo")
-        let r2 = Address (raw: "bar")
-        let r3 = Address (raw: "foo")
+    // MARK: - Wallet Manager Handler
 
-        XCTAssertEqual (r1, r3)
-        XCTAssertNotEqual (r1, r2)
+    var managerHandlers: [WalletManagerEventHandler] = []
+    var managerEvents: [WalletManagerEvent] = []
+    var managerExpectation = XCTestExpectation (description: "ManagerExpectation")
 
-        let e1 = Address (ethereum: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
-        let e2 = Address (ethereum: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f")
 
-        XCTAssertEqual(e1, e1)
-        XCTAssertNotEqual (e1, e2)
-        XCTAssertNotEqual (r1, e1)
-
-        // hashable
-        XCTAssertEqual (r1.hashValue, r1.hashValue);
-        XCTAssertEqual (e1.hashValue, e1.hashValue);
-
-        XCTAssertNotEqual (e1.hashValue, e2.hashValue);
-
-        XCTAssertEqual("foo", r1.description)
-        XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.description)
+    func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+        print ("TST: Manager Event: \(event)")
+        managerEvents.append(event)
+        if case .walletAdded = event { walletExpectation.fulfill() }
+        managerHandlers.forEach { $0 (system, manager, event) }
     }
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
 
+    func checkManagerEvents (_ expected: [WalletManagerEvent], strict: Bool = false) -> Bool {
+        return checkManagerEvents (expected.map { EventMatcher (event: $0, strict: strict, scan: false) })
+    }
+
+    func checkManagerEvents (_ matchers: [EventMatcher<WalletManagerEvent>]) -> Bool {
+        return managerEvents.match(matchers)
+    }
+
+    // MARK: - Wallet Handler
+
+    var walletHandlers: [WalletEventHandler] = []
+    var walletEvents: [WalletEvent] = []
+    var walletExpectation  = XCTestExpectation (description: "ManagerExpectation")
+
+    func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
+        print ("TST: Wallet Event: \(event)")
+        walletEvents.append(event)
+        walletHandlers.forEach { $0 (system, manager, wallet, event) }
+    }
+
+    func checkWalletEvents (_ expected: [WalletEvent], strict: Bool = false) -> Bool {
+        return checkWalletEvents (expected.map { EventMatcher (event: $0, strict: strict, scan: false) })
+    }
+
+    func checkWalletEvents (_ matchers: [EventMatcher<WalletEvent>]) -> Bool {
+        return walletEvents.match(matchers)
+    }
+
+    // MARK: - Transfer Handler
+
+    var transferIncluded: Bool = false
+    var transferCount: Int = 0;
+    var transferHandlers: [TransferEventHandler] = []
+    var transferEvents: [TransferEvent] = []
+    var transferExpectation = XCTestExpectation (description: "TransferExpectation")
+
+    func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        print ("TST: Transfer Event: \(event)")
+        transferEvents.append (event)
+        if transferIncluded, case .included = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+        else if case .created = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+        transferHandlers.forEach { $0 (system, manager, wallet, transfer, event) }
+    }
+
+   func checkTransferEvents (_ expected: [TransferEvent], strict: Bool = false) -> Bool {
+        return checkTransferEvents (expected.map { EventMatcher (event: $0, strict: strict, scan: false) })
+    }
+
+    func checkTransferEvents (_ matchers: [EventMatcher<TransferEvent>]) -> Bool {
+        return transferEvents.match(matchers)
+    }
+
+    // MARK: - Network Handler
+
+    var networkHandlers: [NetworkEventHandler] = []
+    var networkEvents: [NetworkEvent] = []
+    var networkExpectation = XCTestExpectation (description: "NetworkExpectation")
+
+    func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
+        print ("TST: Network Event: \(event)")
+        networkEvents.append (event)
+        networkHandlers.forEach { $0 (system, network, event) }
+    }
+
+    func checkNetworkEvents (_ expected: [NetworkEvent], strict: Bool = false) -> Bool {
+        return checkNetworkEvents (expected.map { EventMatcher (event: $0, strict: strict, scan: false) })
+    }
+
+    func checkNetworkEvents (_ matchers: [EventMatcher<NetworkEvent>]) -> Bool {
+        return networkEvents.match(matchers)
+    }
+
+    //
+    // Common Sequences
+    //
+
+    func checkSystemEventsCommonlyWith (network: Network, manager: WalletManager) -> Bool {
+        return checkSystemEvents(
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+        ])
+    }
+
+    func checkManagerEventsCommonlyWith (mode: WalletManagerMode,
+                                         wallet: Wallet,
+                                         lenientDisconnect: Bool = false) -> Bool {
+        let disconnectReason = (mode == WalletManagerMode.api_only
+            ? WalletManagerDisconnectReason.requested
+            : (mode == WalletManagerMode.p2p_only
+                ? WalletManagerDisconnectReason.posix (errno: 54, message: "Connection reset by peer")
+                : WalletManagerDisconnectReason.unknown))
+        
+        let disconnectEventMatcher =
+            EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                             newState: WalletManagerState.disconnected (reason: disconnectReason)),
+                          strict: !lenientDisconnect,
+                          scan: false)
+
+        return checkManagerEvents(
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded (wallet: wallet)),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.created,
+                                                              newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
+             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
+                                                              newState: WalletManagerState.syncing)),
+
+             // On API_ONLY here is no .syncProgress: timestamp: nil, percentComplete: 0
+                EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
+
+                EventMatcher (event: WalletManagerEvent.syncEnded (reason: WalletManagerSyncStoppedReason.complete), strict: false, scan: true),
+                EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.syncing,
+                                                                 newState: WalletManagerState.connected)),
+                disconnectEventMatcher
+        ])
+    }
+    
+    func checkWalletEventsCommonlyWith (mode: WalletManagerMode, balance: Amount, transfer: Transfer) -> Bool {
+        switch mode {
+        case .p2p_only:
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+            ])
+        case .api_only:
+            // Balance before transfer... doesn't seem right. But worse, all balance events arrive
+            // before all transfer events.
+            return checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: balance), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+            ])
+        default:
+            return false
+        }
+    }
+}
+
+class BRCryptoSystemBaseTests: BRCryptoBaseTests {
+
+    var listener: CryptoTestSystemListener!
+    var query: BlockChainDB!
+    var system: System!
+
+    var registerCurrencyCodes = [String]()
+    var currencyCodesToMode = ["btc":WalletManagerMode.api_only]
+
+    var currencyModels: [BlockChainDB.Model.Currency] = []
+
+    func createDefaultListener() -> CryptoTestSystemListener {
+        return CryptoTestSystemListener (networkCurrencyCodesToMode: currencyCodesToMode,
+                                         registerCurrencyCodes: registerCurrencyCodes,
+                                         isMainnet: isMainnet)
+    }
+
+    func createDefaultQuery () -> BlockChainDB {
+        return BlockChainDB.createForTest()
+    }
+
+    func prepareSystem (listener: CryptoTestSystemListener? = nil, query: BlockChainDB? = nil) {
+
+        self.listener = listener ?? createDefaultListener()
+        self.query    = query    ?? createDefaultQuery()
+
+        system = System (listener:  self.listener,
+                         account:   self.account,
+                         onMainnet: self.isMainnet,
+                         path:      self.coreDataDir,
+                         query:     self.query)
+
+        XCTAssertEqual (coreDataDir + "/" + self.account.fileSystemIdentifier, system.path)
+        XCTAssertTrue  (self.query === system.query)
+        XCTAssertEqual (account.uids, system.account.uids)
+
+        system.configure(withCurrencyModels: currencyModels) // Don't connect
+        wait (for: [self.listener.networkExpectation], timeout: 5)
+        wait (for: [self.listener.managerExpectation], timeout: 5)
+        wait (for: [self.listener.walletExpectation ], timeout: 5)
+    }
+
+    override func setUp() {
+        super.setUp()
+    }
 }
