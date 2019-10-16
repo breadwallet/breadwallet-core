@@ -144,8 +144,11 @@ final class Blockchains {
 
     // Mainnet
 
-    private static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
-    private static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
+    /* package */
+    static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
+
+    /* package */
+    static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
 
     private static Currency CURRENCY_BTC_MAINNET = new Currency(
             "bitcoin-mainnet:__native__",
@@ -191,7 +194,7 @@ final class Blockchains {
     );
 
     private static Currency CURRENCY_BRD_MAINNET = new Currency(
-            "ethereum-mainnet" + ADDRESS_BRD_MAINNET,
+            "ethereum-mainnet:" + ADDRESS_BRD_MAINNET,
             "BRD Token",
             "BRD",
             "erc20",
@@ -250,7 +253,7 @@ final class Blockchains {
     );
 
     private static Currency CURRENCY_BRD_ROPSTEN = new Currency(
-            "ethereum-ropsten" + ADDRESS_BRD_TESTNET,
+            "ethereum-ropsten:" + ADDRESS_BRD_TESTNET,
             "BRD Token Testnet",
             "BRD",
             "erc20",

@@ -10,8 +10,10 @@ package com.breadwallet.corecrypto;
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.io.File;
 import java.util.Date;
@@ -74,6 +76,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
                                                     String path,
                                                     BlockchainDb query) {
             return System.create(executor, listener, account, isMainnet, path, query);
+        }
+
+        @Override
+        public Optional<Currency> asBDBCurrency(String uids, String name, String code, String type, UnsignedInteger decimals) {
+            return System.asBDBCurrency(uids, name, code, type, decimals);
         }
 
         @Override
