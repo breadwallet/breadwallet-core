@@ -20,6 +20,8 @@
 #include "support/BRKey.h"
 #include "vendor/ed25519/ed25519.h"
 
+#include "BRHederaTransaction.h"
+
 static int debug_log = 0;
 
 static uint8_t char2int(char input)
@@ -152,7 +154,20 @@ static void hederaCryptoTests() {
     createHederaAccount(paper_key_24);
 }
 
+static void createTransaction() {
+    BRHederaTransaction transaction = hederaTransactionCreate();
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key_24, NULL); // no passphrase
+    hederaTransactionSign(transaction, seed);
+}
+
+static void transaction_tests() {
+    createTransaction();
+}
+
 extern void
 runHederaTest (void /* ... */) {
+    printf("Running hedera unit tests...\n");
     hederaCryptoTests();
+    transaction_tests();
 }
