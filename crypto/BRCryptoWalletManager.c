@@ -119,6 +119,41 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     return cwm;
 }
 
+#include <time.h>
+
+extern double
+cryptoWalletManagerCallMeMaybe(BRCryptoCWMListenerWalletManagerEvent callback, long count) {
+    clock_t t;
+    t = clock();
+    for (long i = 0; i < count; i++) {
+
+        callback (NULL, NULL, (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+                { .state = {
+                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ),
+                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ) }}
+                });
+    }
+    t = clock() - t;
+    return ((double)t)/CLOCKS_PER_SEC * 1000;
+}
+
+extern double
+cryptoWalletManagerCallMeMaybeDirect(BRCryptoCWMListenerWalletManagerEventDirect callback, long count) {
+    clock_t t;
+    t = clock();
+    for (long i = 0; i < count; i++) {
+        callback (NULL, NULL, &(BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+                { .state = {
+                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ),
+                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ) }}
+                });
+    }
+    t = clock() - t;
+    return ((double)t)/CLOCKS_PER_SEC * 1000;
+}
+
 extern BRCryptoWalletManager
 cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoCWMClient client,

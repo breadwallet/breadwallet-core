@@ -15,6 +15,7 @@
 #include "ethereum/BREthereum.h"
 #include "crypto/BRCryptoAccount.h"
 #include "crypto/BRCryptoAmount.h"
+#include "crypto/BRCryptoCoder.h"
 #include "crypto/BRCryptoCurrency.h"
 #include "crypto/BRCryptoNetwork.h"
 #include "crypto/BRCryptoPrivate.h"

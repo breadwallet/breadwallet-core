@@ -16,6 +16,10 @@ import java.util.List;
 
 public class BRCryptoCWMListener extends Structure {
 
+    public interface BRCryptoCWMListenerWalletManagerEventDirect extends Callback {
+        void apply(Pointer context, Pointer manager, Pointer event);
+    };
+
     public interface BRCryptoCWMListenerWalletManagerEvent extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoWalletManagerEvent.ByValue event);
     };

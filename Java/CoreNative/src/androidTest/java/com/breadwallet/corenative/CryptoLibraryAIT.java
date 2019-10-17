@@ -2,13 +2,18 @@ package com.breadwallet.corenative;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
+import android.util.Log;
 
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
+import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
+import com.breadwallet.corenative.crypto.BRCryptoCoder;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
+import com.google.common.base.Stopwatch;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
@@ -21,7 +26,6 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +55,95 @@ public class CryptoLibraryAIT {
     @After
     public void teardown() {
         coreDirClear();
+    }
+
+    @Test
+    public void testPerformance() {
+        // testFunctionPerformance
+        {
+            final long count = 100 * 1000;
+            final byte[] d = new byte[]{(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
+            final String r = "deadbeef";
+
+            BRCryptoCoder c;
+            Stopwatch t;
+
+            double durationInMs;
+            double durationInMsPerAttempt;
+            long attemptsPerSecond;
+
+            // this tests creating a coder and encoding/decoding using the current app behaviour (i.e. no direct mapping involved)
+
+            t = Stopwatch.createStarted();
+            for (int i = 0; i < count; i++) {
+                c = CryptoLibrary.INSTANCE.cryptoCoderCreate(0);
+                c.encode(d).get();
+                c.decode(r).get();
+            }
+            t.stop();
+
+            durationInMs = t.elapsed(TimeUnit.MILLISECONDS);
+            durationInMsPerAttempt = durationInMs / count;
+            attemptsPerSecond = (long) (1000 / durationInMsPerAttempt);
+            Log.e("JNA", String.format("testFunctionPerformance-legacy: %s attempt duration in milliseconds", durationInMsPerAttempt));
+            Log.e("JNA", String.format("testFunctionPerformance-legacy: %s attempts per second", attemptsPerSecond));
+
+            // this tests creating a coder and encoding/decoding using direct mapping
+
+            t = Stopwatch.createStarted();
+            for (int i = 0; i < count; i++) {
+                c = new BRCryptoCoder(CryptoLibraryDirect.cryptoCoderCreate(0));
+                c.encodeDirect(d).get();
+                c.decodeDirect(r).get();
+            }
+            t.stop();
+
+            durationInMs = t.elapsed(TimeUnit.MILLISECONDS);
+            durationInMsPerAttempt = durationInMs / count;
+            attemptsPerSecond = (long) (1000 / durationInMsPerAttempt);
+            Log.e("JNA", String.format("testFunctionPerformance-direct: %s attempt duration in milliseconds", durationInMsPerAttempt));
+            Log.e("JNA", String.format("testFunctionPerformance-direct: %s attempts per second", attemptsPerSecond));
+        }
+
+        // testCallbackPerformance
+        {
+            final long count = 10 * 1000;
+            double durationInMs;
+            double durationInMsPerInvocation;
+            long invocationsPerSecond;
+
+            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent callback = (context, manager, event) -> { /* nadda */ };
+            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEventDirect callbackDirect = (context, manager, event) -> new BRCryptoWalletManagerEvent(event);
+
+            // This tests the current app behaviour (i.e. no direct mapping involved)
+
+            CryptoLibrary.INSTANCE.cryptoWalletManagerCallMeMaybe(callback, 1); // call once to remove caching as a factor
+            durationInMs = CryptoLibrary.INSTANCE.cryptoWalletManagerCallMeMaybe(callback, count);
+            durationInMsPerInvocation = durationInMs / count;
+            invocationsPerSecond = (long) (1000 / durationInMsPerInvocation);
+            Log.e("JNA", String.format("testCallbackPerformance-legacy: %s event callback duration in milliseconds", durationInMsPerInvocation));
+            Log.e("JNA", String.format("testCallbackPerformance-legacy: %s event callbacks per second", invocationsPerSecond));
+
+            // This tests the callback being passed as a pointer (rather than by value as a callback argument)
+
+            CryptoLibraryDirect.cryptoWalletManagerCallMeMaybe(callback, 1); // call once to remove caching as a factor
+            durationInMs = CryptoLibraryDirect.cryptoWalletManagerCallMeMaybe(callback, count);
+            durationInMsPerInvocation = durationInMs / count;
+            invocationsPerSecond = (long) (1000 / durationInMsPerInvocation);
+
+            Log.e("JNA", String.format("testCallbackPerformance-improved: %s event callback duration in milliseconds", durationInMsPerInvocation));
+            Log.e("JNA", String.format("testCallbackPerformance-improved: %s event callbacks per second", invocationsPerSecond));
+
+            // This tests the initial call being done with direct mapping and the callback being passed as a pointer (rather than by value as a callback argument)
+
+            CryptoLibraryDirect.cryptoWalletManagerCallMeMaybeDirect(callbackDirect, 1); // call once to remove caching as a factor
+            durationInMs = CryptoLibraryDirect.cryptoWalletManagerCallMeMaybeDirect(callbackDirect, count);
+            durationInMsPerInvocation = durationInMs / count;
+            invocationsPerSecond = (long) (1000 / durationInMsPerInvocation);
+
+            Log.e("JNA", String.format("testCallbackPerformance-improved-again: %s event callback duration in milliseconds", durationInMsPerInvocation));
+            Log.e("JNA", String.format("testCallbackPerformance-improved-again: %s event callbacks per second", invocationsPerSecond));
+        }
     }
 
     @Test

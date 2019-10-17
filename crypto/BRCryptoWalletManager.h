@@ -108,6 +108,11 @@ extern "C" {
     typedef void *BRCryptoCWMListenerContext;
 
     /// Handler must 'give': manager, event.wallet.value
+    typedef void (*BRCryptoCWMListenerWalletManagerEventDirect) (BRCryptoCWMListenerContext context,
+                                                                 BRCryptoWalletManager manager,
+                                                                 BRCryptoWalletManagerEvent *event);
+
+    /// Handler must 'give': manager, event.wallet.value
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager,
                                                            BRCryptoWalletManagerEvent event);
@@ -133,6 +138,12 @@ extern "C" {
     } BRCryptoCWMListener;
 
     /// MARK: Wallet Manager
+
+    extern double
+    cryptoWalletManagerCallMeMaybe(BRCryptoCWMListenerWalletManagerEvent callback, long count);
+
+    extern double
+    cryptoWalletManagerCallMeMaybeDirect(BRCryptoCWMListenerWalletManagerEventDirect callback, long count);
 
     /// Can return NULL
     extern BRCryptoWalletManager

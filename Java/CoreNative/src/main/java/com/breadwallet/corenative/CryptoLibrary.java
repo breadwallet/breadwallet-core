@@ -345,4 +345,6 @@ public interface CryptoLibrary extends Library {
     Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
     Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
     Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
+
+    double cryptoWalletManagerCallMeMaybe(BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent callback, long i);
 }

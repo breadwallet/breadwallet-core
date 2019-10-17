@@ -9,6 +9,8 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
+import QuartzCore
+
 import XCTest
 import Foundation
 @testable import BRCrypto
@@ -19,6 +21,41 @@ class BRCryptoCommonTests: XCTestCase {
     override func setUp() { }
 
     override func tearDown() { }
+
+    func testPerformance() {
+        do {
+            let count = 100_000
+            let d = Data([0xde, 0xad, 0xbe, 0xef])
+            let s = "deadbeef"
+
+            let start = CACurrentMediaTime()
+            for _ in 0..<count {
+                let c = CoreCoder(core: cryptoCoderCreate(CRYPTO_CODER_HEX))
+                _ = c.encode(data: d)!
+                _ = c.decode(string: s)!
+            }
+            let end = CACurrentMediaTime()
+
+            let durationInMs = (end - start) * 1000
+            let durationInMsPerAttempt = durationInMs / Double(count)
+            let attemptsPerSecond = Int(1000 / durationInMsPerAttempt)
+            print("testFunctionPerformance: \(durationInMsPerAttempt) attempt duration in milliseconds")
+            print("testFunctionPerformance: \(attemptsPerSecond) attempts per second")
+        }
+
+        do {
+            let count = 10_000
+
+            let durationInMs = cryptoWalletManagerCallMeMaybe({ (_, _, e) in
+                _ = e.type
+            }, count)
+
+            let durationInMsPerInvocation = durationInMs / Double(count)
+            let invocationsPerSecond = Int(Double(1000) / durationInMsPerInvocation)
+            print("testCallbackPerformance: \(durationInMsPerInvocation) event callback duration in milliseconds")
+            print("testCallbackPerformance: \(invocationsPerSecond) event callbacks per second")
+        }
+    }
 
     func testKey () {
         var s: String!

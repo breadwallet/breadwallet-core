@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.Ints;
@@ -39,7 +40,7 @@ public class BRCryptoCoder extends PointerType {
     }
 
     private static Optional<BRCryptoCoder> create(int alg) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoCoderCreate(alg));
+        return Optional.fromNullable(CryptoLibraryDirect.cryptoCoderCreate(alg)).transform(BRCryptoCoder::new);
     }
 
     public BRCryptoCoder(Pointer address) {
@@ -48,6 +49,30 @@ public class BRCryptoCoder extends PointerType {
 
     public BRCryptoCoder() {
         super();
+    }
+
+    public Optional<String> encodeDirect(byte[] input) {
+        SizeT length = CryptoLibraryDirect.cryptoCoderEncodeLength(this.getPointer(), input, new SizeT(input.length));
+        int lengthAsInt = Ints.checkedCast(length.longValue());
+        if (0 == lengthAsInt) return Optional.absent();
+
+        byte[] output = new byte[lengthAsInt];
+        int result = CryptoLibraryDirect.cryptoCoderEncode(this.getPointer(), output, new SizeT(output.length), input, new SizeT(input.length));
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(utf8BytesToString(output)) : Optional.absent();
+    }
+
+    public Optional<byte[]> decodeDirect(String inputStr) {
+        // ensure string is null terminated
+        byte[] inputWithoutTerminator = inputStr.getBytes(StandardCharsets.UTF_8);
+        byte[] inputWithTerminator = Arrays.copyOf(inputWithoutTerminator, inputWithoutTerminator.length + 1);
+
+        SizeT length = CryptoLibraryDirect.cryptoCoderDecodeLength(this.getPointer(), inputWithTerminator);
+        int lengthAsInt = Ints.checkedCast(length.longValue());
+        if (0 == lengthAsInt) return Optional.absent();
+
+        byte[] output = new byte[lengthAsInt];
+        int result = CryptoLibraryDirect.cryptoCoderDecode(this.getPointer(), output, new SizeT(output.length), inputWithTerminator);
+        return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
     public Optional<String> encode(byte[] input) {
