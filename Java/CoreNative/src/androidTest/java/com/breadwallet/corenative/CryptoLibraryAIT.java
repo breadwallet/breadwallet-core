@@ -12,7 +12,8 @@ import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
-import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventReader;
 import com.google.common.base.Stopwatch;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
@@ -112,8 +113,32 @@ public class CryptoLibraryAIT {
             double durationInMsPerInvocation;
             long invocationsPerSecond;
 
-            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent callback = (context, manager, event) -> { /* nadda */ };
-            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEventDirect callbackDirect = (context, manager, event) -> new BRCryptoWalletManagerEvent(event);
+            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEventDirect callbackBaseline = (context, manager, event) -> {
+                // do nothing; that is the point of this baseline
+            };
+
+            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent callback = (context, manager, event) -> {
+                // do nothing; the BRCryptoWalletManager has already been created and the event parsed
+            };
+
+            BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEventDirect callbackDirect = (context, manager, event) -> {
+                // create the manager manually
+                BRCryptoWalletManager cryptoManager = new BRCryptoWalletManager(manager);
+
+                // read the event manually
+                switch (BRCryptoWalletManagerEventReader.readType(event)) {
+                    case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
+                    case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
+                    case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
+                        BRCryptoWalletManagerEventReader.readAsWallet(event);
+                        break;
+                    case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
+                        BRCryptoWalletManagerEventReader.readAsSyncRecommended(event);
+                        break;
+                    default:
+                        throw new IllegalStateException();
+                }
+            };
 
             // This tests the current app behaviour (i.e. no direct mapping involved)
 
@@ -143,6 +168,17 @@ public class CryptoLibraryAIT {
 
             Log.e("JNA", String.format("testCallbackPerformance-improved-again: %s event callback duration in milliseconds", durationInMsPerInvocation));
             Log.e("JNA", String.format("testCallbackPerformance-improved-again: %s event callbacks per second", invocationsPerSecond));
+
+            // This tests a minimal code path where we don't do anything with the callback values (no reading, parsing, et.c).
+            // It's purpose is to show the fastest possible execution.
+
+            CryptoLibraryDirect.cryptoWalletManagerCallMeMaybeDirect(callbackBaseline, 1); // call once to remove caching as a factor
+            durationInMs = CryptoLibraryDirect.cryptoWalletManagerCallMeMaybeDirect(callbackBaseline, count);
+            durationInMsPerInvocation = durationInMs / count;
+            invocationsPerSecond = (long) (1000 / durationInMsPerInvocation);
+
+            Log.e("JNA", String.format("testCallbackPerformance-baseline: %s event callback duration in milliseconds", durationInMsPerInvocation));
+            Log.e("JNA", String.format("testCallbackPerformance-baseline: %s event callbacks per second", invocationsPerSecond));
         }
     }
 

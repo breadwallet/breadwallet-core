@@ -123,34 +123,65 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
 
 extern double
 cryptoWalletManagerCallMeMaybe(BRCryptoCWMListenerWalletManagerEvent callback, long count) {
-    clock_t t;
-    t = clock();
-    for (long i = 0; i < count; i++) {
+    long recommendedCount = count / 2;
+    long addedCount = count - recommendedCount;
 
-        callback (NULL, NULL, (BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = {
-                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ),
-                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ) }}
-                });
+    clock_t t = clock();
+    {
+        for (long i = 0; i < recommendedCount; i++) {
+            callback (NULL, NULL, (BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED,
+                    { .syncRecommended = {
+                        SYNC_DEPTH_FROM_CREATION,
+                    }
+                }
+            });
+        }
+
+        for (long i = 0; i < addedCount; i++) {
+            callback (NULL, NULL, (BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+                    { .wallet = {
+                        NULL,
+                    }
+                }
+            });
+        }
     }
     t = clock() - t;
+
     return ((double)t)/CLOCKS_PER_SEC * 1000;
 }
 
 extern double
 cryptoWalletManagerCallMeMaybeDirect(BRCryptoCWMListenerWalletManagerEventDirect callback, long count) {
-    clock_t t;
-    t = clock();
-    for (long i = 0; i < count; i++) {
-        callback (NULL, NULL, &(BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
-                { .state = {
-                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ),
-                    cryptoWalletManagerStateDisconnectedInit( BRDisconnectReasonUnknown() ) }}
-                });
+    long recommendedCount = count / 2;
+    long addedCount = count - recommendedCount;
+
+    clock_t t = clock();
+    {
+        for (long i = 0; i < recommendedCount; i++) {
+            callback (NULL, NULL, &(BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED,
+                    { .syncRecommended = {
+                        SYNC_DEPTH_FROM_CREATION,
+                    }
+                }
+            });
+        }
+
+        for (long i = 0; i < addedCount; i++) {
+            callback (NULL, NULL, &(BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+                    { .wallet = {
+                        NULL,
+                    }
+                }
+            });
+        }
     }
     t = clock() - t;
+
     return ((double)t)/CLOCKS_PER_SEC * 1000;
 }
 
