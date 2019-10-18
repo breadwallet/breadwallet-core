@@ -124,6 +124,7 @@ public interface CryptoLibrary extends Library {
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
+    // crypto/BRCryptoPrivate.h
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
@@ -131,8 +132,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
     void cryptoNetworkAddCurrency(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
     void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
-    BRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);
-    BRCryptoUnit cryptoUnitCreate(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, byte decimals);
     BRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
     void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
@@ -151,18 +150,6 @@ public interface CryptoLibrary extends Library {
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
     BRCryptoTransfer cryptoTransferTake(BRCryptoTransfer obj);
     void cryptoTransferGive(BRCryptoTransfer obj);
-
-    // crypto/BRCryptoUnit.h
-    Pointer cryptoUnitGetUids(BRCryptoUnit unit);
-    Pointer cryptoUnitGetName(BRCryptoUnit unit);
-    Pointer cryptoUnitGetSymbol(BRCryptoUnit unit);
-    BRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
-    int cryptoUnitHasCurrency(BRCryptoUnit unit, BRCryptoCurrency currency);
-    BRCryptoUnit cryptoUnitGetBaseUnit(BRCryptoUnit unit);
-    byte cryptoUnitGetBaseDecimalOffset(BRCryptoUnit unit);
-    int cryptoUnitIsCompatible(BRCryptoUnit u1, BRCryptoUnit u2);
-    int cryptoUnitIsIdentical(BRCryptoUnit u1, BRCryptoUnit u2);
-    void cryptoUnitGive(BRCryptoUnit obj);
 
     // crypto/BRCryptoWallet.h
     int cryptoWalletGetState(BRCryptoWallet wallet);

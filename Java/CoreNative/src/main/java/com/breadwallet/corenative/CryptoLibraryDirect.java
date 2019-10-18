@@ -63,6 +63,20 @@ public final class CryptoLibraryDirect {
 
     // crypto/BRCryptoPrivate.h
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
+    public static native Pointer cryptoUnitCreateAsBase(Pointer currency, String uids, String name, String symbol);
+    public static native Pointer cryptoUnitCreate(Pointer currency, String uids, String name, String symbol, Pointer base, byte decimals);
+
+    // crypto/BRCryptoUnit.h
+    public static native Pointer cryptoUnitGetUids(Pointer unit);
+    public static native Pointer cryptoUnitGetName(Pointer unit);
+    public static native Pointer cryptoUnitGetSymbol(Pointer unit);
+    public static native Pointer cryptoUnitGetCurrency(Pointer unit);
+    public static native int cryptoUnitHasCurrency(Pointer unit, Pointer currency);
+    public static native Pointer cryptoUnitGetBaseUnit(Pointer unit);
+    public static native byte cryptoUnitGetBaseDecimalOffset(Pointer unit);
+    public static native int cryptoUnitIsCompatible(Pointer u1, Pointer u2);
+    public static native int cryptoUnitIsIdentical(Pointer u1, Pointer u2);
+    public static native void cryptoUnitGive(Pointer obj);
 
     //
     // Crypto Primitives
