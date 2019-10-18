@@ -8,14 +8,30 @@
 package com.breadwallet.corenative;
 
 import com.breadwallet.corenative.utility.SizeT;
+import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import com.sun.jna.StringArray;
+
+import java.nio.ByteBuffer;
 
 public final class CryptoLibraryDirect {
 
     //
     // Crypto Core
     //
+
+    // crypto/BRCryptoAccount.h
+    public static native Pointer cryptoAccountCreate(ByteBuffer phrase, long timestamp);
+    public static native Pointer cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
+    public static native long cryptoAccountGetTimestamp(Pointer account);
+    public static native Pointer cryptoAccountGetFileSystemIdentifier(Pointer account);
+    public static native Pointer cryptoAccountSerialize(Pointer account, SizeTByReference count);
+    public static native int cryptoAccountValidateSerialization(Pointer account, byte[] serialization, SizeT count);
+    public static native int cryptoAccountValidateWordsList(SizeT count);
+    public static native Pointer cryptoAccountGeneratePaperKey(StringArray words);
+    public static native int cryptoAccountValidatePaperKey(ByteBuffer phraseBuffer, StringArray wordsArray);
+    public static native void cryptoAccountGive(Pointer obj);
 
     // crypto/BRCryptoAddress.h
     public static native Pointer cryptoAddressAsString(Pointer address);

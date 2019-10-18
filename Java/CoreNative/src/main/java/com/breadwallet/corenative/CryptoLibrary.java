@@ -54,18 +54,6 @@ public interface CryptoLibrary extends Library {
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
-    // crypto/BRCryptoAccount.h
-    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
-    BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
-    long cryptoAccountGetTimestamp(BRCryptoAccount account);
-    Pointer cryptoAccountGetFileSystemIdentifier(BRCryptoAccount account);
-    Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
-    int cryptoAccountValidateSerialization(BRCryptoAccount account, byte[] serialization, SizeT count);
-    int cryptoAccountValidateWordsList(SizeT count);
-    Pointer cryptoAccountGeneratePaperKey(StringArray words);
-    int cryptoAccountValidatePaperKey(ByteBuffer phraseBuffer, StringArray wordsArray);
-    void cryptoAccountGive(BRCryptoAccount obj);
-
     // crypto/BRCryptoAmount.h
     BRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
