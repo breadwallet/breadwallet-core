@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative;
 
+import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -104,6 +105,22 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     public static native Pointer cryptoUnitCreateAsBase(Pointer currency, String uids, String name, String symbol);
     public static native Pointer cryptoUnitCreate(Pointer currency, String uids, String name, String symbol, Pointer base, byte decimals);
+
+    // crypto/BRCryptoTransfer.h
+    public static native Pointer cryptoTransferGetSourceAddress(Pointer transfer);
+    public static native Pointer cryptoTransferGetTargetAddress(Pointer transfer);
+    public static native Pointer cryptoTransferGetAmount(Pointer transfer);
+    public static native Pointer cryptoTransferGetAmountDirected(Pointer transfer);
+    public static native int cryptoTransferGetDirection(Pointer transfer);
+    public static native BRCryptoTransferState.ByValue cryptoTransferGetState(Pointer transfer);
+    public static native Pointer cryptoTransferGetHash(Pointer transfer);
+    public static native Pointer cryptoTransferGetUnitForAmount (Pointer transfer);
+    public static native Pointer cryptoTransferGetUnitForFee (Pointer transfer);
+    public static native Pointer cryptoTransferGetEstimatedFeeBasis (Pointer transfer);
+    public static native Pointer cryptoTransferGetConfirmedFeeBasis (Pointer transfer);
+    public static native int cryptoTransferEqual(Pointer transfer, Pointer other);
+    public static native Pointer cryptoTransferTake(Pointer obj);
+    public static native void cryptoTransferGive(Pointer obj);
 
     // crypto/BRCryptoUnit.h
     public static native Pointer cryptoUnitGetUids(Pointer unit);

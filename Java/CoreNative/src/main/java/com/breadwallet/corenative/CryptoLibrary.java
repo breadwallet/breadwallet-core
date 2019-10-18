@@ -98,22 +98,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
     void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
-    // crypto/BRCryptoTransfer.h
-    BRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
-    BRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
-    BRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
-    BRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
-    int cryptoTransferGetDirection(BRCryptoTransfer transfer);
-    BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
-    BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
-    BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
-    BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
-    BRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
-    int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
-    BRCryptoTransfer cryptoTransferTake(BRCryptoTransfer obj);
-    void cryptoTransferGive(BRCryptoTransfer obj);
-
     // crypto/BRCryptoWallet.h
     int cryptoWalletGetState(BRCryptoWallet wallet);
     BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
