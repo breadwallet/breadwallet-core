@@ -16,9 +16,6 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientEth;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientGen;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
-import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent;
-import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletEvent;
-import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerTransferEvent;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
@@ -106,13 +103,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -304,12 +300,8 @@ final class System implements com.breadwallet.crypto.System {
     private final BRCryptoCWMListener cwmListener;
     private final BRCryptoCWMClient cwmClient;
 
-    private final Lock networksReadLock;
-    private final Lock networksWriteLock;
-    private final List<Network> networks;
-    private final Lock walletManagersReadLock;
-    private final Lock walletManagersWriteLock;
-    private final List<WalletManager> walletManagers;
+    private final Set<Network> networks;
+    private final Set<WalletManager> walletManagers;
 
     private boolean isNetworkReachable;
 
@@ -333,15 +325,8 @@ final class System implements com.breadwallet.crypto.System {
         this.cwmListener = cwmListener;
         this.cwmClient = cwmClient;
 
-        ReadWriteLock networksRwLock = new ReentrantReadWriteLock();
-        this.networksReadLock = networksRwLock.readLock();
-        this.networksWriteLock = networksRwLock.writeLock();
-        this.networks = new ArrayList<>();
-
-        ReadWriteLock walletManagersRwLock = new ReentrantReadWriteLock();
-        this.walletManagersReadLock = walletManagersRwLock.readLock();
-        this.walletManagersWriteLock = walletManagersRwLock.writeLock();
-        this.walletManagers = new ArrayList<>();
+        this.networks = new CopyOnWriteArraySet<>();
+        this.walletManagers = new CopyOnWriteArraySet<>();
 
         this.isNetworkReachable = DEFAULT_IS_NETWORK_REACHABLE;
 
@@ -501,78 +486,33 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public List<Network> getNetworks() {
-        networksReadLock.lock();
-        try {
-            return new ArrayList<>(networks);
-        } finally {
-            networksReadLock.unlock();
-        }
+        return new ArrayList<>(networks);
     }
 
     private boolean addNetwork(Network network) {
-        boolean added;
-
-        networksWriteLock.lock();
-        try {
-            added = !networks.contains(network);
-            if (added) {
-                networks.add(network);
-            }
-        } finally {
-            networksWriteLock.unlock();
-        }
-
-        return added;
+        return networks.add(network);
     }
 
     // WalletManager management
 
     @Override
     public List<WalletManager> getWalletManagers() {
-        walletManagersReadLock.lock();
-        try {
-            return new ArrayList<>(walletManagers);
-        } finally {
-            walletManagersReadLock.unlock();
-        }
+        return new ArrayList<>(walletManagers);
     }
 
     private void addWalletManager(WalletManager walletManager) {
-        walletManagersWriteLock.lock();
-        try {
-            if (!walletManagers.contains(walletManager)) {
-                walletManagers.add(walletManager);
-            }
-        } finally {
-            walletManagersWriteLock.unlock();
-        }
+        walletManagers.add(walletManager);
     }
 
     private Optional<WalletManager> getWalletManager(BRCryptoWalletManager coreWalletManager) {
         WalletManager walletManager = WalletManager.takeAndCreate(coreWalletManager, this, callbackCoordinator);
-        walletManagersReadLock.lock();
-        try {
-            int index = walletManagers.indexOf(walletManager);
-            return Optional.fromNullable(index == -1 ? null : walletManagers.get(index));
-        } finally {
-            walletManagersReadLock.unlock();
-        }
+        return walletManagers.contains(walletManager) ? Optional.of(walletManager) : Optional.absent();
     }
 
-    private WalletManager getWalletManagerOrCreate(BRCryptoWalletManager coreWalletManager) {
+    private WalletManager createWalletManager(BRCryptoWalletManager coreWalletManager) {
         WalletManager walletManager = WalletManager.takeAndCreate(coreWalletManager, this, callbackCoordinator);
-        walletManagersWriteLock.lock();
-        try {
-            int index = walletManagers.indexOf(walletManager);
-            if (index == -1) {
-                walletManagers.add(walletManager);
-            } else {
-                walletManager = walletManagers.get(index);
-            }
-            return walletManager;
-        } finally {
-            walletManagersWriteLock.unlock();
-        }
+        walletManagers.add(walletManager);
+        return walletManager;
     }
 
     // Miscellaneous
@@ -791,7 +731,7 @@ final class System implements com.breadwallet.crypto.System {
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
-            WalletManager walletManager = system.getWalletManagerOrCreate(coreWalletManager);
+            WalletManager walletManager = system.createWalletManager(coreWalletManager);
             system.announceWalletManagerEvent(walletManager, new WalletManagerCreatedEvent());
 
         } else {
@@ -1131,14 +1071,8 @@ final class System implements com.breadwallet.crypto.System {
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
 
-                Optional<Wallet> optWallet = walletManager.getWalletOrCreate(coreWallet);
-                if (optWallet.isPresent()) {
-                    Wallet wallet = optWallet.get();
-                    system.announceWalletEvent(walletManager, wallet, new WalletCreatedEvent());
-
-                } else {
-                    Log.e(TAG, "WalletCreated: missed wallet");
-                }
+                Wallet wallet = walletManager.createWallet(coreWallet);
+                system.announceWalletEvent(walletManager, wallet, new WalletCreatedEvent());
 
             } else {
                 Log.e(TAG, "WalletCreated: missed wallet manager");
@@ -1518,14 +1452,8 @@ final class System implements com.breadwallet.crypto.System {
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
 
-                    Optional<Transfer> optTransfer = wallet.getTransferOrCreate(coreTransfer);
-                    if (optTransfer.isPresent()) {
-                        Transfer transfer = optTransfer.get();
-                        system.announceTransferEvent(walletManager, wallet, transfer, new TransferCreatedEvent());
-
-                    } else {
-                        Log.e(TAG, "TransferCreated: missed transfer");
-                    }
+                    Transfer transfer = wallet.createTransfer(coreTransfer);
+                    system.announceTransferEvent(walletManager, wallet, transfer, new TransferCreatedEvent());
 
                 } else {
                     Log.e(TAG, "TransferCreated: missed wallet");
