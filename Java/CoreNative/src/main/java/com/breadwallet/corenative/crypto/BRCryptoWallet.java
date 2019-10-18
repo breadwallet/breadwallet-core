@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
+import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInts;
@@ -123,25 +124,25 @@ public class BRCryptoWallet extends PointerType {
         ).transform(BRCryptoTransfer::new);
     }
 
-    public void estimateFeeBasis(Pointer cookie,
+    public void estimateFeeBasis(Cookie cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoWalletEstimateFeeBasis(
                 thisPtr,
-                cookie,
+                cookie.getPointer(),
                 target.getPointer(),
                 amount.getPointer(),
                 fee.getPointer());
     }
 
-    public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
+    public void estimateFeeBasisForWalletSweep(Cookie cookie, BRCryptoWalletSweeper sweeper,
                                                BRCryptoNetworkFee fee) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForWalletSweep(
                 thisPtr,
-                cookie,
+                cookie.getPointer(),
                 sweeper.getPointer(),
                 fee.getPointer());
     }

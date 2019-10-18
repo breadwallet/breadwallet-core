@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.utility.Cookie;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
@@ -28,9 +29,12 @@ public class BRCryptoCWMClient extends Structure {
         return Arrays.asList("context", "btc", "eth", "gen");
     }
 
-    public BRCryptoCWMClient(Pointer context, BRCryptoCWMClientBtc btc, BRCryptoCWMClientEth eth, BRCryptoCWMClientGen gen) {
+    public BRCryptoCWMClient(Cookie context,
+                             BRCryptoCWMClientBtc btc,
+                             BRCryptoCWMClientEth eth,
+                             BRCryptoCWMClientGen gen) {
         super();
-        this.context = context;
+        this.context = context.getPointer();
         this.btc = btc;
         this.eth = eth;
         this.gen = gen;

@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.utility.Cookie;
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -46,7 +47,7 @@ public class BRCryptoCWMListener extends Structure {
     //
 
     public interface WalletManagerEventCallback extends BRCryptoCWMListenerWalletManagerEvent {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoWalletManagerEvent.ByValue event);
 
@@ -54,14 +55,14 @@ public class BRCryptoCWMListener extends Structure {
         default void callback(Pointer context,
                               Pointer manager,
                               BRCryptoWalletManagerEvent.ByValue event) {
-            handle(context,
+            handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    event);
         }
     }
 
     public interface WalletEventCallback extends BRCryptoCWMListenerWalletEvent {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoWallet wallet,
                     BRCryptoWalletEvent.ByValue event);
@@ -71,7 +72,7 @@ public class BRCryptoCWMListener extends Structure {
                               Pointer manager,
                               Pointer wallet,
                               BRCryptoWalletEvent.ByValue event) {
-            handle(context,
+            handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoWallet(wallet),
                    event);
@@ -79,7 +80,7 @@ public class BRCryptoCWMListener extends Structure {
     }
 
     public interface TransferEventCallback extends BRCryptoCWMListenerTransferEvent {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoWallet wallet,
                     BRCryptoTransfer transfer,
@@ -91,7 +92,7 @@ public class BRCryptoCWMListener extends Structure {
                               Pointer wallet,
                               Pointer transfer,
                               BRCryptoTransferEvent.ByValue event) {
-            handle(context,
+            handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoWallet(wallet),
                    new BRCryptoTransfer(transfer),
@@ -116,12 +117,12 @@ public class BRCryptoCWMListener extends Structure {
         super(peer);
     }
 
-    public BRCryptoCWMListener(Pointer context,
+    public BRCryptoCWMListener(Cookie context,
                                WalletManagerEventCallback walletManagerEventCallback,
                                WalletEventCallback walletEventCallback,
                                TransferEventCallback transferEventCallback) {
         super();
-        this.context = context;
+        this.context = context.getPointer();
         this.walletManagerEventCallback = walletManagerEventCallback;
         this.walletEventCallback = walletEventCallback;
         this.transferEventCallback = transferEventCallback;

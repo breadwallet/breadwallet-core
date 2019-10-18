@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.primitives.UnsignedInts;
 import com.sun.jna.Callback;
@@ -53,7 +54,7 @@ public class BRCryptoCWMClientBtc extends Structure {
     //
 
     public interface GetBlockNumberCallback extends BRCryptoCWMBtcGetBlockNumberCallback {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState);
 
@@ -62,7 +63,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                               Pointer manager,
                               Pointer callbackState) {
             handle(
-                    context,
+                    new Cookie(context),
                     new BRCryptoWalletManager(manager),
                     new BRCryptoCWMClientCallbackState(callbackState)
             );
@@ -70,7 +71,7 @@ public class BRCryptoCWMClientBtc extends Structure {
     }
 
     public interface GetTransactionsCallback extends BRCryptoCWMBtcGetTransactionsCallback {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState,
                     List<String> addresses,
@@ -90,7 +91,7 @@ public class BRCryptoCWMClientBtc extends Structure {
             List<String> addressesList = Arrays.asList(addressesArray);
 
             handle(
-                    context,
+                    new Cookie(context),
                     new BRCryptoWalletManager(manager),
                     new BRCryptoCWMClientCallbackState(callbackState),
                     addressesList,
@@ -101,7 +102,7 @@ public class BRCryptoCWMClientBtc extends Structure {
     }
 
     public interface SubmitTransactionCallback extends BRCryptoCWMBtcSubmitTransactionCallback {
-        void handle(Pointer context,
+        void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoCWMClientCallbackState callbackState,
                     byte[] transaction,
@@ -115,7 +116,7 @@ public class BRCryptoCWMClientBtc extends Structure {
                               SizeT txLength,
                               String hashAsHex) {
             handle(
-                    context,
+                    new Cookie(context),
                     new BRCryptoWalletManager(manager),
                     new BRCryptoCWMClientCallbackState(callbackState),
                     tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue())),
