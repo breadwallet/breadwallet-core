@@ -101,6 +101,16 @@ public final class CryptoLibraryDirect {
     public static native UInt256.ByValue cryptoKeyGetSecret(Pointer key);
     public static native void cryptoKeyGive(Pointer key);
 
+    // crypto/BRCryptoNetwork.h (BRCryptoPeer)
+    public static native Pointer cryptoPeerCreate(Pointer network, String address, short port, String publicKey);
+    public static native Pointer cryptoPeerGetNetwork(Pointer peer);
+    public static native Pointer cryptoPeerGetAddress(Pointer peer);
+    public static native Pointer cryptoPeerGetPublicKey(Pointer peer);
+    public static native short cryptoPeerGetPort(Pointer peer);
+    public static native int cryptoPeerIsIdentical(Pointer peer, Pointer other);
+    public static native void cryptoPeerGive(Pointer peer);
+
+
     // crypto/BRCryptoPrivate.h
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     public static native Pointer cryptoUnitCreateAsBase(Pointer currency, String uids, String name, String symbol);

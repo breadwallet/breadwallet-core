@@ -75,14 +75,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
-    BRCryptoPeer cryptoPeerCreate(BRCryptoNetwork network, String address, short port, String publicKey);
-    BRCryptoNetwork cryptoPeerGetNetwork(BRCryptoPeer peer);
-    Pointer cryptoPeerGetAddress(BRCryptoPeer peer);
-    Pointer cryptoPeerGetPublicKey(BRCryptoPeer peer);
-    short cryptoPeerGetPort(BRCryptoPeer peer);
-    int cryptoPeerIsIdentical(BRCryptoPeer p1, BRCryptoPeer p2);
-    void cryptoPeerGive(BRCryptoPeer peer);
-
     long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
