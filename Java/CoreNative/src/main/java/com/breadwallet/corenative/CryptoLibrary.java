@@ -171,9 +171,4 @@ public interface CryptoLibrary extends Library {
 
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
-
-    // support/BRSyncMode.h
-    Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
-    Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
-    Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 }

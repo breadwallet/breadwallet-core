@@ -8,6 +8,9 @@
 package com.breadwallet.corenative;
 
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
+import com.breadwallet.corenative.support.BRDisconnectReason;
+import com.breadwallet.corenative.support.BRSyncStoppedReason;
+import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -199,6 +202,15 @@ public final class CryptoLibraryDirect {
     public static native int cryptoSignerSign(Pointer signer, Pointer key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
     public static native Pointer cryptoSignerRecover(Pointer signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
     public static native void cryptoSignerGive(Pointer signer);
+
+    //
+    // Support
+    //
+
+    // support/BRSyncMode.h
+    public static native Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
+    public static native Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
+    public static native Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 
     static {
         Native.register(CryptoLibraryDirect.class, CryptoLibrary.LIBRARY);
