@@ -10,7 +10,6 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientBtc;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
@@ -20,19 +19,13 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerTransferEvent;
-import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
-import com.breadwallet.corenative.crypto.BRCryptoTransferEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletEvent;
-import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
-import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
-import com.breadwallet.corenative.crypto.BRCryptoWalletMigrator;
-import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
@@ -99,13 +92,11 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.primitives.UnsignedInteger;
-import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -174,9 +165,9 @@ final class System implements com.breadwallet.crypto.System {
             System::genSubmitTransaction
     );
 
-    private static final BRCryptoCWMListenerWalletManagerEvent CWM_LISTENER_WALLET_MANAGER_CALLBACK = System::walletManagerEventCallback;
-    private static final BRCryptoCWMListenerWalletEvent CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
-    private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
+    private static final BRCryptoCWMListener.WalletManagerEventCallback CWM_LISTENER_WALLET_MANAGER_CALLBACK = System::walletManagerEventCallback;
+    private static final BRCryptoCWMListener.WalletEventCallback CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
+    private static final BRCryptoCWMListener.TransferEventCallback CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
     private static final boolean DEFAULT_IS_NETWORK_REACHABLE = true;
 
@@ -1678,7 +1669,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void btcGetTransactions(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                    Pointer addrs, SizeT addrCount, long begBlockNumber, long endBlockNumber) {
+                                    List<String> addresses, long begBlockNumber, long endBlockNumber) {
         try {
             UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
             UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
@@ -1693,10 +1684,7 @@ final class System implements com.breadwallet.crypto.System {
                 if (optWalletManager.isPresent()) {
                     WalletManager walletManager = optWalletManager.get();
 
-                    int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
-                    String[] addresses = addrs.getStringArray(0, addressesCount, "UTF-8");
-
-                    system.query.getTransactions(walletManager.getNetwork().getUids(), Arrays.asList(addresses), begBlockNumberUnsigned,
+                    system.query.getTransactions(walletManager.getNetwork().getUids(), addresses, begBlockNumberUnsigned,
                             endBlockNumberUnsigned, true,
                             false, new CompletionHandler<List<Transaction>, QueryError>() {
                                 @Override
@@ -1745,7 +1733,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void btcSubmitTransaction(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                             Pointer tx, SizeT txLength, String hashAsHex) {
+                                             byte[] transaction, String hashAsHex) {
         try {
             Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback");
 
@@ -1757,9 +1745,7 @@ final class System implements com.breadwallet.crypto.System {
                 if (optWalletManager.isPresent()) {
                     WalletManager walletManager = optWalletManager.get();
 
-                    byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
-
-                    system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void, QueryError>() {
+                    system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, transaction, new CompletionHandler<Void, QueryError>() {
                         @Override
                         public void handleData(Void data) {
                             Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
@@ -2410,7 +2396,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void genSubmitTransaction(Pointer context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
-                                             Pointer tx, SizeT txLength, String hashAsHex) {
+                                             byte[] transaction, String hashAsHex) {
         try {
             Log.d(TAG, "BRCryptoCWMGenSubmitTransactionCallback");
 
@@ -2422,9 +2408,7 @@ final class System implements com.breadwallet.crypto.System {
                 if (optWalletManager.isPresent()) {
                     WalletManager walletManager = optWalletManager.get();
 
-                    byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
-
-                    system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void, QueryError>() {
+                    system.query.createTransaction(walletManager.getNetwork().getUids(), hashAsHex, transaction, new CompletionHandler<Void, QueryError>() {
                         @Override
                         public void handleData(Void data) {
                             Log.d(TAG, "BRCryptoCWMGenSubmitTransactionCallback: succeeded");
