@@ -292,6 +292,7 @@
 		3CF7683422E5F6DB0007BBDA /* BRCryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */; };
 		3CFEFE2322BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
 		3CFEFE2422BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
+		C30E223F2358FC0A00E584AC /* BRHederaSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E223D2358FC0900E584AC /* BRHederaSerialize.c */; };
 		C32ADCF4234FDE0D000AB7DE /* sc.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE5234FDE0C000AB7DE /* sc.c */; };
 		C32ADCF5234FDE0D000AB7DE /* verify.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE6234FDE0C000AB7DE /* verify.c */; };
 		C32ADCF6234FDE0D000AB7DE /* fe.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE7234FDE0C000AB7DE /* fe.c */; };
@@ -299,6 +300,62 @@
 		C32ADCF8234FDE0D000AB7DE /* ge.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE9234FDE0C000AB7DE /* ge.c */; };
 		C32ADCF9234FDE0D000AB7DE /* keypair.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCEB234FDE0C000AB7DE /* keypair.c */; };
 		C32ADCFA234FDE0D000AB7DE /* sign.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCF2234FDE0D000AB7DE /* sign.c */; };
+		C338C79E2356185D00DF3968 /* Transaction.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C79D2356185D00DF3968 /* Transaction.pb-c.c */; };
+		C338C7A1235618E200DF3968 /* protobuf-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7A0235618E200DF3968 /* protobuf-c.c */; };
+		C338C7A42356190D00DF3968 /* BasicTypes.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7A22356190D00DF3968 /* BasicTypes.pb-c.c */; };
+		C338C7A72356192F00DF3968 /* Timestamp.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7A62356192F00DF3968 /* Timestamp.pb-c.c */; };
+		C338C7AA2356195E00DF3968 /* TransactionBody.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7A92356195E00DF3968 /* TransactionBody.pb-c.c */; };
+		C338C8092356198600DF3968 /* TransactionReceipt.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7AF2356197F00DF3968 /* TransactionReceipt.pb-c.c */; };
+		C338C80A2356198600DF3968 /* CryptoService.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B32356197F00DF3968 /* CryptoService.pb-c.c */; };
+		C338C80B2356198600DF3968 /* ContractGetRecords.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B42356197F00DF3968 /* ContractGetRecords.pb-c.c */; };
+		C338C80C2356198600DF3968 /* ContractCallLocal.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B52356197F00DF3968 /* ContractCallLocal.pb-c.c */; };
+		C338C80D2356198600DF3968 /* TransactionResponse.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B62356197F00DF3968 /* TransactionResponse.pb-c.c */; };
+		C338C80E2356198600DF3968 /* FileDelete.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B72356198000DF3968 /* FileDelete.pb-c.c */; };
+		C338C80F2356198600DF3968 /* GetByKey.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7B82356198000DF3968 /* GetByKey.pb-c.c */; };
+		C338C8102356198600DF3968 /* ResponseCode.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7BA2356198000DF3968 /* ResponseCode.pb-c.c */; };
+		C338C8112356198600DF3968 /* FileAppend.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7BB2356198000DF3968 /* FileAppend.pb-c.c */; };
+		C338C8122356198600DF3968 /* Duration.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7BD2356198000DF3968 /* Duration.pb-c.c */; };
+		C338C8132356198600DF3968 /* ContractCall.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7BE2356198000DF3968 /* ContractCall.pb-c.c */; };
+		C338C8142356198600DF3968 /* TransactionGetRecord.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7BF2356198000DF3968 /* TransactionGetRecord.pb-c.c */; };
+		C338C8152356198600DF3968 /* CryptoGetInfo.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7C12356198000DF3968 /* CryptoGetInfo.pb-c.c */; };
+		C338C8162356198600DF3968 /* FileGetContents.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7C22356198000DF3968 /* FileGetContents.pb-c.c */; };
+		C338C8172356198600DF3968 /* ExchangeRate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7C82356198100DF3968 /* ExchangeRate.pb-c.c */; };
+		C338C8182356198600DF3968 /* FreezeService.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7CE2356198100DF3968 /* FreezeService.pb-c.c */; };
+		C338C8192356198600DF3968 /* FileGetInfo.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7CF2356198100DF3968 /* FileGetInfo.pb-c.c */; };
+		C338C81A2356198600DF3968 /* ContractGetInfo.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7D62356198200DF3968 /* ContractGetInfo.pb-c.c */; };
+		C338C81B2356198600DF3968 /* SystemUndelete.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7D92356198200DF3968 /* SystemUndelete.pb-c.c */; };
+		C338C81C2356198600DF3968 /* CryptoDelete.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7DB2356198200DF3968 /* CryptoDelete.pb-c.c */; };
+		C338C81D2356198600DF3968 /* CryptoGetAccountRecords.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7DD2356198200DF3968 /* CryptoGetAccountRecords.pb-c.c */; };
+		C338C81E2356198600DF3968 /* CryptoTransfer.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7DE2356198200DF3968 /* CryptoTransfer.pb-c.c */; };
+		C338C81F2356198600DF3968 /* ContractGetBytecode.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7E02356198200DF3968 /* ContractGetBytecode.pb-c.c */; };
+		C338C8202356198600DF3968 /* CryptoAddClaim.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7E12356198200DF3968 /* CryptoAddClaim.pb-c.c */; };
+		C338C8212356198600DF3968 /* TransactionGetFastRecord.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7E42356198300DF3968 /* TransactionGetFastRecord.pb-c.c */; };
+		C338C8222356198600DF3968 /* FileCreate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7E62356198300DF3968 /* FileCreate.pb-c.c */; };
+		C338C8232356198600DF3968 /* CryptoGetClaim.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7E72356198300DF3968 /* CryptoGetClaim.pb-c.c */; };
+		C338C8242356198600DF3968 /* FileService.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7EA2356198300DF3968 /* FileService.pb-c.c */; };
+		C338C8252356198600DF3968 /* CryptoGetStakers.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7EB2356198300DF3968 /* CryptoGetStakers.pb-c.c */; };
+		C338C8262356198600DF3968 /* SystemDelete.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7EC2356198300DF3968 /* SystemDelete.pb-c.c */; };
+		C338C8272356198600DF3968 /* CryptoCreate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7ED2356198300DF3968 /* CryptoCreate.pb-c.c */; };
+		C338C8282356198600DF3968 /* ContractDelete.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7EF2356198300DF3968 /* ContractDelete.pb-c.c */; };
+		C338C8292356198600DF3968 /* ContractCreate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7F02356198400DF3968 /* ContractCreate.pb-c.c */; };
+		C338C82A2356198600DF3968 /* GetBySolidityID.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7F12356198400DF3968 /* GetBySolidityID.pb-c.c */; };
+		C338C82B2356198600DF3968 /* ResponseHeader.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7F22356198400DF3968 /* ResponseHeader.pb-c.c */; };
+		C338C82C2356198600DF3968 /* Query.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7F42356198400DF3968 /* Query.pb-c.c */; };
+		C338C82E2356198600DF3968 /* CryptoDeleteClaim.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7F72356198400DF3968 /* CryptoDeleteClaim.pb-c.c */; };
+		C338C82F2356198600DF3968 /* FileUpdate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7FA2356198400DF3968 /* FileUpdate.pb-c.c */; };
+		C338C8302356198600DF3968 /* QueryHeader.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7FC2356198400DF3968 /* QueryHeader.pb-c.c */; };
+		C338C8312356198600DF3968 /* ContractUpdate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7FD2356198400DF3968 /* ContractUpdate.pb-c.c */; };
+		C338C8322356198600DF3968 /* Freeze.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C7FE2356198500DF3968 /* Freeze.pb-c.c */; };
+		C338C8332356198600DF3968 /* CryptoGetAccountBalance.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8002356198500DF3968 /* CryptoGetAccountBalance.pb-c.c */; };
+		C338C8342356198600DF3968 /* SmartContractService.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8022356198500DF3968 /* SmartContractService.pb-c.c */; };
+		C338C8352356198600DF3968 /* TransactionGetReceipt.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8032356198500DF3968 /* TransactionGetReceipt.pb-c.c */; };
+		C338C8362356198600DF3968 /* TransactionRecord.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8042356198500DF3968 /* TransactionRecord.pb-c.c */; };
+		C338C8372356198600DF3968 /* Response.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8082356198600DF3968 /* Response.pb-c.c */; };
+		C338C83A23561DD900DF3968 /* BRHederaTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C83923561DD900DF3968 /* BRHederaTransaction.c */; };
+		C338C83E2357836700DF3968 /* BRHederaCrypto.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C83C2357836600DF3968 /* BRHederaCrypto.c */; };
+		C338C84123578FAD00DF3968 /* CryptoUpdate.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C83F23578FAD00DF3968 /* CryptoUpdate.pb-c.c */; };
+		C338C844235790D200DF3968 /* wrappers.pb-c.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C843235790D200DF3968 /* wrappers.pb-c.c */; };
+		C338C8472358DA0700DF3968 /* BRHederaAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8462358DA0700DF3968 /* BRHederaAccount.c */; };
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
@@ -725,6 +782,9 @@
 		3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerPrivate.h; sourceTree = "<group>"; };
 		3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoWalletManagerClient.c; sourceTree = "<group>"; };
 		3CFEFE2222BC3AF20044153D /* BRCryptoWalletManagerClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerClient.h; sourceTree = "<group>"; };
+		C30E223C2358F5E700E584AC /* BRHederaBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaBase.h; sourceTree = "<group>"; };
+		C30E223D2358FC0900E584AC /* BRHederaSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaSerialize.c; sourceTree = "<group>"; };
+		C30E223E2358FC0A00E584AC /* BRHederaSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaSerialize.h; sourceTree = "<group>"; };
 		C32ADCE5234FDE0C000AB7DE /* sc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sc.c; sourceTree = "<group>"; };
 		C32ADCE6234FDE0C000AB7DE /* verify.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = verify.c; sourceTree = "<group>"; };
 		C32ADCE7234FDE0C000AB7DE /* fe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fe.c; sourceTree = "<group>"; };
@@ -741,6 +801,119 @@
 		C32ADCF2234FDE0D000AB7DE /* sign.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sign.c; sourceTree = "<group>"; };
 		C32ADCF3234FDE0D000AB7DE /* fixedint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fixedint.h; sourceTree = "<group>"; };
 		C32ADCFD234FDF81000AB7DE /* testHedera.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = testHedera.c; sourceTree = "<group>"; };
+		C338C79C2356185D00DF3968 /* Transaction.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Transaction.pb-c.h"; sourceTree = "<group>"; };
+		C338C79D2356185D00DF3968 /* Transaction.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Transaction.pb-c.c"; sourceTree = "<group>"; };
+		C338C79F235618E200DF3968 /* protobuf-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "protobuf-c.h"; sourceTree = "<group>"; };
+		C338C7A0235618E200DF3968 /* protobuf-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "protobuf-c.c"; sourceTree = "<group>"; };
+		C338C7A22356190D00DF3968 /* BasicTypes.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "BasicTypes.pb-c.c"; sourceTree = "<group>"; };
+		C338C7A32356190D00DF3968 /* BasicTypes.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "BasicTypes.pb-c.h"; sourceTree = "<group>"; };
+		C338C7A52356192F00DF3968 /* Timestamp.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Timestamp.pb-c.h"; sourceTree = "<group>"; };
+		C338C7A62356192F00DF3968 /* Timestamp.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Timestamp.pb-c.c"; sourceTree = "<group>"; };
+		C338C7A82356195E00DF3968 /* TransactionBody.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionBody.pb-c.h"; sourceTree = "<group>"; };
+		C338C7A92356195E00DF3968 /* TransactionBody.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionBody.pb-c.c"; sourceTree = "<group>"; };
+		C338C7AB2356197F00DF3968 /* ContractCreate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractCreate.pb-c.h"; sourceTree = "<group>"; };
+		C338C7AC2356197F00DF3968 /* FileGetInfo.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileGetInfo.pb-c.h"; sourceTree = "<group>"; };
+		C338C7AD2356197F00DF3968 /* CryptoDeleteClaim.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoDeleteClaim.pb-c.h"; sourceTree = "<group>"; };
+		C338C7AE2356197F00DF3968 /* ContractGetRecords.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractGetRecords.pb-c.h"; sourceTree = "<group>"; };
+		C338C7AF2356197F00DF3968 /* TransactionReceipt.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionReceipt.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B02356197F00DF3968 /* Duration.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Duration.pb-c.h"; sourceTree = "<group>"; };
+		C338C7B12356197F00DF3968 /* CryptoCreate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoCreate.pb-c.h"; sourceTree = "<group>"; };
+		C338C7B22356197F00DF3968 /* Query.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Query.pb-c.h"; sourceTree = "<group>"; };
+		C338C7B32356197F00DF3968 /* CryptoService.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoService.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B42356197F00DF3968 /* ContractGetRecords.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractGetRecords.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B52356197F00DF3968 /* ContractCallLocal.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractCallLocal.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B62356197F00DF3968 /* TransactionResponse.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionResponse.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B72356198000DF3968 /* FileDelete.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileDelete.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B82356198000DF3968 /* GetByKey.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "GetByKey.pb-c.c"; sourceTree = "<group>"; };
+		C338C7B92356198000DF3968 /* FileService.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileService.pb-c.h"; sourceTree = "<group>"; };
+		C338C7BA2356198000DF3968 /* ResponseCode.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ResponseCode.pb-c.c"; sourceTree = "<group>"; };
+		C338C7BB2356198000DF3968 /* FileAppend.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileAppend.pb-c.c"; sourceTree = "<group>"; };
+		C338C7BC2356198000DF3968 /* ContractDelete.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractDelete.pb-c.h"; sourceTree = "<group>"; };
+		C338C7BD2356198000DF3968 /* Duration.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Duration.pb-c.c"; sourceTree = "<group>"; };
+		C338C7BE2356198000DF3968 /* ContractCall.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractCall.pb-c.c"; sourceTree = "<group>"; };
+		C338C7BF2356198000DF3968 /* TransactionGetRecord.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionGetRecord.pb-c.c"; sourceTree = "<group>"; };
+		C338C7C02356198000DF3968 /* CryptoGetAccountBalance.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoGetAccountBalance.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C12356198000DF3968 /* CryptoGetInfo.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoGetInfo.pb-c.c"; sourceTree = "<group>"; };
+		C338C7C22356198000DF3968 /* FileGetContents.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileGetContents.pb-c.c"; sourceTree = "<group>"; };
+		C338C7C32356198000DF3968 /* Freeze.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Freeze.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C42356198000DF3968 /* TransactionRecord.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionRecord.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C52356198000DF3968 /* ContractGetInfo.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractGetInfo.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C62356198100DF3968 /* ContractCallLocal.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractCallLocal.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C72356198100DF3968 /* ExchangeRate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ExchangeRate.pb-c.h"; sourceTree = "<group>"; };
+		C338C7C82356198100DF3968 /* ExchangeRate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ExchangeRate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7C92356198100DF3968 /* GetBySolidityID.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "GetBySolidityID.pb-c.h"; sourceTree = "<group>"; };
+		C338C7CA2356198100DF3968 /* TransactionGetFastRecord.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionGetFastRecord.pb-c.h"; sourceTree = "<group>"; };
+		C338C7CB2356198100DF3968 /* FileAppend.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileAppend.pb-c.h"; sourceTree = "<group>"; };
+		C338C7CC2356198100DF3968 /* ResponseHeader.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ResponseHeader.pb-c.h"; sourceTree = "<group>"; };
+		C338C7CE2356198100DF3968 /* FreezeService.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FreezeService.pb-c.c"; sourceTree = "<group>"; };
+		C338C7CF2356198100DF3968 /* FileGetInfo.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileGetInfo.pb-c.c"; sourceTree = "<group>"; };
+		C338C7D02356198100DF3968 /* FileUpdate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileUpdate.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D12356198100DF3968 /* FreezeService.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FreezeService.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D22356198100DF3968 /* ResponseCode.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ResponseCode.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D32356198100DF3968 /* TransactionGetRecord.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionGetRecord.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D42356198200DF3968 /* CryptoDelete.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoDelete.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D52356198200DF3968 /* ContractGetBytecode.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractGetBytecode.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D62356198200DF3968 /* ContractGetInfo.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractGetInfo.pb-c.c"; sourceTree = "<group>"; };
+		C338C7D72356198200DF3968 /* QueryHeader.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "QueryHeader.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D82356198200DF3968 /* SystemDelete.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SystemDelete.pb-c.h"; sourceTree = "<group>"; };
+		C338C7D92356198200DF3968 /* SystemUndelete.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "SystemUndelete.pb-c.c"; sourceTree = "<group>"; };
+		C338C7DA2356198200DF3968 /* SystemUndelete.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SystemUndelete.pb-c.h"; sourceTree = "<group>"; };
+		C338C7DB2356198200DF3968 /* CryptoDelete.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoDelete.pb-c.c"; sourceTree = "<group>"; };
+		C338C7DC2356198200DF3968 /* CryptoTransfer.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoTransfer.pb-c.h"; sourceTree = "<group>"; };
+		C338C7DD2356198200DF3968 /* CryptoGetAccountRecords.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoGetAccountRecords.pb-c.c"; sourceTree = "<group>"; };
+		C338C7DE2356198200DF3968 /* CryptoTransfer.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoTransfer.pb-c.c"; sourceTree = "<group>"; };
+		C338C7DF2356198200DF3968 /* CryptoGetStakers.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoGetStakers.pb-c.h"; sourceTree = "<group>"; };
+		C338C7E02356198200DF3968 /* ContractGetBytecode.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractGetBytecode.pb-c.c"; sourceTree = "<group>"; };
+		C338C7E12356198200DF3968 /* CryptoAddClaim.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoAddClaim.pb-c.c"; sourceTree = "<group>"; };
+		C338C7E22356198300DF3968 /* FileGetContents.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileGetContents.pb-c.h"; sourceTree = "<group>"; };
+		C338C7E32356198300DF3968 /* Response.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Response.pb-c.h"; sourceTree = "<group>"; };
+		C338C7E42356198300DF3968 /* TransactionGetFastRecord.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionGetFastRecord.pb-c.c"; sourceTree = "<group>"; };
+		C338C7E52356198300DF3968 /* TransactionGetReceipt.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionGetReceipt.pb-c.h"; sourceTree = "<group>"; };
+		C338C7E62356198300DF3968 /* FileCreate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileCreate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7E72356198300DF3968 /* CryptoGetClaim.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoGetClaim.pb-c.c"; sourceTree = "<group>"; };
+		C338C7E82356198300DF3968 /* TransactionResponse.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionResponse.pb-c.h"; sourceTree = "<group>"; };
+		C338C7E92356198300DF3968 /* ContractUpdate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractUpdate.pb-c.h"; sourceTree = "<group>"; };
+		C338C7EA2356198300DF3968 /* FileService.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileService.pb-c.c"; sourceTree = "<group>"; };
+		C338C7EB2356198300DF3968 /* CryptoGetStakers.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoGetStakers.pb-c.c"; sourceTree = "<group>"; };
+		C338C7EC2356198300DF3968 /* SystemDelete.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "SystemDelete.pb-c.c"; sourceTree = "<group>"; };
+		C338C7ED2356198300DF3968 /* CryptoCreate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoCreate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7EE2356198300DF3968 /* TransactionReceipt.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TransactionReceipt.pb-c.h"; sourceTree = "<group>"; };
+		C338C7EF2356198300DF3968 /* ContractDelete.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractDelete.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F02356198400DF3968 /* ContractCreate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractCreate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F12356198400DF3968 /* GetBySolidityID.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "GetBySolidityID.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F22356198400DF3968 /* ResponseHeader.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ResponseHeader.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F32356198400DF3968 /* FileDelete.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileDelete.pb-c.h"; sourceTree = "<group>"; };
+		C338C7F42356198400DF3968 /* Query.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Query.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F62356198400DF3968 /* GetByKey.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "GetByKey.pb-c.h"; sourceTree = "<group>"; };
+		C338C7F72356198400DF3968 /* CryptoDeleteClaim.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoDeleteClaim.pb-c.c"; sourceTree = "<group>"; };
+		C338C7F82356198400DF3968 /* CryptoGetInfo.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoGetInfo.pb-c.h"; sourceTree = "<group>"; };
+		C338C7F92356198400DF3968 /* CryptoService.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoService.pb-c.h"; sourceTree = "<group>"; };
+		C338C7FA2356198400DF3968 /* FileUpdate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "FileUpdate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7FB2356198400DF3968 /* CryptoGetAccountRecords.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoGetAccountRecords.pb-c.h"; sourceTree = "<group>"; };
+		C338C7FC2356198400DF3968 /* QueryHeader.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "QueryHeader.pb-c.c"; sourceTree = "<group>"; };
+		C338C7FD2356198400DF3968 /* ContractUpdate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ContractUpdate.pb-c.c"; sourceTree = "<group>"; };
+		C338C7FE2356198500DF3968 /* Freeze.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Freeze.pb-c.c"; sourceTree = "<group>"; };
+		C338C7FF2356198500DF3968 /* CryptoGetClaim.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoGetClaim.pb-c.h"; sourceTree = "<group>"; };
+		C338C8002356198500DF3968 /* CryptoGetAccountBalance.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoGetAccountBalance.pb-c.c"; sourceTree = "<group>"; };
+		C338C8012356198500DF3968 /* CryptoAddClaim.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoAddClaim.pb-c.h"; sourceTree = "<group>"; };
+		C338C8022356198500DF3968 /* SmartContractService.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "SmartContractService.pb-c.c"; sourceTree = "<group>"; };
+		C338C8032356198500DF3968 /* TransactionGetReceipt.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionGetReceipt.pb-c.c"; sourceTree = "<group>"; };
+		C338C8042356198500DF3968 /* TransactionRecord.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "TransactionRecord.pb-c.c"; sourceTree = "<group>"; };
+		C338C8052356198600DF3968 /* FileCreate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FileCreate.pb-c.h"; sourceTree = "<group>"; };
+		C338C8062356198600DF3968 /* ContractCall.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ContractCall.pb-c.h"; sourceTree = "<group>"; };
+		C338C8072356198600DF3968 /* SmartContractService.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SmartContractService.pb-c.h"; sourceTree = "<group>"; };
+		C338C8082356198600DF3968 /* Response.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "Response.pb-c.c"; sourceTree = "<group>"; };
+		C338C83823561DD900DF3968 /* BRHederaTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaTransaction.h; sourceTree = "<group>"; };
+		C338C83923561DD900DF3968 /* BRHederaTransaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaTransaction.c; sourceTree = "<group>"; };
+		C338C83B235620E300DF3968 /* BRHedera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHedera.h; sourceTree = "<group>"; };
+		C338C83C2357836600DF3968 /* BRHederaCrypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaCrypto.c; sourceTree = "<group>"; };
+		C338C83D2357836700DF3968 /* BRHederaCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaCrypto.h; sourceTree = "<group>"; };
+		C338C83F23578FAD00DF3968 /* CryptoUpdate.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "CryptoUpdate.pb-c.c"; sourceTree = "<group>"; };
+		C338C84023578FAD00DF3968 /* CryptoUpdate.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CryptoUpdate.pb-c.h"; sourceTree = "<group>"; };
+		C338C842235790D200DF3968 /* wrappers.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "wrappers.pb-c.h"; sourceTree = "<group>"; };
+		C338C843235790D200DF3968 /* wrappers.pb-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "wrappers.pb-c.c"; sourceTree = "<group>"; };
+		C338C8452358DA0700DF3968 /* BRHederaAccount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaAccount.h; sourceTree = "<group>"; };
+		C338C8462358DA0700DF3968 /* BRHederaAccount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaAccount.c; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
 		C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSerialize.c; sourceTree = "<group>"; };
@@ -1488,10 +1661,134 @@
 		C32ADCFC234FDEDF000AB7DE /* hedera */ = {
 			isa = PBXGroup;
 			children = (
+				C338C79B2356181700DF3968 /* proto */,
+				C338C83B235620E300DF3968 /* BRHedera.h */,
+				C338C8452358DA0700DF3968 /* BRHederaAccount.h */,
+				C338C8462358DA0700DF3968 /* BRHederaAccount.c */,
+				C30E223C2358F5E700E584AC /* BRHederaBase.h */,
+				C338C83C2357836600DF3968 /* BRHederaCrypto.c */,
+				C338C83D2357836700DF3968 /* BRHederaCrypto.h */,
+				C30E223E2358FC0A00E584AC /* BRHederaSerialize.h */,
+				C30E223D2358FC0900E584AC /* BRHederaSerialize.c */,
+				C338C83923561DD900DF3968 /* BRHederaTransaction.c */,
+				C338C83823561DD900DF3968 /* BRHederaTransaction.h */,
 				C32ADCFD234FDF81000AB7DE /* testHedera.c */,
 			);
 			name = hedera;
 			path = ../../hedera;
+			sourceTree = "<group>";
+		};
+		C338C79B2356181700DF3968 /* proto */ = {
+			isa = PBXGroup;
+			children = (
+				C338C843235790D200DF3968 /* wrappers.pb-c.c */,
+				C338C842235790D200DF3968 /* wrappers.pb-c.h */,
+				C338C83F23578FAD00DF3968 /* CryptoUpdate.pb-c.c */,
+				C338C84023578FAD00DF3968 /* CryptoUpdate.pb-c.h */,
+				C338C7BE2356198000DF3968 /* ContractCall.pb-c.c */,
+				C338C8062356198600DF3968 /* ContractCall.pb-c.h */,
+				C338C7B52356197F00DF3968 /* ContractCallLocal.pb-c.c */,
+				C338C7C62356198100DF3968 /* ContractCallLocal.pb-c.h */,
+				C338C7F02356198400DF3968 /* ContractCreate.pb-c.c */,
+				C338C7AB2356197F00DF3968 /* ContractCreate.pb-c.h */,
+				C338C7EF2356198300DF3968 /* ContractDelete.pb-c.c */,
+				C338C7BC2356198000DF3968 /* ContractDelete.pb-c.h */,
+				C338C7E02356198200DF3968 /* ContractGetBytecode.pb-c.c */,
+				C338C7D52356198200DF3968 /* ContractGetBytecode.pb-c.h */,
+				C338C7D62356198200DF3968 /* ContractGetInfo.pb-c.c */,
+				C338C7C52356198000DF3968 /* ContractGetInfo.pb-c.h */,
+				C338C7B42356197F00DF3968 /* ContractGetRecords.pb-c.c */,
+				C338C7AE2356197F00DF3968 /* ContractGetRecords.pb-c.h */,
+				C338C7FD2356198400DF3968 /* ContractUpdate.pb-c.c */,
+				C338C7E92356198300DF3968 /* ContractUpdate.pb-c.h */,
+				C338C7E12356198200DF3968 /* CryptoAddClaim.pb-c.c */,
+				C338C8012356198500DF3968 /* CryptoAddClaim.pb-c.h */,
+				C338C7ED2356198300DF3968 /* CryptoCreate.pb-c.c */,
+				C338C7B12356197F00DF3968 /* CryptoCreate.pb-c.h */,
+				C338C7DB2356198200DF3968 /* CryptoDelete.pb-c.c */,
+				C338C7D42356198200DF3968 /* CryptoDelete.pb-c.h */,
+				C338C7F72356198400DF3968 /* CryptoDeleteClaim.pb-c.c */,
+				C338C7AD2356197F00DF3968 /* CryptoDeleteClaim.pb-c.h */,
+				C338C8002356198500DF3968 /* CryptoGetAccountBalance.pb-c.c */,
+				C338C7C02356198000DF3968 /* CryptoGetAccountBalance.pb-c.h */,
+				C338C7DD2356198200DF3968 /* CryptoGetAccountRecords.pb-c.c */,
+				C338C7FB2356198400DF3968 /* CryptoGetAccountRecords.pb-c.h */,
+				C338C7E72356198300DF3968 /* CryptoGetClaim.pb-c.c */,
+				C338C7FF2356198500DF3968 /* CryptoGetClaim.pb-c.h */,
+				C338C7C12356198000DF3968 /* CryptoGetInfo.pb-c.c */,
+				C338C7F82356198400DF3968 /* CryptoGetInfo.pb-c.h */,
+				C338C7EB2356198300DF3968 /* CryptoGetStakers.pb-c.c */,
+				C338C7DF2356198200DF3968 /* CryptoGetStakers.pb-c.h */,
+				C338C7B32356197F00DF3968 /* CryptoService.pb-c.c */,
+				C338C7F92356198400DF3968 /* CryptoService.pb-c.h */,
+				C338C7DE2356198200DF3968 /* CryptoTransfer.pb-c.c */,
+				C338C7DC2356198200DF3968 /* CryptoTransfer.pb-c.h */,
+				C338C7BD2356198000DF3968 /* Duration.pb-c.c */,
+				C338C7B02356197F00DF3968 /* Duration.pb-c.h */,
+				C338C7C82356198100DF3968 /* ExchangeRate.pb-c.c */,
+				C338C7C72356198100DF3968 /* ExchangeRate.pb-c.h */,
+				C338C7BB2356198000DF3968 /* FileAppend.pb-c.c */,
+				C338C7CB2356198100DF3968 /* FileAppend.pb-c.h */,
+				C338C7E62356198300DF3968 /* FileCreate.pb-c.c */,
+				C338C8052356198600DF3968 /* FileCreate.pb-c.h */,
+				C338C7B72356198000DF3968 /* FileDelete.pb-c.c */,
+				C338C7F32356198400DF3968 /* FileDelete.pb-c.h */,
+				C338C7C22356198000DF3968 /* FileGetContents.pb-c.c */,
+				C338C7E22356198300DF3968 /* FileGetContents.pb-c.h */,
+				C338C7CF2356198100DF3968 /* FileGetInfo.pb-c.c */,
+				C338C7AC2356197F00DF3968 /* FileGetInfo.pb-c.h */,
+				C338C7EA2356198300DF3968 /* FileService.pb-c.c */,
+				C338C7B92356198000DF3968 /* FileService.pb-c.h */,
+				C338C7FA2356198400DF3968 /* FileUpdate.pb-c.c */,
+				C338C7D02356198100DF3968 /* FileUpdate.pb-c.h */,
+				C338C7FE2356198500DF3968 /* Freeze.pb-c.c */,
+				C338C7C32356198000DF3968 /* Freeze.pb-c.h */,
+				C338C7CE2356198100DF3968 /* FreezeService.pb-c.c */,
+				C338C7D12356198100DF3968 /* FreezeService.pb-c.h */,
+				C338C7B82356198000DF3968 /* GetByKey.pb-c.c */,
+				C338C7F62356198400DF3968 /* GetByKey.pb-c.h */,
+				C338C7F12356198400DF3968 /* GetBySolidityID.pb-c.c */,
+				C338C7C92356198100DF3968 /* GetBySolidityID.pb-c.h */,
+				C338C7F42356198400DF3968 /* Query.pb-c.c */,
+				C338C7B22356197F00DF3968 /* Query.pb-c.h */,
+				C338C7FC2356198400DF3968 /* QueryHeader.pb-c.c */,
+				C338C7D72356198200DF3968 /* QueryHeader.pb-c.h */,
+				C338C8082356198600DF3968 /* Response.pb-c.c */,
+				C338C7E32356198300DF3968 /* Response.pb-c.h */,
+				C338C7BA2356198000DF3968 /* ResponseCode.pb-c.c */,
+				C338C7D22356198100DF3968 /* ResponseCode.pb-c.h */,
+				C338C7F22356198400DF3968 /* ResponseHeader.pb-c.c */,
+				C338C7CC2356198100DF3968 /* ResponseHeader.pb-c.h */,
+				C338C8022356198500DF3968 /* SmartContractService.pb-c.c */,
+				C338C8072356198600DF3968 /* SmartContractService.pb-c.h */,
+				C338C7EC2356198300DF3968 /* SystemDelete.pb-c.c */,
+				C338C7D82356198200DF3968 /* SystemDelete.pb-c.h */,
+				C338C7D92356198200DF3968 /* SystemUndelete.pb-c.c */,
+				C338C7DA2356198200DF3968 /* SystemUndelete.pb-c.h */,
+				C338C7E42356198300DF3968 /* TransactionGetFastRecord.pb-c.c */,
+				C338C7CA2356198100DF3968 /* TransactionGetFastRecord.pb-c.h */,
+				C338C8032356198500DF3968 /* TransactionGetReceipt.pb-c.c */,
+				C338C7E52356198300DF3968 /* TransactionGetReceipt.pb-c.h */,
+				C338C7BF2356198000DF3968 /* TransactionGetRecord.pb-c.c */,
+				C338C7D32356198100DF3968 /* TransactionGetRecord.pb-c.h */,
+				C338C7AF2356197F00DF3968 /* TransactionReceipt.pb-c.c */,
+				C338C7EE2356198300DF3968 /* TransactionReceipt.pb-c.h */,
+				C338C8042356198500DF3968 /* TransactionRecord.pb-c.c */,
+				C338C7C42356198000DF3968 /* TransactionRecord.pb-c.h */,
+				C338C7B62356197F00DF3968 /* TransactionResponse.pb-c.c */,
+				C338C7E82356198300DF3968 /* TransactionResponse.pb-c.h */,
+				C338C7A92356195E00DF3968 /* TransactionBody.pb-c.c */,
+				C338C7A82356195E00DF3968 /* TransactionBody.pb-c.h */,
+				C338C7A62356192F00DF3968 /* Timestamp.pb-c.c */,
+				C338C7A52356192F00DF3968 /* Timestamp.pb-c.h */,
+				C338C7A22356190D00DF3968 /* BasicTypes.pb-c.c */,
+				C338C7A32356190D00DF3968 /* BasicTypes.pb-c.h */,
+				C338C7A0235618E200DF3968 /* protobuf-c.c */,
+				C338C79F235618E200DF3968 /* protobuf-c.h */,
+				C338C79D2356185D00DF3968 /* Transaction.pb-c.c */,
+				C338C79C2356185D00DF3968 /* Transaction.pb-c.h */,
+			);
+			path = proto;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -2057,31 +2354,47 @@
 				C32ADCF4234FDE0D000AB7DE /* sc.c in Sources */,
 				C32ADCFA234FDE0D000AB7DE /* sign.c in Sources */,
 				3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */,
+				C338C81F2356198600DF3968 /* ContractGetBytecode.pb-c.c in Sources */,
 				C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */,
+				C338C82E2356198600DF3968 /* CryptoDeleteClaim.pb-c.c in Sources */,
 				3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */,
 				3CAB60B220AF8D1A00810CE4 /* BREthereumGas.c in Sources */,
+				C338C8302356198600DF3968 /* QueryHeader.pb-c.c in Sources */,
 				C3C453E72270B39E004CC0C7 /* BRRippleSignature.c in Sources */,
 				3CAB60B320AF8D1A00810CE4 /* BREthereumHash.c in Sources */,
 				3C9B8DE722BD52940060C3A9 /* BRGenericRipple.c in Sources */,
 				3CD30498213B228900A0CCED /* BREthereumMessageDIS.c in Sources */,
+				C338C8322356198600DF3968 /* Freeze.pb-c.c in Sources */,
 				3CCC61E8228C6C2000C0A13E /* BRCryptoHash.c in Sources */,
+				C338C8112356198600DF3968 /* FileAppend.pb-c.c in Sources */,
 				3CAB60B420AF8D1A00810CE4 /* BREthereumAddress.c in Sources */,
+				C338C8102356198600DF3968 /* ResponseCode.pb-c.c in Sources */,
 				3CAB60B520AF8D1A00810CE4 /* BREthereumSignature.c in Sources */,
 				3CAB60B620AF8D1A00810CE4 /* BREthereumTransaction.c in Sources */,
 				C32ADCF9234FDE0D000AB7DE /* keypair.c in Sources */,
+				C338C8132356198600DF3968 /* ContractCall.pb-c.c in Sources */,
+				C338C8232356198600DF3968 /* CryptoGetClaim.pb-c.c in Sources */,
+				C338C82F2356198600DF3968 /* FileUpdate.pb-c.c in Sources */,
 				3C2318F023319424007A3EC1 /* BRCryptoPeer.c in Sources */,
 				3CAB60B720AF8D1A00810CE4 /* BREthereumBloomFilter.c in Sources */,
 				3C97E2352241658E003FD88F /* BRCryptoCurrency.c in Sources */,
 				3CD3049A213B22AF00A0CCED /* BREthereumMessageLES.c in Sources */,
+				C338C82B2356198600DF3968 /* ResponseHeader.pb-c.c in Sources */,
 				C32ADCF6234FDE0D000AB7DE /* fe.c in Sources */,
 				3CAB60B820AF8D1A00810CE4 /* BREthereumNetwork.c in Sources */,
+				C338C8262356198600DF3968 /* SystemDelete.pb-c.c in Sources */,
+				C338C8342356198600DF3968 /* SmartContractService.pb-c.c in Sources */,
 				3CAB60B920AF8D1A00810CE4 /* BREthereumTransactionReceipt.c in Sources */,
 				3CAB60BA20AF8D1A00810CE4 /* BREthereumAccountState.c in Sources */,
 				3CD30494213B222A00A0CCED /* BREthereumMessagePIP.c in Sources */,
+				C338C81D2356198600DF3968 /* CryptoGetAccountRecords.pb-c.c in Sources */,
 				3CAB60BB20AF8D1A00810CE4 /* BREthereumLog.c in Sources */,
 				3CAB60BC20AF8D1A00810CE4 /* BREthereumTransactionStatus.c in Sources */,
 				3CAB60BD20AF8D1A00810CE4 /* BREthereumBlock.c in Sources */,
+				C338C7A42356190D00DF3968 /* BasicTypes.pb-c.c in Sources */,
 				3CCC61EB228C7FB500C0A13E /* BRCryptoFeeBasis.c in Sources */,
+				C338C80A2356198600DF3968 /* CryptoService.pb-c.c in Sources */,
+				C338C8352356198600DF3968 /* TransactionGetReceipt.pb-c.c in Sources */,
 				3CAB60BE20AF8D1A00810CE4 /* BREthereumAmount.c in Sources */,
 				3CAB60C020AF8D1A00810CE4 /* BREthereumAccount.c in Sources */,
 				3C3DC5BB21DFCA7C004188BD /* BRFileService.c in Sources */,
@@ -2089,81 +2402,122 @@
 				3CAB60C120AF8D1A00810CE4 /* BREthereumWallet.c in Sources */,
 				3C7BE5AA230EFD36005FD4CD /* BRCryptoWallet.c in Sources */,
 				3C386DCF20C6F5E40065E355 /* BREthereumBCS.c in Sources */,
+				C338C8272356198600DF3968 /* CryptoCreate.pb-c.c in Sources */,
+				C338C8202356198600DF3968 /* CryptoAddClaim.pb-c.c in Sources */,
 				3CAB60C220AF8D1A00810CE4 /* BREthereumToken.c in Sources */,
 				C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */,
 				3CAB60C320AF8D1A00810CE4 /* BREthereumContract.c in Sources */,
 				3CAB60C420AF8D1A00810CE4 /* BREvent.c in Sources */,
 				3CFEFE2322BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */,
+				C338C81E2356198600DF3968 /* CryptoTransfer.pb-c.c in Sources */,
 				3CAB60C520AF8D1A00810CE4 /* BREventQueue.c in Sources */,
+				C338C81B2356198600DF3968 /* SystemUndelete.pb-c.c in Sources */,
 				3CAB60C820AF8D1A00810CE4 /* BREthereumLES.c in Sources */,
+				C338C83E2357836700DF3968 /* BRHederaCrypto.c in Sources */,
+				C338C8222356198600DF3968 /* FileCreate.pb-c.c in Sources */,
 				3C97E25122416AB1003FD88F /* BRCryptoAmount.c in Sources */,
+				C338C80F2356198600DF3968 /* GetByKey.pb-c.c in Sources */,
 				CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */,
 				3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */,
+				C338C8162356198600DF3968 /* FileGetContents.pb-c.c in Sources */,
 				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
 				3CCB136A2253C84E00ADCDB9 /* BRSyncMode.c in Sources */,
 				C32ADCF5234FDE0D000AB7DE /* verify.c in Sources */,
+				C338C82C2356198600DF3968 /* Query.pb-c.c in Sources */,
 				3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */,
 				3CAB60CA20AF8D1A00810CE4 /* BREthereumLESFrameCoder.c in Sources */,
 				3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */,
+				C338C7A1235618E200DF3968 /* protobuf-c.c in Sources */,
 				CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */,
 				3CAB60CD20AF8D1A00810CE4 /* BREthereumEWM.c in Sources */,
 				C3C864A4227C6B490055120E /* BRRippleWallet.c in Sources */,
 				3C25BF472236EE40004B093F /* BRBCashParams.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,
 				3C7BE5A8230EFD2E005FD4CD /* BRCryptoTransfer.c in Sources */,
+				C338C7AA2356195E00DF3968 /* TransactionBody.pb-c.c in Sources */,
 				3CAB60D220AF8D1A00810CE4 /* BRUtilMath.c in Sources */,
+				C338C8372356198600DF3968 /* Response.pb-c.c in Sources */,
 				3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */,
 				C32ADCF7234FDE0D000AB7DE /* sha512.c in Sources */,
+				C338C8182356198600DF3968 /* FreezeService.pb-c.c in Sources */,
 				3CF66AE722A8358200C1E9BB /* BRCryptoNetwork.c in Sources */,
 				3CAB60D320AF8D1A00810CE4 /* BRUtilMathParse.c in Sources */,
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
+				C338C80E2356198600DF3968 /* FileDelete.pb-c.c in Sources */,
 				3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */,
+				C338C8142356198600DF3968 /* TransactionGetRecord.pb-c.c in Sources */,
+				C338C8282356198600DF3968 /* ContractDelete.pb-c.c in Sources */,
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CF66AE622A8342200C1E9BB /* BRCryptoWalletManager.c in Sources */,
 				C32ADCF8234FDE0D000AB7DE /* ge.c in Sources */,
+				C338C8312356198600DF3968 /* ContractUpdate.pb-c.c in Sources */,
+				C338C83A23561DD900DF3968 /* BRHederaTransaction.c in Sources */,
+				C338C81A2356198600DF3968 /* ContractGetInfo.pb-c.c in Sources */,
 				3C6AE12B2329855300016196 /* sqlite3.c in Sources */,
 				CE5E43C8233930F1001E9238 /* BRCryptoSigner.c in Sources */,
 				3CAB60D620AF8D1A00810CE4 /* BRAddress.c in Sources */,
 				3CEF5FD42208C6E40010A811 /* BRAssert.c in Sources */,
 				3CAB60D720AF8D1A00810CE4 /* BRBase58.c in Sources */,
+				C338C8242356198600DF3968 /* FileService.pb-c.c in Sources */,
 				3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */,
+				C30E223F2358FC0A00E584AC /* BRHederaSerialize.c in Sources */,
 				3CAB60D820AF8D1A00810CE4 /* BRBech32.c in Sources */,
 				3CAB60D920AF8D1A00810CE4 /* BRBIP32Sequence.c in Sources */,
 				CE179CA7233A4FF400633B97 /* BRCryptoCipher.c in Sources */,
+				C338C8472358DA0700DF3968 /* BRHederaAccount.c in Sources */,
 				3C25BF4A2236EE71004B093F /* BRChainParams.c in Sources */,
 				3C54A7FF2121F1D200C57B1B /* BREthereumMessage.c in Sources */,
+				C338C844235790D200DF3968 /* wrappers.pb-c.c in Sources */,
 				3C1D1F2522F0F1740028B20C /* BRCryptoKey.c in Sources */,
 				C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */,
+				C338C8172356198600DF3968 /* ExchangeRate.pb-c.c in Sources */,
 				3CAB60DA20AF8D1A00810CE4 /* BRBIP38Key.c in Sources */,
+				C338C81C2356198600DF3968 /* CryptoDelete.pb-c.c in Sources */,
 				3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */,
+				C338C8212356198600DF3968 /* TransactionGetFastRecord.pb-c.c in Sources */,
 				CEF5E0EF2315C166009EF3C0 /* BRCryptoPayment.c in Sources */,
+				C338C8152356198600DF3968 /* CryptoGetInfo.pb-c.c in Sources */,
+				C338C84123578FAD00DF3968 /* CryptoUpdate.pb-c.c in Sources */,
 				3C902623210A7E9800143B69 /* BREthereumTransfer.c in Sources */,
+				C338C80B2356198600DF3968 /* ContractGetRecords.pb-c.c in Sources */,
 				3C54A8022122284900C57B1B /* BREthereumNode.c in Sources */,
+				C338C8292356198600DF3968 /* ContractCreate.pb-c.c in Sources */,
 				3CAB60DB20AF8D1A00810CE4 /* BRBIP39Mnemonic.c in Sources */,
+				C338C8192356198600DF3968 /* FileGetInfo.pb-c.c in Sources */,
+				C338C8332356198600DF3968 /* CryptoGetAccountBalance.pb-c.c in Sources */,
+				C338C8362356198600DF3968 /* TransactionRecord.pb-c.c in Sources */,
 				3CAB60DC20AF8D1A00810CE4 /* BRBloomFilter.c in Sources */,
 				3CAB60DD20AF8D1A00810CE4 /* BRCrypto.c in Sources */,
 				3C9B8DEB22BD52940060C3A9 /* BRGenericWalletManager.c in Sources */,
 				3C97E25A224170EC003FD88F /* BRCryptoAddress.c in Sources */,
 				CE5E43C0233902A4001E9238 /* BRCryptoHasher.c in Sources */,
 				3CAB60DE20AF8D1A00810CE4 /* BRKeyECIES.c in Sources */,
+				C338C8252356198600DF3968 /* CryptoGetStakers.pb-c.c in Sources */,
 				3C97E24F22416AB1003FD88F /* BRCryptoUnit.c in Sources */,
 				3CAB60DF20AF8D1A00810CE4 /* BRKey.c in Sources */,
+				C338C8092356198600DF3968 /* TransactionReceipt.pb-c.c in Sources */,
 				3C54A80521234C9700C57B1B /* BREthereumNodeEndpoint.c in Sources */,
 				3CAB60E020AF8D1A00810CE4 /* BRMerkleBlock.c in Sources */,
 				3CAB60E120AF8D1A00810CE4 /* BRPaymentProtocol.c in Sources */,
+				C338C79E2356185D00DF3968 /* Transaction.pb-c.c in Sources */,
 				3CAB60E220AF8D1A00810CE4 /* BRPeer.c in Sources */,
 				C3C864A7227CA28E0055120E /* BRRippleBase58.c in Sources */,
 				3CAB60E320AF8D1A00810CE4 /* BRPeerManager.c in Sources */,
+				C338C82A2356198600DF3968 /* GetBySolidityID.pb-c.c in Sources */,
 				3CAB60E420AF8D1A00810CE4 /* BRSet.c in Sources */,
 				3C97E256224170B9003FD88F /* BRCryptoAccount.c in Sources */,
 				3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */,
+				C338C80D2356198600DF3968 /* TransactionResponse.pb-c.c in Sources */,
 				3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */,
+				C338C8122356198600DF3968 /* Duration.pb-c.c in Sources */,
 				3CAB60E520AF8D1A00810CE4 /* BRTransaction.c in Sources */,
+				C338C80C2356198600DF3968 /* ContractCallLocal.pb-c.c in Sources */,
 				3C56C97D22F8F8C20054AD21 /* BRCryptoStatus.c in Sources */,
 				3CD3049D213F281500A0CCED /* BREthereumProvision.c in Sources */,
 				3C386DD320C6F6070065E355 /* BREthereumEWMClient.c in Sources */,
 				3C9B8DE922BD52940060C3A9 /* BRGeneric.c in Sources */,
 				3C9B8DED22BD52940060C3A9 /* BRGenericHandlers.c in Sources */,
+				C338C7A72356192F00DF3968 /* Timestamp.pb-c.c in Sources */,
 				3CAB60E620AF8D1A00810CE4 /* BRWallet.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
