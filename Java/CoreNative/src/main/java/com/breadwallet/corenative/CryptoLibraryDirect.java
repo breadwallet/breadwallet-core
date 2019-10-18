@@ -8,6 +8,7 @@
 package com.breadwallet.corenative;
 
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
+import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
 import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.breadwallet.corenative.support.BRTransferSubmitError;
@@ -167,6 +168,13 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletEstimateFeeBasisForWalletSweep(Pointer wallet, Pointer cookie, Pointer sweeper, Pointer fee);
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
+
+    // crypto/BRCryptoWalletManager.h (BRCryptoWalletMigrator)
+    public static native Pointer cryptoWalletMigratorCreate(Pointer network, String storagePath);
+    public static native BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleTransactionAsBTC (Pointer migrator, byte[] bytes, SizeT bytesCount, int blockHeight, int timestamp);
+    public static native BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleBlockBytesAsBTC(Pointer migrator, byte[] buffer, SizeT bufferLen, int height);
+    public static native BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (Pointer migrator, int address, short port, long services, int timestamp);
+    public static native void cryptoWalletMigratorRelease(Pointer migrator);
 
     //
     // Crypto Primitives
