@@ -37,6 +37,16 @@ struct BRCryptoWalletManagerRecord {
         BRGenericWalletManager gen;
     } u;
 
+    double averageManagerEvent;
+    size_t countManagerEvents;
+    double averageWalletEvent;
+    size_t countWalletEvents;
+    double averageTransferEvent;
+    size_t countTransferEvents;
+
+    const char *name;
+
+    BRCryptoCWMListener realListener;
     BRCryptoCWMListener listener;
     BRCryptoCWMClient client;
     BRCryptoNetwork network;

@@ -19,6 +19,7 @@
 #include "BRCryptoWalletManagerClient.h"
 #include "BRCryptoWalletManagerPrivate.h"
 
+#include "bitcoin/BRPeer.h"
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 
@@ -83,6 +84,120 @@ cryptoWalletManagerReleaseCurrenciesOfIntereest (BRCryptoWalletManager cwm,
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
+#define THRESHOLD_FOR_DURATION 20.0
+#define THRESHOLD_FOR_EPS 250.0
+
+static void
+wmPerfCallback(BRCryptoCWMListenerContext context,
+               BRCryptoWalletManager manager,
+               BRCryptoWalletManagerEvent event) {
+    clock_t t = clock();
+    BRCryptoWalletManager cwm = (BRCryptoWalletManager) context;
+    cwm->realListener.walletManagerEventCallback (cwm->realListener.context, manager, event);
+    t = clock() - t;
+
+    // not done under lock because all the child manager's send these up on a single thread?
+    double elapsed = ((double)t)/CLOCKS_PER_SEC * 1000;
+    cwm->averageManagerEvent = ((cwm->averageManagerEvent * cwm->countManagerEvents + elapsed)  / ++cwm->countManagerEvents);
+
+    _peer_log ("PRF: %p -> walletManagerEventCallback elapsed = %f ms, average = %f ms, count = %zu for %s (%s)\n",
+               context,
+               elapsed,
+               cwm->averageManagerEvent,
+               cwm->countManagerEvents,
+               BRCryptoWalletManagerEventTypeString (event.type),
+               cwm->name);
+
+    // _peer_log ("PRF: walletManagerEventCallback avg is %f milliseconds for %s (%s)\n",
+    //            cwm->averageManagerEvent,
+    //            BRCryptoWalletManagerEventTypeString (event->type),
+    //            cwm->name);
+
+    // double eventsPerSecond = 1000 / elapsed;
+    // if (elapsed > THRESHOLD_FOR_DURATION) {
+    //     _peer_log ("PRF: %x -> walletManagerEventCallback took %f milliseconds for %s (%s)\n",
+    //                context,
+    //                elapsed,
+    //                BRCryptoWalletManagerEventTypeString (event->type),
+    //                cryptoNetworkGetName (cwm->network));
+    // }
+}
+
+static void
+wPerfCallback(BRCryptoCWMListenerContext context,
+              BRCryptoWalletManager manager,
+              BRCryptoWallet wallet,
+              BRCryptoWalletEvent event) {
+    clock_t t = clock();
+    BRCryptoWalletManager cwm = (BRCryptoWalletManager) context;
+    cwm->realListener.walletEventCallback (cwm->realListener.context, manager, wallet, event);
+    t = clock() - t;
+
+    // not done under lock because all the child manager's send these up on a single thread?
+    double elapsed = ((double)t)/CLOCKS_PER_SEC * 1000;
+    cwm->averageWalletEvent = ((cwm->averageWalletEvent * cwm->countWalletEvents + elapsed)  / ++cwm->countWalletEvents);
+
+    _peer_log ("PRF: %p -> walletEventCallback elapsed = %f ms, average = %f ms, count = %zu for %s (%s)\n",
+               context,
+               elapsed,
+               cwm->averageWalletEvent,
+               cwm->countWalletEvents,
+               BRCryptoWalletEventTypeString (event.type),
+               cwm->name);
+
+    // _peer_log ("PRF: walletEventCallback avg is %f milliseconds for %s (%s)\n",
+    //            cwm->averageWalletEvent,
+    //            BRCryptoWalletEventTypeString (event->type),
+    //            cwm->name);
+
+    // double eventsPerSecond = 1000 / elapsed;
+    // if (elapsed > THRESHOLD_FOR_DURATION) {
+    //     _peer_log ("PRF: %x -> walletEventCallback took %f milliseconds for %s (%s)\n",
+    //                context,
+    //                elapsed,
+    //                BRCryptoWalletEventTypeString (event->type),
+    //                cryptoNetworkGetName (cwm->network));
+    // }
+}
+
+static void
+tPerfCallback(BRCryptoCWMListenerContext context,
+              BRCryptoWalletManager manager,
+              BRCryptoWallet wallet,
+              BRCryptoTransfer transfer,
+              BRCryptoTransferEvent event) {
+    clock_t t = clock();
+    BRCryptoWalletManager cwm = (BRCryptoWalletManager) context;
+    cwm->realListener.transferEventCallback (cwm->realListener.context, manager, wallet, transfer, event);
+    t = clock() - t;
+
+    // not done under lock because all the child manager's send these up on a single thread?
+    double elapsed = ((double)t)/CLOCKS_PER_SEC * 1000;
+    cwm->averageTransferEvent = ((cwm->averageTransferEvent * cwm->countTransferEvents + elapsed)  / ++cwm->countTransferEvents);
+
+    _peer_log ("PRF: %p -> transferEventCallback elapsed = %f ms, average = %f ms, count = %zu for %s (%s)\n",
+               context,
+               elapsed,
+               cwm->averageTransferEvent,
+               cwm->countTransferEvents,
+               BRCryptoTransferEventTypeString (event.type),
+               cwm->name);
+
+    // _peer_log ("PRF: transferEventCallback avg is %f milliseconds for %s (%s)\n",
+    //            cwm->averageTransferEvent,
+    //            BRCryptoTransferEventTypeString (event->type),
+    //            cwm->name);
+
+    // double eventsPerSecond = 1000 / elapsed;
+    // if (elapsed > THRESHOLD_FOR_DURATION) {
+    //     _peer_log ("PRF: %x -> transferEventCallback took %f milliseconds for %s (%s)\n",
+    //                context,
+    //                elapsed,
+    //                BRCryptoTransferEventTypeString (event->type),
+    //                cryptoNetworkGetName (cwm->network));
+    // }
+}
+
 static BRCryptoWalletManager
 cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoCWMClient client,
@@ -94,7 +209,10 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     BRCryptoWalletManager cwm = calloc (1, sizeof (struct BRCryptoWalletManagerRecord));
 
     cwm->type = type;
-    cwm->listener = listener;
+    cwm->listener = (BRCryptoCWMListener) {cwm, wmPerfCallback, wPerfCallback, tPerfCallback};
+    cwm->name = cryptoNetworkGetName (network);
+
+    cwm->realListener = listener;
     cwm->client  = client;
     cwm->network = cryptoNetworkTake (network);
     cwm->account = cryptoAccountTake (account);
