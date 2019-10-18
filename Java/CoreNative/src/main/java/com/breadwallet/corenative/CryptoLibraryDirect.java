@@ -31,6 +31,13 @@ public final class CryptoLibraryDirect {
     public static native int cryptoHasherHash(Pointer hasher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     public static native void cryptoHasherGive(Pointer hasher);
 
+    // crypto/BRCryptoSigner.h
+    public static native Pointer cryptoSignerCreate(int type);
+    public static native SizeT cryptoSignerSignLength(Pointer signer, Pointer key, byte[] digest, SizeT digestlen);
+    public static native int cryptoSignerSign(Pointer signer, Pointer key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
+    public static native Pointer cryptoSignerRecover(Pointer signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
+    public static native void cryptoSignerGive(Pointer signer);
+
     static {
         Native.register(CryptoLibraryDirect.class, CryptoLibrary.LIBRARY);
     }

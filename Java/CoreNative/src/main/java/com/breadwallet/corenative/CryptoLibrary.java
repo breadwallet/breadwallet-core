@@ -317,13 +317,6 @@ public interface CryptoLibrary extends Library {
     int cryptoCipherDecrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     void cryptoCipherGive(BRCryptoCipher cipher);
 
-    // crypto/BRCryptoSigner.h
-    BRCryptoSigner cryptoSignerCreate(int type);
-    SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
-    int cryptoSignerSign(BRCryptoSigner signer, BRCryptoKey key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
-    BRCryptoKey cryptoSignerRecover(BRCryptoSigner signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
-    void cryptoSignerGive(BRCryptoSigner signer);
-
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 
