@@ -230,6 +230,14 @@ public final class CryptoLibraryDirect {
     public static native Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
     public static native Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 
+    //
+    // Ethereum
+    //
+
+
+    // ethereum/util/BRUtilMath.h
+    public static native Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
     static {
         Native.register(CryptoLibraryDirect.class, CryptoLibrary.LIBRARY);
     }

@@ -151,7 +151,4 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceGetNonceFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
-
-    // ethereum/util/BRUtilMath.h
-    Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 }

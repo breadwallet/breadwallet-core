@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
@@ -130,7 +129,7 @@ public class BRCryptoAmount extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         UInt256.ByValue value = CryptoLibraryDirect.cryptoAmountGetValue(thisPtr);
-        Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
+        Pointer ptr = CryptoLibraryDirect.coerceStringPrefaced(value, base, preface);
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
