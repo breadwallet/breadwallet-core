@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.Ints;
@@ -86,28 +87,32 @@ public class BRCryptoHasher extends PointerType {
     }
 
     private static Optional<BRCryptoHasher> create(int alg) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoHasherCreate(alg));
-    }
-
-    public BRCryptoHasher(Pointer address) {
-        super(address);
+        return Optional.fromNullable(CryptoLibraryDirect.cryptoHasherCreate(alg)).transform(BRCryptoHasher::new);
     }
 
     public BRCryptoHasher() {
         super();
     }
 
+    public BRCryptoHasher(Pointer address) {
+        super(address);
+    }
+
     public Optional<byte[]> hash(byte[] data) {
-        SizeT length = CryptoLibrary.INSTANCE.cryptoHasherLength(this);
+        Pointer thisPtr = getPointer();
+
+        SizeT length = CryptoLibraryDirect.cryptoHasherLength(thisPtr);
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] hash = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoHasherHash(this, hash, new SizeT(hash.length), data, new SizeT(data.length));
+        int result = CryptoLibraryDirect.cryptoHasherHash(thisPtr, hash, new SizeT(hash.length), data, new SizeT(data.length));
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(hash) : Optional.absent();
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoHasherGive(this);
+        Pointer thisPtr = getPointer();
+
+        CryptoLibraryDirect.cryptoHasherGive(thisPtr);
     }
 }

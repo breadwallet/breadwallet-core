@@ -317,12 +317,6 @@ public interface CryptoLibrary extends Library {
     int cryptoCipherDecrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     void cryptoCipherGive(BRCryptoCipher cipher);
 
-    // crypto/BRCryptoHasher.h
-    BRCryptoHasher cryptoHasherCreate(int type);
-    SizeT cryptoHasherLength(BRCryptoHasher hasher);
-    int cryptoHasherHash(BRCryptoHasher hasher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
-    void cryptoHasherGive(BRCryptoHasher hasher);
-
     // crypto/BRCryptoSigner.h
     BRCryptoSigner cryptoSignerCreate(int type);
     SizeT cryptoSignerSignLength(BRCryptoSigner signer, BRCryptoKey key, byte[] digest, SizeT digestlen);
