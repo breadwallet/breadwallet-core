@@ -47,6 +47,14 @@ public final class CryptoLibraryDirect {
     public static native int cryptoCurrencyIsIdentical(Pointer c1, Pointer c2);
     public static native void cryptoCurrencyGive(Pointer obj);
 
+    // crypto/BRCryptoFeeBasis.h
+    public static native Pointer cryptoFeeBasisGetPricePerCostFactor (Pointer feeBasis);
+    public static native Pointer cryptoFeeBasisGetPricePerCostFactorUnit (Pointer feeBasis);
+    public static native double cryptoFeeBasisGetCostFactor (Pointer feeBasis);
+    public static native Pointer cryptoFeeBasisGetFee (Pointer feeBasis);
+    public static native int cryptoFeeBasisIsIdentical(Pointer f1, Pointer f2);
+    public static native void cryptoFeeBasisGive(Pointer obj);
+
     // crypto/BRCryptoPrivate.h
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
 

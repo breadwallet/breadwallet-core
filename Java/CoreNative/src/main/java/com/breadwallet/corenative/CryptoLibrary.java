@@ -72,14 +72,6 @@ public interface CryptoLibrary extends Library {
     UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
     void cryptoAmountGive(BRCryptoAmount obj);
 
-    // crypto/BRCryptoFeeBasis.h
-    BRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
-    BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
-    double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
-    BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
-    int cryptoFeeBasisIsIdentical(BRCryptoFeeBasis f1, BRCryptoFeeBasis f2);
-    void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
-
     // crypto/BRCryptoKey.h
     int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
     BRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
