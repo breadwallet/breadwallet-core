@@ -152,16 +152,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 
-    // crypto/BRCryptoWalletManager.h
-    int cryptoWalletSweeperValidateSupported(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, BRCryptoWallet wallet);
-    BRCryptoWalletSweeper cryptoWalletSweeperCreateAsBtc(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoKey key, int scheme);
-    BRCryptoKey cryptoWalletSweeperGetKey(BRCryptoWalletSweeper sweeper);
-    BRCryptoAmount cryptoWalletSweeperGetBalance(BRCryptoWalletSweeper sweeper);
-    Pointer cryptoWalletSweeperGetAddress(BRCryptoWalletSweeper sweeper);
-    int cryptoWalletSweeperHandleTransactionAsBTC(BRCryptoWalletSweeper sweeper, byte[] transaction, SizeT transactionLen);
-    int cryptoWalletSweeperValidate(BRCryptoWalletSweeper sweeper);
-    void cryptoWalletSweeperRelease(BRCryptoWalletSweeper sweeper);
-
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 }

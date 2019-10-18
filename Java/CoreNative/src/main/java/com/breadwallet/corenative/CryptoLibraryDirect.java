@@ -176,6 +176,16 @@ public final class CryptoLibraryDirect {
     public static native BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (Pointer migrator, int address, short port, long services, int timestamp);
     public static native void cryptoWalletMigratorRelease(Pointer migrator);
 
+    // crypto/BRCryptoWalletManager.h (BRCryptoWalletSweeper)
+    public static native int cryptoWalletSweeperValidateSupported(Pointer network, Pointer currency, Pointer key, Pointer wallet);
+    public static native Pointer cryptoWalletSweeperCreateAsBtc(Pointer network, Pointer currency, Pointer key, int scheme);
+    public static native Pointer cryptoWalletSweeperGetKey(Pointer sweeper);
+    public static native Pointer cryptoWalletSweeperGetBalance(Pointer sweeper);
+    public static native Pointer cryptoWalletSweeperGetAddress(Pointer sweeper);
+    public static native int cryptoWalletSweeperHandleTransactionAsBTC(Pointer sweeper, byte[] transaction, SizeT transactionLen);
+    public static native int cryptoWalletSweeperValidate(Pointer sweeper);
+    public static native void cryptoWalletSweeperRelease(Pointer sweeper);
+
     //
     // Crypto Primitives
     //
