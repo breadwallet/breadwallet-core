@@ -72,15 +72,6 @@ public interface CryptoLibrary extends Library {
     UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
     void cryptoAmountGive(BRCryptoAmount obj);
 
-    // crypto/BRCryptoCurrency.h
-    Pointer cryptoCurrencyGetUids(BRCryptoCurrency currency);
-    Pointer cryptoCurrencyGetName(BRCryptoCurrency currency);
-    Pointer cryptoCurrencyGetCode(BRCryptoCurrency currency);
-    Pointer cryptoCurrencyGetType(BRCryptoCurrency currency);
-    Pointer cryptoCurrencyGetIssuer(BRCryptoCurrency currency);
-    int cryptoCurrencyIsIdentical(BRCryptoCurrency c1, BRCryptoCurrency c2);
-    void cryptoCurrencyGive(BRCryptoCurrency obj);
-
     // crypto/BRCryptoFeeBasis.h
     BRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
     BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
@@ -147,8 +138,6 @@ public interface CryptoLibrary extends Library {
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
-    // crypto/BRCryptoPrivate.h
-    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);

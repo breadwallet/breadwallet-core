@@ -38,6 +38,18 @@ public final class CryptoLibraryDirect {
     public static native int cryptoAddressIsIdentical(Pointer a1, Pointer a2);
     public static native void cryptoAddressGive(Pointer obj);
 
+    // crypto/BRCryptoCurrency.h
+    public static native Pointer cryptoCurrencyGetUids(Pointer currency);
+    public static native Pointer cryptoCurrencyGetName(Pointer currency);
+    public static native Pointer cryptoCurrencyGetCode(Pointer currency);
+    public static native Pointer cryptoCurrencyGetType(Pointer currency);
+    public static native Pointer cryptoCurrencyGetIssuer(Pointer currency);
+    public static native int cryptoCurrencyIsIdentical(Pointer c1, Pointer c2);
+    public static native void cryptoCurrencyGive(Pointer obj);
+
+    // crypto/BRCryptoPrivate.h
+    public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
+
     //
     // Crypto Primitives
     //
