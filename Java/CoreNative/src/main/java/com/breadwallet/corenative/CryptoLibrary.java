@@ -307,14 +307,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator, int address, short port, long services, int timestamp);
     void cryptoWalletMigratorRelease(BRCryptoWalletMigrator migrator);
 
-    // crypto/BRCryptoCoder.h
-    BRCryptoCoder cryptoCoderCreate(int type);
-    SizeT cryptoCoderEncodeLength(BRCryptoCoder coder, byte[] src, SizeT srcLen);
-    int cryptoCoderEncode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
-    SizeT cryptoCoderDecodeLength(BRCryptoCoder coder, byte[] src);
-    int cryptoCoderDecode(BRCryptoCoder coder, byte[] dst, SizeT dstLen, byte[] src);
-    void cryptoCoderGive(BRCryptoCoder coder);
-
     // crypto/BRCryptoCipher.h
     BRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
     BRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
