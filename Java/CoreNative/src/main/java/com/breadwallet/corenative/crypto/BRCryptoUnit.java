@@ -40,12 +40,12 @@ public class BRCryptoUnit extends PointerType {
         );
     }
 
-    public BRCryptoUnit(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoUnit() {
         super();
+    }
+
+    public BRCryptoUnit(Pointer address) {
+        super(address);
     }
 
     public String getUids() {

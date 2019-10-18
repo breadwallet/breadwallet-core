@@ -7,11 +7,13 @@
  */
 package com.breadwallet.corenative;
 
+import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.StringArray;
+import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 
@@ -37,6 +39,24 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoAddressAsString(Pointer address);
     public static native int cryptoAddressIsIdentical(Pointer a1, Pointer a2);
     public static native void cryptoAddressGive(Pointer obj);
+
+    // crypto/BRCryptoAmount.h
+    public static native Pointer cryptoAmountCreateDouble(double value, Pointer unit);
+    public static native Pointer cryptoAmountCreateInteger(long value, Pointer unit);
+    public static native Pointer cryptoAmountCreateString(String value, int isNegative, Pointer unit);
+    public static native Pointer cryptoAmountGetCurrency(Pointer amount);
+    public static native Pointer cryptoAmountGetUnit(Pointer amount);
+    public static native int cryptoAmountHasCurrency(Pointer amount, Pointer currency);
+    public static native int cryptoAmountIsNegative(Pointer amount);
+    public static native int cryptoAmountIsCompatible(Pointer a1, Pointer a2);
+    public static native int cryptoAmountCompare(Pointer a1, Pointer a2);
+    public static native Pointer cryptoAmountAdd(Pointer a1, Pointer a2);
+    public static native Pointer cryptoAmountSub(Pointer a1, Pointer a2);
+    public static native Pointer cryptoAmountNegate(Pointer amount);
+    public static native Pointer cryptoAmountConvertToUnit(Pointer amount, Pointer unit);
+    public static native double cryptoAmountGetDouble(Pointer amount, Pointer unit, IntByReference overflow);
+    public static native UInt256.ByValue cryptoAmountGetValue(Pointer amount);
+    public static native void cryptoAmountGive(Pointer obj);
 
     // crypto/BRCryptoCurrency.h
     public static native Pointer cryptoCurrencyGetUids(Pointer currency);

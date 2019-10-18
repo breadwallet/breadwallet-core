@@ -54,24 +54,6 @@ public interface CryptoLibrary extends Library {
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
-    // crypto/BRCryptoAmount.h
-    BRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
-    BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
-    BRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
-    BRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
-    BRCryptoUnit cryptoAmountGetUnit(BRCryptoAmount brCryptoAmount);
-    int cryptoAmountHasCurrency(BRCryptoAmount amount, BRCryptoCurrency currency);
-    int cryptoAmountIsNegative(BRCryptoAmount amount);
-    int cryptoAmountIsCompatible(BRCryptoAmount a1, BRCryptoAmount a2);
-    int cryptoAmountCompare(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount cryptoAmountAdd(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount cryptoAmountSub(BRCryptoAmount a1, BRCryptoAmount a2);
-    BRCryptoAmount cryptoAmountNegate(BRCryptoAmount amount);
-    BRCryptoAmount cryptoAmountConvertToUnit(BRCryptoAmount amount, BRCryptoUnit unit);
-    double cryptoAmountGetDouble(BRCryptoAmount amount, BRCryptoUnit unit, IntByReference overflow);
-    UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
-    void cryptoAmountGive(BRCryptoAmount obj);
-
     // crypto/BRCryptoKey.h
     int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
     BRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
