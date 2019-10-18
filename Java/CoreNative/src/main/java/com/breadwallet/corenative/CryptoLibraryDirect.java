@@ -14,6 +14,15 @@ import com.sun.jna.Pointer;
 public final class CryptoLibraryDirect {
 
     //
+    // Crypto Core
+    //
+
+    // crypto/BRCryptoAddress.h
+    public static native Pointer cryptoAddressAsString(Pointer address);
+    public static native int cryptoAddressIsIdentical(Pointer a1, Pointer a2);
+    public static native void cryptoAddressGive(Pointer obj);
+
+    //
     // Crypto Primitives
     //
 

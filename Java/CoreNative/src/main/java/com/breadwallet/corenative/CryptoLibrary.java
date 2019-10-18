@@ -66,11 +66,6 @@ public interface CryptoLibrary extends Library {
     int cryptoAccountValidatePaperKey(ByteBuffer phraseBuffer, StringArray wordsArray);
     void cryptoAccountGive(BRCryptoAccount obj);
 
-    // crypto/BRCryptoAddress.h
-    Pointer cryptoAddressAsString(BRCryptoAddress address);
-    int cryptoAddressIsIdentical(BRCryptoAddress a1, BRCryptoAddress a2);
-    void cryptoAddressGive(BRCryptoAddress obj);
-
     // crypto/BRCryptoAmount.h
     BRCryptoAmount cryptoAmountCreateDouble(double value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
