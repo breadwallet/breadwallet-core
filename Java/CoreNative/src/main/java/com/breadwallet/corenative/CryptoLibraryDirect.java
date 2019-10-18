@@ -7,7 +7,10 @@
  */
 package com.breadwallet.corenative;
 
+import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
+import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
 import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
@@ -204,6 +207,37 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
 
+    // crypto/BRCryptoWalletManager.h
+    public static native Pointer cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
+                                                           BRCryptoCWMClient.ByValue client,
+                                                           Pointer account,
+                                                           Pointer network,
+                                                           int mode,
+                                                           int addressScheme,
+                                                           String path);
+    public static native Pointer cryptoWalletManagerGetNetwork(Pointer cwm);
+    public static native Pointer cryptoWalletManagerGetAccount(Pointer cwm);
+    public static native int cryptoWalletManagerGetMode(Pointer cwm);
+    public static native void cryptoWalletManagerSetMode(Pointer cwm, int mode);
+    public static native BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(Pointer cwm);
+    public static native int cryptoWalletManagerGetAddressScheme (Pointer cwm);
+    public static native void cryptoWalletManagerSetAddressScheme (Pointer cwm, int scheme);
+    public static native Pointer cryptoWalletManagerGetPath(Pointer cwm);
+    public static native void cryptoWalletManagerSetNetworkReachable(Pointer cwm, int isNetworkReachable);
+    public static native Pointer cryptoWalletManagerGetWallet(Pointer cwm);
+    public static native Pointer cryptoWalletManagerGetWallets(Pointer cwm, SizeTByReference count);
+    public static native int cryptoWalletManagerHasWallet(Pointer cwm, Pointer wallet);
+    public static native Pointer cryptoWalletManagerRegisterWallet(Pointer cwm, Pointer currency);
+    public static native void cryptoWalletManagerConnect(Pointer cwm, Pointer peer);
+    public static native void cryptoWalletManagerDisconnect(Pointer cwm);
+    public static native void cryptoWalletManagerSync(Pointer cwm);
+    public static native void cryptoWalletManagerSyncToDepth(Pointer cwm, int depth);
+    public static native void cryptoWalletManagerStop(Pointer cwm);
+    public static native void cryptoWalletManagerSubmit(Pointer cwm, Pointer wid, Pointer tid, ByteBuffer paperKey);
+    public static native void cryptoWalletManagerSubmitForKey(Pointer cwm, Pointer wid, Pointer tid, Pointer key);
+    public static native Pointer cryptoWalletManagerTake(Pointer cwm);
+    public static native void cryptoWalletManagerGive(Pointer cwm);
+
     // crypto/BRCryptoWalletManager.h (BRCryptoWalletMigrator)
     public static native Pointer cryptoWalletMigratorCreate(Pointer network, String storagePath);
     public static native BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandleTransactionAsBTC (Pointer migrator, byte[] bytes, SizeT bytesCount, int blockHeight, int timestamp);
@@ -220,6 +254,44 @@ public final class CryptoLibraryDirect {
     public static native int cryptoWalletSweeperHandleTransactionAsBTC(Pointer sweeper, byte[] transaction, SizeT transactionLen);
     public static native int cryptoWalletSweeperValidate(Pointer sweeper);
     public static native void cryptoWalletSweeperRelease(Pointer sweeper);
+
+    // crypto/BRCryptoWalletManagerClient.h
+    public static native void cwmAnnounceGetBlockNumberSuccessAsInteger(Pointer cwm, Pointer callbackState,long blockNumber);
+    public static native void cwmAnnounceGetBlockNumberSuccessAsString(Pointer cwm, Pointer callbackState, String blockNumber);
+    public static native void cwmAnnounceGetBlockNumberFailure(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceGetTransactionsItemBTC(Pointer cwm, Pointer callbackState,
+                                           byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
+    public static native void cwmAnnounceGetTransactionsItemETH(Pointer cwm, Pointer callbackState,
+                                           String hash, String sourceAddr, String targetAddr, String contractAddr,
+                                           String amount, String gasLimit, String gasPrice, String data, String nonce,
+                                           String gasUsed, String blockNumber, String blockHash,
+                                           String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
+                                           String isError);
+    public static native void cwmAnnounceGetTransactionsItemGEN(Pointer cwm, Pointer callbackState,
+                                           byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
+    public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
+    public static native void cwmAnnounceSubmitTransferSuccess(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceSubmitTransferSuccessForHash(Pointer cwm, Pointer callbackState, String hash);
+    public static native void cwmAnnounceSubmitTransferFailure(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceGetBalanceSuccess(Pointer cwm, Pointer callbackState, String balance);
+    public static native void cwmAnnounceGetBalanceFailure(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceGetBlocksSuccess(Pointer cwm, Pointer callbackState, int length,long[] blockArray);
+    public static native void cwmAnnounceGetBlocksFailure(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceGetGasPriceSuccess(Pointer cwm, Pointer callbackState, String gasPrice);
+    public static native void cwmAnnounceGetGasPriceFailure(Pointer cwm, Pointer callbackState);
+    public static native void cwmAnnounceGetGasEstimateSuccess(Pointer cwm, Pointer callbackState, String gasEstimate, String gasPrice);
+    public static native void cwmAnnounceGetGasEstimateFailure(Pointer cwm, Pointer callbackState, int status);
+    public static native void cwmAnnounceGetLogsItem(Pointer cwm, Pointer callbackState, String hash,
+                                String contract, int size, StringArray topicsArray, String data, String gasPrice,
+                                String gasUsed, String logIndex, String blockNumber, String blockTransactionIndex,
+                                String blockTimestamp);
+    public static native void cwmAnnounceGetLogsComplete(Pointer cwm, Pointer callbackState, int success);
+    public static native void cwmAnnounceGetTokensItem(Pointer cwm, Pointer callbackState, String address,
+                                  String symbol, String name, String description, int intValue, String gasLimit,
+                                  String gasPrice);
+    public static native void cwmAnnounceGetTokensComplete(Pointer cwm, Pointer callbackState, int success);
+    public static native void cwmAnnounceGetNonceSuccess(Pointer cwm, Pointer callbackState, String address,String nonce);
+    public static native void cwmAnnounceGetNonceFailure(Pointer cwm, Pointer callbackState);
 
     //
     // Crypto Primitives
