@@ -91,12 +91,6 @@ public interface CryptoLibrary extends Library {
     UInt256.ByValue cryptoKeyGetSecret(BRCryptoKey key);
     void cryptoKeyGive(BRCryptoKey key);
 
-    // crypto/BRCryptoHash.h
-    int cryptoHashEqual(BRCryptoHash h1, BRCryptoHash h2);
-    Pointer cryptoHashString(BRCryptoHash hash);
-    int cryptoHashGetHashValue(BRCryptoHash hash);
-    void cryptoHashGive(BRCryptoHash obj);
-
     // crypto/BRCryptoNetwork.h
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);

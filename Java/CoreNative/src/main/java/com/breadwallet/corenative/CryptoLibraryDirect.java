@@ -55,6 +55,12 @@ public final class CryptoLibraryDirect {
     public static native int cryptoFeeBasisIsIdentical(Pointer f1, Pointer f2);
     public static native void cryptoFeeBasisGive(Pointer obj);
 
+    // crypto/BRCryptoHash.h
+    public static native int cryptoHashEqual(Pointer h1, Pointer h2);
+    public static native Pointer cryptoHashString(Pointer hash);
+    public static native int cryptoHashGetHashValue(Pointer hash);
+    public static native void cryptoHashGive(Pointer obj);
+
     // crypto/BRCryptoPrivate.h
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
 
