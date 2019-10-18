@@ -8,17 +8,16 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-import com.sun.jna.ptr.PointerByReference;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,26 +26,61 @@ public class BRCryptoNetwork extends PointerType {
 
     public static BRCryptoNetwork createAsBtc(String uids, String name, boolean isMainnet) {
         Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRMainNetParams" : "BRTestNetParams");
-        return CryptoLibrary.INSTANCE.cryptoNetworkCreateAsBTC(uids, name, (byte) (isMainnet ? 0x00 : 0x40), globalPtr.getPointer(0));
+        return new BRCryptoNetwork(
+                CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
+                        uids,
+                        name,
+                        (byte) (isMainnet ? 0x00 : 0x40),
+                        globalPtr.getPointer(0)
+                )
+        );
     }
 
     public static BRCryptoNetwork createAsBch(String uids, String name, boolean isMainnet) {
         Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRBCashParams" : "BRBCashTestNetParams");
-        return CryptoLibrary.INSTANCE.cryptoNetworkCreateAsBTC(uids, name, (byte) (isMainnet ? 0x00 : 0x40), globalPtr.getPointer(0));
+        return new BRCryptoNetwork(
+                CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
+                        uids,
+                        name,
+                        (byte) (isMainnet ? 0x00 : 0x40),
+                        globalPtr.getPointer(0)
+                )
+        );
     }
 
     public static Optional<BRCryptoNetwork> createAsEth(String uids, String name, boolean isMainnet) {
         if (uids.contains("mainnet")) {
             Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumMainnet");
-            return Optional.of(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsETH(uids, name, 1, globalPtr.getPointer(0)));
+            return Optional.of(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                            uids,
+                            name,
+                            1,
+                            globalPtr.getPointer(0)
+                    )
+            ).transform(BRCryptoNetwork::new);
 
         } else if (uids.contains("testnet") || uids.contains("ropsten")) {
             Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumTestnet");
-            return Optional.of(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsETH(uids, name, 3, globalPtr.getPointer(0)));
+            return Optional.of(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                            uids,
+                            name,
+                            3,
+                            globalPtr.getPointer(0)
+                    )
+            ).transform(BRCryptoNetwork::new);
 
         } else if (uids.contains ("rinkeby")) {
             Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumRinkeby");
-            return Optional.of(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsETH(uids, name, 4, globalPtr.getPointer(0)));
+            return Optional.of(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                            uids,
+                            name,
+                            4,
+                            globalPtr.getPointer(0)
+                    )
+            ).transform(BRCryptoNetwork::new);
 
         } else {
             return Optional.absent();
@@ -54,42 +88,71 @@ public class BRCryptoNetwork extends PointerType {
     }
 
     public static BRCryptoNetwork createAsGen(String uids, String name, boolean isMainnet) {
-        return CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name, isMainnet ? (byte) 1 : 0);
-    }
-
-    public BRCryptoNetwork(Pointer address) {
-        super(address);
+        return new BRCryptoNetwork(
+                CryptoLibraryDirect.cryptoNetworkCreateAsGEN(
+                        uids,
+                        name,
+                        isMainnet ? (byte) 1 : 0
+                )
+        );
     }
 
     public BRCryptoNetwork() {
         super();
     }
 
+    public BRCryptoNetwork(Pointer address) {
+        super(address);
+    }
+
     public BRCryptoCurrency getCurrency() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetCurrency(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(
+                CryptoLibraryDirect.cryptoNetworkGetCurrency(
+                        thisPtr
+                )
+        );
     }
 
     public void setCurrency(BRCryptoCurrency currency) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetCurrency(this, currency);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkSetCurrency(
+                thisPtr,
+                currency.getPointer()
+        );
     }
 
     public boolean hasCurrency(BRCryptoCurrency currency) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkHasCurrency(this, currency);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoNetworkHasCurrency(thisPtr, currency.getPointer());
     }
 
     public UnsignedLong getCurrencyCount() {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyCount(this).longValue());
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedLong.fromLongBits(CryptoLibraryDirect.cryptoNetworkGetCurrencyCount(thisPtr).longValue());
     }
 
     public BRCryptoCurrency getCurrency(UnsignedLong index) {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyAt(this,
-                new SizeT(index.longValue()));
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(
+                CryptoLibraryDirect.cryptoNetworkGetCurrencyAt(
+                        thisPtr,
+                        new SizeT(index.longValue())
+                )
+        );
     }
 
     public List<BRCryptoNetworkFee> getFees() {
+        Pointer thisPtr = this.getPointer();
+
         List<BRCryptoNetworkFee> fees = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
-        Pointer feesPtr = CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFees(this, count);
+        Pointer feesPtr = CryptoLibraryDirect.cryptoNetworkGetNetworkFees(thisPtr, count);
         if (null != feesPtr) {
             try {
                 int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
@@ -105,77 +168,151 @@ public class BRCryptoNetwork extends PointerType {
     }
 
     public void setFees(List<BRCryptoNetworkFee> fees) {
+        Pointer thisPtr = this.getPointer();
+
         BRCryptoNetworkFee[] cryptoFees = new BRCryptoNetworkFee[fees.size()];
         for (int i = 0; i < fees.size(); i++) cryptoFees[i] = fees.get(i);
 
-        CryptoLibrary.INSTANCE.cryptoNetworkSetNetworkFees(this, cryptoFees, new SizeT(cryptoFees.length));
+        CryptoLibrary.INSTANCE.cryptoNetworkSetNetworkFees(thisPtr, cryptoFees, new SizeT(cryptoFees.length));
     }
 
     public String getUids() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetUids(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoNetworkGetUids(thisPtr).getString(0, "UTF-8");
     }
 
     public boolean isMainnet() {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkIsMainnet(this);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoNetworkIsMainnet(thisPtr);
     }
 
     public UnsignedLong getHeight() {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetHeight(this));
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedLong.fromLongBits(CryptoLibraryDirect.cryptoNetworkGetHeight(thisPtr));
     }
 
     public void setHeight(UnsignedLong height) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetHeight(this, height.longValue());
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkSetHeight(thisPtr, height.longValue());
     }
 
     public UnsignedInteger getConfirmationsUntilFinal() {
-        return UnsignedInteger.fromIntBits(CryptoLibrary.INSTANCE.cryptoNetworkGetConfirmationsUntilFinal(this));
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedInteger.fromIntBits(CryptoLibraryDirect.cryptoNetworkGetConfirmationsUntilFinal(thisPtr));
     }
 
     public void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetConfirmationsUntilFinal(this, confirmationsUntilFinal.intValue());
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkSetConfirmationsUntilFinal(thisPtr, confirmationsUntilFinal.intValue());
     }
 
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetName(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoNetworkGetName(thisPtr).getString(0, "UTF-8");
     }
 
-    public void addFee(BRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddNetworkFee(this, fee);
+    public void addFee(BRCryptoNetworkFee networkFee) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkAddNetworkFee(
+                thisPtr,
+                networkFee.getPointer()
+        );
     }
 
     public void addCurrency(BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrency(this, currency, baseUnit, defaultUnit);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkAddCurrency(
+                thisPtr,
+                currency.getPointer(),
+                baseUnit.getPointer(),
+                defaultUnit.getPointer()
+        );
     }
 
     public void addCurrencyUnit(BRCryptoCurrency currency, BRCryptoUnit unit) {
-        CryptoLibrary.INSTANCE.cryptoNetworkAddCurrencyUnit(this, currency, unit);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkAddCurrencyUnit(
+                thisPtr,
+                currency.getPointer(),
+                unit.getPointer()
+        );
     }
 
     public Optional<BRCryptoUnit> getUnitAsBase(BRCryptoCurrency currency) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsBase(this, currency));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoNetworkGetUnitAsBase(
+                        thisPtr,
+                        currency.getPointer()
+                )
+        ).transform(BRCryptoUnit::new);
     }
 
     public Optional<BRCryptoUnit> getUnitAsDefault(BRCryptoCurrency currency) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAsDefault(this, currency));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoNetworkGetUnitAsDefault(
+                        thisPtr,
+                        currency.getPointer()
+                )
+        ).transform(BRCryptoUnit::new);
     }
 
     public UnsignedLong getUnitCount(BRCryptoCurrency currency) {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitCount(this, currency).longValue());
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedLong.fromLongBits(
+                CryptoLibraryDirect.cryptoNetworkGetUnitCount(
+                        thisPtr,
+                        currency.getPointer()
+                ).longValue()
+        );
     }
 
     public Optional<BRCryptoUnit> getUnitAt(BRCryptoCurrency currency, UnsignedLong index) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAt(this, currency, new SizeT(index.longValue())));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoNetworkGetUnitAt(
+                        thisPtr,
+                        currency.getPointer(),
+                        new SizeT(index.longValue())
+                )
+        ).transform(BRCryptoUnit::new);
     }
 
     public Optional<BRCryptoAddress> addressFor(String address) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkCreateAddressFromString(this, address));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoNetworkCreateAddressFromString(
+                        thisPtr,
+                        address
+                )
+        ).transform(BRCryptoAddress::new);
     }
 
     public BRCryptoNetwork take() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkTake(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoNetwork(CryptoLibraryDirect.cryptoNetworkTake(thisPtr));
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoNetworkGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkGive(thisPtr);
     }
 }

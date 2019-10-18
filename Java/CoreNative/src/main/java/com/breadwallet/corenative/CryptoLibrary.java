@@ -55,35 +55,7 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoNetwork.h
-    Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
-    Pointer cryptoNetworkGetName(BRCryptoNetwork network);
-    int cryptoNetworkIsMainnet(BRCryptoNetwork network);
-    BRCryptoCurrency cryptoNetworkGetCurrency(BRCryptoNetwork network);
-    BRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
-    long cryptoNetworkGetHeight(BRCryptoNetwork network);
-    int cryptoNetworkGetConfirmationsUntilFinal(BRCryptoNetwork network);
-    void cryptoNetworkSetConfirmationsUntilFinal(BRCryptoNetwork network, int confirmationsUntilFinal);
-    SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
-    BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
-    int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
-    SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
-    void cryptoNetworkSetNetworkFees(BRCryptoNetwork network, BRCryptoNetworkFee[] fees, SizeT count);
-    Pointer cryptoNetworkGetNetworkFees(BRCryptoNetwork network, SizeTByReference count);
-    BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
-    BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
-    void cryptoNetworkGive(BRCryptoNetwork obj);
-
-    // crypto/BRCryptoPrivate.h
-    void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
-    void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
-    BRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
-    BRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
-    void cryptoNetworkAddCurrency(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
-    void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
-    void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
+    void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
 
     // crypto/BRCryptoWalletManager.h
     BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,

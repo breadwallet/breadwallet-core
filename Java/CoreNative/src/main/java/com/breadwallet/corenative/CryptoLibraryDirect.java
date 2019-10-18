@@ -105,6 +105,27 @@ public final class CryptoLibraryDirect {
     public static native UInt256.ByValue cryptoKeyGetSecret(Pointer key);
     public static native void cryptoKeyGive(Pointer key);
 
+    // crypto/BRCryptoNetwork.h
+    public static native Pointer cryptoNetworkGetUids(Pointer network);
+    public static native Pointer cryptoNetworkGetName(Pointer network);
+    public static native int cryptoNetworkIsMainnet(Pointer network);
+    public static native Pointer cryptoNetworkGetCurrency(Pointer network);
+    public static native Pointer cryptoNetworkGetUnitAsDefault(Pointer network, Pointer currency);
+    public static native Pointer cryptoNetworkGetUnitAsBase(Pointer network, Pointer currency);
+    public static native long cryptoNetworkGetHeight(Pointer network);
+    public static native int cryptoNetworkGetConfirmationsUntilFinal(Pointer network);
+    public static native void cryptoNetworkSetConfirmationsUntilFinal(Pointer network, int confirmationsUntilFinal);
+    public static native SizeT cryptoNetworkGetCurrencyCount(Pointer network);
+    public static native Pointer cryptoNetworkGetCurrencyAt(Pointer network, SizeT index);
+    public static native int cryptoNetworkHasCurrency(Pointer network, Pointer currency);
+    public static native SizeT cryptoNetworkGetUnitCount(Pointer network, Pointer currency);
+    public static native Pointer cryptoNetworkGetUnitAt(Pointer network, Pointer currency, SizeT index);
+    // public static native void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
+    public static native Pointer cryptoNetworkGetNetworkFees(Pointer network, SizeTByReference count);
+    public static native Pointer cryptoNetworkCreateAddressFromString(Pointer network, String address);
+    public static native Pointer cryptoNetworkTake(Pointer obj);
+    public static native void cryptoNetworkGive(Pointer obj);
+
     // crypto/BRCryptoNetwork.h (BRCryptoNetworkFee)
     public static native long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(Pointer fee);
     public static native int cryptoNetworkFeeEqual(Pointer fee, Pointer other);
@@ -119,9 +140,23 @@ public final class CryptoLibraryDirect {
     public static native int cryptoPeerIsIdentical(Pointer peer, Pointer other);
     public static native void cryptoPeerGive(Pointer peer);
 
-    // crypto/BRCryptoPrivate.h
+    // crypto/BRCryptoPrivate.h (BRCryptoCurrency)
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
+
+    // crypto/BRCryptoPrivate.h (BRCryptoNetworkFee)
     public static native Pointer cryptoNetworkFeeCreate(long timeInternalInMilliseconds, Pointer pricePerCostFactor, Pointer pricePerCostFactorUnit);
+
+    // crypto/BRCryptoPrivate.h (BRCryptoNetwork)
+    public static native Pointer cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
+    public static native Pointer cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
+    public static native Pointer cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
+    public static native void cryptoNetworkSetHeight(Pointer network, long height);
+    public static native void cryptoNetworkSetCurrency(Pointer network, Pointer currency);
+    public static native void cryptoNetworkAddCurrency(Pointer network, Pointer currency, Pointer baseUnit, Pointer defaultUnit);
+    public static native void cryptoNetworkAddCurrencyUnit(Pointer network, Pointer currency, Pointer unit);
+    public static native void cryptoNetworkAddNetworkFee(Pointer network, Pointer networkFee);
+
+    // crypto/BRCryptoPrivate.h (BRCryptoUnit)
     public static native Pointer cryptoUnitCreateAsBase(Pointer currency, String uids, String name, String symbol);
     public static native Pointer cryptoUnitCreate(Pointer currency, String uids, String name, String symbol, Pointer base, byte decimals);
 
