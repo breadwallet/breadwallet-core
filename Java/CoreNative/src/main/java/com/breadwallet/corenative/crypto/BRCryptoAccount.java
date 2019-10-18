@@ -131,21 +131,7 @@ public class BRCryptoAccount extends PointerType {
                 serialization, new SizeT(serialization.length));
     }
 
-    public static class OwnedBRCryptoAccount extends BRCryptoAccount {
-
-        public OwnedBRCryptoAccount(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoAccount() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoAccountGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoAccountGive(this);
     }
 }

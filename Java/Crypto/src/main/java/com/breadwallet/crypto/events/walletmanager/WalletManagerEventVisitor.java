@@ -23,6 +23,8 @@ public interface WalletManagerEventVisitor<T> {
 
     T visit(WalletManagerSyncStoppedEvent event);
 
+    T visit(WalletManagerSyncRecommendedEvent event);
+
     T visit(WalletManagerWalletAddedEvent event);
 
     T visit(WalletManagerWalletChangedEvent event);

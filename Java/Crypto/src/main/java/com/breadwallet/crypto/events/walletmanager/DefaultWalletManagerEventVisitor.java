@@ -47,6 +47,11 @@ public abstract class DefaultWalletManagerEventVisitor<T> implements WalletManag
     }
 
     @Nullable
+    public T visit(WalletManagerSyncRecommendedEvent event) {
+        return null;
+    }
+
+    @Nullable
     public T visit(WalletManagerWalletAddedEvent event) {
         return null;
     }

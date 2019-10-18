@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import okhttp3.Call;
@@ -87,7 +88,7 @@ public class BrdApiClient {
     }
 
     private String getNetworkName(String networkName) {
-        networkName = networkName.toLowerCase();
+        networkName = networkName.toLowerCase(Locale.ROOT);
         return networkName.equals("testnet") ? "ropsten" : networkName;
     }
 

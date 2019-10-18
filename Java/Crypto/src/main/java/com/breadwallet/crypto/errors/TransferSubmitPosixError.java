@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.errors;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class TransferSubmitPosixError extends TransferSubmitError {
@@ -14,7 +15,7 @@ public final class TransferSubmitPosixError extends TransferSubmitError {
     private final int errnum;
 
     public TransferSubmitPosixError(int errnum, String message) {
-        super(String.format("Posix (%d: %s)", errnum, message));
+        super(String.format(Locale.ROOT, "Posix (%d: %s)", errnum, message));
         this.errnum = errnum;
     }
 

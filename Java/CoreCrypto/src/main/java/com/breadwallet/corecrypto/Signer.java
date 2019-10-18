@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoSigner;
 import com.google.common.base.Optional;
 
@@ -31,7 +32,13 @@ final class Signer implements com.breadwallet.crypto.Signer {
         }
 
         checkNotNull(core);
-        return new Signer(core);
+        return Signer.create(core);
+    }
+
+    private static Signer create(BRCryptoSigner core) {
+        Signer signer = new Signer(core);
+        ReferenceCleaner.register(signer, core::give);
+        return signer;
     }
 
     private final BRCryptoSigner core;
@@ -42,7 +49,8 @@ final class Signer implements com.breadwallet.crypto.Signer {
 
     @Override
     public Optional<byte[]> sign(byte[] digest, com.breadwallet.crypto.Key key) {
-        return core.sign(digest, Key.from(key).getBRCryptoKey());
+        Key cryptoKey = Key.from(key);
+        return core.sign(digest, cryptoKey.getBRCryptoKey());
     }
 
     @Override

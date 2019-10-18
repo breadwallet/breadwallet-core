@@ -107,21 +107,7 @@ public class BRCryptoHasher extends PointerType {
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(hash) : Optional.absent();
     }
 
-    public static class OwnedBRCryptoHasher extends BRCryptoHasher {
-
-        public OwnedBRCryptoHasher(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoHasher() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoHasherGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoHasherGive(this);
     }
 }

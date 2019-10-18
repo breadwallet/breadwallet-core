@@ -94,7 +94,7 @@ public class BRCryptoNetwork extends PointerType {
             try {
                 int feesSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer feePtr: feesPtr.getPointerArray(0, feesSize)) {
-                    fees.add(new BRCryptoNetworkFee.OwnedBRCryptoNetworkFee(feePtr));
+                    fees.add(new BRCryptoNetworkFee(feePtr));
                 }
 
             } finally {
@@ -171,21 +171,11 @@ public class BRCryptoNetwork extends PointerType {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkCreateAddressFromString(this, address));
     }
 
-    public static class OwnedBRCryptoNetwork extends BRCryptoNetwork {
+    public BRCryptoNetwork take() {
+        return CryptoLibrary.INSTANCE.cryptoNetworkTake(this);
+    }
 
-        public OwnedBRCryptoNetwork(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoNetwork() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoNetworkGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoNetworkGive(this);
     }
 }

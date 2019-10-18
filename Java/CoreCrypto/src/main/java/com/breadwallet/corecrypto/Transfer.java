@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
@@ -16,12 +17,21 @@ import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /* package */
 final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
-    static Transfer create(BRCryptoTransfer transfer, Wallet wallet) {
-        return new Transfer(transfer, wallet);
+    static Transfer takeAndCreate(BRCryptoTransfer core, Wallet wallet) {
+        return Transfer.create(core.take(), wallet);
+    }
+
+    /* package */
+    static Transfer create(BRCryptoTransfer core, Wallet wallet) {
+        Transfer transfer = new Transfer(core, wallet);
+        ReferenceCleaner.register(transfer, core::give);
+        return transfer;
     }
 
     /* package */
@@ -91,8 +101,9 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Amount getFee() {
-        // TODO(fix): Unchecked get here
-        return getConfirmedFeeBasis().or(getEstimatedFeeBasis().get()).getFee();
+        Optional<TransferFeeBasis> maybeFee = getConfirmedFeeBasis().or(getEstimatedFeeBasis());
+        checkState(maybeFee.isPresent());
+        return maybeFee.get().getFee();
     }
 
     @Override

@@ -36,21 +36,7 @@ public class BRCryptoAddress extends PointerType {
         }
     }
 
-    public static class OwnedBRCryptoAddress extends BRCryptoAddress {
-
-        public OwnedBRCryptoAddress(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoAddress() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoAddressGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoAddressGive(this);
     }
 }

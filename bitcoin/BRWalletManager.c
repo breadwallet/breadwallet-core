@@ -1593,7 +1593,7 @@ _BRWalletManagerTxDeleted (void *info,
     // filesystem changes are NOT queued; they are acted upon immediately
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
-    bwmSignalTxDeleted (manager, hash);
+    bwmSignalTxDeleted (manager, hash, recommendRescan);
 }
 
 /// MARK: Wallet Callback Event Handlers
@@ -1654,7 +1654,8 @@ bwmHandleTxUpdated (BRWalletManager manager,
 
 extern void
 bwmHandleTxDeleted (BRWalletManager manager,
-                    UInt256 hash) {
+                    UInt256 hash,
+                    int recommendRescan) {
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
     assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
@@ -1668,6 +1669,17 @@ bwmHandleTxDeleted (BRWalletManager manager,
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_DELETED
                               });
+
+    if (recommendRescan) {
+        // When that happens it's because the wallet believes its missing spend tx, causing new tx to get
+        // rejected as a double spend because of how the input selection works. You should only have to
+        // scan from the most recent successful spend.
+        bwmSignalWalletManagerEvent(manager,
+                                    (BRWalletManagerEvent) {
+                                        BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED,
+                                        { .syncRecommended = { SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND } }
+                                    });
+    }
 }
 
 ///
@@ -2119,6 +2131,9 @@ BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
         return "BITCOIN_WALLET_MANAGER_SYNC_STOPPED";
 
+        case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
+        return "BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED";
+
         case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
         return "BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED";
     }
@@ -2133,6 +2148,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
             switch (t2) {
                 case BITCOIN_WALLET_MANAGER_CONNECTED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2150,6 +2166,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_DISCONNECTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2165,6 +2182,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
             switch (t2) {
                 case BITCOIN_WALLET_MANAGER_CONNECTED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2182,6 +2200,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2198,6 +2217,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2214,6 +2234,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_DISCONNECTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 
@@ -2221,6 +2242,23 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_CONNECTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
                 isValid = 0;
                 break;
             }
@@ -2233,6 +2271,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
                 case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                case BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED:
                 isValid = 1;
                 break;
 

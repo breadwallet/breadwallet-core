@@ -78,6 +78,8 @@ extension WalletManagerEvent: MatchableEvent {
         case (.syncStarted, .syncStarted): return true
         case (let .syncProgress (progress1), let .syncProgress (progress2)):
             return !strict || (progress1 == progress2)
+        case (let .syncRecommended (depth1), let .syncRecommended (depth2)):
+            return !strict || (depth1 == depth2)
         case (let .syncEnded (error1), let .syncEnded (error2)):
             return !strict || (error1 == error2)
         case (let .blockUpdated (height1), let .blockUpdated (height2)):
