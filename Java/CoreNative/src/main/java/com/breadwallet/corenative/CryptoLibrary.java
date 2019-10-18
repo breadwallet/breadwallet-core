@@ -54,25 +54,6 @@ public interface CryptoLibrary extends Library {
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
-    // crypto/BRCryptoKey.h
-    int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
-    BRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
-    BRCryptoKey cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
-    BRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
-    BRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
-    BRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
-    BRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
-    BRCryptoKey cryptoKeyCreateFromSecret(UInt256.ByValue secret);
-    void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
-    int cryptoKeyHasSecret(BRCryptoKey key);
-    int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
-    int cryptoKeySecretMatch(BRCryptoKey key, BRCryptoKey other);
-    Pointer cryptoKeyEncodePrivate(BRCryptoKey key);
-    Pointer cryptoKeyEncodePublic(BRCryptoKey key);
-    UInt256.ByValue cryptoKeyGetSecret(BRCryptoKey key);
-    void cryptoKeyGive(BRCryptoKey key);
-
     // crypto/BRCryptoNetwork.h
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);

@@ -81,6 +81,25 @@ public final class CryptoLibraryDirect {
     public static native int cryptoHashGetHashValue(Pointer hash);
     public static native void cryptoHashGive(Pointer obj);
 
+    // crypto/BRCryptoKey.h
+    public static native int cryptoKeyIsProtectedPrivate(ByteBuffer keyBuffer);
+    public static native Pointer cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
+    public static native Pointer cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
+    public static native Pointer cryptoKeyCreateFromStringProtectedPrivate(ByteBuffer stringBuffer, ByteBuffer phraseBuffer);
+    public static native Pointer cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
+    public static native Pointer cryptoKeyCreateForPigeon(Pointer key, byte[] nonce, SizeT nonceCount);
+    public static native Pointer cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
+    public static native Pointer cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    public static native Pointer cryptoKeyCreateFromSecret(UInt256.ByValue secret);
+    public static native void cryptoKeyProvidePublicKey(Pointer key, int useCompressed, int compressed);
+    public static native int cryptoKeyHasSecret(Pointer key);
+    public static native int cryptoKeyPublicMatch(Pointer key, Pointer other);
+    public static native int cryptoKeySecretMatch(Pointer key, Pointer other);
+    public static native Pointer cryptoKeyEncodePrivate(Pointer key);
+    public static native Pointer cryptoKeyEncodePublic(Pointer key);
+    public static native UInt256.ByValue cryptoKeyGetSecret(Pointer key);
+    public static native void cryptoKeyGive(Pointer key);
+
     // crypto/BRCryptoPrivate.h
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     public static native Pointer cryptoUnitCreateAsBase(Pointer currency, String uids, String name, String symbol);
