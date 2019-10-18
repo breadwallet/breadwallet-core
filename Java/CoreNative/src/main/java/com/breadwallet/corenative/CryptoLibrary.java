@@ -98,20 +98,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
     void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
-    // crypto/BRCryptoWallet.h
-    int cryptoWalletGetState(BRCryptoWallet wallet);
-    BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
-    Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
-    int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
-    BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
-    BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoTransfer cryptoWalletCreateTransferForWalletSweep(BRCryptoWallet wallet, BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis feeBasis);
-    void cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
-    void cryptoWalletEstimateFeeBasisForWalletSweep(BRCryptoWallet wallet, Pointer cookie, BRCryptoWalletSweeper sweeper, BRCryptoNetworkFee fee);
-    BRCryptoWallet cryptoWalletTake(BRCryptoWallet wallet);
-    void cryptoWalletGive(BRCryptoWallet obj);
-
     // crypto/BRCryptoWalletManager.h
     BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
                                                     BRCryptoCWMClient.ByValue client,
@@ -124,9 +110,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);
-    BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
-    BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
-    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);

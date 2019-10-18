@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInts;
@@ -20,22 +20,26 @@ import java.util.List;
 
 public class BRCryptoWallet extends PointerType {
 
-    public BRCryptoWallet(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoWallet() {
         super();
     }
 
+    public BRCryptoWallet(Pointer address) {
+        super(address);
+    }
+
     public BRCryptoAmount getBalance() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoWalletGetBalance(thisPtr));
     }
 
     public List<BRCryptoTransfer> getTransfers() {
+        Pointer thisPtr = this.getPointer();
+
         List<BRCryptoTransfer> transfers = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
-        Pointer transfersPtr = CryptoLibrary.INSTANCE.cryptoWalletGetTransfers(this, count);
+        Pointer transfersPtr = CryptoLibraryDirect.cryptoWalletGetTransfers(thisPtr, count);
         if (null != transfersPtr) {
             try {
                 int transfersSize = UnsignedInts.checkedCast(count.getValue().longValue());
@@ -52,73 +56,105 @@ public class BRCryptoWallet extends PointerType {
 
 
     public boolean containsTransfer(BRCryptoTransfer transfer) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletHasTransfer(this,
-                transfer);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasTransfer(thisPtr, transfer.getPointer());
     }
 
     public BRCryptoCurrency getCurrency() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(CryptoLibraryDirect.cryptoWalletGetCurrency(thisPtr));
     }
 
     public BRCryptoUnit getUnitForFee() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoWalletGetUnitForFee(thisPtr));
     }
 
     public BRCryptoUnit getUnit() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoWalletGetUnit(thisPtr));
     }
 
     public BRCryptoWalletState getState() {
-        return BRCryptoWalletState.fromCore(CryptoLibrary.INSTANCE.cryptoWalletGetState(this));
-    }
+        Pointer thisPtr = this.getPointer();
 
-    public BRCryptoFeeBasis getDefaultFeeBasis() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
+        return BRCryptoWalletState.fromCore(CryptoLibraryDirect.cryptoWalletGetState(thisPtr));
     }
 
     public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toCore());
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
     public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme.toCore());
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
     public Optional<BRCryptoTransfer> createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
                                                      BRCryptoFeeBasis estimatedFeeBasis) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target, amount, estimatedFeeBasis));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateTransfer(
+                        thisPtr,
+                        target.getPointer(),
+                        amount.getPointer(),
+                        estimatedFeeBasis.getPointer()
+                )
+        ).transform(BRCryptoTransfer::new);
     }
 
     public Optional<BRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransferForWalletSweep(this,
-                sweeper, estimatedFeeBasis));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateTransferForWalletSweep(
+                        thisPtr,
+                        sweeper.getPointer(),
+                        estimatedFeeBasis.getPointer()
+                )
+        ).transform(BRCryptoTransfer::new);
     }
 
     public void estimateFeeBasis(Pointer cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
-                this,
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletEstimateFeeBasis(
+                thisPtr,
                 cookie,
-                target,
-                amount,
-                fee);
+                target.getPointer(),
+                amount.getPointer(),
+                fee.getPointer());
     }
 
     public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
                                                BRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasisForWalletSweep(
-                this,
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForWalletSweep(
+                thisPtr,
                 cookie,
-                sweeper,
-                fee);
+                sweeper.getPointer(),
+                fee.getPointer());
     }
 
     public BRCryptoWallet take() {
-        return CryptoLibrary.INSTANCE.cryptoWalletTake(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoWallet(CryptoLibraryDirect.cryptoWalletTake(thisPtr));
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoWalletGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletGive(thisPtr);
     }
 }

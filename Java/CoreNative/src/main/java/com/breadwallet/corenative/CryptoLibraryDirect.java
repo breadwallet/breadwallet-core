@@ -134,6 +134,22 @@ public final class CryptoLibraryDirect {
     public static native int cryptoUnitIsIdentical(Pointer u1, Pointer u2);
     public static native void cryptoUnitGive(Pointer obj);
 
+    // crypto/BRCryptoWallet.h
+    public static native int cryptoWalletGetState(Pointer wallet);
+    public static native Pointer cryptoWalletGetBalance(Pointer wallet);
+    public static native Pointer cryptoWalletGetTransfers(Pointer wallet, SizeTByReference count);
+    public static native int cryptoWalletHasTransfer(Pointer wallet, Pointer transfer);
+    public static native Pointer cryptoWalletGetAddress(Pointer wallet, int addressScheme);
+    public static native Pointer cryptoWalletGetUnit(Pointer wallet);
+    public static native Pointer cryptoWalletGetUnitForFee(Pointer wallet);
+    public static native Pointer cryptoWalletGetCurrency(Pointer wallet);
+    public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis);
+    public static native Pointer cryptoWalletCreateTransferForWalletSweep(Pointer wallet, Pointer sweeper, Pointer feeBasis);
+    public static native void cryptoWalletEstimateFeeBasis(Pointer wallet, Pointer cookie, Pointer target, Pointer amount, Pointer fee);
+    public static native void cryptoWalletEstimateFeeBasisForWalletSweep(Pointer wallet, Pointer cookie, Pointer sweeper, Pointer fee);
+    public static native Pointer cryptoWalletTake(Pointer wallet);
+    public static native void cryptoWalletGive(Pointer obj);
+
     //
     // Crypto Primitives
     //
