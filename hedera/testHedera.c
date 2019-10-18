@@ -21,6 +21,7 @@
 #include "vendor/ed25519/ed25519.h"
 
 #include "BRHederaTransaction.h"
+#include "BRHederaAccount.h"
 
 static int debug_log = 0;
 
@@ -54,120 +55,76 @@ static void printBytes(const char* message, uint8_t * bytes, size_t byteSize)
     printf("\n");
 }
 
-#define ED25519_SEED_KEY "ed25519 seed"
+const char * paper_key_24 = "inmate flip alley wear offer often piece magnet surge toddler submit right radio absent pear floor belt raven price stove replace reduce plate home";
+const char * public_key_24 = "b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c93894673";
 
-static void _deriveKeyImpl(BRKey *key, const void *seed, size_t seedLen, int depth, va_list vlist)
-{
-    UInt512 I;
-    UInt256 secret, chainCode;
-    assert(depth == 4);
+const char * paper_key_12 = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+const char * public_key_12 = "ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f675585";
 
-    assert(key != NULL);
-    assert(seed != NULL || seedLen == 0);
+static void createTransaction() {
+    // Create a hedera account
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key_24, NULL); // no passphrase
+    BRHederaAccount account = hederaAccountCreateWithSeed(seed);
 
-    if (key && (seed || seedLen == 0)) {
-        // For the first hash the key is "ed25519 seed"
-        BRHMAC(&I, BRSHA512, sizeof(UInt512), ED25519_SEED_KEY, strlen(ED25519_SEED_KEY), seed, seedLen);
+    BRKey publicKey = hederaAccountGetPublicKey(account);
 
-        for (int i = 0; i < depth; i++) {
-            secret = *(UInt256 *)&I;
-            chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
+    BRHederaAccountID source;
+    BRHederaAccountID target;
+    source.shard = 0;
+    source.realm = 0;
+    source.account = 55;
+    target = source;
+    target.account = 78;
+    BRHederaTransaction transaction = hederaTransactionCreate(source, target, 400);
 
-            // Take the result from the first hash and create some new data to hash
-            // data = b'\x00' + secret + ser32(i)
-            uint8_t data[37] = {0};
-            memcpy(&data[1], secret.u8, 32);
-            // Copy the bytes from i to the end of data
-            uint32_t seq = va_arg(vlist, uint32_t);
-            //assert(seq & 0xF0000000); // Needs to be hardened
-            data[33] = (seq & 0xFF000000) >> 24;
-            data[34] = (seq & 0x00FF0000) >> 16;
-            data[35] = (seq & 0x0000FF00) >> 8;
-            data[36] = (seq & 0x000000FF);
-
-            // For the remaining hashing the key is the chaincode from the previous hash
-            var_clean(&I); // clean before next hash
-            BRHMAC(&I, BRSHA512, sizeof(UInt512), chainCode.u8, 32, data, 37);
-        }
-
-        // We are done - take that last hash result and it becomes our secret
-        key->secret = *(UInt256 *)&I;
-
-        // Erase from memory
-        var_clean(&I);
-        var_clean(&secret, &chainCode);
-    }
+    BRHederaAccountID nodeAccountID = source;
+    nodeAccountID.account = 2;
+    BRHederaTimeStamp timeStamp;
+    timeStamp.seconds = 25;
+    timeStamp.nano = 4;
+    hederaTransactionSignTransaction(transaction, publicKey, nodeAccountID, timeStamp, 100000, seed);
+    size_t serializedSize = 0;
+    uint8_t * serializedBytes = hederaTransactionSerialize(transaction, &serializedSize);
+    if (debug_log) printBytes("Serialized bytes: ", serializedBytes, serializedSize);
+    // The following output came from a hedera-sdk-java unit test with the same parameters
+    const char * expectedOutput = "1a660a640a20b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c938946731a401a27eaa0d2f04302ea1722cf111b5f91429c0cba10eca1f7417154779c37c2e487b07a36706a75cbafaf048326a8c199b7832d6668c88585934dcf639ff6bd0d222e0a0a0a0408191004120218371202180218a08d062202087872140a120a070a021837109f060a070a02184e10a006";
+    // Convert the expected output to bytes and compare
+    uint8_t expected_output_bytes[strlen(expectedOutput)];
+    hex2bin(expectedOutput, expected_output_bytes);
+    assert(memcmp(expected_output_bytes, serializedBytes, serializedSize) == 0);
 }
 
-static void _hederaDeriveKey(BRKey *key, const void *seed, size_t seedLen, int depth, ...)
-{
-    va_list ap;
-
-    va_start(ap, depth);
-    _deriveKeyImpl(key, seed, seedLen, depth, ap);
-    va_end(ap);
-}
-
-static BRKey deriveHederaKeyFromSeed (UInt512 seed, uint32_t index)
-{
-    BRKey privateKey;
-
-    // The BIP32 privateKey for m/44'/148'/%d' where %d is the key index
-    // The stellar system only supports ed25519 key pairs. There are some restrictions when it comes
-    // to creating key pairs for ed25519, described here:
-    // https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0005.md
-    _hederaDeriveKey(&privateKey, &seed, sizeof(UInt512), 4,
-                      44 | BIP32_HARD,     // purpose  : BIP-44
-                      3030 | BIP32_HARD,    // coin_type: HBAR
-                      0 | BIP32_HARD,
-                      0 | BIP32_HARD);
-
-    return privateKey;
-}
-
-extern void
-createHederaAccount(const char *paper_key)
+static void hederaAccountCheckPublicKey(const char * paper_key, const char * public_key_string)
 {
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
-    // The BIP32 privateKey for m/44'/60'/0'/0/index
-    BRKey key = deriveHederaKeyFromSeed(seed, 0);
-
-    unsigned char privateKey[64] = {0};
-    unsigned char publicKey[32] = {0};
-    ed25519_create_keypair(publicKey, privateKey, key.secret.u8);
-
-    // Sign and verify
-    unsigned char message[] = { 'h', 'e', 'r', 'e', ' ', 'i', 's', ' ', 't', 'h', 'e', ' ', 'm', 'e', 's', 's', 'a', 'g', 'e' };
-    unsigned char signature[64];
-    ed25519_sign(&signature[0], message, 19, publicKey, privateKey);
-    int ret = ed25519_verify(signature, message, 19, publicKey);
-    assert(ret == 1);
-}
-
-
-const char * paper_key_24 = "inmate flip alley wear offer often piece magnet surge toddler submit right radio absent pear floor belt raven price stove replace reduce plate home";
-const char * paper_key_12 = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
-
-static void hederaCryptoTests() {
-    createHederaAccount(paper_key_12);
-    createHederaAccount(paper_key_24);
-}
-
-static void createTransaction() {
-    BRHederaTransaction transaction = hederaTransactionCreate();
-    UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paper_key_24, NULL); // no passphrase
-    hederaTransactionSign(transaction, seed);
+    BRHederaAccount account = hederaAccountCreateWithSeed(seed);
+    BRHederaAccountID accountID;
+    accountID.shard = 0;
+    accountID.realm = 0;
+    accountID.account = 1000;
+    hederaAccountSetAccountID(account, accountID);
+    BRKey publicKey = hederaAccountGetPublicKey(account);
+    // Validate the public key
+    uint8_t expected_public_key[32];
+    hex2bin(public_key_string, expected_public_key);
+    assert(memcmp(expected_public_key, publicKey.pubKey, 32) == 0);
 }
 
 static void transaction_tests() {
     createTransaction();
 }
 
+static void account_tests() {
+    ;
+    hederaAccountCheckPublicKey(paper_key_24, public_key_24);
+    hederaAccountCheckPublicKey(paper_key_12, public_key_12);
+}
+
 extern void
 runHederaTest (void /* ... */) {
     printf("Running hedera unit tests...\n");
-    hederaCryptoTests();
+    account_tests();
     transaction_tests();
 }

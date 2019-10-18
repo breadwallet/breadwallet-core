@@ -1,5 +1,5 @@
 //
-//  BRHeders.h
+//  BRHedera.h
 //  Core
 //
 //  Created by Carl Cherry on Oct. 15, 2019.
@@ -15,7 +15,8 @@
 extern "C" {
 #endif
 
-typedef 
+#include "BRHederaAccount.h"
+#include "BRHederaTransaction.h"
 
 #ifdef __cplusplus
 }
