@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.util.Log;
-
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.CurrencyPair;
 import com.google.common.base.Optional;

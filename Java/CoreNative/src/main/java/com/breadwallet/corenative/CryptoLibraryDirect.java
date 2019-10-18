@@ -27,6 +27,10 @@ import java.nio.ByteBuffer;
 
 public final class CryptoLibraryDirect {
 
+    // The goal with this class is to remove any type values other than Java or JNA primitives. Each
+    // type used outside of those parameters results in a performance hit when calling into the native
+    // function.
+
     //
     // Crypto Core
     //

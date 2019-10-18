@@ -18,7 +18,9 @@ public final class CryptoLibraryIndirect {
 
     private static final LibraryInterface INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, LibraryInterface.class);
 
-    // TODO(fix): Can this be migrated to CryptoLibraryNative?
+    // TODO(fix): Can this be migrated to CryptoLibraryDirect? Well, not easily. The JNA library explicitly mentions
+    //            it doesn't support arrays of pointers in direct mapping mode. That said, it has an example of how
+    //            this can be done (see: com.sun.jna.StringArray).
     public static void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count) {
         INSTANCE.cryptoNetworkSetNetworkFees(network, fees, count);
     }
