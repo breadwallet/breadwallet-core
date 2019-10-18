@@ -307,16 +307,6 @@ public interface CryptoLibrary extends Library {
     BRCryptoWalletMigratorStatus.ByValue cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator, int address, short port, long services, int timestamp);
     void cryptoWalletMigratorRelease(BRCryptoWalletMigrator migrator);
 
-    // crypto/BRCryptoCipher.h
-    BRCryptoCipher cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
-    BRCryptoCipher cryptoCipherCreateForChacha20Poly1305(BRCryptoKey key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
-    BRCryptoCipher cryptoCipherCreateForPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12, SizeT nonce12Len);
-    SizeT cryptoCipherEncryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
-    int cryptoCipherEncrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
-    SizeT cryptoCipherDecryptLength(BRCryptoCipher cipher, byte[] src, SizeT srcLen);
-    int cryptoCipherDecrypt(BRCryptoCipher cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
-    void cryptoCipherGive(BRCryptoCipher cipher);
-
     // ethereum/util/BRUtilMath.h
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 

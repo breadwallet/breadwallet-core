@@ -17,6 +17,16 @@ public final class CryptoLibraryDirect {
     // Crypto Primitives
     //
 
+    // crypto/BRCryptoCipher.h
+    public static native Pointer cryptoCipherCreateForAESECB(byte[] key, SizeT keyLen);
+    public static native Pointer cryptoCipherCreateForChacha20Poly1305(Pointer key, byte[] nonce12, SizeT nonce12Len, byte[] ad, SizeT adLen);
+    public static native Pointer cryptoCipherCreateForPigeon(Pointer privKey, Pointer pubKey, byte[] nonce12, SizeT nonce12Len);
+    public static native SizeT cryptoCipherEncryptLength(Pointer cipher, byte[] src, SizeT srcLen);
+    public static native int cryptoCipherEncrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    public static native SizeT cryptoCipherDecryptLength(Pointer cipher, byte[] src, SizeT srcLen);
+    public static native int cryptoCipherDecrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    public static native void cryptoCipherGive(Pointer cipher);
+
     // crypto/BRCryptoCoder.h
     public static native Pointer cryptoCoderCreate(int type);
     public static native SizeT cryptoCoderEncodeLength(Pointer coder, byte[] src, SizeT srcLen);

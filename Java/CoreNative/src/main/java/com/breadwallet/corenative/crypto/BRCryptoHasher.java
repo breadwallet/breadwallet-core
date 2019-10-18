@@ -99,7 +99,7 @@ public class BRCryptoHasher extends PointerType {
     }
 
     public Optional<byte[]> hash(byte[] data) {
-        Pointer thisPtr = getPointer();
+        Pointer thisPtr = this.getPointer();
 
         SizeT length = CryptoLibraryDirect.cryptoHasherLength(thisPtr);
         int lengthAsInt = Ints.checkedCast(length.longValue());
@@ -111,7 +111,7 @@ public class BRCryptoHasher extends PointerType {
     }
 
     public void give() {
-        Pointer thisPtr = getPointer();
+        Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoHasherGive(thisPtr);
     }
