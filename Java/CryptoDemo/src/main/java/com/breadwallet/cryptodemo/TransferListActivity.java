@@ -158,7 +158,7 @@ public class TransferListActivity extends AppCompatActivity {
         RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
-        RecyclerView.LayoutManager transferLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true);
+        RecyclerView.LayoutManager transferLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         transfersView.setLayoutManager(transferLayoutManager);
 
         transferAdapter = new Adapter((transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
@@ -356,7 +356,7 @@ public class TransferListActivity extends AppCompatActivity {
             this.viewModels = new SortedList<>(TransferViewModel.class, new SortedListAdapterCallback<TransferViewModel>(this) {
                 @Override
                 public int compare(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.compareTo(t2);
+                    return t2.compareTo(t1);
                 }
 
                 @Override

@@ -1555,12 +1555,20 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t port)
 {
     assert(manager != NULL);
-    BRPeerManagerDisconnect(manager);
+
     pthread_mutex_lock(&manager->lock);
-    manager->maxConnectCount = UInt128IsZero(address) ? PEER_MAX_CONNECTIONS : 1;
-    manager->fixedPeer = ((const BRPeer) { address, port, 0, 0, 0 });
-    array_clear(manager->peers);
+    int samePeer = (UInt128Eq(address, manager->fixedPeer.address) &&
+                    (port == manager->fixedPeer.port || UInt128IsZero(address)));
     pthread_mutex_unlock(&manager->lock);
+
+    if (!samePeer) {
+        BRPeerManagerDisconnect(manager);
+        pthread_mutex_lock(&manager->lock);
+        manager->maxConnectCount = UInt128IsZero(address) ? PEER_MAX_CONNECTIONS : 1;
+        manager->fixedPeer = ((const BRPeer) { address, port, 0, 0, 0 });
+        array_clear(manager->peers);
+        pthread_mutex_unlock(&manager->lock);
+    }
 }
 
 // current connect status

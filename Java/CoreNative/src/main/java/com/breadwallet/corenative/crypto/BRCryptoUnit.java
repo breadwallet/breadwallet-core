@@ -69,21 +69,7 @@ public class BRCryptoUnit extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsIdentical(this, other);
     }
 
-    public static class OwnedBRCryptoUnit extends BRCryptoUnit {
-
-        public OwnedBRCryptoUnit(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoUnit() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoUnitGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoUnitGive(this);
     }
 }

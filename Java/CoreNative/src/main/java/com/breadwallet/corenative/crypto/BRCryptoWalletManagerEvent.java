@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -25,6 +26,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
         public wallet_struct wallet;
         public syncContinues_struct syncContinues;
         public syncStopped_struct syncStopped;
+        public syncRecommended_struct syncRecommended;
         public blockHeight_struct blockHeight;
 
         public static class state_struct extends Structure {
@@ -150,6 +152,40 @@ public class BRCryptoWalletManagerEvent extends Structure {
             }
         }
 
+        public static class syncRecommended_struct extends Structure {
+
+            public int depthEnum;
+
+            public syncRecommended_struct() {
+                super();
+            }
+
+            protected List<String> getFieldOrder() {
+                return Arrays.asList("depthEnum");
+            }
+
+            public syncRecommended_struct(int depth) {
+                super();
+                this.depthEnum = depth;
+            }
+
+            public syncRecommended_struct(Pointer peer) {
+                super(peer);
+            }
+
+            public BRSyncDepth depth() {
+                return BRSyncDepth.fromCore(depthEnum);
+            }
+
+            public static class ByReference extends syncRecommended_struct implements Structure.ByReference {
+
+            }
+
+            public static class ByValue extends syncRecommended_struct implements Structure.ByValue {
+
+            }
+        }
+
         public static class blockHeight_struct extends Structure {
 
             public long value;
@@ -206,6 +242,12 @@ public class BRCryptoWalletManagerEvent extends Structure {
             super();
             this.syncStopped = syncStopped;
             setType(syncStopped_struct.class);
+        }
+
+        public u_union(syncRecommended_struct syncRecommended) {
+            super();
+            this.syncRecommended = syncRecommended;
+            setType(syncRecommended_struct.class);
         }
 
         public u_union(blockHeight_struct blockHeight) {
@@ -267,6 +309,10 @@ public class BRCryptoWalletManagerEvent extends Structure {
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                 u.setType(u_union.syncStopped_struct.class);
+                u.read();
+                break;
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
+                u.setType(u_union.syncRecommended_struct.class);
                 u.read();
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:

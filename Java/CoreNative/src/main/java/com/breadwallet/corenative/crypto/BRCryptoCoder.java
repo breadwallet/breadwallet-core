@@ -83,21 +83,7 @@ public class BRCryptoCoder extends PointerType {
         return new String(message, 0, end, StandardCharsets.UTF_8);
     }
 
-    public static class OwnedBRCryptoCoder extends BRCryptoCoder {
-
-        public OwnedBRCryptoCoder(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoCoder() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoCoderGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoCoderGive(this);
     }
 }

@@ -70,25 +70,11 @@ public class BRCryptoTransfer extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoTransferEqual(this, other);
     }
 
-    public BRCryptoTransfer toOwned() {
-        return new OwnedBRCryptoTransfer(getPointer());
+    public BRCryptoTransfer take() {
+        return CryptoLibrary.INSTANCE.cryptoTransferTake(this);
     }
 
-    public static class OwnedBRCryptoTransfer extends BRCryptoTransfer {
-
-        public OwnedBRCryptoTransfer(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoTransfer() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoTransferGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoTransferGive(this);
     }
 }

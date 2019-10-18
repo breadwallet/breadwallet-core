@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -336,8 +337,8 @@ final class NetworkDiscovery {
     }
 
     private static Unit currencyToDefaultBaseUnit(Currency currency) {
-        String symb = currency.getCode().toUpperCase() + "I";
-        String name = currency.getCode().toUpperCase() + "_INTEGER";
+        String symb = currency.getCode().toUpperCase(Locale.ROOT) + "I";
+        String name = currency.getCode().toUpperCase(Locale.ROOT) + "_INTEGER";
         String uids = String.format("%s:%s", currency.getUids(), name);
         return Unit.create(currency, uids, name, symb);
     }
@@ -362,7 +363,7 @@ final class NetworkDiscovery {
 
     private static Optional<Currency> findCurrency(Map<Currency,
             NetworkAssociation> associations, Blockchain blockchainModel) {
-        String code = blockchainModel.getCurrency().toLowerCase();
+        String code = blockchainModel.getCurrency().toLowerCase(Locale.ROOT);
         for (Currency currency : associations.keySet()) {
             if (code.equals(currency.getUids())) {
                 return Optional.of(currency);

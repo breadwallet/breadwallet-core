@@ -72,6 +72,13 @@ public enum BRCryptoWalletManagerEventType {
         }
     },
 
+    CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED {
+        @Override
+        public int toCore() {
+            return CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED_VALUE;
+        }
+    },
+
     CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED {
         @Override
         public int toCore() {
@@ -88,7 +95,8 @@ public enum BRCryptoWalletManagerEventType {
     private static final int CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED_VALUE         = 6;
     private static final int CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES_VALUE       = 7;
     private static final int CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED_VALUE         = 8;
-    private static final int CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE = 9;
+    private static final int CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED_VALUE     = 9;
+    private static final int CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE = 10;
 
     public static BRCryptoWalletManagerEventType fromCore(int nativeValue) {
         switch (nativeValue) {
@@ -101,6 +109,7 @@ public enum BRCryptoWalletManagerEventType {
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED_VALUE:         return CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES_VALUE:       return CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED_VALUE:         return CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED;
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED_VALUE:     return CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED;
             case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED_VALUE: return CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED;
             default: throw new IllegalArgumentException("Invalid core value");
         }
