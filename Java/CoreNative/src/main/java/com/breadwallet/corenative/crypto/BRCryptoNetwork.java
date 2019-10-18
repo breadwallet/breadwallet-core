@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryIndirect;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -173,7 +174,7 @@ public class BRCryptoNetwork extends PointerType {
         BRCryptoNetworkFee[] cryptoFees = new BRCryptoNetworkFee[fees.size()];
         for (int i = 0; i < fees.size(); i++) cryptoFees[i] = fees.get(i);
 
-        CryptoLibrary.INSTANCE.cryptoNetworkSetNetworkFees(thisPtr, cryptoFees, new SizeT(cryptoFees.length));
+        CryptoLibraryIndirect.cryptoNetworkSetNetworkFees(thisPtr, cryptoFees, new SizeT(cryptoFees.length));
     }
 
     public String getUids() {

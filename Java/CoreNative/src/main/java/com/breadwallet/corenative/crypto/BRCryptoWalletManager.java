@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public class BRCryptoWalletManager extends PointerType {
 
     public static Optional<BRCryptoWalletManager> create(BRCryptoCWMListener listener,
@@ -158,10 +160,10 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cryptoWalletManagerSetAddressScheme(thisPtr, scheme.toCore());
     }
 
-    public void connect(BRCryptoPeer peer) {
+    public void connect(@Nullable BRCryptoPeer peer) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cryptoWalletManagerConnect(thisPtr, peer.getPointer());
+        CryptoLibraryDirect.cryptoWalletManagerConnect(thisPtr, peer == null ? null : peer.getPointer());
     }
 
     public void disconnect() {

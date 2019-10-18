@@ -14,12 +14,18 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 
-public interface CryptoLibrary extends Library {
+public final class CryptoLibraryIndirect {
 
-    String JNA_LIBRARY_NAME = "crypto";
-    NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
+    private static final LibraryInterface INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, LibraryInterface.class);
 
-    // crypto/BRCryptoNetwork.h
     // TODO(fix): Can this be migrated to CryptoLibraryNative?
-    void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
+    public static void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count) {
+        INSTANCE.cryptoNetworkSetNetworkFees(network, fees, count);
+    }
+
+    public interface LibraryInterface extends Library {
+
+        // crypto/BRCryptoNetwork.h
+        void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
+    }
 }

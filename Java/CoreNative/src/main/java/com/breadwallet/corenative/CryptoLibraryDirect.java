@@ -341,7 +341,6 @@ public final class CryptoLibraryDirect {
     // Ethereum
     //
 
-
     // ethereum/util/BRUtilMath.h
     public static native Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 

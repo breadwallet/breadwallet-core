@@ -54,7 +54,6 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testLoad() {
-        assertNotNull(CryptoLibrary.INSTANCE);
         assertNotNull(TestCryptoLibrary.INSTANCE);
     }
 
