@@ -161,12 +161,11 @@ extern "C" {
                              UInt256 amount,
                              BRGenericFeeBasis estimatedFeeBasis);
 
-    extern UInt256
+    extern BRGenericFeeBasis
     genWalletEstimateTransferFee (BRGenericWallet wid,
                                   BRGenericAddress target,
                                   UInt256 amount,
-                                  UInt256 pricePerCostFactor,
-                                  int *overflow);
+                                  UInt256 pricePerCostFactor);
 
     // MARK: Generic (Wallet) Manager
 
