@@ -61,6 +61,8 @@ const char * public_key_24 = "b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79
 const char * paper_key_12 = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
 const char * public_key_12 = "ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f675585";
 
+const char * paper_key_target = "choose color rich dose toss winter dutch cannon over air cash market";
+
 static void createTransaction() {
     // Create a hedera account
     UInt512 seed = UINT512_ZERO;
