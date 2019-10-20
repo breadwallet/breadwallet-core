@@ -293,6 +293,8 @@
 		3CFEFE2322BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
 		3CFEFE2422BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
 		C30E223F2358FC0A00E584AC /* BRHederaSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E223D2358FC0900E584AC /* BRHederaSerialize.c */; };
+		C30E2242235CB70F00E584AC /* BRHederaUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E2240235CB70F00E584AC /* BRHederaUtils.c */; };
+		C30E2245235CC97500E584AC /* BRHederaWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E2244235CC97500E584AC /* BRHederaWallet.c */; };
 		C32ADCF4234FDE0D000AB7DE /* sc.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE5234FDE0C000AB7DE /* sc.c */; };
 		C32ADCF5234FDE0D000AB7DE /* verify.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE6234FDE0C000AB7DE /* verify.c */; };
 		C32ADCF6234FDE0D000AB7DE /* fe.c in Sources */ = {isa = PBXBuildFile; fileRef = C32ADCE7234FDE0C000AB7DE /* fe.c */; };
@@ -739,6 +741,10 @@
 		C30E223C2358F5E700E584AC /* BRHederaBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaBase.h; sourceTree = "<group>"; };
 		C30E223D2358FC0900E584AC /* BRHederaSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaSerialize.c; sourceTree = "<group>"; };
 		C30E223E2358FC0A00E584AC /* BRHederaSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaSerialize.h; sourceTree = "<group>"; };
+		C30E2240235CB70F00E584AC /* BRHederaUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaUtils.c; sourceTree = "<group>"; };
+		C30E2241235CB70F00E584AC /* BRHederaUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaUtils.h; sourceTree = "<group>"; };
+		C30E2243235CC97500E584AC /* BRHederaWallet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaWallet.h; sourceTree = "<group>"; };
+		C30E2244235CC97500E584AC /* BRHederaWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaWallet.c; sourceTree = "<group>"; };
 		C32ADCE5234FDE0C000AB7DE /* sc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sc.c; sourceTree = "<group>"; };
 		C32ADCE6234FDE0C000AB7DE /* verify.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = verify.c; sourceTree = "<group>"; };
 		C32ADCE7234FDE0C000AB7DE /* fe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fe.c; sourceTree = "<group>"; };
@@ -1534,6 +1540,10 @@
 				C30E223D2358FC0900E584AC /* BRHederaSerialize.c */,
 				C338C83923561DD900DF3968 /* BRHederaTransaction.c */,
 				C338C83823561DD900DF3968 /* BRHederaTransaction.h */,
+				C30E2241235CB70F00E584AC /* BRHederaUtils.h */,
+				C30E2240235CB70F00E584AC /* BRHederaUtils.c */,
+				C30E2243235CC97500E584AC /* BRHederaWallet.h */,
+				C30E2244235CC97500E584AC /* BRHederaWallet.c */,
 				C32ADCFD234FDF81000AB7DE /* testHedera.c */,
 			);
 			name = hedera;
@@ -2182,6 +2192,7 @@
 				3C25BF472236EE40004B093F /* BRBCashParams.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,
 				3C7BE5A8230EFD2E005FD4CD /* BRCryptoTransfer.c in Sources */,
+				C30E2245235CC97500E584AC /* BRHederaWallet.c in Sources */,
 				C338C7AA2356195E00DF3968 /* TransactionBody.pb-c.c in Sources */,
 				3CAB60D220AF8D1A00810CE4 /* BRUtilMath.c in Sources */,
 				3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */,
@@ -2190,6 +2201,7 @@
 				3CAB60D320AF8D1A00810CE4 /* BRUtilMathParse.c in Sources */,
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
 				3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */,
+				C30E2242235CB70F00E584AC /* BRHederaUtils.c in Sources */,
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CF66AE622A8342200C1E9BB /* BRCryptoWalletManager.c in Sources */,
 				C32ADCF8234FDE0D000AB7DE /* ge.c in Sources */,

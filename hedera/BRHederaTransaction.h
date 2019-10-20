@@ -23,7 +23,7 @@ extern "C" {
 typedef struct BRHederaTransactionRecord *BRHederaTransaction;
 
 /**
- * Create a Hedera transaction
+ * Create a new Hedera transaction for sending a transfer
  *
  * @param source - account sending (or that sent) the amount
  * @param target - account receiving the amount
@@ -32,7 +32,23 @@ typedef struct BRHederaTransactionRecord *BRHederaTransaction;
  * @return transaction
  */
 extern BRHederaTransaction /* caller owns memory and must call "hederaTransactionFree" function */
-hederaTransactionCreate(BRHederaAccountID source, BRHederaAccountID target, BRHederaUnitTinyBar amount);
+hederaTransactionCreateNew(BRHederaAddress source, BRHederaAddress target, BRHederaUnitTinyBar amount);
+
+/**
+ * Create a Hedera transaction recovered from the blockset server
+ *
+ * @param source    - account that sent the amount
+ * @param target    - account received the amount
+ * @param amount    - amount that was transferred
+ * @param txID      - transaction ID for this transfer
+ *
+ * @return transaction
+ */
+extern BRHederaTransaction /* caller must free - hederaTransactionFree */
+hederaTransactionCreate(BRHederaAddress source, BRHederaAddress target,
+                        BRHederaUnitTinyBar amount,
+                        const char *txID,
+                        BRHederaTransactionHash hash);
 
 /**
  * Free (destroy) a Hedera transaction object
@@ -60,7 +76,7 @@ extern void hederaTransactionFree (BRHederaTransaction transaction);
 extern size_t
 hederaTransactionSignTransaction (BRHederaTransaction transaction,
                                   BRKey publicKey,
-                                  BRHederaAccountID nodeAccountID,
+                                  BRHederaAddress nodeAddress,
                                   BRHederaTimeStamp timeStamp,
                                   BRHederaUnitTinyBar fee,
                                   UInt512 seed);
@@ -75,6 +91,15 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
  */
 extern uint8_t * /* caller owns and must free using normal "free" function */
 hederaTransactionSerialize (BRHederaTransaction transaction, size_t *size);
+
+
+// Getters for the various transaction fields
+extern BRHederaTransactionHash hederaTransactionGetHash(BRHederaTransaction transaction);
+extern BRHederaTransactionId hederaTransactionGetTransactionId(BRHederaTransaction transaction);
+extern BRHederaUnitTinyBar hederaTransactionGetFee(BRHederaTransaction transaction);
+extern BRHederaUnitTinyBar hederaTransactionGetAmount(BRHederaTransaction transaction);
+extern BRHederaAddress hederaTransactionGetSource(BRHederaTransaction transaction);
+extern BRHederaAddress hederaTransactionGetTarget(BRHederaTransaction transaction);
 
 #ifdef __cplusplus
 }

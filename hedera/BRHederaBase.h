@@ -20,16 +20,25 @@ extern "C" {
 // Declare public/shared items
 typedef int64_t BRHederaUnitTinyBar;
 
-typedef struct __hedera_account_id {
+typedef struct __hedera_address {
     int64_t shard;
     int64_t realm;
     int64_t account;
-} BRHederaAccountID;
+} BRHederaAddress;
 
 typedef struct __hedera_timestamp {
     int64_t seconds; // Number of complete seconds since the start of the epoch
     int32_t nano; // Number of nanoseconds since the start of the last second
 } BRHederaTimeStamp;
+
+typedef struct __hedera_transaction_id {
+    BRHederaAddress address;
+    BRHederaTimeStamp timeStamp;
+} BRHederaTransactionId;
+
+typedef struct {
+    uint8_t bytes[32];
+} BRHederaTransactionHash;
 
 #ifdef __cplusplus
 }

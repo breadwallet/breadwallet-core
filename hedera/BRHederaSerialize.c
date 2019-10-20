@@ -12,13 +12,13 @@
 #include "proto/TransactionBody.pb-c.h"
 #include <stdlib.h>
 
-Proto__AccountID * createAccountID (BRHederaAccountID accountID)
+Proto__AccountID * createAccountID (BRHederaAddress address)
 {
     Proto__AccountID *protoAccountID = calloc(1, sizeof(Proto__AccountID));
     proto__account_id__init(protoAccountID);
-    protoAccountID->shardnum = accountID.shard;
-    protoAccountID->realmnum = accountID.realm;
-    protoAccountID->accountnum = accountID.account;
+    protoAccountID->shardnum = address.shard;
+    protoAccountID->realmnum = address.realm;
+    protoAccountID->accountnum = address.account;
     return protoAccountID;
 }
 
@@ -31,12 +31,12 @@ Proto__Timestamp * createTimeStamp  (BRHederaTimeStamp timeStamp)
     return ts;
 }
 
-Proto__TransactionID * createTransactionID (BRHederaAccountID accountID, BRHederaTimeStamp timeStamp)
+Proto__TransactionID * createTransactionID (BRHederaAddress address, BRHederaTimeStamp timeStamp)
 {
     Proto__TransactionID *txID = calloc(1, sizeof(Proto__TransactionID));
     proto__transaction_id__init(txID);
     txID->transactionvalidstart = createTimeStamp(timeStamp);
-    txID->accountid = createAccountID(accountID);
+    txID->accountid = createAccountID(address);
 
     return txID;
 }
@@ -49,18 +49,18 @@ Proto__Duration * createTransactionDuration(int64_t seconds)
     return duration;
 }
 
-Proto__AccountAmount * createAccountAmount (BRHederaAccountID accountID, int64_t amount)
+Proto__AccountAmount * createAccountAmount (BRHederaAddress address, int64_t amount)
 {
     Proto__AccountAmount * accountAmount = calloc(1, sizeof(Proto__AccountAmount));
     proto__account_amount__init(accountAmount);
-    accountAmount->accountid = createAccountID(accountID);
+    accountAmount->accountid = createAccountID(address);
     accountAmount->amount = amount;
     return accountAmount;
 }
 
-uint8_t * hederaTransactionBodyPack (BRHederaAccountID source,
-                                       BRHederaAccountID target,
-                                       BRHederaAccountID nodeAccountID,
+uint8_t * hederaTransactionBodyPack (BRHederaAddress source,
+                                       BRHederaAddress target,
+                                       BRHederaAddress nodeAddress,
                                        BRHederaUnitTinyBar amount,
                                        BRHederaTimeStamp timeStamp,
                                        BRHederaUnitTinyBar fee,
@@ -72,7 +72,7 @@ uint8_t * hederaTransactionBodyPack (BRHederaAccountID source,
 
     // Create a transaction ID
     body->transactionid = createTransactionID(source, timeStamp);
-    body->nodeaccountid = createAccountID(nodeAccountID);
+    body->nodeaccountid = createAccountID(nodeAddress);
     body->transactionfee = fee;
     // Set the duration
     body->transactionvalidduration = createTransactionDuration(120);

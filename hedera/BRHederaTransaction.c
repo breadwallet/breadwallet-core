@@ -4,6 +4,7 @@
 #include "BRHederaTransaction.h"
 #include "BRHederaCrypto.h"
 #include "BRHederaSerialize.h"
+#include "BRHederaUtils.h"
 #include "proto/Transaction.pb-c.h"
 #include "proto/TransactionBody.pb-c.h"
 #include "vendor/ed25519/ed25519.h"
@@ -12,14 +13,19 @@
 #include <pthread.h>
 
 struct BRHederaTransactionRecord {
-    BRHederaAccountID source;
-    BRHederaAccountID target;
+    BRHederaAddress source;
+    BRHederaAddress target;
     BRHederaUnitTinyBar amount;
+    BRHederaTransactionId txId;
+    BRHederaUnitTinyBar fee;
     uint8_t * serializedBytes;
     size_t serializedSize;
+    BRHederaTransactionHash hash;
 };
 
-extern BRHederaTransaction hederaTransactionCreate (BRHederaAccountID source, BRHederaAccountID target, BRHederaUnitTinyBar amount)
+extern BRHederaTransaction hederaTransactionCreateNew (BRHederaAddress source,
+                                                       BRHederaAddress target,
+                                                       BRHederaUnitTinyBar amount)
 {
     BRHederaTransaction transaction = calloc (1, sizeof(struct BRHederaTransactionRecord));
     transaction->serializedSize = 0;
@@ -28,6 +34,29 @@ extern BRHederaTransaction hederaTransactionCreate (BRHederaAccountID source, BR
     transaction->source = source;
     transaction->target = target;
     transaction->amount = amount;
+
+    return transaction;
+}
+
+extern BRHederaTransaction hederaTransactionCreate (BRHederaAddress source,
+                                                    BRHederaAddress target,
+                                                    BRHederaUnitTinyBar amount,
+                                                    const char * txID,
+                                                    BRHederaTransactionHash hash)
+{
+    // This is an existing transaction - it must have a transaction ID
+    assert(txID);
+    BRHederaTransaction transaction = calloc (1, sizeof(struct BRHederaTransactionRecord));
+    transaction->serializedSize = 0;
+    transaction->serializedBytes = NULL;
+
+    transaction->source = source;
+    transaction->target = target;
+    transaction->amount = amount;
+
+    // Parse the transactionID
+    transaction->txId = hederaParseTransactionId(txID);
+    transaction->hash = hash;
 
     return transaction;
 }
@@ -42,7 +71,7 @@ extern void hederaTransactionFree (BRHederaTransaction transaction)
 extern size_t
 hederaTransactionSignTransaction (BRHederaTransaction transaction,
                                   BRKey publicKey,
-                                  BRHederaAccountID nodeAccountID,
+                                  BRHederaAddress nodeAddress,
                                   BRHederaTimeStamp timeStamp,
                                   BRHederaUnitTinyBar fee,
                                   UInt512 seed)
@@ -59,7 +88,7 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
     size_t bodySize;
     uint8_t * body = hederaTransactionBodyPack (transaction->source,
                                                 transaction->target,
-                                                nodeAccountID,
+                                                nodeAddress,
                                                 transaction->amount,
                                                 timeStamp,
                                                 fee,
@@ -88,4 +117,40 @@ extern uint8_t * hederaTransactionSerialize (BRHederaTransaction transaction, si
         *size = 0;
         return NULL;
     }
+}
+
+extern BRHederaTransactionHash hederaTransactionGetHash(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->hash;
+}
+
+extern BRHederaTransactionId hederaTransactionGetTransactionId(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->txId;
+}
+
+extern BRHederaUnitTinyBar hederaTransactionGetFee(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->fee;
+}
+
+extern BRHederaUnitTinyBar hederaTransactionGetAmount(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->amount;
+}
+
+extern BRHederaAddress hederaTransactionGetSource(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->source;
+}
+
+extern BRHederaAddress hederaTransactionGetTarget(BRHederaTransaction transaction)
+{
+    assert(transaction);
+    return transaction->target;
 }

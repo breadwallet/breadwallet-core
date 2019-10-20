@@ -44,18 +44,18 @@ extern void
 hederaAccountFree (BRHederaAccount account);
 
 /**
- * Set the account ID for an account
+ * Set the hedera address for an account
  *
- * The Hedera account cannot be created offline - the process is for us to create
+ * The Hedera address cannot be created offline - the process is for us to create
  * a public key, then some service with currency has to create an account by sending
- * it some HBAR.  That service will then return the accountID.
+ * it some HBAR.  That service will then return the account address.
  *
  * @param account
  * @param accountID - account id created from the public key
  *
  * @return account
  */
-extern void hederaAccountSetAccountID (BRHederaAccount account, BRHederaAccountID accountID);
+extern void hederaAccountSetAddress (BRHederaAccount account, BRHederaAddress accountID);
 
 /**
  * Get the public key for this Hedera account
@@ -67,13 +67,51 @@ extern void hederaAccountSetAccountID (BRHederaAccount account, BRHederaAccountI
 extern BRKey hederaAccountGetPublicKey (BRHederaAccount account);
 
 /**
- * Get the Hedera AccountID from the specified account.
+ * Get the Hedera Address from the specified account.
  *
  * @param account
  *
- * @return accountID
+ * @return address
  */
-extern BRHederaAccountID hederaAccountGetAccountID (BRHederaAccount account);
+extern BRHederaAddress hederaAccountGetAddress (BRHederaAccount account);
+
+/**
+ * Get the primary Hedera Address from the specified account.
+ *
+ * @param account
+ *
+ * @return address
+ */
+extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account);
+
+/**
+ * Get the string representation of the specified account
+ *
+ * Get the friendly string version of the address OR get the number of
+ * bytes needed to store the string
+ *
+ * @param account   - the specified account
+ * @param address   - character buffer to hold the results
+ * @param length    - length of the "address" buffer
+ *
+ * @return number of bytes written to "address" if address is not null, otherwise
+ *         return the number of bytes needed to store the address including the null terminator
+ */
+extern size_t hederaAccountGetAddressString(BRHederaAccount account, char * address, size_t length);
+
+/**
+ * Check if 2 Hedera addresses are equal
+ *
+ * @param address   - first address
+ * @param address   - second address
+ *
+ * @return 1 if equal, 0 if not equal
+ */
+extern int // 1 if equal
+hederaAddressEqual (BRHederaAddress a1, BRHederaAddress a2);
+
+extern uint8_t * // Caller owns memory and must delete calling "free"
+hederaAccountGetSerialization (BRHederaAccount account, size_t *bytesCount);
 
 #ifdef __cplusplus
 }

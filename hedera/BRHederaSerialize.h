@@ -17,9 +17,9 @@
 extern "C" {
 #endif
 
-uint8_t * hederaTransactionBodyPack (BRHederaAccountID source,
-                                     BRHederaAccountID target,
-                                          BRHederaAccountID nodeAccountID,
+uint8_t * hederaTransactionBodyPack (BRHederaAddress source,
+                                     BRHederaAddress target,
+                                          BRHederaAddress nodeAddress,
                                           BRHederaUnitTinyBar amount,
                                           BRHederaTimeStamp timeStamp,
                                           BRHederaUnitTinyBar fee,
