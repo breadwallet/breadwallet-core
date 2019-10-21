@@ -156,7 +156,15 @@ gwmTransferGetHash (BRGenericTransfer transfer) {
 
 // MARK: - Wallet
 
-IMPLEMENT_GENERIC_TYPE(Wallet, wallet)
+private_extern BRGenericWallet
+genWalletAllocAndInit (const char *type,
+                       size_t sizeInBytes) {
+    BRGenericWallet wallet = calloc (1, sizeInBytes);
+    wallet->type = type;
+    wallet->handlers = genHandlerLookup(type)->wallet;
+    wallet->defaultFeeBasis = genFeeBasisCreate (UINT256_ZERO, 0);
+    return wallet;
+}
 
 extern BRGenericWallet
 gwmWalletCreate (BRGenericAccount account) {
@@ -182,13 +190,13 @@ gwmWalletGetAddress (BRGenericWallet wid) {
 
 extern BRGenericFeeBasis
 gwmWalletGetDefaultFeeBasis (BRGenericWallet wid) {
-    return NULL;
+    return wid->defaultFeeBasis;
 }
 
 extern void
 gwmWalletSetDefaultFeeBasis (BRGenericWallet wid,
                              BRGenericFeeBasis bid) {
-    return;
+    wid->defaultFeeBasis = bid;
 }
 
 extern BRGenericTransfer

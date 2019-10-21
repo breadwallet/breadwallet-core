@@ -15,9 +15,21 @@
 #include "BRRipplePrivateStructs.h"
 #include "BRRippleTransaction.h"
 #include "BRRippleFeeBasis.h"
+#include "generic/BRGenericPrivate.h"
 #include <stdlib.h>
 
 const char * fee = "__fee__";
+
+extern BRGenericTransfer
+xrpTransferAsGEN (BRRippleTransfer transfer) {
+    return &transfer->gen;
+}
+
+extern BRRippleTransfer
+genTransferAsXRP (BRGenericTransfer transfer) {
+    assert (0 == strcmp (XRP_CODE, transfer->type));
+    return (BRRippleTransfer) transfer;
+}
 
 extern BRRippleTransfer /* caller must free - rippleTransferFree */
 rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
@@ -25,7 +37,7 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      BRRippleTransactionHash hash,
                      uint64_t timestamp, uint64_t blockHeight)
 {
-    BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
+    BRRippleTransfer transfer = (BRRippleTransfer) genTransferAllocAndInit (XRP_CODE, sizeof (struct BRRippleTransferRecord));
     transfer->sourceAddress = from;
     transfer->targetAddress = to;
     transfer->amount = amount;
@@ -40,7 +52,7 @@ extern BRRippleTransfer /* caller must free - rippleTransferFree */
 rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount)
 {
-    BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
+    BRRippleTransfer transfer = (BRRippleTransfer) genTransferAllocAndInit (XRP_CODE, sizeof (struct BRRippleTransferRecord));
     transfer->sourceAddress = from;
     transfer->targetAddress = to;
     transfer->amount = amount;

@@ -58,7 +58,16 @@ struct BRRippleAccountRecord {
                                  // See Reliable Transaction Submission for more details.
 };
 
-#define XRP_ACCOUNT_AS_GEN(xrp)    (&(xrp)->gen)
+extern BRGenericAccount
+xrpAccountAsGEN (BRRippleAccount account) {
+    return &account->gen;
+}
+
+extern BRRippleAccount
+genAccountAsXRP (BRGenericAccount account) {
+    assert (0 == strcmp (account->type, XRP_CODE));
+    return (BRRippleAccount) account;
+}
 
 extern UInt512 getSeed(const char *paperKey)
 {
@@ -129,7 +138,7 @@ static BRRippleAccount createAccountObject(BRKey * key)
         return NULL;
     }
 
-    BRRippleAccount account = (BRRippleAccount) genAccountAllocAndInit("xrp", sizeof (struct BRRippleAccountRecord));
+    BRRippleAccount account = (BRRippleAccount) genAccountAllocAndInit(XRP_CODE, sizeof (struct BRRippleAccountRecord));
 
     // Take a copy of the key since we are changing at least once property
     account->publicKey = *key;

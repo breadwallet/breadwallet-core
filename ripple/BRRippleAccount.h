@@ -23,6 +23,12 @@ extern uint8_t feeAddressBytes[20];
 
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
+extern BRGenericAccount
+xrpAccountAsGEN (BRRippleAccount account);
+
+extern BRRippleAccount
+genAccountAsXRP (BRGenericAccount account);
+
 /**
  * Create a Ripple account object
  *
@@ -31,7 +37,6 @@ typedef struct BRRippleAccountRecord *BRRippleAccount;
  */
 extern BRRippleAccount /* caller must free - rippleAccountFree */
 rippleAccountCreate (const char *paperKey);
-
 /**
  * Create a Ripple account object
  *

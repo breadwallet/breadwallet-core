@@ -14,6 +14,8 @@
 #include <string.h>
 #include <assert.h>
 
+#define XRP_CODE        "xrp"
+
 #define ADDRESS_BYTES   (20)
 
 // A Ripple Address - 20 bytes

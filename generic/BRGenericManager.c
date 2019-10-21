@@ -306,7 +306,7 @@ gwmPeriodicDispatcher (BREventHandler handler,
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
         BRGenericAddress addressGen = gwmGetAccountAddress(gwm);
-        char *address = gwmAddressAsString (gwm, addressGen);
+        char *address = gwmAddressAsString (gwm->network, addressGen);
 
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;
