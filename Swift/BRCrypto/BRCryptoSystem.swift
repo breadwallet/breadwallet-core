@@ -85,6 +85,16 @@ public final class System {
         return "\(blockchainID):\(address)"
     }
 
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
+    }
+
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
         (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
@@ -105,8 +115,7 @@ public final class System {
 
         (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: [(name: "BRD Token INT", code: "brdi",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD Token",     code: "brd",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
 //         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
@@ -137,8 +146,7 @@ public final class System {
 
         (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "brdi",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "brd",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
 //         address: nil, verified: true,
@@ -812,16 +820,7 @@ public final class System {
                         blockchainID: blockchainID,
                         address: (address != "__native__" ? address : nil),
                         verified: true,
-                        demoninations: [
-                            (name: "\(code)_INTEGER",
-                                code: "\(code)_INTEGER",
-                                decimals: 0,
-                                symbol: "\(code)I"),   // BRDI -> BaseUnit
-
-                            (name: code,
-                             code: code,
-                             decimals: decimals,
-                             symbol: code)])       //  BRD -> DefaultUnit
+                        demoninations: System.makeCurrencyDemominationsERC20 (code, decimals: decimals))
         }
     }
 
