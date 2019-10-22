@@ -119,8 +119,8 @@ public final class System {
 
 //        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
 //         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
+//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
 //         address: nil, verified: true,
@@ -619,8 +619,8 @@ public final class System {
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
-            let symb = "\(currency.code.uppercased())I"
-            let name = "\(currency.code.uppercased())_INTEGER"
+            let symb = "\(currency.code)I".lowercased()
+            let name = "\(currency.code) INT".uppercased()
             let uids = "\(currency.uids):\(name)"
             return Unit (currency: currency, uids: uids, name: name, symbol: symb)
         }
@@ -809,7 +809,7 @@ public final class System {
         guard "erc20" == type || "native" == type else { return nil }
         return uids.firstIndex(of: ":")
             .map {
-                let code         = code.uppercased()
+                let code         = code.lowercased()
                 let blockchainID = uids.prefix(upTo: $0).description
                 let address      = uids.suffix(from: uids.index (after: $0)).description
 
