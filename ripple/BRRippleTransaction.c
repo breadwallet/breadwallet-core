@@ -135,13 +135,13 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     // Common fields
     transaction->feeBasis = feeBasis;
     transaction->fee = 0; // Don't know it yet
-    transaction->sourceAddress = sourceAddress;
+    transaction->sourceAddress = rippleAddressClone (sourceAddress);
     transaction->transactionType = RIPPLE_TX_TYPE_PAYMENT;
     transaction->flags = 0x80000000; // tfFullyCanonicalSig
     transaction->lastLedgerSequence = 0;
 
     // Payment information
-    transaction->payment.targetAddress = targetAddress;
+    transaction->payment.targetAddress = rippleAddressClone (targetAddress);
     transaction->payment.amount.currencyType = 0; // XRP
     transaction->payment.amount.amount.u64Amount = amount; // XRP only
     
@@ -406,12 +406,12 @@ extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction)
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->sourceAddress;
+    return rippleAddressClone (transaction->sourceAddress);
 }
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->payment.targetAddress;
+    return rippleAddressClone (transaction->payment.targetAddress);
 }
 
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction)

@@ -55,6 +55,9 @@ extern BRRippleAddress
 rippleWalletGetSourceAddress (BRRippleWallet wallet)
 {
     assert(wallet);
+    assert(wallet->account);
+    // NOTE - the following call will create a copy of the address
+    // so we don't need to here as well
     return rippleAccountGetPrimaryAddress(wallet->account);
 }
 
@@ -62,6 +65,9 @@ extern BRRippleAddress
 rippleWalletGetTargetAddress (BRRippleWallet wallet)
 {
     assert(wallet);
+    assert(wallet->account);
+    // NOTE - the following call will create a copy of the address
+    // so we don't need to here as well
     return rippleAccountGetPrimaryAddress(wallet->account);
 }
 
@@ -93,6 +99,7 @@ extern BRRippleFeeBasis rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet)
 
 static bool rippleTransferEqual(BRRippleTransfer t1, BRRippleTransfer t2) {
     // Equal means the same transaction id, source, target
+    bool result = false;
     BRRippleTransactionHash hash1 = rippleTransferGetTransactionId(t1);
     BRRippleTransactionHash hash2 = rippleTransferGetTransactionId(t2);
     if (memcmp(hash1.bytes, hash2.bytes, sizeof(hash1.bytes)) == 0) {
@@ -104,11 +111,15 @@ static bool rippleTransferEqual(BRRippleTransfer t1, BRRippleTransfer t2) {
             BRRippleAddress target1 = rippleTransferGetTarget(t1);
             BRRippleAddress target2 = rippleTransferGetTarget(t2);
             if (1 == rippleAddressEqual(target1, target2)) {
-                return true;
+                result = true;
             }
+            rippleAddressFree(target1);
+            rippleAddressFree(target2);
         }
+        rippleAddressFree (source1);
+        rippleAddressFree (source2);
     }
-    return false;
+    return result;
 }
 
 static bool
@@ -138,8 +149,9 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
         } else {
             wallet->balance = wallet->balance + amount;
         }
+        rippleAddressFree (accountAddress);
+        rippleAddressFree (source);
     }
-    printf("Ripple balance is %llu\n", wallet->balance);
     pthread_mutex_unlock (&wallet->lock);
     // Now update the balance
 }

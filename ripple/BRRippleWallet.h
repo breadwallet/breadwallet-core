@@ -47,7 +47,7 @@ rippleWalletFree (BRRippleWallet wallet);
  *
  * @return address  ripple address associated with this account
  */
-extern BRRippleAddress
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
 rippleWalletGetSourceAddress (BRRippleWallet wallet);
 
 
@@ -60,7 +60,7 @@ rippleWalletGetSourceAddress (BRRippleWallet wallet);
  *
  * @return address  ripple address associated with this account
  */
-extern BRRippleAddress
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
 rippleWalletGetTargetAddress (BRRippleWallet wallet);
 
 /**

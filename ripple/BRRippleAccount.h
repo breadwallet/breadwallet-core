@@ -14,12 +14,6 @@
 #include "BRRippleTransaction.h"
 #include "BRKey.h"
 
-// We cannot do the normal conversion from bytes
-// to ripple address for the __fee__ address. So
-// instead we convert it to these hard-coded bytes
-// (and back again when needed) - defined in BRRippleAccount.c
-extern uint8_t feeAddressBytes[20];
-
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
 /**
@@ -104,7 +98,13 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
 extern size_t
 rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, UInt512 seed);
 
-// Accessor function for the account address (Ripple ID)
+/**
+ * Get the account address
+ *
+ * @param account   - the account
+ *
+ * @return address  - a ripple address, caller owns object and must free with rippleAddressFree
+ */
 extern BRRippleAddress
 rippleAccountGetAddress(BRRippleAccount account);
 
@@ -116,6 +116,8 @@ rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);
  * Get the account's primary address
  *
  * @param account the account
+ *
+ * @return address  - a ripple address, caller owns object and must free with rippleAddressFree
  */
 extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 

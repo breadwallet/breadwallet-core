@@ -52,7 +52,10 @@ static void checkRippleAddress(BRRippleAccount account, uint8_t * expected_bytes
     if (expectedRippleAddress) {
         char * rippleAddress = rippleAddressAsString (address);
         assert(strcmp(rippleAddress, expectedRippleAddress) == 0);
+        free (rippleAddress);
     }
+    rippleAddressFree (expectedAddress);
+    rippleAddressFree (address);
 }
 
 static BRRippleAccount createTestRippleAccount(const char* paper_key,
@@ -67,6 +70,8 @@ static BRRippleAccount createTestRippleAccount(const char* paper_key,
         assert(0 == strcmp(expected_account_address, rippleAddress));
         free (rippleAddress);
     }
+
+    rippleAddressFree(address);
     return account;
 }
 
@@ -91,8 +96,10 @@ testRippleTransaction (void /* ... */) {
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
-    rippleAccountFree(account);
-    rippleTransactionFree(transaction);
+    rippleAddressFree (sourceAddress);
+    rippleAddressFree (targetAddress);
+    rippleAccountFree (account);
+    rippleTransactionFree (transaction);
 }
 
 static void
@@ -140,8 +147,12 @@ testRippleTransactionGetters (void /* ... */) {
     BRRippleFeeBasis actualFeeBasis = rippleTransactionGetFeeBasis(transaction);
     assert(actualFeeBasis.pricePerCostFactor == 10);
 
-    rippleAccountFree(account);
-    rippleTransactionFree(transaction);
+    rippleAddressFree (sourceAddress);
+    rippleAddressFree (targetAddress);
+    rippleAddressFree (source);
+    rippleAddressFree (target);
+    rippleAccountFree (account);
+    rippleTransactionFree (transaction);
 }
 
 static void
@@ -167,7 +178,10 @@ testCreateRippleAccountWithPaperKey (void /* ... */) {
     char * rippleAddress = rippleAddressAsString(address);
     assert(0 == strcmp(rippleAddress, expected_ripple_address));
 
-    rippleAccountFree(account);
+    free (rippleAddress);
+    rippleAddressFree (expectedAddress);
+    rippleAddressFree (address);
+    rippleAccountFree (account);
 }
 
 static void
@@ -191,7 +205,8 @@ testCreateRippleAccountWithSeed (void /* ... */) {
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
 
     free (rippleAddress);
-    rippleAccountFree(account);
+    rippleAddressFree (address);
+    rippleAccountFree (account);
 }
 
 static void
@@ -227,6 +242,7 @@ testCreateRippleAccountWithKey (void /* ... */) {
     char * rippleAddress = rippleAddressAsString (address);
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
     free (rippleAddress);
+    rippleAddressFree (address);
 
     // Now create the account with a public key instead of private
     BRKey publicKey = rippleAccountGetPublicKey(account);
@@ -235,6 +251,7 @@ testCreateRippleAccountWithKey (void /* ... */) {
     rippleAddress = rippleAddressAsString (address);
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
     free (rippleAddress);
+    rippleAddressFree(address);
 
     rippleAccountFree(account);
     rippleAccountFree(account2);
@@ -307,14 +324,15 @@ testSerializeWithSignature () {
     char * rippleAddress = rippleAddressAsString(address);
     if (debug_log) printf("%s\n", rippleAddress);
 
-    BRRippleAddress sourceAddress = rippleAddressClone(address);
     BRRippleAddress targetAddress = rippleAddressCreateFromBytes(destBytes, 20);
 
     BRRippleFeeBasis feeBasis;
     feeBasis.pricePerCostFactor = 10;
     feeBasis.costFactor = 1;
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
+    transaction = rippleTransactionCreate(address, targetAddress, 1000000, feeBasis);
     assert(transaction);
+    rippleAddressFree (address);
+    rippleAddressFree (targetAddress);
 
     uint32_t sequence_number = 25;
 
@@ -415,6 +433,7 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
     BRRippleAddress source = rippleTransactionGetSource(transaction);
     assert(1 == rippleAddressEqual(source, expectedAddress));
     rippleAddressFree(expectedAddress);
+    rippleAddressFree(source);
     
     // Validate the destination address
     uint8_t expectedTarget[20];
@@ -423,6 +442,7 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
     BRRippleAddress destination = rippleTransactionGetTarget(transaction);
     assert(1 == rippleAddressEqual(destination, expectedAddress));
     rippleAddressFree(expectedAddress);
+    rippleAddressFree(destination);
     
     // Public key from the tx_blob
     uint8_t expectedPubKey[33];
@@ -618,6 +638,9 @@ static void testWalletAddress()
     BRRippleAddress targetAddress = rippleWalletGetTargetAddress(wallet);
     assert(1 == rippleAddressEqual(targetAddress, accountAddress));
 
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(accountAddress);
+    rippleAddressFree(targetAddress);
     rippleWalletFree(wallet);
 }
 
@@ -630,6 +653,8 @@ static void testRippleAddressCreate()
     BRRippleAddress address = rippleAddressCreateFromString(ripple_address);
     BRRippleAddress expectedAddress = rippleAddressCreateFromBytes(expected_bytes, 20);
     assert(1 == rippleAddressEqual(address, expectedAddress));
+    rippleAddressFree(address);
+    rippleAddressFree(expectedAddress);
 }
 
 static void testRippleAddressEqual()
@@ -645,6 +670,9 @@ static void testRippleAddressEqual()
 
     BRRippleAddress a3 = rippleAddressCreateFromBytes(address_input_false, 20);
     assert(0 == rippleAddressEqual(a1, a3));
+    rippleAddressFree(a1);
+    rippleAddressFree(a2);
+    rippleAddressFree(a3);
 }
 
 static void
@@ -659,12 +687,14 @@ testTransactionId (void /* ... */) {
     const char * target_paper_key = "choose color rich dose toss winter dutch cannon over air cash market"; // rwjruMZqtebGhobxYuFVoNg6KmVMbEUws3
     BRRippleAccount targetAccount = rippleAccountCreate(target_paper_key);
 
-    BRRippleAddress sourceAddress = rippleAddressClone(rippleAccountGetAddress(sourceAccount));
-    BRRippleAddress targetAddress = rippleAddressClone(rippleAccountGetAddress(targetAccount));
+    BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
+    BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
     BRRippleFeeBasis feeBasis;
     feeBasis.pricePerCostFactor = 12;
     feeBasis.costFactor = 1;
     BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(targetAddress);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
@@ -804,6 +834,8 @@ createSubmittableTransaction (void /* ... */) {
     feeBasis.pricePerCostFactor = 12;
     feeBasis.costFactor = 1;
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(targetAddress);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);

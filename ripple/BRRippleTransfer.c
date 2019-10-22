@@ -26,8 +26,8 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      uint64_t timestamp, uint64_t blockHeight)
 {
     BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
-    transfer->sourceAddress = from;
-    transfer->targetAddress = to;
+    transfer->sourceAddress = rippleAddressClone (from);
+    transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
     transfer->transactionId = hash;
     transfer->timestamp = timestamp;
@@ -41,15 +41,13 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount)
 {
     BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
-    transfer->sourceAddress = from;
-    transfer->targetAddress = to;
+    transfer->sourceAddress = rippleAddressClone (from);
+    transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
     BRRippleFeeBasis feeBasis; // NOTE - hard code for DEMO purposes
     feeBasis.pricePerCostFactor = 10;
     feeBasis.costFactor = 1;
-    BRRippleAddress fromClone = rippleAddressClone (from);
-    BRRippleAddress toClone = rippleAddressClone (to);
-    transfer->transaction = rippleTransactionCreate(fromClone, toClone, amount, feeBasis);
+    transfer->transaction = rippleTransactionCreate(from, to, amount, feeBasis);
     return transfer;
 }
 
@@ -84,12 +82,12 @@ extern BRRippleUnitDrops rippleTransferGetAmount(BRRippleTransfer transfer)
 extern BRRippleAddress rippleTransferGetSource(BRRippleTransfer transfer)
 {
     assert(transfer);
-    return transfer->sourceAddress;
+    return rippleAddressClone (transfer->sourceAddress);
 }
 extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer)
 {
     assert(transfer);
-    return transfer->targetAddress;
+    return rippleAddressClone (transfer->targetAddress);
 }
 
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)

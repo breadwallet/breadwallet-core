@@ -154,7 +154,7 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
 extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
 {
     assert(account);
-    return(account->address);
+    return rippleAddressClone (account->address);
 }
 
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
@@ -186,7 +186,7 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
 {
     // Currently we only have the primary address - so just return it
     assert(account);
-    return account->address;
+    return rippleAddressClone (account->address);
 }
 
 extern size_t
