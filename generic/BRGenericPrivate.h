@@ -23,19 +23,21 @@
 struct BRGeneric##name##Record {              \
   const char *type;                           \
   BRGeneric##name##Handlers handlers;         \
+  BRGeneric##name##Ref ref;                   \
 };                                            \
 private_extern BRGeneric##name                \
 gen##name##AllocAndInit (const char *type,    \
-                         size_t sizeInBytes);
+                         BRGeneric##name##Ref ref);
 
-#define IMPLEMENT_GENERIC_TYPE(name,ref)         \
-private_extern BRGeneric##name                   \
-gen##name##AllocAndInit (const char *type,       \
-                         size_t sizeInBytes) {   \
-  BRGeneric##name ref = calloc (1, sizeInBytes); \
-  ref->type = type;                              \
-  ref->handlers = genHandlerLookup(type)->ref;   \
-  return ref;                                    \
+#define IMPLEMENT_GENERIC_TYPE(name,field)         \
+private_extern BRGeneric##name                     \
+gen##name##AllocAndInit (const char *type,         \
+                         BRGeneric##name##Ref ref) { \
+  BRGeneric##name __obj = calloc (1, sizeof (struct BRGeneric##name##Record)); \
+  __obj->type = type;                              \
+  __obj->handlers = genHandlerLookup(type)->field; \
+  __obj->ref = ref;                                \
+  return __obj;                                    \
 }
 
 DECLARE_GENERIC_TYPE(Network)
@@ -49,12 +51,13 @@ DECLARE_GENERIC_TYPE(Transfer)
 struct BRGenericWalletRecord {
     const char *type;
     BRGenericWalletHandlers handlers;
+    BRGenericWalletRef ref;
     BRGenericFeeBasis defaultFeeBasis;
 };
 
 private_extern BRGenericWallet
 genWalletAllocAndInit (const char *type,
-                       size_t sizeInBytes);
+                       BRGenericWalletRef ref);
 
 //DECLARE_GENERIC_TYPE(Manager)
 

@@ -14,7 +14,6 @@
 #include <string.h>
 #include <assert.h>
 
-#define XRP_CODE "xrp"
 // Even though we only support the Payment type - plan for
 // the future
 typedef enum {

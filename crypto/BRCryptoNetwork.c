@@ -517,7 +517,6 @@ extern BRCryptoAddress
 cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
                                       const char *string) {
     switch (network->type) {
-
         case BLOCK_CHAIN_TYPE_BTC:
             return (BRChainParamsIsBitcoin (network->u.btc.params)
                     ? cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string)
@@ -527,9 +526,7 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
             return cryptoAddressCreateFromStringAsETH (string);
 
         case BLOCK_CHAIN_TYPE_GEN:
-        {
-            return cryptoAddressCreateFromStringAsGEN(network->u.gen.net, string);
-        }
+            return cryptoAddressCreateFromStringAsGEN (network->u.gen.net, string);
     }
 }
 

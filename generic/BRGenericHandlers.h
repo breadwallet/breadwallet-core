@@ -21,27 +21,34 @@
 extern "C" {
 #endif
 
-     // MARK: - Generic Network
+    ///
+    /// These BRGeneric*Ref types are coerable to any generic implementation; so for example,
+    ///    BRGenericAddressRef <==> BRRippleAddress.
+    /// We could instead use `void*` but that would disable compiler type checking.  So, we'll use
+    /// a `struct`, see the compiler warnings and then explicitly coerce.
+    ///
+    typedef struct BRGenericNetworkRefRecord  *BRGenericNetworkRef;
+    typedef struct BRGenericAccountRefRecord  *BRGenericAccountRef;
+    typedef struct BRGenericAddressRefRecord  *BRGenericAddressRef;
+    typedef struct BRGenericTransferRefRecord *BRGenericTransferRef;
+    typedef struct BRGenericWalletRefRecord   *BRGenericWalletRef;
 
-     typedef BRGenericAddress (*BRGenericNetworkAddressCreate) (const char * address);
-     typedef void (*BRGenericNetworkAddressFree) (BRGenericAddress address);
+    // MARK: - Generic Network
 
-     typedef struct {
-         BRGenericNetworkAddressCreate networkAddressCreate;
-         BRGenericNetworkAddressFree networkAddressFree;
-     } BRGenericNetworkHandlers;
+    typedef struct {
+    } BRGenericNetworkHandlers;
 
 
-     // MARK: - Generic Account
+    // MARK: - Generic Account
 
-    typedef BRGenericAccount (*BRGenericAccountCreate) (const char *type, UInt512 seed);
-    typedef BRGenericAccount (*BRGenericAccountCreateWithPublicKey) (const char *type, BRKey key);
-    typedef BRGenericAccount (*BRGenericAccountCreateWithSerialization) (const char *type, uint8_t *bytes, size_t bytesCount);
-    typedef void (*BRGenericAccountFree) (BRGenericAccount account);
-    typedef BRGenericAddress (*BRGenericAccountGetAddress) (BRGenericAccount account);
-    typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccount account, size_t *bytesCount);
-    typedef void (*BRGenericAccountSignTransferWithSeed) (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed);
-    typedef void (*BRGenericAccountSignTransferWithKey) (BRGenericAccount account, BRGenericTransfer transfer, BRKey *key);
+    typedef BRGenericAccountRef (*BRGenericAccountCreate) (const char *type, UInt512 seed);
+    typedef BRGenericAccountRef (*BRGenericAccountCreateWithPublicKey) (const char *type, BRKey key);
+    typedef BRGenericAccountRef (*BRGenericAccountCreateWithSerialization) (const char *type, uint8_t *bytes, size_t bytesCount);
+    typedef void (*BRGenericAccountFree) (BRGenericAccountRef account);
+    typedef BRGenericAddressRef (*BRGenericAccountGetAddress) (BRGenericAccountRef account);
+    typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccountRef account, size_t *bytesCount);
+    typedef void (*BRGenericAccountSignTransferWithSeed) (BRGenericAccountRef account, BRGenericTransferRef transfer, UInt512 seed);
+    typedef void (*BRGenericAccountSignTransferWithKey) (BRGenericAccountRef account, BRGenericTransferRef transfer, BRKey *key);
 
     typedef struct {
         BRGenericAccountCreate create;
@@ -56,29 +63,33 @@ extern "C" {
 
     // MARK: - Generic Address
 
-    typedef char * (*BRGenericAddressAsString) (BRGenericAddress address);
-    typedef int (*BRGenericAddressEqual) (BRGenericAddress address1,
-                                          BRGenericAddress address2);
+    typedef BRGenericAddressRef (*BRGenericAddressCreate) (const char *string);
+    typedef char * (*BRGenericAddressAsString) (BRGenericAddressRef address);
+    typedef int (*BRGenericAddressEqual) (BRGenericAddressRef address1,
+                                          BRGenericAddressRef address2);
+    typedef void (*BRGenericAddressFree) (BRGenericAddressRef address);
 
     typedef struct {
+        BRGenericAddressCreate create;
         BRGenericAddressAsString asString;
         BRGenericAddressEqual equal;
+        BRGenericAddressFree free;
     } BRGenericAddressHandlers;
 
     // MARK: - Generic Transfer
 
-    typedef BRGenericTransfer (*BRGenericTransferCreate) (BRGenericAddress source,
-                                                          BRGenericAddress target,
-                                                          UInt256 amount);
-    typedef void (*BRGenericTransferFree) (BRGenericTransfer transfer);
-    typedef BRGenericAddress (*BRGenericTransferGetSourceAddress) (BRGenericTransfer transfer);
-    typedef BRGenericAddress (*BRGenericTransferGetTargetAddress) (BRGenericTransfer transfer);
-    typedef UInt256 (*BRGenericTransferGetAmount) (BRGenericTransfer transfer);
-    typedef UInt256 (*BRGenericTransferGetFee) (BRGenericTransfer transfer);
-    typedef BRGenericFeeBasis (*BRGenericTransferGetFeeBasis) (BRGenericTransfer transfer);
-    typedef BRGenericTransferDirection (*BRGenericTransferGetDirection) (BRGenericTransfer transfer);
-    typedef BRGenericHash (*BRGenericTransferGetHash) (BRGenericTransfer transfer);
-    typedef uint8_t * (*BRGenericTransferGetSerialization) (BRGenericTransfer transfer, size_t *bytesCount);
+    typedef BRGenericTransferRef (*BRGenericTransferCreate) (BRGenericAddressRef source,
+                                                             BRGenericAddressRef target,
+                                                             UInt256 amount);
+    typedef void (*BRGenericTransferFree) (BRGenericTransferRef transfer);
+    typedef BRGenericAddressRef (*BRGenericTransferGetSourceAddress) (BRGenericTransferRef transfer);
+    typedef BRGenericAddressRef (*BRGenericTransferGetTargetAddress) (BRGenericTransferRef transfer);
+    typedef UInt256 (*BRGenericTransferGetAmount) (BRGenericTransferRef transfer);
+    typedef UInt256 (*BRGenericTransferGetFee) (BRGenericTransferRef transfer);
+    typedef BRGenericFeeBasis (*BRGenericTransferGetFeeBasis) (BRGenericTransferRef transfer);
+    typedef BRGenericTransferDirection (*BRGenericTransferGetDirection) (BRGenericTransferRef transfer);
+    typedef BRGenericHash (*BRGenericTransferGetHash) (BRGenericTransferRef transfer);
+    typedef uint8_t * (*BRGenericTransferGetSerialization) (BRGenericTransferRef transfer, size_t *bytesCount);
 
     typedef struct {
         BRGenericTransferCreate create;
@@ -95,16 +106,16 @@ extern "C" {
 
     // MARK: - Generic Wallet
 
-    typedef BRGenericWallet (*BRGenericWalletCreate) (BRGenericAccount account);
-    typedef void (*BRGenericWalletFree) (BRGenericWallet wallet);
-    typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
+    typedef BRGenericWalletRef (*BRGenericWalletCreate) (BRGenericAccountRef account);
+    typedef void (*BRGenericWalletFree) (BRGenericWalletRef wallet);
+    typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWalletRef wallet);
     // Unneeded?
-    typedef BRGenericTransfer (*BRGenericWalletCreateTransfer) (BRGenericWallet wallet,
-                                                                BRGenericAddress target,
-                                                                UInt256 amount,
-                                                                BRGenericFeeBasis estimatedFeeBasis);
-    typedef BRGenericFeeBasis (*BRGenericWalletEstimateFeeBasis) (BRGenericWallet wallet,
-                                                                  BRGenericAddress address,
+    typedef BRGenericTransferRef (*BRGenericWalletCreateTransfer) (BRGenericWalletRef wallet,
+                                                                   BRGenericAddressRef target,
+                                                                   UInt256 amount,
+                                                                   BRGenericFeeBasis estimatedFeeBasis);
+    typedef BRGenericFeeBasis (*BRGenericWalletEstimateFeeBasis) (BRGenericWalletRef wallet,
+                                                                  BRGenericAddressRef address,
                                                                   UInt256 amount,
                                                                   UInt256 pricePerCostFactor);
 
@@ -121,22 +132,22 @@ extern "C" {
     // MARK: - Generic (Wallet) Manager
 
     // Create a transfer from the
-    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
-                                                                        const char *from,
-                                                                        const char *to,
-                                                                        const char *amount,
-                                                                        const char *currency,
-                                                                        uint64_t timestamp,
-                                                                        uint64_t blockHeight);
+    typedef BRGenericTransferRef (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
+                                                                           const char *from,
+                                                                           const char *to,
+                                                                           const char *amount,
+                                                                           const char *currency,
+                                                                           uint64_t timestamp,
+                                                                           uint64_t blockHeight);
 
-    typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
-                                                                                                      size_t   bytesCount);
+    typedef BRArrayOf(BRGenericTransferRef) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
+                                                                                                         size_t   bytesCount);
 
     typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
                                                                  BRFileService fileService);
 
-    typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
-                                                                                 BRFileService fileService);
+    typedef BRArrayOf(BRGenericTransferRef) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
+                                                                                    BRFileService fileService);
 
     typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
 

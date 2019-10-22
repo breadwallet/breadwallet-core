@@ -119,8 +119,7 @@ extern "C" {
     cryptoAddressCreateAsETH (BREthereumAddress eth);
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsGEN (BRGenericNetwork nid,
-                              BRGenericAddress aid);
+    cryptoAddressCreateAsGEN (BRGenericAddress aid);
 
     private_extern BRCryptoBlockChainType
     cryptoAddressGetType (BRCryptoAddress address);

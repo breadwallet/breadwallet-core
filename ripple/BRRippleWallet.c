@@ -22,8 +22,6 @@
 //
 struct BRRippleWalletRecord
 {
-    struct BRGenericWalletRecord gen;
-
     BRRippleUnitDrops balance; // XRP balance
     BRRippleFeeBasis feeBasis; // Base fee for transactions
 
@@ -35,21 +33,10 @@ struct BRRippleWalletRecord
     pthread_mutex_t lock;
 };
 
-extern BRGenericWallet
-xrpWalletAsGEN (BRRippleWallet wallet) {
-    return &wallet->gen;
-}
-
-extern BRRippleWallet
-genWalletAsXRP (BRGenericWallet wallet) {
-    assert (0 == strcmp (XRP_CODE, wallet->type));
-    return (BRRippleWallet) wallet;
-}
-
 extern BRRippleWallet
 rippleWalletCreate (BRRippleAccount account)
 {
-    BRRippleWallet wallet = (BRRippleWallet) genWalletAllocAndInit (XRP_CODE, sizeof(struct BRRippleWalletRecord));
+    BRRippleWallet wallet = (BRRippleWallet) calloc (1, sizeof(struct BRRippleWalletRecord));
     array_new(wallet->transfers, 0);
     wallet->account = account;
     return wallet;

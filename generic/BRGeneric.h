@@ -30,11 +30,8 @@ extern "C" {
     extern void
     gwmNetworkRelease (BRGenericNetwork network);
 
-    extern BRGenericAddress
-    gwmNetworkAddressCreate (BRGenericNetwork network, const char * address);
-
-    extern void
-    gwmNetworkAddressRelease (BRGenericNetwork network, BRGenericAddress address);
+    extern const char *
+    gwmNetworkGetType (BRGenericNetwork network);
 
     // MARK: - Account
 
@@ -67,16 +64,30 @@ extern "C" {
     extern uint8_t *
     gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount);
 
+    extern void
+    gwmAccountSignTransferWithSeed (BRGenericAccount account,
+                                    BRGenericTransfer transfer,
+                                    UInt512 seed);
+
+    extern void
+    gwmAccountSignTransferWithKey (BRGenericAccount account,
+                                   BRGenericTransfer transfer,
+                                   BRKey *key);
      // Address
 
+    extern BRGenericAddress
+    gwmAddressCreate (const char *type,
+                      const char *string);
+
     extern char *
-    gwmAddressAsString (BRGenericNetwork nid,
-                        BRGenericAddress aid);
+    gwmAddressAsString (BRGenericAddress aid);
 
     extern int
-    gwmAddressEqual (BRGenericNetwork nid,
-                     BRGenericAddress aid1,
+    gwmAddressEqual (BRGenericAddress aid1,
                      BRGenericAddress aid2);
+
+    extern void
+    gwmAddressRelease (BRGenericAddress address);
 
     // Transfer
 
@@ -103,6 +114,9 @@ extern "C" {
 
     extern BRGenericHash
     gwmTransferGetHash (BRGenericTransfer transfer);
+
+    extern uint8_t *
+    gwmTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
     // MARK: - Generic Wallet
 

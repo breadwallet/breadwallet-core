@@ -11,18 +11,11 @@
 #ifndef BRRipple_transfer_h
 #define BRRipple_transfer_h
 
-#include "generic/BRGeneric.h"
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
 #include "BRRippleAddress.h"
 
 typedef struct BRRippleTransferRecord *BRRippleTransfer;
-
-extern BRGenericTransfer
-xrpTransferAsGEN (BRRippleTransfer transfer);
-
-extern BRRippleTransfer
-genTransferAsXRP (BRGenericTransfer transfer);
 
 // Create a new transfer for submitting
 extern BRRippleTransfer /* caller must free - rippleTransferFree */

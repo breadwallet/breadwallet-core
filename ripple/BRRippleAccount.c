@@ -18,7 +18,6 @@
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
 #include "ethereum/util/BRUtilHex.h"
-#include "generic/BRGenericPrivate.h"
 #include "BRRipple.h"
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
@@ -35,8 +34,6 @@
 #define WORD_LIST_LENGTH 2048
 
 struct BRRippleAccountRecord {
-    struct BRGenericAccountRecord gen;
-    
     BRRippleAddress address; // The 20 byte account id
 
     // The public key - needed when sending 
@@ -53,17 +50,6 @@ struct BRRippleAccountRecord {
                                  // how long the transaction can wait to be validated or rejected.
                                  // See Reliable Transaction Submission for more details.
 };
-
-extern BRGenericAccount
-xrpAccountAsGEN (BRRippleAccount account) {
-    return &account->gen;
-}
-
-extern BRRippleAccount
-genAccountAsXRP (BRGenericAccount account) {
-    assert (0 == strcmp (account->type, XRP_CODE));
-    return (BRRippleAccount) account;
-}
 
 extern UInt512 getSeed(const char *paperKey)
 {
@@ -104,7 +90,7 @@ static BRRippleAccount createAccountObject(BRKey * key)
         return NULL;
     }
 
-    BRRippleAccount account = (BRRippleAccount) genAccountAllocAndInit(XRP_CODE, sizeof (struct BRRippleAccountRecord));
+    BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
 
     // Take a copy of the key since we are changing at least once property
     account->publicKey = *key;

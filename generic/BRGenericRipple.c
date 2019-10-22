@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRGenericRipple.h"
+#include "ripple/BRRippleAccount.h"
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
 #include "ripple/BRRippleFeeBasis.h"
@@ -17,78 +18,64 @@
 
 // MARK: - Generic Network
 
-static BRGenericAddress
-genericRippleNetworkAddressCreate (const char* address) {
-    return rippleAddressCreateFromString (address);
-}
+// MARK: - Generic Account
 
-static void
-genericRippleNetworkAddressFree (BRGenericAddress address) {
-    BRRippleAddress *rippleAddress = address;
-    free(rippleAddress);
-}
-
-// MARK: Generic Account
-
-static BRGenericAccount
+static BRGenericAccountRef
 genericRippleAccountCreate (const char *type, UInt512 seed) {
-    return xrpAccountAsGEN (rippleAccountCreateWithSeed (seed));
+    return (BRGenericAccountRef) rippleAccountCreateWithSeed (seed);
 }
 
-static BRGenericAccount
+static BRGenericAccountRef
 genericRippleAccountCreateWithPublicKey (const char *type, BRKey key) {
-    return xrpAccountAsGEN (rippleAccountCreateWithKey (key));
+    return (BRGenericAccountRef) rippleAccountCreateWithKey (key);
 }
 
-static BRGenericAccount
-genericRippleAccountCreateWithSerialization (const char *type, uint8_t *bytes, size_t   bytesCount) {
-    return xrpAccountAsGEN (rippleAccountCreateWithSerialization (bytes, bytesCount));
+static BRGenericAccountRef
+genericRippleAccountCreateWithSerialization (const char *type, uint8_t *bytes, size_t bytesCount) {
+    return (BRGenericAccountRef) rippleAccountCreateWithSerialization (bytes, bytesCount);
 }
 
 static void
-genericRippleAccountFree (BRGenericAccount account) {
-    BRRippleAccount ripple = genAccountAsXRP(account);
-    rippleAccountFree (ripple);
+genericRippleAccountFree (BRGenericAccountRef account) {
+    rippleAccountFree ((BRRippleAccount) account);
+    free (account);
 }
 
-static BRGenericAddress
-genericRippleAccountGetAddress (void *account) {
-    BRRippleAccount ripple = genAccountAsXRP(account);
-    return rippleAccountGetAddress(ripple);
+static BRGenericAddressRef
+genericRippleAccountGetAddress (BRGenericAccountRef account) {
+    return (BRGenericAddressRef) rippleAccountGetAddress((BRRippleAccount) account);
 }
 
 static uint8_t *
-genericRippleAccountGetSerialization (BRGenericAccount account, size_t *bytesCount) {
-    BRRippleAccount ripple = genAccountAsXRP(account);
-    return rippleAccountGetSerialization (ripple, bytesCount);
+genericRippleAccountGetSerialization (BRGenericAccountRef account,
+                                      size_t *bytesCount) {
+    return rippleAccountGetSerialization ((BRRippleAccount) account, bytesCount);
 }
 
 static void
-genericRippleAccountSignTransferWithSeed (BRGenericAccount account, BRGenericTransfer transfer, UInt512 seed)
+genericRippleAccountSignTransferWithSeed (BRGenericAccountRef account,
+                                          BRGenericTransferRef transfer,
+                                          UInt512 seed)
 {
-    BRRippleAccount  xrpAccount  = genAccountAsXRP (account);
-    BRRippleTransfer xrpTransfer = genTransferAsXRP (transfer);
-
     // Get the transaction pointer from this transfer
-    BRRippleTransaction transaction = rippleTransferGetTransaction(xrpTransfer);
+    BRRippleTransaction transaction = rippleTransferGetTransaction((BRRippleTransfer) transfer);
     if (transaction) {
         // Hard code the sequence to 7
-        rippleAccountSetSequence (xrpAccount, 7);
-        rippleAccountSignTransaction (xrpAccount, transaction, seed);
+        rippleAccountSetSequence ((BRRippleAccount) account, 7);
+        rippleAccountSignTransaction ((BRRippleAccount) account, transaction, seed);
     }
 }
 
 static void
-genericRippleAccountSignTransferWithKey (BRGenericAccount account, BRGenericTransfer transfer, BRKey *key)
+genericRippleAccountSignTransferWithKey (BRGenericAccountRef account,
+                                         BRGenericTransferRef transfer,
+                                         BRKey *key)
 {
-    BRRippleAccount  xrpAccount  = genAccountAsXRP (account);
-    BRRippleTransfer xrpTransfer = genTransferAsXRP (transfer);
-
     // Get the transaction pointer from this transfer
-    BRRippleTransaction transaction = rippleTransferGetTransaction(xrpTransfer);
+    BRRippleTransaction transaction = rippleTransferGetTransaction ((BRRippleTransfer) transfer);
     if (transaction) {
         // Hard code the sequence to 7
-        rippleAccountSetSequence (xrpAccount, 7);
+        rippleAccountSetSequence ((BRRippleAccount) account, 7);
 //        rippleAccountSignTransaction(account, transaction, seed);
         assert (0);
     }
@@ -96,96 +83,92 @@ genericRippleAccountSignTransferWithKey (BRGenericAccount account, BRGenericTran
 
 // MARK: - Generic Address
 
+static BRGenericAddressRef
+genericRippleAddressCreate (const char *string) {
+    return (BRGenericAddressRef) rippleAddressCreateFromString (string);
+}
+
 static char *
-genericRippleAddressAsString (BRGenericAddress address) {
-    BRRippleAddress *ripple = address;
-    return rippleAddressAsString(*ripple);
+genericRippleAddressAsString (BRGenericAddressRef address) {
+    return rippleAddressAsString ((BRRippleAddress) address);
 }
 
 static int
-genericRippleAddressEqual (BRGenericAddress address1,
-                           BRGenericAddress address2) {
-    BRRippleAddress *ripple1 = address1;
-    BRRippleAddress *ripple2 = address2;
-    return rippleAddressEqual (*ripple1, *ripple2);
+genericRippleAddressEqual (BRGenericAddressRef address1,
+                           BRGenericAddressRef address2) {
+    return rippleAddressEqual ((BRRippleAddress) address1,
+                               (BRRippleAddress) address2);
+}
+
+static void
+genericRippleAddressFree (BRGenericAddressRef address) {
+    rippleAddressFree ((BRRippleAddress) address);
 }
 
 // MARK: - Generic Transfer
 
-static BRGenericTransfer
-genericRippleTransferCreate (BRGenericAddress source, BRGenericAddress target, UInt256 amount)
+static BRGenericTransferRef
+genericRippleTransferCreate (BRGenericAddressRef source,
+                             BRGenericAddressRef target,
+                             UInt256 amount)
 {
     BRRippleUnitDrops amountDrops = UInt64GetLE(amount.u8);
-    BRRippleAddress *from = source;
-    BRRippleAddress *to = target;
 
-    BRRippleTransfer xrpTransfer = rippleTransferCreateNew(*from, *to, amountDrops);
-    return xrpTransferAsGEN (xrpTransfer);
+    return (BRGenericTransferRef) rippleTransferCreateNew ((BRRippleAddress) source,
+                                                           (BRRippleAddress) target,
+                                                           amountDrops);
 }
 
 static void
-genericRippleTransferFree (BRGenericTransfer transfer) {
-    BRRippleTransfer ripple = genTransferAsXRP(transfer);
-    rippleTransferFree(ripple);
+genericRippleTransferFree (BRGenericTransferRef transfer) {
+    rippleTransferFree ((BRRippleTransfer) transfer);
 }
 
-static BRGenericAddress
-genericRippleTransferGetSourceAddress (BRGenericTransfer transfer) {
-    BRRippleTransfer ripple = genTransferAsXRP(transfer);
-    BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
-
-    *address = rippleTransferGetSource(ripple);
-    return address;
+static BRGenericAddressRef
+genericRippleTransferGetSourceAddress (BRGenericTransferRef transfer) {
+    return (BRGenericAddressRef) rippleTransferGetSource ((BRRippleTransfer) transfer);
 }
 
-static BRGenericAddress
-genericRippleTransferGetTargetAddress (BRGenericTransfer transfer) {
-    BRRippleTransfer ripple = genTransferAsXRP(transfer);
-    BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
-
-    *address = rippleTransferGetTarget(ripple);
-    return address;
+static BRGenericAddressRef
+genericRippleTransferGetTargetAddress (BRGenericTransferRef transfer) {
+    return (BRGenericAddressRef) rippleTransferGetTarget ((BRRippleTransfer) transfer);
 }
 
 static UInt256
-genericRippleTransferGetAmount (BRGenericTransfer transfer) {
-    BRRippleTransfer ripple = genTransferAsXRP(transfer);
-    BRRippleUnitDrops drops = rippleTransferGetAmount (ripple);
+genericRippleTransferGetAmount (BRGenericTransferRef transfer) {
+    BRRippleUnitDrops drops = rippleTransferGetAmount ((BRRippleTransfer) transfer);
     return createUInt256(drops);
 }
 
 static UInt256
-genericRippleTransferGetFee (BRGenericTransfer transfer) {
-    BRRippleTransfer ripple = genTransferAsXRP(transfer);
-    BRRippleUnitDrops drops = rippleTransferGetFee (ripple);
+genericRippleTransferGetFee (BRGenericTransferRef transfer) {
+    BRRippleUnitDrops drops = rippleTransferGetFee ((BRRippleTransfer) transfer);
     return createUInt256(drops);
 }
 
 static BRGenericFeeBasis
-genericRippleTransferGetFeeBasis (BRGenericTransfer transfer) {
-    BRRippleTransfer  ripple    = genTransferAsXRP(transfer);
-    BRRippleUnitDrops rippleFee = rippleTransferGetFee (ripple);
+genericRippleTransferGetFeeBasis (BRGenericTransferRef transfer) {
+    BRRippleUnitDrops rippleFee = rippleTransferGetFee ((BRRippleTransfer) transfer);
     return (BRGenericFeeBasis) {
         createUInt256 (rippleFee),
         1
     };
 }
 
-static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {
-    BRRippleTransfer  ripple    = genTransferAsXRP(transfer);
-    BRRippleTransactionHash hash = rippleTransferGetTransactionId(ripple);
+static BRGenericHash
+genericRippleTransferGetHash (BRGenericTransferRef transfer) {
+    BRRippleTransactionHash hash = rippleTransferGetTransactionId ((BRRippleTransfer) transfer);
     UInt256 value;
     memcpy (value.u8, hash.bytes, 32);
     return (BRGenericHash) { value };
 }
 
-static uint8_t * genericRippleTransferGetSerialization (BRGenericTransfer transfer, size_t *bytesCount)
+static uint8_t *
+genericRippleTransferGetSerialization (BRGenericTransferRef transfer, size_t *bytesCount)
 {
-    BRRippleTransfer  ripple    = genTransferAsXRP(transfer);
-
     uint8_t * result = NULL;
     *bytesCount = 0;
-    BRRippleTransaction transaction = rippleTransferGetTransaction(ripple);
+    BRRippleTransaction transaction = rippleTransferGetTransaction ((BRRippleTransfer) transfer);
     if (transaction) {
         result = rippleTransactionSerialize(transaction, bytesCount);
     }
@@ -194,54 +177,39 @@ static uint8_t * genericRippleTransferGetSerialization (BRGenericTransfer transf
 
 // MARK: Generic Wallet
 
-static BRGenericWallet
-genericRippleWalletCreate (BRGenericAccount genAccount) {
-    BRRippleAccount account = genAccountAsXRP (genAccount);
-    return xrpWalletAsGEN (rippleWalletCreate (account));
+static BRGenericWalletRef
+genericRippleWalletCreate (BRGenericAccountRef account) {
+    return (BRGenericWalletRef) rippleWalletCreate ((BRRippleAccount) account);
 }
 
 static void
-genericRippleWalletFree (BRGenericWallet genWallet) {
-    BRRippleWallet wallet = genWalletAsXRP (genWallet);
-    rippleWalletFree (wallet);
+genericRippleWalletFree (BRGenericWalletRef wallet) {
+    rippleWalletFree ((BRRippleWallet) wallet);
 }
 
 static UInt256
-genericRippleWalletGetBalance (BRGenericWallet genWallet) {
-    BRRippleWallet wallet = genWalletAsXRP (genWallet);
-    return createUInt256(rippleWalletGetBalance(wallet));
+genericRippleWalletGetBalance (BRGenericWalletRef wallet) {
+    return createUInt256 (rippleWalletGetBalance ((BRRippleWallet) wallet));
 }
 
-static BRGenericTransfer
-genericRippleWalletCreateTransfer (BRGenericWallet genWallet,
-                                   BRGenericAddress genTarget,
+static BRGenericTransferRef
+genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
+                                   BRGenericAddressRef target,
                                    UInt256 amount,
                                    BRGenericFeeBasis estimatedFeeBasis) {
-    BRRippleWallet wallet = genWalletAsXRP (genWallet);
-
-//    BRRippleUnitDrops amountDrops = UInt64GetLE(amount.u8);
-//    BRRippleAddress *from = source;
-//    BRRippleAddress *to = target;
-//    BRRippleTransfer transfer = rippleTransferCreateNew(*from, *to, amountDrops);
-//    return transfer;
-
-
-    BRRippleAddress source = rippleWalletGetSourceAddress (wallet);
-    BRRippleAddress target = genTarget;
+    BRRippleAddress source = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
     BRRippleUnitDrops drops  = amount.u64[0];
 
-    return rippleTransferCreateNew (source,
-                                    target,
-                                    drops);
+    return (BRGenericTransferRef) rippleTransferCreateNew (source,
+                                                           (BRRippleAddress) target,
+                                                           drops);
 }
 
 static BRGenericFeeBasis
-genericRippleWalletEstimateFeeBasis (BRGenericWallet genWallet,
-                                     BRGenericAddress address,
+genericRippleWalletEstimateFeeBasis (BRGenericWalletRef wallet,
+                                     BRGenericAddressRef address,
                                      UInt256 amount,
                                      UInt256 pricePerCostFactor) {
-    BRRippleWallet wallet = genWalletAsXRP (genWallet); (void) wallet;
-
     return (BRGenericFeeBasis) {
         pricePerCostFactor,
         1
@@ -296,7 +264,7 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
 
 // MARK: - Generic Manager
 
-static BRGenericTransfer
+static BRGenericTransferRef
 genericRippleWalletManagerRecoverTransfer (const char *hash,
                                            const char *from,
                                            const char *to,
@@ -312,15 +280,15 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
     BRRippleTransactionHash txId;
     decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
-    BRRippleTransfer xrpTransfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, txId, timestamp, blockHeight);
+    BRRippleTransfer transfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, txId, timestamp, blockHeight);
 
     rippleAddressFree (toAddress);
     rippleAddressFree (fromAddress);
 
-    return xrpTransferAsGEN (xrpTransfer);
+    return (BRGenericTransferRef) transfer;
 }
 
-static BRArrayOf(BRGenericTransfer)
+static BRArrayOf(BRGenericTransferRef)
 genericRippleWalletManagerRecoverTransfersFromRawTransaction (uint8_t *bytes,
                                                             size_t   bytesCount) {
     return NULL;
@@ -342,20 +310,19 @@ genericRippleWalletManagerInitializeFileService (BRFileServiceContext context,
 }
 
 
-static BRArrayOf(BRGenericTransfer)
+static BRArrayOf(BRGenericTransferRef)
 genericRippleWalletManagerLoadTransfers (BRFileServiceContext context,
                                          BRFileService fileService) {
-    BRArrayOf(BRGenericTransfer) result;
-    BRSetOf(BRRippleTransaction) transactionsSet = rippleTransactionSetCreate (5);
-
+    BRSetOf (BRRippleTransaction) transactionsSet = rippleTransactionSetCreate (5);
     // Load all transactions while upgrading.
     fileServiceLoad (fileService, transactionsSet, fileServiceTypeTransactions, 1);
 
+    BRArrayOf(BRGenericTransferRef) result;
     array_new (result, BRSetCount(transactionsSet));
-    FOR_SET (BRRippleTransaction, transaction, transactionsSet) {
-        array_add (result, (BRGenericTransfer) transaction);
+    FOR_SET (BRGenericTransferRef, transaction, transactionsSet) {
+        array_add (result, transaction);
     }
-
+    BRSetFree (transactionsSet);
     return result;
 }
 
@@ -369,8 +336,6 @@ genericRippleWalletManagerGetAPISyncType (void) {
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
     { // Network
-        genericRippleNetworkAddressCreate,
-        genericRippleNetworkAddressFree
     },
 
     {    // Account
@@ -385,8 +350,10 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     },
 
     {    // Address
+        genericRippleAddressCreate,
         genericRippleAddressAsString,
-        genericRippleAddressEqual
+        genericRippleAddressEqual,
+        genericRippleAddressFree
     },
 
     {    // Transfer

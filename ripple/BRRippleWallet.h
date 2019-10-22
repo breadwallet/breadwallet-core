@@ -20,13 +20,6 @@
 //
 typedef struct BRRippleWalletRecord *BRRippleWallet;
 
-extern BRGenericWallet
-xrpWalletAsGEN (BRRippleWallet wallet);
-
-extern BRRippleWallet
-genWalletAsXRP (BRGenericWallet wallet);
-
-
 /**
  * Create a ripple wallet object
  *

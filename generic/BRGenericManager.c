@@ -214,12 +214,7 @@ gwmSignTransfer (BRGenericManager gwm,
                  BRGenericWallet wid,
                  BRGenericTransfer transfer,
                  UInt512 seed) {
-    // Use the 'account' to sign the transfer.  The account likely holds information needed for
-    // signing - such as an account nonce.
-    BRGenericAccount account = gwmGetAccount(gwm);
-    account->handlers.signTransferWithSeed (account, transfer, seed);
-
-    // TODO: Always success?
+    gwmAccountSignTransferWithSeed (gwm->account, transfer, seed);
     return 1;
 }
 
@@ -228,10 +223,7 @@ gwmSignTransferWithKey (BRGenericManager gwm,
                         BRGenericWallet wid,
                         BRGenericTransfer transfer,
                         BRKey *key) {
-    BRGenericAccount account = gwmGetAccount(gwm);
-    account->handlers.signTransferWithKey (account, transfer, key);
-
-    // TODO: Always success?
+    gwmAccountSignTransferWithKey (gwm->account, transfer, key);
     return 1;
 }
 
@@ -242,11 +234,11 @@ gwmSubmitTransfer (BRGenericManager gwm,
     // Get the serialization, as raw bytes', for the transfer.  We assert if the raw bytes
     // don't exist which implies that transfer was not signed.
     size_t txSize = 0;
-    uint8_t * tx = transfer->handlers.getSerialization (transfer, &txSize);
+    uint8_t * tx = gwmTransferSerialize(transfer, &txSize);
     assert (NULL != tx);
 
     // Get the hash
-    BRGenericHash hash = transfer->handlers.hash (transfer);
+    BRGenericHash hash = gwmTransferGetHash(transfer);
 
     // Submit the raw bytes to the client.
     BRGenericClient client = gwmGetClient(gwm);
@@ -263,20 +255,35 @@ gwmRecoverTransfer (BRGenericManager gwm,
                     const char *currency,
                     uint64_t timestamp,
                     uint64_t blockHeight) {
-    return gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight);
+    return genTransferAllocAndInit (gwm->handlers->type,
+                                    gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
 }
 
 extern BRArrayOf(BRGenericTransfer)
 gwmRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                        uint8_t *bytes,
-                                       size_t   bytesCount)
-{
-    return gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
+                                       size_t   bytesCount) {
+    BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
+    BRArrayOf(BRGenericTransfer) objs;
+    array_new (objs, array_count(refs));
+    for (size_t index = 0; index < array_count(refs); index++) {
+        BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
+        array_add (objs, obj);
+    }
+    return objs;
 }
 
 extern BRArrayOf(BRGenericTransfer)
 gwmLoadTransfers (BRGenericManager gwm) {
-    return gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
+    BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
+    BRArrayOf(BRGenericTransfer) objs;
+    array_new (objs, array_count(refs));
+    for (size_t index = 0; index < array_count(refs); index++) {
+        BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
+        array_add (objs, obj);
+    }
+    return objs;
+
 }
 
 /// MARK: Periodic Dispatcher
@@ -305,8 +312,7 @@ gwmPeriodicDispatcher (BREventHandler handler,
 
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
-        BRGenericAddress addressGen = gwmGetAccountAddress(gwm);
-        char *address = gwmAddressAsString (gwm->network, addressGen);
+        char *address = gwmAddressAsString (gwmGetAccountAddress(gwm));
 
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;

@@ -106,7 +106,6 @@ inline static BRRippleMemoNode * memoListAdd(BRRippleField * field)
 }
 
 struct BRRippleTransferRecord {
-    struct BRGenericTransferRecord gen;
     BRRippleAddress sourceAddress;
     BRRippleAddress targetAddress;
     BRRippleUnitDrops amount;
