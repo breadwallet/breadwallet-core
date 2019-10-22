@@ -93,46 +93,16 @@ final class Blockchains {
 
     private static CurrencyDenomination BRD_INT = new CurrencyDenomination(
             "BRD Token INT",
-            "BRDI",
+            "brdi",
             UnsignedInteger.valueOf(0),
             "brdi"
     );
 
     private static CurrencyDenomination BRD_BRD = new CurrencyDenomination(
             "BRD Token",
-            "BRD",
+            "brd",
             UnsignedInteger.valueOf(18),
             "brd"
-    );
-
-
-    private static CurrencyDenomination EOS_INT = new CurrencyDenomination(
-            "EOS_INTEGER",
-            "EOSI",
-            UnsignedInteger.valueOf(0),
-            "eosi"
-    );
-
-    private static CurrencyDenomination EOS_EOS = new CurrencyDenomination(
-            "EOS",
-            "EOS",
-            UnsignedInteger.valueOf(18),
-            "eos"
-    );
-
-
-    private static CurrencyDenomination XRP_DROP = new CurrencyDenomination(
-            "drop",
-            "drop",
-            UnsignedInteger.valueOf(0),
-            "drop"
-    );
-
-    private static CurrencyDenomination XRP_XRP = new CurrencyDenomination(
-            "xrp",
-            "xrp",
-            UnsignedInteger.valueOf(6),
-            "xrp"
     );
 
     ///
@@ -196,7 +166,7 @@ final class Blockchains {
     private static Currency CURRENCY_BRD_MAINNET = new Currency(
             "ethereum-mainnet:" + ADDRESS_BRD_MAINNET,
             "BRD Token",
-            "BRD",
+            "brd",
             "erc20",
             "ethereum-mainnet",
             ADDRESS_BRD_MAINNET,
@@ -255,7 +225,7 @@ final class Blockchains {
     private static Currency CURRENCY_BRD_ROPSTEN = new Currency(
             "ethereum-ropsten:" + ADDRESS_BRD_TESTNET,
             "BRD Token Testnet",
-            "BRD",
+            "brd",
             "erc20",
             "ethereum-ropsten",
             ADDRESS_BRD_TESTNET,

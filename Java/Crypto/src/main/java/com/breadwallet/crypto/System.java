@@ -50,7 +50,7 @@ public interface System {
      *
      * @param uids the currency uids (ex: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6")
      * @param name the currency name (ex: "BRD Token"
-     * @param code the currency code (ex: "BRD")
+     * @param code the currency code (ex: "code")
      * @param type the currency type (ex: "erc20" or "native")
      * @param decimals the number of decimals for the currency's default unit (ex: 18)
      * @return a currency mode for us with {@link #configure(List)}; {@link Optional#absent()} otherwise
