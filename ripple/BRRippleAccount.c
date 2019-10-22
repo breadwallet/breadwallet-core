@@ -24,6 +24,8 @@
 #include "BRRippleAccount.h"
 #include "BRRippleSignature.h"
 #include "BRRippleBase58.h"
+#include "BRRippleAddress.h"
+
 //#include "BRBase58.h"
 
 #define RIPPLE_ADDRESS_PARAMS  ((BRAddressParams) { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, BITCOIN_BECH32_PREFIX })
@@ -32,16 +34,10 @@
 
 #define WORD_LIST_LENGTH 2048
 
-uint8_t feeAddressBytes[20] = {
-    0x42, 0x52, 0x44, 0x5F, 0x5F, 0x66, 0x65, 0x65,
-    0x5F, 0x5F, 0x42, 0x52, 0x44, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00
-};
-
 struct BRRippleAccountRecord {
     struct BRGenericAccountRecord gen;
     
-    BRRippleAddress raw; // The 20 byte account id
+    BRRippleAddress address; // The 20 byte account id
 
     // The public key - needed when sending 
     BRKey publicKey;  // BIP44: 'Master Public Key 'M' (264 bits) - 8
@@ -101,36 +97,6 @@ static BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index, bool cleanPr
     return key;
 }
 
-extern char * createRippleAddressString (BRRippleAddress address, int useChecksum)
-{
-    char *string = calloc (1, 36);
-
-    // Check for our special case __fee__ address
-    // See the note in BRRippleAcount.h with respect to the feeAddressBytes
-    if (memcmp(address.bytes, feeAddressBytes, sizeof(feeAddressBytes)) == 0) {
-        strcpy(string, "__fee__");
-    } else {
-        // The process is this:
-        // 1. Prepend the Ripple address indicator (0) to the 20 bytes
-        // 2. Do a douple sha265 hash on the bytes
-        // 3. Use the first 4 bytes of the hash as checksum and append to the bytes
-        uint8_t input[25];
-        input[0] = 0; // Ripple address type
-        memcpy(&input[1], address.bytes, 20);
-        uint8_t hash[32];
-        BRSHA256_2(hash, input, 21);
-        memcpy(&input[21], hash, 4);
-
-        // Now base58 encode the result
-        rippleEncodeBase58(string, 35, input, 25);
-        // NOTE: once the following function is "approved" we can switch to using it
-        // and remove the base58 function above
-        // static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
-        // BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
-    }
-    return string;
-}
-
 static BRRippleAccount createAccountObject(BRKey * key)
 {
     if (0 == key->compressed) {
@@ -147,8 +113,7 @@ static BRRippleAccount createAccountObject(BRKey * key)
     mem_clean(&account->publicKey.secret, sizeof(account->publicKey.secret));
 
     // Create the raw bytes for the 20 byte account id
-    UInt160 hash = BRKeyHash160(&account->publicKey);
-    memcpy(account->raw.bytes, hash.u8, 20);
+    account->address = rippleAddressCreateFromKey(&account->publicKey);
 
     return account;
 }
@@ -202,9 +167,8 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
 
 extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
 {
-    BRRippleAddress address;
-    memcpy(address.bytes, account->raw.bytes, sizeof(address.bytes));
-    return(address);
+    assert(account);
+    return rippleAddressClone (account->address);
 }
 
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
@@ -217,23 +181,6 @@ extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *
     return bytes;
 }
 
-extern int rippleAccountGetAddressString(BRRippleAccount account, char * rippleAddress, int length)
-{
-    // Create the ripple address string
-    char *address = createRippleAddressString(account->raw, 1);
-    if (address) {
-        int addressLength = (int)strlen(address);
-        // Copy the address if we have enough room in the buffer
-        if (length > addressLength) {
-            strcpy(rippleAddress, address);
-        }
-        free(address);
-        return(addressLength + 1); // string length plus terminating byte
-    } else {
-        return 0;
-    }
-}
-
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account)
 {
     // Before returning this - make sure there is no private key.
@@ -244,15 +191,16 @@ extern BRKey rippleAccountGetPublicKey(BRRippleAccount account)
 
 extern void rippleAccountFree(BRRippleAccount account)
 {
-    // Currently there is not any allocated memory inside the account
-    // so just delete the account itself
+    assert(account);
+    if (account->address) rippleAddressFree(account->address);
     free(account);
 }
 
 extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
 {
     // Currently we only have the primary address - so just return it
-    return account->raw;
+    assert(account);
+    return rippleAddressClone (account->address);
 }
 
 extern size_t
@@ -279,74 +227,3 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
 
     return tx_size;
 }
-
-extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address)
-{
-    // The ripple address "string" is a base58 encoded string
-    // using the ripple base58 alphabet.  After decoding the address
-    // the output lookes like this
-    // [ 0, 20-bytes, 4-byte checksum ] for a total of 25 bytes
-    // In the ripple alphabet "r" maps to 0 which is why the first byte is 0
-    assert(address);
-
-    // Decode the
-    uint8_t bytes[25];
-    //int length = BRBase58DecodeEx(NULL, 0, input, rippleAlphabet);
-    int length = rippleDecodeBase58(input, NULL);
-    if (length != 25) {
-        // Since ripple addresses are created from 20 byte account IDs the
-        // needed space to covert it back has to be 25 bytes.
-        // LOG message?
-        return 0;
-    }
-
-    // We got the correct length so go ahead and decode.
-    rippleDecodeBase58(input, bytes);
-    //BRBase58DecodeEx(bytes, 25, input, rippleAlphabet);
-
-    // We need to do a checksum on all but the last 4 bytes.
-    // From trial and error is appears that the checksum is just
-    // sha256(sha256(first21bytes))
-    uint8_t md32[32];
-    BRSHA256_2(md32, &bytes[0], 21);
-    // Compare the first 4 bytes of the sha hash to the last 4 bytes
-    // of the decoded bytes (i.e. starting a byte 21)
-    if (0 == memcmp(md32, &bytes[21], 4)) {
-        // The checksum has passed so copy the 20 bytes that form the account id
-        // to our ripple address structure.
-        // i.e. strip off the 1 bytes token and the 4 byte checksum
-        memcpy(address->bytes, &bytes[1], 20);
-        return 20;
-    } else {
-        // Checksum does not match - do we log this somewhere
-    }
-    return 0;
-}
-
-extern BRRippleAddress
-rippleAddressCreate(const char * rippleAddressString)
-{
-    BRRippleAddress address;
-    memset(address.bytes, 0x00, sizeof(address.bytes));
-    // 1 special case so far - the __fee__ address.
-    // See the note in BRRippleAcount.h with respect to the feeAddressBytes
-    if (strcmp(rippleAddressString, "__fee__") == 0) {
-        memcpy(address.bytes, feeAddressBytes, sizeof(feeAddressBytes));
-    } else {
-        // Work backwards from this ripple address (string) to what is
-        // known as the acount ID (20 bytes)
-        rippleAddressStringToAddress(rippleAddressString, &address);
-    }
-    return address;
-}
-
-extern int // 1 if equal
-rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
-    return 0 == memcmp (a1.bytes, a2.bytes, 20);
-}
-
-extern char *
-rippleAddressAsString (BRRippleAddress address) {
-    return createRippleAddressString(address, 1);
-}
-

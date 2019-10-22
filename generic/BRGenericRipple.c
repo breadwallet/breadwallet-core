@@ -19,15 +19,7 @@
 
 static BRGenericAddress
 genericRippleNetworkAddressCreate (const char* address) {
-    BRRippleAddress *genericAddress = calloc(1, sizeof(BRRippleAddress));
-    int bytesWritten = rippleAddressStringToAddress(address, genericAddress);
-    if (bytesWritten > 0) {
-        return genericAddress;
-    } else {
-        // Invalid address
-        free(genericAddress);
-        return NULL;
-    }
+    return rippleAddressCreateFromString (address);
 }
 
 static void
@@ -60,13 +52,9 @@ genericRippleAccountFree (BRGenericAccount account) {
 }
 
 static BRGenericAddress
-genericRippleAccountGetAddress (BRGenericAccount account) {
+genericRippleAccountGetAddress (void *account) {
     BRRippleAccount ripple = genAccountAsXRP(account);
-    BRRippleAddress address = rippleAccountGetAddress(ripple);
-
-    BRRippleAddress *result = malloc (sizeof (BRRippleAddress));
-    memcpy (result, address.bytes, sizeof (BRRippleAddress));
-    return result;
+    return rippleAccountGetAddress(ripple);
 }
 
 static uint8_t *
@@ -318,13 +306,17 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
                                            uint64_t blockHeight) {
     BRRippleUnitDrops amountDrops;
     sscanf(amount, "%llu", &amountDrops);
-    BRRippleAddress toAddress = rippleAddressCreate(to);
-    BRRippleAddress fromAddress = rippleAddressCreate(from);
+    BRRippleAddress toAddress   = rippleAddressCreateFromString(to);
+    BRRippleAddress fromAddress = rippleAddressCreateFromString(from);
     // Convert the hash string to bytes
     BRRippleTransactionHash txId;
     decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
     BRRippleTransfer xrpTransfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, txId, timestamp, blockHeight);
+
+    rippleAddressFree (toAddress);
+    rippleAddressFree (fromAddress);
+
     return xrpTransferAsGEN (xrpTransfer);
 }
 

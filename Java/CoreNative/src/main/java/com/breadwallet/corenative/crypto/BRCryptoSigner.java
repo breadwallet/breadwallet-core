@@ -72,21 +72,7 @@ public class BRCryptoSigner extends PointerType {
         );
     }
 
-    public static class OwnedBRCryptoSigner extends BRCryptoSigner {
-
-        public OwnedBRCryptoSigner(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoSigner() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoSignerGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoSignerGive(this);
     }
 }

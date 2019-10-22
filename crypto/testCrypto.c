@@ -454,7 +454,7 @@ CWMEventEqual (CWMEvent *e1, CWMEvent *e2) {
                         success = CRYPTO_TRUE == cryptoWalletEqual (e1->u.m.event.u.wallet.value, e2->u.m.event.u.wallet.value);
                         break;
                     case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                        // Do we want to check for this?
+                    case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
                     case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                         // Do we want to check for this?
                     default:

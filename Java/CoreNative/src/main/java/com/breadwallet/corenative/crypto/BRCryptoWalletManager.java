@@ -30,12 +30,12 @@ import java.util.List;
 public class BRCryptoWalletManager extends PointerType {
 
     public static Optional<BRCryptoWalletManager> create(BRCryptoCWMListener listener,
-                                                             BRCryptoCWMClient client,
-                                                             BRCryptoAccount account,
-                                                             BRCryptoNetwork network,
-                                                             BRSyncMode mode,
-                                                             BRCryptoAddressScheme scheme,
-                                                             String path) {
+                                                         BRCryptoCWMClient client,
+                                                         BRCryptoAccount account,
+                                                         BRCryptoNetwork network,
+                                                         BRSyncMode mode,
+                                                         BRCryptoAddressScheme scheme,
+                                                         String path) {
         return Optional.fromNullable(
                 CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
                         listener.toByValue(),
@@ -78,7 +78,7 @@ public class BRCryptoWalletManager extends PointerType {
             try {
                 int walletsSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
-                    wallets.add(new BRCryptoWallet.OwnedBRCryptoWallet(walletPtr));
+                    wallets.add(new BRCryptoWallet(walletPtr));
                 }
 
             } finally {
@@ -292,25 +292,11 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibrary.INSTANCE.cwmAnnounceGetNonceFailure(this, callbackState);
     }
 
-    public BRCryptoWalletManager toOwned() {
-        return new OwnedBRCryptoWalletManager(getPointer());
+    public BRCryptoWalletManager take() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerTake(this);
     }
 
-    public static class OwnedBRCryptoWalletManager extends BRCryptoWalletManager {
-
-        public OwnedBRCryptoWalletManager(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoWalletManager() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoWalletManagerGive(this);
-            }
-        }
+    public void give() {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerGive(this);
     }
 }

@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoPeer;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
@@ -20,17 +21,16 @@ final class NetworkPeer implements com.breadwallet.crypto.NetworkPeer {
 
     /* package */
     static Optional<NetworkPeer> create(com.breadwallet.crypto.Network network, String address, UnsignedInteger port, @Nullable String publicKey) {
-        return BRCryptoPeer.create(
-                Network.from(network).getCoreBRCryptoNetwork(),
-                address,
-                port,
-                publicKey)
-                .transform(NetworkPeer::new);
+        Network cryptoNetwork = Network.from(network);
+        Optional<BRCryptoPeer> core = BRCryptoPeer.create(cryptoNetwork.getCoreBRCryptoNetwork(), address, port, publicKey);
+        return core.transform(NetworkPeer::create);
     }
 
     /* package */
     static NetworkPeer create(BRCryptoPeer core) {
-        return new NetworkPeer(core);
+        NetworkPeer peer = new NetworkPeer(core);
+        ReferenceCleaner.register(peer, core::give);
+        return peer;
     }
 
     /* package */

@@ -623,7 +623,7 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
                 address = cryptoPeerGetAddrAsInt(peer);
                 port = cryptoPeerGetPort (peer);
             }
-            
+
             // Calling `SetFixedPeer` will 100% disconnect.  We could avoid calling SetFixedPeer
             // if we kept a reference to `peer` and checked if it differs.
             BRWalletManagerSetFixedPeer (cwm->u.btc, address, port);
@@ -998,6 +998,9 @@ BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
 
         case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
         return "CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED";
 
         case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
         return "CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED";

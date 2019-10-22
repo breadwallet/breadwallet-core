@@ -105,15 +105,6 @@ final class Utilities {
     }
 
     /* package */
-    static BRCryptoWalletState walletStateToCrypto(WalletState state) {
-        switch (state) {
-            case CREATED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_CREATED;
-            case DELETED: return BRCryptoWalletState.CRYPTO_WALLET_STATE_DELETED;
-            default: throw new IllegalArgumentException("Unsupported state");
-        }
-    }
-
-    /* package */
     static WalletState walletStateFromCrypto(BRCryptoWalletState state) {
         switch (state) {
             case CRYPTO_WALLET_STATE_CREATED: return WalletState.CREATED;
@@ -158,7 +149,6 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.fee)
-                                    .transform(BRCryptoAmount::toOwned)
                                     .transform(Amount::create)
                     )
             );
@@ -202,6 +192,15 @@ final class Utilities {
             case FROM_LAST_CONFIRMED_SEND: return BRSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
             case FROM_LAST_TRUSTED_BLOCK:  return BRSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
             case FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
+            default: throw new IllegalArgumentException("Unsupported depth");
+        }
+    }
+
+    static WalletManagerSyncDepth syncDepthFromCrypto(BRSyncDepth depth) {
+        switch (depth) {
+            case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: return WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND;
+            case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK:  return WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK;
+            case SYNC_DEPTH_FROM_CREATION:            return WalletManagerSyncDepth.FROM_CREATION;
             default: throw new IllegalArgumentException("Unsupported depth");
         }
     }

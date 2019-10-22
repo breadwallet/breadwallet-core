@@ -38,8 +38,8 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      uint64_t timestamp, uint64_t blockHeight)
 {
     BRRippleTransfer transfer = (BRRippleTransfer) genTransferAllocAndInit (XRP_CODE, sizeof (struct BRRippleTransferRecord));
-    transfer->sourceAddress = from;
-    transfer->targetAddress = to;
+    transfer->sourceAddress = rippleAddressClone (from);
+    transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
     transfer->transactionId = hash;
     transfer->timestamp = timestamp;
@@ -53,8 +53,8 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount)
 {
     BRRippleTransfer transfer = (BRRippleTransfer) genTransferAllocAndInit (XRP_CODE, sizeof (struct BRRippleTransferRecord));
-    transfer->sourceAddress = from;
-    transfer->targetAddress = to;
+    transfer->sourceAddress = rippleAddressClone (from);
+    transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
     BRRippleFeeBasis feeBasis; // NOTE - hard code for DEMO purposes
     feeBasis.pricePerCostFactor = 10;
@@ -66,6 +66,8 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
 extern void rippleTransferFree(BRRippleTransfer transfer)
 {
     assert(transfer);
+    if (transfer->sourceAddress) rippleAddressFree (transfer->sourceAddress);
+    if (transfer->targetAddress) rippleAddressFree (transfer->targetAddress);
     if (transfer->transaction) {
         rippleTransactionFree(transfer->transaction);
     }
@@ -92,12 +94,12 @@ extern BRRippleUnitDrops rippleTransferGetAmount(BRRippleTransfer transfer)
 extern BRRippleAddress rippleTransferGetSource(BRRippleTransfer transfer)
 {
     assert(transfer);
-    return transfer->sourceAddress;
+    return rippleAddressClone (transfer->sourceAddress);
 }
 extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer)
 {
     assert(transfer);
-    return transfer->targetAddress;
+    return rippleAddressClone (transfer->targetAddress);
 }
 
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
@@ -106,7 +108,7 @@ extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
     // See the note in BRRippleAcount.h with respect to the feeAddressBytes
     // If the "target" address is set to the feeAddressBytes then return the
     // amount on this transfer - otherwise return 0.
-    if (memcmp(transfer->targetAddress.bytes, feeAddressBytes, sizeof(transfer->targetAddress.bytes)) == 0) {
+    if (1 == rippleAddressIsFeeAddress(transfer->targetAddress)) {
         return transfer->amount;
     } else {
         return (BRRippleUnitDrops)0L;

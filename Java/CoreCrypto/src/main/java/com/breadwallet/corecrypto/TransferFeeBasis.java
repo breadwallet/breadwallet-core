@@ -7,18 +7,25 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /* package */
 class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     /* package */
     static TransferFeeBasis create(BRCryptoFeeBasis core) {
-        return new TransferFeeBasis(core);
+        TransferFeeBasis feeBasis = new TransferFeeBasis(core);
+        ReferenceCleaner.register(feeBasis, core::give);
+        return feeBasis;
     }
 
     /* package */
@@ -50,8 +57,11 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
         this.costFactorSupplier = Suppliers.memoize(core::getCostFactor);
         this.pricePerCostFactorSupplier = Suppliers.memoize(() -> Amount.create(core.getPricePerCostFactor()));
 
-        // TODO(fix): Unchecked get here
-        this.feeSupplier = Suppliers.memoize(() -> Amount.create(core.getFee().get()));
+        this.feeSupplier = Suppliers.memoize(() -> {
+            Optional<BRCryptoAmount> maybeAmount = core.getFee();
+            checkState(maybeAmount.isPresent());
+            return Amount.create(maybeAmount.get());
+        });
     }
 
     @Override
@@ -95,9 +105,7 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
     @Override
     public int hashCode() {
-        // TODO(fix): objects that are equal to each other must return the same hashCode; this implementation doesn;t
-        //            meet that requirement
-        return Objects.hash(core);
+        return Objects.hash(getFee());
     }
 
     /* package */

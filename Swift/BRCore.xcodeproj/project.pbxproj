@@ -172,6 +172,8 @@
 		3C926548235A76910063246E /* BRRippleSignature.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E62270B39E004CC0C7 /* BRRippleSignature.c */; };
 		3C926549235A76950063246E /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		3C92654A235A76960063246E /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
+		3C926552235F5EBD0063246E /* BRRippleAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C926550235F5EBD0063246E /* BRRippleAddress.c */; };
+		3C926553235F5EBD0063246E /* BRRippleAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C926550235F5EBD0063246E /* BRRippleAddress.c */; };
 		3C97E2352241658E003FD88F /* BRCryptoCurrency.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2332241658E003FD88F /* BRCryptoCurrency.c */; };
 		3C97E2362241658E003FD88F /* BRCryptoCurrency.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2332241658E003FD88F /* BRCryptoCurrency.c */; };
 		3C97E24F22416AB1003FD88F /* BRCryptoUnit.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E24022416AB1003FD88F /* BRCryptoUnit.c */; };
@@ -611,6 +613,8 @@
 		3C915B0C22E0B98D00AAD000 /* BRCryptoCipher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoCipher.swift; sourceTree = "<group>"; };
 		3C915B0E22E0C67800AAD000 /* BRCryptoSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoSigner.swift; sourceTree = "<group>"; };
 		3C915B1022E0EBE900AAD000 /* BRCryptoCommonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoCommonTests.swift; sourceTree = "<group>"; };
+		3C926550235F5EBD0063246E /* BRRippleAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleAddress.c; sourceTree = "<group>"; };
+		3C926551235F5EBD0063246E /* BRRippleAddress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleAddress.h; sourceTree = "<group>"; };
 		3C97E2332241658E003FD88F /* BRCryptoCurrency.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCurrency.c; sourceTree = "<group>"; };
 		3C97E2342241658E003FD88F /* BRCryptoCurrency.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCurrency.h; sourceTree = "<group>"; };
 		3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoNetwork.c; sourceTree = "<group>"; };
@@ -1314,6 +1318,8 @@
 				C31696872322B0A800743E45 /* BRRippleUtils.c */,
 				C3C864A5227CA28E0055120E /* BRRippleBase58.h */,
 				C3C864A6227CA28E0055120E /* BRRippleBase58.c */,
+				3C926551235F5EBD0063246E /* BRRippleAddress.h */,
+				3C926550235F5EBD0063246E /* BRRippleAddress.c */,
 				C3C864A0227B8CFE0055120E /* BRRippleAccount.h */,
 				C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */,
 				C32DAD02233E7DCB005FDD54 /* BRRippleFeeBasis.h */,
@@ -1897,6 +1903,7 @@
 				3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */,
 				3C6B173B2131CE12003C313B /* BREthereumHash.c in Sources */,
 				3C6B173C2131CE12003C313B /* BREthereumAddress.c in Sources */,
+				3C926553235F5EBD0063246E /* BRRippleAddress.c in Sources */,
 				3C6B173D2131CE12003C313B /* BREthereumSignature.c in Sources */,
 				3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */,
 				3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */,
@@ -2005,6 +2012,7 @@
 			files = (
 				3CD30496213B226B00A0CCED /* BREthereumMessageP2P.c in Sources */,
 				CE6040C222BD69E40003967B /* BRWalletManagerEvent.c in Sources */,
+				3C926552235F5EBD0063246E /* BRRippleAddress.c in Sources */,
 				3C926547235A76900063246E /* BRRippleSignature.c in Sources */,
 				3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */,
 				3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */,

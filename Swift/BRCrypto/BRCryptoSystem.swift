@@ -1192,9 +1192,12 @@ extension System {
                     let reason = WalletManagerSyncStoppedReason(core: event.u.syncStopped.reason)
                     walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
+                    let depth = WalletManagerSyncDepth(core: event.u.syncRecommended.depth)
+                    walletManagerEvent = WalletManagerEvent.syncRecommended(depth: depth)
+
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.network.height = event.u.blockHeight.value
-                    // No event?
+                    walletManagerEvent = WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value)
 
                 default: precondition(false)
                 }

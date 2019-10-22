@@ -212,6 +212,7 @@ typedef enum {
     BITCOIN_WALLET_MANAGER_SYNC_STARTED,
     BITCOIN_WALLET_MANAGER_SYNC_PROGRESS,
     BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
+    BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED,
     BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED
 } BRWalletManagerEventType;
 
@@ -225,6 +226,9 @@ typedef struct {
         struct {
             BRSyncStoppedReason reason;
         } syncStopped;
+        struct {
+            BRSyncDepth depth;
+        } syncRecommended;
         struct {
             BRDisconnectReason reason;
         } disconnected;

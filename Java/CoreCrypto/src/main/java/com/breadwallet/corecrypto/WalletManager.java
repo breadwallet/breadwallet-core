@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoKey;
@@ -25,11 +26,9 @@ import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -57,13 +56,20 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 Utilities.addressSchemeToCrypto(addressScheme),
                 storagePath
         ).transform(
-                cwm -> new WalletManager(cwm, system, callbackCoordinator)
+                cwm -> WalletManager.create(cwm, system, callbackCoordinator)
         );
     }
 
     /* package */
+    static WalletManager takeAndCreate(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
+        return WalletManager.create(core.take(), system, callbackCoordinator);
+    }
+
+    /* package */
     static WalletManager create(BRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
-        return new WalletManager(core, system, callbackCoordinator);
+        WalletManager manager = new WalletManager(core, system, callbackCoordinator);
+        ReferenceCleaner.register(manager, core::give);
+        return manager;
     }
 
     private BRCryptoWalletManager core;
@@ -88,10 +94,17 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         this.networkCurrencySupplier = Suppliers.memoize(() -> getNetwork().getCurrency());
         this.pathSupplier = Suppliers.memoize(core::getPath);
 
-        // TODO(fix): Unchecked get here
         this.networkFeeSupplier = Suppliers.memoize(() -> getNetwork().getMinimumFee());
-        this.networkBaseUnitSupplier = Suppliers.memoize(() -> getNetwork().baseUnitFor(getCurrency()).get());
-        this.networkDefaultUnitSupplier = Suppliers.memoize(() -> getNetwork().defaultUnitFor(getCurrency()).get());
+        this.networkBaseUnitSupplier = Suppliers.memoize(() -> {
+            Optional<Unit> maybeUnit = getNetwork().baseUnitFor(getCurrency());
+            checkState(maybeUnit.isPresent());
+            return maybeUnit.get();
+        });
+        this.networkDefaultUnitSupplier = Suppliers.memoize(() -> {
+            Optional<Unit> maybeUnit = getNetwork().defaultUnitFor(getCurrency());
+            checkState(maybeUnit.isPresent());
+            return maybeUnit.get();
+        });
     }
 
     @Override
@@ -135,10 +148,10 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    void submit(com.breadwallet.crypto.Transfer transfer, BRCryptoKey key) {
+    void submit(com.breadwallet.crypto.Transfer transfer, Key key) {
         Transfer cryptoTransfer = Transfer.from(transfer);
         Wallet cryptoWallet = cryptoTransfer.getWallet();
-        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key);
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key.getBRCryptoKey());
     }
 
     @Override
@@ -275,7 +288,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     /* package */
     Optional<Wallet> getWallet(BRCryptoWallet wallet) {
         return core.containsWallet(wallet) ?
-                Optional.of(Wallet.create(wallet, this, callbackCoordinator)):
+                Optional.of(Wallet.takeAndCreate(wallet, this, callbackCoordinator)):
                 Optional.absent();
     }
 
@@ -287,7 +300,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
         } else {
             Log.d(TAG, "Wallet not found, creating wrapping instance");
-            return Optional.of(Wallet.create(wallet, this, callbackCoordinator));
+            return Optional.of(Wallet.takeAndCreate(wallet, this, callbackCoordinator));
         }
     }
 

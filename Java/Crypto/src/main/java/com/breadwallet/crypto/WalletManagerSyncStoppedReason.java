@@ -4,6 +4,7 @@ import android.support.annotation.Nullable;
 
 import com.google.common.base.Optional;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class WalletManagerSyncStoppedReason {
@@ -73,7 +74,7 @@ public final class WalletManagerSyncStoppedReason {
             case UNKNOWN:
                 return "Unknown";
             case POSIX:
-                return String.format("Posix (%d: %s)", posixErrnum, message);
+                return String.format(Locale.ROOT, "Posix (%d: %s)", posixErrnum, message);
             default:
                 return super.toString();
         }
