@@ -235,6 +235,8 @@ final class System implements com.breadwallet.crypto.System {
                                                                                            UnsignedInteger decimals) {
         int index = uids.indexOf(':');
         if (index == -1) return Optional.absent();
+
+        type = type.toLowerCase(Locale.ROOT);
         if (!"erc20".equals(type) && !"native".equals(type)) return Optional.absent();
 
         code = code.toUpperCase(Locale.ROOT);

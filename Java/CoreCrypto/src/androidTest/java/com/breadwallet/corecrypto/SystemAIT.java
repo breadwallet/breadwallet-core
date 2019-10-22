@@ -76,7 +76,7 @@ public class SystemAIT {
                         "ethereum-ropsten" + ":" + Blockchains.ADDRESS_BRD_MAINNET,
                         "FOO Token",
                         "FOO",
-                        "erc20",
+                        "ERC20",
                         UnsignedInteger.valueOf(10)
                 ).get()
         );

@@ -796,7 +796,9 @@ public final class System {
     /// not provide its own currency model.
     ///
     public static func asBlockChainDBModelCurrency (uids: String, name: String, code: String, type: String, decimals: UInt8) -> BlockChainDB.Model.Currency? {
-        guard "ERC20" == type || "NATIVE" == type else { return nil }
+        // convert to lowercase to match up with built-in blockchains
+        let type = type.lowercased()
+        guard "erc20" == type || "native" == type else { return nil }
         return uids.firstIndex(of: ":")
             .map {
                 let code         = code.uppercased()
