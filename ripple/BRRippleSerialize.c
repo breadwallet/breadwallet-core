@@ -18,6 +18,7 @@
 #include "BRRipple.h"
 #include "BRRippleBase.h"
 #include "BRRipplePrivateStructs.h"
+#include "BRRippleAddress.h"
 #include "BRArray.h"
 
 // Forward declarations
@@ -229,12 +230,18 @@ int add_content(BRRippleField *field, uint8_t *buffer)
             return(add_blob(field,buffer));
             break;
         case 8:
+        {
             assert(field->fieldCode == 1 || field->fieldCode == 3);
             // As of now there is only 2 fields that are of type 8 that are supported
             // Both are Ripple addresses
-            add_length(sizeof(field->data.address), buffer);
-            return(1 + add_raw(field->data.address.bytes, sizeof(field->data.address.bytes), &buffer[1]));
+            int address_length = rippleAddressGetRawSize(field->data.address);
+            add_length(address_length, buffer);
+
+            uint8_t address_bytes[address_length];
+            rippleAddressGetRawBytes (field->data.address, address_bytes, address_length);
+            return(1 + add_raw(address_bytes, address_length, &buffer[1]));
             break;
+        }
         default:
             return 0;
     }
@@ -415,7 +422,7 @@ int get_VLContent(uint8_t *buffer, BRRippleField *field)
         }
     } else {
         if (field->fieldCode == 1 || field->fieldCode == 3) { // address
-            memcpy(field->data.address.bytes, &buffer[1], 20);
+            field->data.address = rippleAddressCreateFromBytes(&buffer[1], 20);
         }
     }
     return (lengthLength + content_length);

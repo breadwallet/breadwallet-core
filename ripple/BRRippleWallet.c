@@ -14,7 +14,9 @@
 #include "support/BRArray.h"
 #include "BRRipplePrivateStructs.h"
 #include "BRRippleFeeBasis.h"
+#include "BRRippleAddress.h"
 #include <stdio.h>
+
 //
 // Wallet
 //
@@ -53,6 +55,9 @@ extern BRRippleAddress
 rippleWalletGetSourceAddress (BRRippleWallet wallet)
 {
     assert(wallet);
+    assert(wallet->account);
+    // NOTE - the following call will create a copy of the address
+    // so we don't need to here as well
     return rippleAccountGetPrimaryAddress(wallet->account);
 }
 
@@ -60,6 +65,9 @@ extern BRRippleAddress
 rippleWalletGetTargetAddress (BRRippleWallet wallet)
 {
     assert(wallet);
+    assert(wallet->account);
+    // NOTE - the following call will create a copy of the address
+    // so we don't need to here as well
     return rippleAccountGetPrimaryAddress(wallet->account);
 }
 
@@ -91,22 +99,27 @@ extern BRRippleFeeBasis rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet)
 
 static bool rippleTransferEqual(BRRippleTransfer t1, BRRippleTransfer t2) {
     // Equal means the same transaction id, source, target
+    bool result = false;
     BRRippleTransactionHash hash1 = rippleTransferGetTransactionId(t1);
     BRRippleTransactionHash hash2 = rippleTransferGetTransactionId(t2);
     if (memcmp(hash1.bytes, hash2.bytes, sizeof(hash1.bytes)) == 0) {
         // Hash is the same - compare the source
         BRRippleAddress source1 = rippleTransferGetSource(t1);
         BRRippleAddress source2 = rippleTransferGetSource(t2);
-        if (memcmp(source1.bytes, source2.bytes, sizeof(source1.bytes)) == 0) {
+        if (1 == rippleAddressEqual(source1, source2)) {
             // OK - compare the target
             BRRippleAddress target1 = rippleTransferGetTarget(t1);
             BRRippleAddress target2 = rippleTransferGetTarget(t2);
-            if (memcmp(target1.bytes, target2.bytes, sizeof(target1.bytes)) == 0) {
-                return true;
+            if (1 == rippleAddressEqual(target1, target2)) {
+                result = true;
             }
+            rippleAddressFree(target1);
+            rippleAddressFree(target2);
         }
+        rippleAddressFree (source1);
+        rippleAddressFree (source2);
     }
-    return false;
+    return result;
 }
 
 static bool
@@ -131,13 +144,14 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
         BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
         BRRippleAddress source = rippleTransferGetSource(transfer);
-        if (memcmp(accountAddress.bytes, source.bytes, sizeof(accountAddress.bytes)) == 0) {
+        if (1 == rippleAddressEqual(accountAddress, source)) {
             wallet->balance = wallet->balance - amount;
         } else {
             wallet->balance = wallet->balance + amount;
         }
+        rippleAddressFree (accountAddress);
+        rippleAddressFree (source);
     }
-    printf("Ripple balance is %llu\n", wallet->balance);
     pthread_mutex_unlock (&wallet->lock);
     // Now update the balance
 }

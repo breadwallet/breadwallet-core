@@ -13,6 +13,7 @@
 
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
+#include "BRRippleAddress.h"
 
 typedef struct BRRippleTransferRecord *BRRippleTransfer;
 
@@ -33,8 +34,12 @@ extern BRRippleTransactionHash rippleTransferGetTransactionId(BRRippleTransfer t
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer);
 extern BRRippleUnitDrops rippleTransferGetAmount(BRRippleTransfer transfer);
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer);
-extern BRRippleAddress rippleTransferGetSource(BRRippleTransfer transfer);
-extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer);
+
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransferGetSource(BRRippleTransfer transfer);
+
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransferGetTarget(BRRippleTransfer transfer);
 
 extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfer);
 

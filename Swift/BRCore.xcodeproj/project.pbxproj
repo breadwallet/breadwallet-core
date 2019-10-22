@@ -284,6 +284,8 @@
 		3CF7683422E5F6DB0007BBDA /* BRCryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */; };
 		3CFEFE2322BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
 		3CFEFE2422BC3AF20044153D /* BRCryptoWalletManagerClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */; };
+		C30E2248235E42AD00E584AC /* BRRippleAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E2246235E42AC00E584AC /* BRRippleAddress.c */; };
+		C30E224A235E81F200E584AC /* BRRippleAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = C30E2246235E42AC00E584AC /* BRRippleAddress.c */; };
 		C3169686232283A200743E45 /* BRRippleTransfer.c in Sources */ = {isa = PBXBuildFile; fileRef = C3169685232283A200743E45 /* BRRippleTransfer.c */; };
 		C31696892322B0A800743E45 /* BRRippleUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C31696872322B0A800743E45 /* BRRippleUtils.c */; };
 		C316968B2322F17500743E45 /* BRRippleUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C31696872322B0A800743E45 /* BRRippleUtils.c */; };
@@ -714,6 +716,8 @@
 		3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerPrivate.h; sourceTree = "<group>"; };
 		3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoWalletManagerClient.c; sourceTree = "<group>"; };
 		3CFEFE2222BC3AF20044153D /* BRCryptoWalletManagerClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerClient.h; sourceTree = "<group>"; };
+		C30E2246235E42AC00E584AC /* BRRippleAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleAddress.c; sourceTree = "<group>"; };
+		C30E2247235E42AC00E584AC /* BRRippleAddress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleAddress.h; sourceTree = "<group>"; };
 		C316968423218C2300743E45 /* BRRippleTransfer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleTransfer.h; sourceTree = "<group>"; };
 		C3169685232283A200743E45 /* BRRippleTransfer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleTransfer.c; sourceTree = "<group>"; };
 		C31696872322B0A800743E45 /* BRRippleUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleUtils.c; sourceTree = "<group>"; };
@@ -1306,6 +1310,8 @@
 			isa = PBXGroup;
 			children = (
 				3C812EBE2266675E0007D335 /* BRRipple.h */,
+				C30E2246235E42AC00E584AC /* BRRippleAddress.c */,
+				C30E2247235E42AC00E584AC /* BRRippleAddress.h */,
 				C3C864A0227B8CFE0055120E /* BRRippleAccount.h */,
 				C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */,
 				C3C453E0226E2C62004CC0C7 /* BRRippleBase.h */,
@@ -1894,6 +1900,7 @@
 				3C6B173C2131CE12003C313B /* BREthereumAddress.c in Sources */,
 				3C6B173D2131CE12003C313B /* BREthereumSignature.c in Sources */,
 				3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */,
+				C30E224A235E81F200E584AC /* BRRippleAddress.c in Sources */,
 				3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */,
 				3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */,
 				3C9B8DEE22BD52940060C3A9 /* BRGenericHandlers.c in Sources */,
@@ -2106,6 +2113,7 @@
 				3C386DD320C6F6070065E355 /* BREthereumEWMClient.c in Sources */,
 				3C9B8DE922BD52940060C3A9 /* BRGeneric.c in Sources */,
 				3C9B8DED22BD52940060C3A9 /* BRGenericHandlers.c in Sources */,
+				C30E2248235E42AD00E584AC /* BRRippleAddress.c in Sources */,
 				3CAB60E620AF8D1A00810CE4 /* BRWallet.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

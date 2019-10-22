@@ -14,16 +14,6 @@
 #include <string.h>
 #include <assert.h>
 
-#define ADDRESS_BYTES   (20)
-
-// A Ripple Address - 20 bytes
-typedef struct {
-    uint8_t bytes[ADDRESS_BYTES];
-} BRRippleAddress;
-
-extern char *
-rippleAddressAsString (BRRippleAddress address);
-
 // Even though we only support the Payment type - plan for
 // the future
 typedef enum {

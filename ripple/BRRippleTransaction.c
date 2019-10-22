@@ -135,13 +135,13 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     // Common fields
     transaction->feeBasis = feeBasis;
     transaction->fee = 0; // Don't know it yet
-    transaction->sourceAddress = sourceAddress;
+    transaction->sourceAddress = rippleAddressClone (sourceAddress);
     transaction->transactionType = RIPPLE_TX_TYPE_PAYMENT;
     transaction->flags = 0x80000000; // tfFullyCanonicalSig
     transaction->lastLedgerSequence = 0;
 
     // Payment information
-    transaction->payment.targetAddress = targetAddress;
+    transaction->payment.targetAddress = rippleAddressClone (targetAddress);
     transaction->payment.amount.currencyType = 0; // XRP
     transaction->payment.amount.amount.u64Amount = amount; // XRP only
     
@@ -154,6 +154,13 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
 extern void rippleTransactionFree(BRRippleTransaction transaction)
 {
     assert(transaction);
+
+    if (transaction->payment.targetAddress) {
+        rippleAddressFree(transaction->payment.targetAddress);
+    }
+    if (transaction->sourceAddress) {
+        rippleAddressFree(transaction->sourceAddress);
+    }
 
     if (transaction->signedBytes) {
         rippleSerializedTransactionRecordFree(&transaction->signedBytes);
@@ -243,6 +250,9 @@ rippleTransactionSerializeImpl (BRRippleTransaction transaction,
 {
     assert(transaction);
     assert(transaction->transactionType == RIPPLE_TX_TYPE_PAYMENT);
+    // NOTE - the address fields will hold a BRRippleAddress pointer BUT
+    // they are owned by the the transaction or transfer so we don't need
+    // to worry about the memory.
     BRRippleField fields[10];
 
     transaction->fee = calculateFee(transaction);
@@ -396,12 +406,12 @@ extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction)
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->sourceAddress;
+    return rippleAddressClone (transaction->sourceAddress);
 }
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->payment.targetAddress;
+    return rippleAddressClone (transaction->payment.targetAddress);
 }
 
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction)
@@ -554,6 +564,8 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
             // An array of Memos
             transaction->memos = field->memos;
         }
+        // NOTE - the deserialization process created BRRippleAddress objects
+        // but in the call above to getFieldInfo the transaction object now owns the memory
     }
     array_free(fieldArray);
 
