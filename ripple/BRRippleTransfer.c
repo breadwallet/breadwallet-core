@@ -47,13 +47,17 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
     BRRippleFeeBasis feeBasis; // NOTE - hard code for DEMO purposes
     feeBasis.pricePerCostFactor = 10;
     feeBasis.costFactor = 1;
-    transfer->transaction = rippleTransactionCreate(from, to, amount, feeBasis);
+    BRRippleAddress fromClone = rippleAddressClone (from);
+    BRRippleAddress toClone = rippleAddressClone (to);
+    transfer->transaction = rippleTransactionCreate(fromClone, toClone, amount, feeBasis);
     return transfer;
 }
 
 extern void rippleTransferFree(BRRippleTransfer transfer)
 {
     assert(transfer);
+    if (transfer->sourceAddress) rippleAddressFree (transfer->sourceAddress);
+    if (transfer->targetAddress) rippleAddressFree (transfer->targetAddress);
     if (transfer->transaction) {
         rippleTransactionFree(transfer->transaction);
     }
@@ -94,7 +98,7 @@ extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
     // See the note in BRRippleAcount.h with respect to the feeAddressBytes
     // If the "target" address is set to the feeAddressBytes then return the
     // amount on this transfer - otherwise return 0.
-    if (memcmp(transfer->targetAddress.bytes, feeAddressBytes, sizeof(transfer->targetAddress.bytes)) == 0) {
+    if (1 == rippleAddressIsFeeAddress(transfer->targetAddress)) {
         return transfer->amount;
     } else {
         return (BRRippleUnitDrops)0L;

@@ -112,43 +112,6 @@ rippleAccountGetAddress(BRRippleAccount account);
 extern uint8_t * /* caller must free - using "free" function */
 rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);
 
-/*
- * Get the string version of the ripple address
- *
- * @param account        handle of a valid account object
- * @param rippleAddress  pointer to char buffer to hold the address
- * @param length         length of the rippleAddress buffer
- *
- * @return               number of bytes copied to rippleAddress + 1 (for terminating byte)
- *                       otherwise return the number of bytes needed to store the address
- *                       including the 0 termination byte
- */
-extern int rippleAccountGetAddressString(BRRippleAccount account,
-                                         char * rippleAddress, /* memory owned by caller */
-                                         int length);
-
-/**
- * Create a BRRippleAddress from the ripple string
- *
- * @param rippleAddres  address in the form r41...
- *
- * @return address      BRRippleAddres
- */
-extern BRRippleAddress
-rippleAddressCreate(const char * rippleAddressString);
-
-/**
- * Compare 2 ripple addresses
- *
- * @param a1  first address
- * @param a2  second address
- *
- * @return 1 - if addresses are equal
- *         0 - if not equal
- */
-extern int
-rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2);
-
 /**
  * Get the account's primary address
  *
@@ -157,14 +120,5 @@ rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2);
 extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
-
-/**
- * Attempt to create a BRRippleAddress from this string
- *
- * @param input    the string address
- * @param address  pointer to a BRRippleAddress
- * @return the number of bytes written to "address"
- */
-extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address);
 
 #endif

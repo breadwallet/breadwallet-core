@@ -13,6 +13,7 @@
 
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
+#include "BRRippleAddress.h"
 
 typedef struct BRRippleTransferRecord *BRRippleTransfer;
 

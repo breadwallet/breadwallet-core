@@ -155,6 +155,13 @@ extern void rippleTransactionFree(BRRippleTransaction transaction)
 {
     assert(transaction);
 
+    if (transaction->payment.targetAddress) {
+        rippleAddressFree(transaction->payment.targetAddress);
+    }
+    if (transaction->sourceAddress) {
+        rippleAddressFree(transaction->sourceAddress);
+    }
+
     if (transaction->signedBytes) {
         rippleSerializedTransactionRecordFree(&transaction->signedBytes);
         transaction->signedBytes = NULL;
@@ -243,6 +250,9 @@ rippleTransactionSerializeImpl (BRRippleTransaction transaction,
 {
     assert(transaction);
     assert(transaction->transactionType == RIPPLE_TX_TYPE_PAYMENT);
+    // NOTE - the address fields will hold a BRRippleAddress pointer BUT
+    // they are owned by the the transaction or transfer so we don't need
+    // to worry about the memory.
     BRRippleField fields[10];
 
     transaction->fee = calculateFee(transaction);
@@ -554,6 +564,8 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
             // An array of Memos
             transaction->memos = field->memos;
         }
+        // NOTE - the deserialization process created BRRippleAddress objects
+        // but in the call above to getFieldInfo the transaction object now owns the memory
     }
     array_free(fieldArray);
 

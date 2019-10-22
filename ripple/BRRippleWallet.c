@@ -14,7 +14,9 @@
 #include "support/BRArray.h"
 #include "BRRipplePrivateStructs.h"
 #include "BRRippleFeeBasis.h"
+#include "BRRippleAddress.h"
 #include <stdio.h>
+
 //
 // Wallet
 //
@@ -97,11 +99,11 @@ static bool rippleTransferEqual(BRRippleTransfer t1, BRRippleTransfer t2) {
         // Hash is the same - compare the source
         BRRippleAddress source1 = rippleTransferGetSource(t1);
         BRRippleAddress source2 = rippleTransferGetSource(t2);
-        if (memcmp(source1.bytes, source2.bytes, sizeof(source1.bytes)) == 0) {
+        if (1 == rippleAddressEqual(source1, source2)) {
             // OK - compare the target
             BRRippleAddress target1 = rippleTransferGetTarget(t1);
             BRRippleAddress target2 = rippleTransferGetTarget(t2);
-            if (memcmp(target1.bytes, target2.bytes, sizeof(target1.bytes)) == 0) {
+            if (1 == rippleAddressEqual(target1, target2)) {
                 return true;
             }
         }
@@ -131,7 +133,7 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
         BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
         BRRippleAddress source = rippleTransferGetSource(transfer);
-        if (memcmp(accountAddress.bytes, source.bytes, sizeof(accountAddress.bytes)) == 0) {
+        if (1 == rippleAddressEqual(accountAddress, source)) {
             wallet->balance = wallet->balance - amount;
         } else {
             wallet->balance = wallet->balance + amount;

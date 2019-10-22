@@ -15,6 +15,7 @@
 #include "BRRippleFeeBasis.h"
 #include "BRKey.h"
 #include "support/BRSet.h"
+#include "BRRippleAddress.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 
