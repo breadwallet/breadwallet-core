@@ -20,6 +20,7 @@ import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.List;
+import java.util.Locale;
 
 /* package */
 final class Blockchains {
@@ -90,21 +91,6 @@ final class Blockchains {
             "Ξ"
     );
 
-
-    private static CurrencyDenomination BRD_INT = new CurrencyDenomination(
-            "BRD Token INT",
-            "brdi",
-            UnsignedInteger.valueOf(0),
-            "brdi"
-    );
-
-    private static CurrencyDenomination BRD_BRD = new CurrencyDenomination(
-            "BRD Token",
-            "brd",
-            UnsignedInteger.valueOf(18),
-            "brd"
-    );
-
     ///
     /// Defined Currencies
     ///
@@ -164,17 +150,14 @@ final class Blockchains {
     );
 
     private static Currency CURRENCY_BRD_MAINNET = new Currency(
-            "ethereum-mainnet:" + ADDRESS_BRD_MAINNET,
+            makeCurrencyIdentifierErc20("ethereum-mainnet:", ADDRESS_BRD_MAINNET),
             "BRD Token",
             "brd",
             "erc20",
             "ethereum-mainnet",
             ADDRESS_BRD_MAINNET,
             true,
-            ImmutableList.of(
-                    BRD_INT,
-                    BRD_BRD
-            )
+            makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
     );
 
     // Testnet
@@ -223,18 +206,40 @@ final class Blockchains {
     );
 
     private static Currency CURRENCY_BRD_ROPSTEN = new Currency(
-            "ethereum-ropsten:" + ADDRESS_BRD_TESTNET,
+            makeCurrencyIdentifierErc20("ethereum-ropsten:", ADDRESS_BRD_TESTNET),
             "BRD Token Testnet",
             "brd",
             "erc20",
             "ethereum-ropsten",
             ADDRESS_BRD_TESTNET,
             true,
-            ImmutableList.of(
-                    BRD_INT,
-                    BRD_BRD
-            )
+            makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
     );
+
+    private static String makeCurrencyIdentifierErc20(String blockchainId, String address) {
+        return String.format(Locale.ROOT, "%s:%s", blockchainId, address);
+    }
+
+    /* package */
+    static List<CurrencyDenomination> makeCurrencyDemominationsErc20 (String code, UnsignedInteger decimals) {
+        String name = code.toUpperCase(Locale.ROOT);
+        code = code.toLowerCase(Locale.ROOT);
+
+        return ImmutableList.of(
+                new CurrencyDenomination(
+                        String.format(Locale.ROOT, "%s Token INT", name),
+                        String.format(Locale.ROOT, "%si", code),
+                        UnsignedInteger.ZERO,
+                        String.format(Locale.ROOT, "%si", code)
+                ),
+                new CurrencyDenomination(
+                        String.format(Locale.ROOT, "%s Token", name),
+                        code,
+                        decimals,
+                        code
+                )
+        );
+    }
 
     ///
     /// Defined Blockchains

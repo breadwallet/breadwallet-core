@@ -252,20 +252,7 @@ final class System implements com.breadwallet.crypto.System {
                         blockchainId,
                         address.equals("__native__") ? null : address,
                         true,
-                        Arrays.asList(
-                                new CurrencyDenomination(
-                                        code + "_INTEGER",
-                                        code + "_INTEGER",
-                                        UnsignedInteger.ZERO,
-                                        code + 'I'      // BRDI -> BaseUnit
-                                ),
-                                new CurrencyDenomination(
-                                        code,
-                                        code,
-                                        decimals,
-                                        code                    //  BRD -> DefaultUnit
-                                )
-                        )
+                        Blockchains.makeCurrencyDemominationsErc20(code, decimals)
                 )
         );
     }

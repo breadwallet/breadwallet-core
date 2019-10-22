@@ -97,12 +97,12 @@ public class SystemAIT {
         Optional<? extends Unit> fooDefault = network.defaultUnitFor(fooCurrency.get());
         assertTrue(fooDefault.isPresent());
         assertEquals(UnsignedInteger.valueOf(10), fooDefault.get().getDecimals());
-        assertEquals("FOO", fooDefault.get().getSymbol());
+        assertEquals("foo", fooDefault.get().getSymbol());
 
         Optional<? extends Unit> fooBase = network.baseUnitFor(fooCurrency.get());
         assertTrue(fooBase.isPresent());
         assertEquals(UnsignedInteger.ZERO, fooBase.get().getDecimals());
-        assertEquals("FOOI", fooBase.get().getSymbol());
+        assertEquals("fooi", fooBase.get().getSymbol());
     }
 
     @Test
