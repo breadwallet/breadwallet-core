@@ -245,7 +245,6 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
             break;
     }
 
-    if (network->currency) cryptoCurrencyGive(network->currency);
     free (network->name);
     free (network->uids);
     if (NULL != network->currency) cryptoCurrencyGive (network->currency);
