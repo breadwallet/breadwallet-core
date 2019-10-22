@@ -13,7 +13,6 @@
 
 #include <stdbool.h>
 #include "BRKey.h"
-#include "generic/BRGenericPrivate.h"
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
 
