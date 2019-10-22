@@ -209,7 +209,7 @@ cryptoNetworkCreateAsGEN (const char *uids,
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
     network->u.gen.mainnet = isMainnet;
-    network->u.gen.net = gwmNetworkCreate(cryptoCurrencyGetCode(currency));
+    network->u.gen.net = genNetworkCreate(cryptoCurrencyGetCode(currency));
     network->currency = cryptoCurrencyTake(currency);
     return network;
 }

@@ -22,9 +22,9 @@ typedef void
                                     int rid);
 
 extern int
-gwmAnnounceBlockNumber (BRGenericManager manager,
-                        int rid,
-                        uint64_t blockNumber);
+genManagerAnnounceBlockNumber (BRGenericManager manager,
+                               int rid,
+                               uint64_t blockNumber);
 
 
 typedef void
@@ -44,14 +44,14 @@ typedef void
                                   int rid);
 
 extern int // success - data is valid
-gwmAnnounceTransfer (BRGenericManager manager,
-                     int rid,
-                     BRGenericTransfer transfer);
+genManagerAnnounceTransfer (BRGenericManager manager,
+                            int rid,
+                            BRGenericTransfer transfer);
 
 extern void
-gwmAnnounceTransferComplete (BRGenericManager manager,
-                             int rid,
-                             int success);
+genManagerAnnounceTransferComplete (BRGenericManager manager,
+                                    int rid,
+                                    int success);
 
 typedef void
 (*BRGenericSubmitTransactionCallback) (BRGenericClientContext context,
@@ -62,10 +62,10 @@ typedef void
                                        int rid);
 
 extern void
-gwmAnnounceSubmit (BRGenericManager manager,
-                   int rid,
-                   BRGenericTransfer transfer,
-                   int error);
+genManagerAnnounceSubmit (BRGenericManager manager,
+                          int rid,
+                          BRGenericTransfer transfer,
+                          int error);
 
 // MARK: - Generic Client
 

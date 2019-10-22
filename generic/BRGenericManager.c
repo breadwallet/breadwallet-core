@@ -19,8 +19,8 @@
 #include "ethereum/event/BREventAlarm.h"
 
 static void
-gwmPeriodicDispatcher (BREventHandler handler,
-                       BREventTimeout *event);
+genManagerPeriodicDispatcher (BREventHandler handler,
+                              BREventTimeout *event);
 
 extern const BREventType *gwmEventTypes[];
 extern const unsigned int gwmEventTypesCount;
@@ -32,10 +32,10 @@ extern const unsigned int gwmEventTypesCount;
 #endif
 
 static void
-gwmInstallFileService (BRGenericManager gwm,
-                       const char *storagePath,
-                       const char *currencyName,
-                       const char *networkName);
+genManagerInstallFileService (BRGenericManager gwm,
+                              const char *storagePath,
+                              const char *currencyName,
+                              const char *networkName);
 
 ///
 ///
@@ -85,14 +85,14 @@ struct BRGenericManagerRecord {
 };
 
 extern BRGenericManager
-gwmCreate (BRGenericClient client,
-           const char *type,
-           BRGenericNetwork network,
-           BRGenericAccount account,
-           uint64_t accountTimestamp,
-           const char *storagePath,
-           uint32_t syncPeriodInSeconds,
-           uint64_t blockHeight) {
+genManagerCreate (BRGenericClient client,
+                  const char *type,
+                  BRGenericNetwork network,
+                  BRGenericAccount account,
+                  uint64_t accountTimestamp,
+                  const char *storagePath,
+                  uint32_t syncPeriodInSeconds,
+                  uint64_t blockHeight) {
     BRGenericManager gwm = calloc (1, sizeof (struct BRGenericManagerRecord));
 
     gwm->handlers = genHandlerLookup (type);
@@ -117,7 +117,6 @@ gwmCreate (BRGenericClient client,
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
-
     char handlerName[5 + strlen(type) + 1], *hp = &handlerName[4]; // less 1
     sprintf (handlerName, "Core %s", type);
     while (*++hp) *hp = toupper (*hp);
@@ -130,7 +129,7 @@ gwmCreate (BRGenericClient client,
                                        &gwm->lock);
 
     // File Service
-    gwmInstallFileService (gwm, storagePath, type, "mainnet");
+    genManagerInstallFileService (gwm, storagePath, type, "mainnet");
 
     // Wallet ??
 
@@ -145,7 +144,7 @@ gwmCreate (BRGenericClient client,
 
     eventHandlerSetTimeoutDispatcher (gwm->handler,
                                       1000 * syncPeriodInSeconds,
-                                      (BREventDispatcher) gwmPeriodicDispatcher,
+                                      (BREventDispatcher) genManagerPeriodicDispatcher,
                                       (void*) gwm);
 
     // Events ...
@@ -154,115 +153,113 @@ gwmCreate (BRGenericClient client,
 }
 
 extern void
-gwmRelease (BRGenericManager gwm) {
-    gwmDisconnect (gwm);
+genManagerRelease (BRGenericManager gwm) {
+    genManagerDisconnect (gwm);
     free (gwm);
 }
 
 extern void
-gwmStop (BRGenericManager gwm) {
+genManagerStop (BRGenericManager gwm) {
     eventHandlerStop (gwm->handler);
     fileServiceClose (gwm->fileService);
 }
 
 extern BRGenericNetwork
-gwmGetNetwork (BRGenericManager gwm) {
+genManagerGetNetwork (BRGenericManager gwm) {
     return gwm->network;
 }
 
 extern BRGenericAccount
-gwmGetAccount (BRGenericManager gwm) {
+genManagerGetAccount (BRGenericManager gwm) {
     return gwm->account;
 }
 
 extern BRGenericClient
-gwmGetClient (BRGenericManager gwm) {
+genManagerGetClient (BRGenericManager gwm) {
     return gwm->client;
 }
 
 extern void
-gwmConnect (BRGenericManager gwm) {
+genManagerConnect (BRGenericManager gwm) {
     eventHandlerStart (gwm->handler);
     // Event
 }
 
 extern void
-gwmDisconnect (BRGenericManager gwm) {
-    gwmStop (gwm);  // This is questionable.
-    // Event
-
+genManagerDisconnect (BRGenericManager gwm) {
+    genManagerStop (gwm);  // This is questionable.
+                           // Event
 }
 
 extern void
-gwmSync (BRGenericManager gwm) {
+genManagerSync (BRGenericManager gwm) {
     return;
 }
 
-
 extern BRGenericAddress
-gwmGetAccountAddress (BRGenericManager gwm) {
-    return gwmAccountGetAddress (gwm->account);
+genManagerGetAccountAddress (BRGenericManager gwm) {
+    return genAccountGetAddress (gwm->account);
 }
 
 extern BRGenericWallet
-gwmCreatePrimaryWallet (BRGenericManager gwm) {
-    return gwmWalletCreate(gwm->account);
+genManagerCreatePrimaryWallet (BRGenericManager gwm) {
+    return genWalletCreate(gwm->account);
 }
 
 extern int
-gwmSignTransfer (BRGenericManager gwm,
-                 BRGenericWallet wid,
-                 BRGenericTransfer transfer,
-                 UInt512 seed) {
-    gwmAccountSignTransferWithSeed (gwm->account, transfer, seed);
+genManagerSignTransfer (BRGenericManager gwm,
+                        BRGenericWallet wid,
+                        BRGenericTransfer transfer,
+                        UInt512 seed) {
+    genAccountSignTransferWithSeed (gwm->account, transfer, seed);
     return 1;
 }
 
 extern int
-gwmSignTransferWithKey (BRGenericManager gwm,
-                        BRGenericWallet wid,
-                        BRGenericTransfer transfer,
-                        BRKey *key) {
-    gwmAccountSignTransferWithKey (gwm->account, transfer, key);
+genManagerSignTransferWithKey (BRGenericManager gwm,
+                               BRGenericWallet wid,
+                               BRGenericTransfer transfer,
+                               BRKey *key) {
+    genAccountSignTransferWithKey (gwm->account, transfer, key);
     return 1;
 }
 
 extern void
-gwmSubmitTransfer (BRGenericManager gwm,
-                   BRGenericWallet wid,
-                   BRGenericTransfer transfer) {
+genManagerSubmitTransfer (BRGenericManager gwm,
+                          BRGenericWallet wid,
+                          BRGenericTransfer transfer) {
     // Get the serialization, as raw bytes', for the transfer.  We assert if the raw bytes
     // don't exist which implies that transfer was not signed.
     size_t txSize = 0;
-    uint8_t * tx = gwmTransferSerialize(transfer, &txSize);
+    uint8_t * tx = genTransferSerialize(transfer, &txSize);
     assert (NULL != tx);
 
     // Get the hash
-    BRGenericHash hash = gwmTransferGetHash(transfer);
+    BRGenericHash hash = genTransferGetHash(transfer);
 
     // Submit the raw bytes to the client.
-    BRGenericClient client = gwmGetClient(gwm);
+    BRGenericClient client = genManagerGetClient(gwm);
     client.submitTransaction (client.context, gwm, wid, transfer, tx, txSize, hash, 0);
 }
 
 extern BRGenericTransfer
-gwmRecoverTransfer (BRGenericManager gwm,
-                    BRGenericWallet wallet,
-                    const char *hash,
-                    const char *from,
-                    const char *to,
-                    const char *amount,
-                    const char *currency,
-                    uint64_t timestamp,
-                    uint64_t blockHeight) {
+genManagerRecoverTransfer (BRGenericManager gwm,
+                           BRGenericWallet wallet,
+                           const char *hash,
+                           const char *from,
+                           const char *to,
+                           const char *amount,
+                           const char *currency,
+                           uint64_t timestamp,
+                           uint64_t blockHeight) {
     return genTransferAllocAndInit (gwm->handlers->type,
                                     gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
 }
 
 extern BRArrayOf(BRGenericTransfer)
-gwmRecoverTransfersFromRawTransaction (BRGenericManager gwm,
-                                       uint8_t *bytes,
-                                       size_t   bytesCount) {
+genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
+                                              uint8_t *bytes,
+                                              size_t   bytesCount) {
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
@@ -274,7 +271,7 @@ gwmRecoverTransfersFromRawTransaction (BRGenericManager gwm,
 }
 
 extern BRArrayOf(BRGenericTransfer)
-gwmLoadTransfers (BRGenericManager gwm) {
+genManagerLoadTransfers (BRGenericManager gwm) {
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
@@ -289,8 +286,8 @@ gwmLoadTransfers (BRGenericManager gwm) {
 /// MARK: Periodic Dispatcher
 
 static void
-gwmPeriodicDispatcher (BREventHandler handler,
-                       BREventTimeout *event) {
+genManagerPeriodicDispatcher (BREventHandler handler,
+                              BREventTimeout *event) {
     BRGenericManager gwm = (BRGenericManager) event->context;
 
     gwm->client.getBlockNumber (gwm->client.context,
@@ -312,8 +309,8 @@ gwmPeriodicDispatcher (BREventHandler handler,
 
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
-        char *address = gwmAddressAsString (gwmGetAccountAddress(gwm));
-
+        char *address = genAddressAsString (genManagerGetAccountAddress(gwm));
+        
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;
 
@@ -325,18 +322,18 @@ gwmPeriodicDispatcher (BREventHandler handler,
         // bwmAnnounceTransaction()  (for each one or with all of them).
         if (gwm->handlers->manager.apiSyncType() == GENERIC_SYNC_TYPE_TRANSFER) {
             gwm->client.getTransfers (gwm->client.context,
-                                         gwm,
-                                         address,
-                                         gwm->brdSync.begBlockNumber,
-                                         gwm->brdSync.endBlockNumber,
-                                         gwm->requestId++);
-        } else {
-            gwm->client.getTransactions (gwm->client.context,
                                       gwm,
                                       address,
                                       gwm->brdSync.begBlockNumber,
                                       gwm->brdSync.endBlockNumber,
                                       gwm->requestId++);
+        } else {
+            gwm->client.getTransactions (gwm->client.context,
+                                         gwm,
+                                         address,
+                                         gwm->brdSync.begBlockNumber,
+                                         gwm->brdSync.endBlockNumber,
+                                         gwm->requestId++);
         }
 
         // TODO: Handle address
@@ -355,9 +352,9 @@ gwmPeriodicDispatcher (BREventHandler handler,
 // signal transfer
 
 extern int
-gwmAnnounceBlockNumber (BRGenericManager manager,
-                        int rid,
-                        uint64_t height) {
+genManagerAnnounceBlockNumber (BRGenericManager manager,
+                               int rid,
+                               uint64_t height) {
     pthread_mutex_lock (&manager->lock);
     if (height != manager->blockHeight) {
         manager->blockHeight = (uint32_t) height;
@@ -368,17 +365,17 @@ gwmAnnounceBlockNumber (BRGenericManager manager,
 }
 
 extern int // success - data is valid
-gwmAnnounceTransfer (BRGenericManager manager,
-                     int rid,
-                     BRGenericTransfer transfer) {
+genManagerAnnounceTransfer (BRGenericManager manager,
+                            int rid,
+                            BRGenericTransfer transfer) {
     // Add transfer ?? EVent
     return 1;
 }
 
 extern void
-gwmAnnounceTransferComplete (BRGenericManager manager,
-                             int rid,
-                             int success) {
+genManagerAnnounceTransferComplete (BRGenericManager manager,
+                                    int rid,
+                                    int success) {
     pthread_mutex_lock (&manager->lock);
     if (rid == manager->brdSync.rid)
         manager->brdSync.completed = success;
@@ -386,18 +383,18 @@ gwmAnnounceTransferComplete (BRGenericManager manager,
 }
 
 extern void
-gwmAnnounceSubmit (BRGenericManager manager,
-                   int rid,
-                   BRGenericTransfer transfer,
-                   int error) {
+genManagerAnnounceSubmit (BRGenericManager manager,
+                          int rid,
+                          BRGenericTransfer transfer,
+                          int error) {
     // Event
 }
 
 static void
-gwmInstallFileService(BRGenericManager gwm,
-                      const char *storagePath,
-                      const char *currencyName,
-                      const char *networkName) {
+genManagerInstallFileService(BRGenericManager gwm,
+                             const char *storagePath,
+                             const char *currencyName,
+                             const char *networkName) {
     gwm->fileService = fileServiceCreate (storagePath, currencyName, networkName, gwm, NULL);
 
     gwm->handlers->manager.fileServiceInit (gwm, gwm->fileService);

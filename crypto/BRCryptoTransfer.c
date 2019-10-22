@@ -249,11 +249,11 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
     BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
     transfer->u.gen = tid;
 
-    BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (tid); // Will give ownership
+    BRGenericFeeBasis gwmFeeBasis = genTransferGetFeeBasis (tid); // Will give ownership
     transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwmFeeBasis);
 
-    transfer->sourceAddress = cryptoAddressCreateAsGEN (gwmTransferGetSourceAddress (tid));
-    transfer->targetAddress = cryptoAddressCreateAsGEN (gwmTransferGetTargetAddress (tid));
+    transfer->sourceAddress = cryptoAddressCreateAsGEN (genTransferGetSourceAddress (tid));
+    transfer->targetAddress = cryptoAddressCreateAsGEN (genTransferGetTargetAddress (tid));
 
     return transfer;
 }
@@ -351,7 +351,7 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
 
             amount = cryptoAmountCreate (transfer->unit,
                                          isNegative,
-                                         gwmTransferGetAmount (tid));
+                                         genTransferGetAmount (tid));
             break;
         }
     }
@@ -442,7 +442,7 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 
             return cryptoAmountCreate (transfer->currency,
                                        CRYPTO_FALSE,
-                                       gwmTransferGetFee (gwm, tid));
+                                       genTransferGetFee (gwm, tid));
         }
     }
 }
@@ -528,7 +528,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
         }
 
         case BLOCK_CHAIN_TYPE_GEN:
-            switch (gwmTransferGetDirection (transfer->u.gen)) {
+            switch (genTransferGetDirection (transfer->u.gen)) {
                 case GENERiC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
                 case GENERIC_TRANSFER_RECEIVED:  return CRYPTO_TRANSFER_RECEIVED;
                 case GENERIC_TRANSFER_RECOVERED: return CRYPTO_TRANSFER_RECOVERED;
@@ -560,7 +560,7 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
         case BLOCK_CHAIN_TYPE_GEN: {
             BRGenericTransfer tid = transfer->u.gen;
 
-            BRGenericHash hash = gwmTransferGetHash (tid);
+            BRGenericHash hash = genTransferGetHash (tid);
             return (genericHashIsEmpty (hash)
                     ? NULL
                     : cryptoHashCreateAsGEN (hash));
@@ -605,7 +605,7 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
             BRGenericWalletManager gwm = transfer->u.gen.gwm;
             BRGenericTransfer tid = transfer->u.gen.tid;
 
-            BRGenericFeeBasis bid = gwmTransferGetFeeBasis (gwm, tid);
+            BRGenericFeeBasis bid = genTransferGetFeeBasis (gwm, tid);
             feeBasis = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, bid);
             break;
         }

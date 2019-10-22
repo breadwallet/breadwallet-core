@@ -350,7 +350,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             assert (CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT == addressScheme);
             BRGenericWallet wid = wallet->u.gen;
 
-            BRGenericAddress genAddress = gwmWalletGetAddress (wid);
+            BRGenericAddress genAddress = genWalletGetAddress (wid);
             return cryptoAddressCreateAsGEN (genAddress);
         }
     }
@@ -383,7 +383,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
         case BLOCK_CHAIN_TYPE_GEN: {
             BRGenericWallet wid = wallet->u.gen;
 
-            BRGenericFeeBasis bid = gwmWalletGetDefaultFeeBasis (wid);
+            BRGenericFeeBasis bid = genWalletGetDefaultFeeBasis (wid);
             feeBasis =  cryptoFeeBasisCreateAsGEN (feeUnit, bid);
             break;
         }
@@ -422,7 +422,7 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
             BRGenericWallet wid = wallet->u.gen;
 
             // This will not generate any GEN events (GEN events don't exist);
-            gwmWalletSetDefaultFeeBasis (wid, cryptoFeeBasisAsGEN(feeBasis));
+            genWalletSetDefaultFeeBasis (wid, cryptoFeeBasisAsGEN(feeBasis));
             break;
         }
     }
@@ -520,7 +520,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
             BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
-            BRGenericTransfer tid = gwmWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+            BRGenericTransfer tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }
@@ -677,7 +677,7 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             // But BTC and ETH each announce BTC and ETH-specific events.  And those events have
             // a listener (which the BWM, and EWM have been configured with.  The GWM doesn't have
             // events; nor, obviously, an event listener.
-            UInt256 genFee = gwmWalletEstimateTransferFee (wid,
+            UInt256 genFee = genWalletEstimateTransferFee (wid,
                                                            cryptoAddressAsGEN (target),
                                                            cryptoAmountGetValue(amount),
                                                            createUInt256 (cryptoNetworkFeeAsGEN(fee)),

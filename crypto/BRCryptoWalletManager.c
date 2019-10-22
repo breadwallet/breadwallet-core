@@ -215,18 +215,18 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // Create CWM as 'GEN' based on the network's base currency.
             const char *type = cryptoNetworkGetCurrencyCode (network);
 
-            cwm->u.gen = gwmCreate (client,
-                                    type,
-                                    cryptoNetworkAsGEN (network),
-                                    cryptoAccountAsGEN (account, type),
-                                    cryptoAccountGetTimestamp(account),
-                                    cwmPath,
-                                    GEN_DISPATCHER_PERIOD,
-                                    cryptoNetworkGetHeight(network));
+            cwm->u.gen = genManagerCreate (client,
+                                           type,
+                                           cryptoNetworkAsGEN (network),
+                                           cryptoAccountAsGEN (account, type),
+                                           cryptoAccountGetTimestamp(account),
+                                           cwmPath,
+                                           GEN_DISPATCHER_PERIOD,
+                                           cryptoNetworkGetHeight(network));
             if (NULL == cwm->u.gen) { error = 1; break; }
 
             // ... and create the primary wallet
-            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, gwmCreatePrimaryWallet (cwm->u.gen));
+            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerCreatePrimaryWallet (cwm->u.gen));
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
@@ -255,7 +255,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                       });
 
             // Load transfers from persistent storage
-            BRArrayOf(BRGenericTransfer) transfers = gwmLoadTransfers (cwm->u.gen);
+            BRArrayOf(BRGenericTransfer) transfers = genManagerLoadTransfers (cwm->u.gen);
             for (size_t index = 0; index < array_count (transfers); index++) {
                 cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
             }
@@ -315,7 +315,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
             break;
         case BLOCK_CHAIN_TYPE_GEN:
             if (NULL != cwm->u.gen)
-                gwmRelease (cwm->u.gen);
+                genManagerRelease (cwm->u.gen);
             break;
     }
 
@@ -341,7 +341,7 @@ cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
             break;
         case BLOCK_CHAIN_TYPE_GEN:
             if (NULL != cwm->u.gen)
-                gwmStop (cwm->u.gen);
+                genManagerStop (cwm->u.gen);
             break;
     }
 }
@@ -634,7 +634,7 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             ewmConnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            gwmConnect(cwm->u.gen);
+            genManagerConnect(cwm->u.gen);
             break;
     }
 }
@@ -649,7 +649,7 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
             ewmDisconnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            gwmDisconnect (cwm->u.gen);
+            genManagerDisconnect (cwm->u.gen);
             break;
     }
 }
@@ -664,7 +664,7 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
             ewmSync (cwm->u.eth, ETHEREUM_BOOLEAN_FALSE);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            gwmSync(cwm->u.gen);
+            genManagerSync(cwm->u.gen);
             break;
     }
 }
@@ -711,10 +711,10 @@ cryptoWalletManagerSign (BRCryptoWalletManager cwm,
             break;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            success = AS_CRYPTO_BOOLEAN (gwmSignTransfer (cwm->u.gen,
-                                                          cryptoWalletAsGEN (wallet),
-                                                          cryptoTransferAsGEN (transfer),
-                                                          seed));
+            success = AS_CRYPTO_BOOLEAN (genManagerSignTransfer (cwm->u.gen,
+                                                                 cryptoWalletAsGEN (wallet),
+                                                                 cryptoTransferAsGEN (transfer),
+                                                                 seed));
             break;
     }
 
@@ -765,9 +765,9 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             BRGenericTransfer genTransfer = cryptoTransferAsGEN (transfer);
 
             // Sign the transfer
-            if (gwmSignTransfer (cwm->u.gen, genWallet, genTransfer, seed)) {
+            if (genManagerSignTransfer (cwm->u.gen, genWallet, genTransfer, seed)) {
                 // Submt the transfer
-                gwmSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
             }
             break;
         }
@@ -816,8 +816,8 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
             BRGenericWallet genWallet = cryptoWalletAsGEN (wallet);
             BRGenericTransfer genTransfer = cryptoTransferAsGEN (transfer);
 
-            if (gwmSignTransferWithKey (cwm->u.gen, genWallet, genTransfer, cryptoKeyGetCore (key))) {
-                gwmSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+            if (genManagerSignTransferWithKey (cwm->u.gen, genWallet, genTransfer, cryptoKeyGetCore (key))) {
+                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
             }
             break;
         }
@@ -844,9 +844,9 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            gwmSubmitTransfer (cwm->u.gen,
-                               cryptoWalletAsGEN (wallet),
-                               cryptoTransferAsGEN (transfer));
+            genManagerSubmitTransfer (cwm->u.gen,
+                                      cryptoWalletAsGEN (wallet),
+                                      cryptoTransferAsGEN (transfer));
             break;
         }
     }
@@ -1026,8 +1026,8 @@ static void theErrorHackReset (BRCryptoWalletMigrator migrator) {
 
 static void
 cryptoWalletMigratorErrorHandler (BRFileServiceContext context,
-                                 BRFileService fs,
-                                 BRFileServiceError error) {
+                                  BRFileService fs,
+                                  BRFileServiceError error) {
     // TODO: Racy on 'cryptoWalletMigratorRelease'?
     BRCryptoWalletMigrator migrator = (BRCryptoWalletMigrator) context;
 
