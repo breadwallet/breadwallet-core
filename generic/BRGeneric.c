@@ -170,7 +170,8 @@ genTransferGetFeeBasis (BRGenericTransfer transfer) {
 
 extern BRGenericTransferDirection
 genTransferGetDirection (BRGenericTransfer transfer) {
-    return transfer->handlers.direction (transfer->ref);
+//    return transfer->direction;
+    return GENERIC_TRANSFER_SENT;
 }
 
 extern BRGenericHash

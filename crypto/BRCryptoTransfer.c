@@ -529,7 +529,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
 
         case BLOCK_CHAIN_TYPE_GEN:
             switch (genTransferGetDirection (transfer->u.gen)) {
-                case GENERiC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
+                case GENERIC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
                 case GENERIC_TRANSFER_RECEIVED:  return CRYPTO_TRANSFER_RECEIVED;
                 case GENERIC_TRANSFER_RECOVERED: return CRYPTO_TRANSFER_RECOVERED;
             }

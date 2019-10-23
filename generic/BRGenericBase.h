@@ -103,7 +103,7 @@ extern "C" {
 
     // MARK: Generic Transfer Direction
     typedef enum {
-        GENERiC_TRANSFER_SENT,
+        GENERIC_TRANSFER_SENT,
         GENERIC_TRANSFER_RECEIVED,
         GENERIC_TRANSFER_RECOVERED
     } BRGenericTransferDirection;
