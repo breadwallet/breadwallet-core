@@ -85,6 +85,16 @@ public final class System {
         return "\(blockchainID):\(address)"
     }
 
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
+    }
+
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
         (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
@@ -103,15 +113,14 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: [(name: "BRD Token INT", code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD Token",     code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
 //         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
+//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
 //         address: nil, verified: true,
@@ -135,10 +144,9 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
 //         address: nil, verified: true,
@@ -611,8 +619,8 @@ public final class System {
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
-            let symb = "\(currency.code.uppercased())I"
-            let name = "\(currency.code.uppercased())_INTEGER"
+            let symb = "\(currency.code)I".lowercased()
+            let name = "\(currency.code) INT".uppercased()
             let uids = "\(currency.uids):\(name)"
             return Unit (currency: currency, uids: uids, name: name, symbol: symb)
         }
@@ -796,10 +804,12 @@ public final class System {
     /// not provide its own currency model.
     ///
     public static func asBlockChainDBModelCurrency (uids: String, name: String, code: String, type: String, decimals: UInt8) -> BlockChainDB.Model.Currency? {
-        guard "ERC20" == type || "NATIVE" == type else { return nil }
+        // convert to lowercase to match up with built-in blockchains
+        let type = type.lowercased()
+        guard "erc20" == type || "native" == type else { return nil }
         return uids.firstIndex(of: ":")
             .map {
-                let code         = code.uppercased()
+                let code         = code.lowercased()
                 let blockchainID = uids.prefix(upTo: $0).description
                 let address      = uids.suffix(from: uids.index (after: $0)).description
 
@@ -810,16 +820,7 @@ public final class System {
                         blockchainID: blockchainID,
                         address: (address != "__native__" ? address : nil),
                         verified: true,
-                        demoninations: [
-                            (name: "\(code)_INTEGER",
-                                code: "\(code)_INTEGER",
-                                decimals: 0,
-                                symbol: "\(code)I"),   // BRDI -> BaseUnit
-
-                            (name: code,
-                             code: code,
-                             decimals: decimals,
-                             symbol: code)])       //  BRD -> DefaultUnit
+                        demoninations: System.makeCurrencyDemominationsERC20 (code, decimals: decimals))
         }
     }
 
@@ -859,8 +860,8 @@ public final class System {
     private static var systemRemovedSystemsSave = true;
 
     static func systemRemove (index: Int32) {
-        return systemQueue.sync {
-            systemMapping.removeValue(forKey: index)
+        return systemQueue.sync (flags: .barrier) {
+            systemMapping.removeValue (forKey: index)
                 .map {
                     if systemRemovedSystemsSave {
                         systemRemovedSystems.append ($0)
@@ -1190,9 +1191,12 @@ extension System {
                     let reason = WalletManagerSyncStoppedReason(core: event.u.syncStopped.reason)
                     walletManagerEvent = WalletManagerEvent.syncEnded(reason: reason)
 
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
+                    let depth = WalletManagerSyncDepth(core: event.u.syncRecommended.depth)
+                    walletManagerEvent = WalletManagerEvent.syncRecommended(depth: depth)
+
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.network.height = event.u.blockHeight.value
-                    // No event?
+                    walletManagerEvent = WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value)
 
                 default: precondition(false)
                 }
@@ -1925,7 +1929,7 @@ extension System {
                 else { throw MigrateError.block }
 
             var flags  = blob.flags
-            var hashes = blob.hashes
+            var hashes = blob.hashes.flatMap { $0 }  // [[UInt8 ...] ...] => [UInt8 ... ...]
             let hashesCount = blob.hashes.count
 
             let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }

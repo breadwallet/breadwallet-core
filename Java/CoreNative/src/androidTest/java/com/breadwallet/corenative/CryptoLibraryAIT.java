@@ -5,16 +5,10 @@ import android.support.test.InstrumentationRegistry;
 
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
-import com.breadwallet.corenative.crypto.BRCryptoBoolean;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
-import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
-import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
-import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
@@ -27,7 +21,6 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +31,6 @@ public class CryptoLibraryAIT {
     private String paperKey;
     private File coreDataDir;
     private int epoch;
-    private Date epochDate;
 
     @Before
     public void setup() {
@@ -50,7 +42,6 @@ public class CryptoLibraryAIT {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(2017, /* September */ 8, 6);
         epoch = (int) TimeUnit.MILLISECONDS.toSeconds(calendar.getTimeInMillis());
-        epochDate = calendar.getTime();
 
         coreDirClear();
         coreDirCreate();
@@ -63,7 +54,6 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testLoad() {
-        assertNotNull(CryptoLibrary.INSTANCE);
         assertNotNull(TestCryptoLibrary.INSTANCE);
     }
 
@@ -76,7 +66,10 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testBitcoinSyncOne() {
-        TestCryptoLibrary.INSTANCE.BRRunTestsSync (paperKey, 1, 1);
+        int success = 0;
+
+        success = TestCryptoLibrary.INSTANCE.BRRunTestsSync (paperKey, 1, 1);
+        assertEquals(1, success);
     }
 
     @Test
@@ -92,50 +85,56 @@ public class CryptoLibraryAIT {
     }
 
     @Test
-    public void testBitcoinWalletManagerSyncModes () {
-        int success = 0;
-        int isBTC = 0;
-        int isMainnet = 0;
-        long blockHeight = 0;
-
-        // BTC mainnet
-
-        isBTC = 1;
-        isMainnet = 1;
-        blockHeight = 500000;
+    public void testBitcoinWalletManagerSyncStressBtc() {
+        int success;
 
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                500000,
+                1,
+                1
+        );
         assertEquals(1, success);
 
-        // BTC testnet
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                1500000,
+                1,
+                0
+        );
+        assertEquals(1, success);
+    }
 
-        isBTC = 1;
-        isMainnet = 0;
-        blockHeight = 1500000;
+    @Test
+    public void testBitcoinWalletManagerSyncStressBch() {
+        int success;
 
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                500000,
+                0,
+                1
+        );
         assertEquals(1, success);
 
-        // BCH mainnet
-
-        isBTC = 0;
-        isMainnet = 1;
-        blockHeight = 500000;
-
         coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
-        assertEquals(1, success);
-
-        // BCH testnet
-
-        isBTC = 0;
-        isMainnet = 0;
-        blockHeight = 1500000;
-
-        coreDirClear();
-        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncStress(
+                paperKey,
+                coreDataDir.getAbsolutePath(),
+                epoch,
+                1500000,
+                0,
+                0
+        );
         assertEquals(1, success);
     }
 
@@ -154,100 +153,120 @@ public class CryptoLibraryAIT {
     }
 
     @Test
-    public void testCryptoWithAccountAndNetwork() {
-        boolean success;
+    public void testCryptoWithAccountAndNetworkBtc() {
+        BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
+                paperKey.getBytes(StandardCharsets.UTF_8),
+                UnsignedLong.valueOf(epoch)
+        );
 
-        BRCryptoAccount account = BRCryptoAccount
-                .createFromPhrase(paperKey.getBytes(StandardCharsets.UTF_8), UnsignedLong.valueOf(epoch));
+        try {
+            BRCryptoNetwork network;
 
-        //
-        // BTC
-        //
+            network = createBitcoinNetwork(true, 500000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
+            } finally {
+                network.give();
+            }
 
-        // MAINNET
+            network = createBitcoinNetwork(false, 1500000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
+            } finally {
+                network.give();
+            }
 
-        {
-            BRCryptoNetwork network = createBitcoinNetwork(true, 500000);
-
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
+        } finally {
+            account.give();
         }
+    }
 
-        // TESTNET
+    @Test
+    public void testCryptoWithAccountAndNetworkBch() {
+        BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
+                paperKey.getBytes(StandardCharsets.UTF_8),
+                UnsignedLong.valueOf(epoch)
+        );
 
-        {
-            BRCryptoNetwork network = createBitcoinNetwork(false, 1500000);
+        try {
+            BRCryptoNetwork network;
 
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
+            network = createBitcoinCashNetwork(true, 500000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
+            } finally {
+                network.give();
+            }
+
+            network = createBitcoinCashNetwork(false, 1500000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
+            } finally {
+                network.give();
+            }
+        } finally {
+            account.give();
         }
+    }
 
-        //
-        // BCH
-        //
+    @Test
+    public void testCryptoWithAccountAndNetworkEth() {
+        BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
+                paperKey.getBytes(StandardCharsets.UTF_8),
+                UnsignedLong.valueOf(epoch)
+        );
 
-        // MAINNET
+        try {
+            BRCryptoNetwork network;
 
-        {
-            BRCryptoNetwork network = createBitcoinCashNetwork(true, 500000);
+            network = createEthereumNetwork(true, 8000000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
 
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
-        }
+                network.give();
+            } finally {
+                network.give();
+            }
 
-        // TESTNET
+            network = createEthereumNetwork(false, 4500000);
+            try {
+                coreDirClear();
+                int success = TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
+                        account,
+                        network,
+                        coreDataDir.getAbsolutePath());
+                assertEquals(1, success);
+            } finally {
+                network.give();
+            }
 
-        {
-            BRCryptoNetwork network = createBitcoinCashNetwork(false, 1500000);
-
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
-        }
-
-        //
-        // ETH
-        //
-
-        // MAINNET
-
-        {
-            BRCryptoNetwork network = createEthereumNetwork(true, 8000000);
-
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
-        }
-
-        // TESTNET
-
-        {
-            BRCryptoNetwork network = createEthereumNetwork(false, 4500000);
-
-            coreDirClear();
-            success = BRCryptoBoolean.CRYPTO_TRUE == TestCryptoLibrary.INSTANCE.runCryptoTestsWithAccountAndNetwork(
-                    account,
-                    network,
-                    coreDataDir.getAbsolutePath());
-            assertTrue(success);
+        } finally {
+            account.give();
         }
     }
 
@@ -326,126 +345,161 @@ public class CryptoLibraryAIT {
     }
 
     private static BRCryptoNetwork createBitcoinNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency btc = CoreBRCryptoCurrency
-                .create("bitcoin", "bitcoin", "btc", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency btc = null;
+        BRCryptoUnit satoshis = null;
+        BRCryptoUnit bitcoins = null;
+        BRCryptoAmount factor = null;
+        BRCryptoNetworkFee fee = null;
+        BRCryptoNetwork network = null;
 
-        BRCryptoUnit satoshis = CoreBRCryptoUnit
-                .createAsBase(btc, "sat", "satoshi", "SAT")
-                .asBRCryptoUnit();
+        try {
 
-        BRCryptoUnit bitcoins = CoreBRCryptoUnit
-                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8))
-                .asBRCryptoUnit();
+            network = BRCryptoNetwork
+                    .createAsBtc("bitcoin-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin", isMainnet);
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
-                .createAsBtc("bitcoin-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin", isMainnet)
-                .asBRCryptoNetwork();
+            btc = BRCryptoCurrency
+                    .create("bitcoin", "bitcoin", "btc", "native", null);
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(1000, satoshis)
-                .asBRCryptoAmount();
+            satoshis = BRCryptoUnit
+                    .createAsBase(btc, "sat", "satoshi", "SAT");
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis)
-                .asBRCryptoNetworkFee();
+            bitcoins = BRCryptoUnit
+                    .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8));
 
-        network.setHeight(UnsignedLong.valueOf(blockHeight));
+            factor = BRCryptoAmount
+                    .create(1000, satoshis);
 
-        network.setCurrency(btc);
+            fee = BRCryptoNetworkFee
+                    .create(UnsignedLong.valueOf(30 * 1000), factor, satoshis);
 
-        network.addCurrency(btc, satoshis, bitcoins);
+            network.setHeight(UnsignedLong.valueOf(blockHeight));
 
-        network.addCurrencyUnit(btc, satoshis);
-        network.addCurrencyUnit(btc, bitcoins);
+            network.setCurrency(btc);
+            network.addCurrency(btc, satoshis, bitcoins);
 
-        network.addFee(fee);
+            network.addCurrencyUnit(btc, satoshis);
+            network.addCurrencyUnit(btc, bitcoins);
 
-        return network;
+            network.addFee(fee);
+
+            return network.take();
+
+        } finally {
+            if (null != btc) btc.give();
+            if (null != satoshis) satoshis.give();
+            if (null != bitcoins) bitcoins.give();
+            if (null != factor) factor.give();
+            if (null != fee) fee.give();
+            if (null != network) network.give();
+        }
     }
 
     private static BRCryptoNetwork createBitcoinCashNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency btc = CoreBRCryptoCurrency
-                .create("bitcoin-cash", "bitcoin cash", "bch", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency btc = null;
+        BRCryptoUnit satoshis = null;
+        BRCryptoUnit bitcoins = null;
+        BRCryptoAmount factor = null;
+        BRCryptoNetworkFee fee = null;
+        BRCryptoNetwork network = null;
 
-        BRCryptoUnit satoshis = CoreBRCryptoUnit
-                .createAsBase(btc, "sat", "satoshi", "SAT")
-                .asBRCryptoUnit();
+        try {
 
-        BRCryptoUnit bitcoins = CoreBRCryptoUnit
-                .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8))
-                .asBRCryptoUnit();
+            network = BRCryptoNetwork
+                    .createAsBch("bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin cash", isMainnet);
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
-                .createAsBch("bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin cash", isMainnet)
-                .asBRCryptoNetwork();
+            btc = BRCryptoCurrency
+                    .create("bitcoin-cash", "bitcoin cash", "bch", "native", null);
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(1000, satoshis)
-                .asBRCryptoAmount();
+            satoshis = BRCryptoUnit
+                    .createAsBase(btc, "sat", "satoshi", "SAT");
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(30 * 1000), feePricePerCostFactor, satoshis)
-                .asBRCryptoNetworkFee();
+            bitcoins = BRCryptoUnit
+                    .create(btc, "btc", "bitcoin", "B", satoshis, UnsignedInteger.valueOf(8));
 
-        network.setHeight(UnsignedLong.valueOf(blockHeight));
+            factor = BRCryptoAmount
+                    .create(1000, satoshis);
 
-        network.setCurrency(btc);
+            fee = BRCryptoNetworkFee
+                    .create(UnsignedLong.valueOf(30 * 1000), factor, satoshis);
 
-        network.addCurrency(btc, satoshis, bitcoins);
+            network.setHeight(UnsignedLong.valueOf(blockHeight));
 
-        network.addCurrencyUnit(btc, satoshis);
-        network.addCurrencyUnit(btc, bitcoins);
+            network.setCurrency(btc);
+            network.addCurrency(btc, satoshis, bitcoins);
 
-        network.addFee(fee);
+            network.addCurrencyUnit(btc, satoshis);
+            network.addCurrencyUnit(btc, bitcoins);
 
-        return network;
+            network.addFee(fee);
+
+            return network.take();
+
+        } finally {
+            if (null != btc) btc.give();
+            if (null != satoshis) satoshis.give();
+            if (null != bitcoins) bitcoins.give();
+            if (null != factor) factor.give();
+            if (null != fee) fee.give();
+            if (null != network) network.give();
+        }
     }
 
     private static BRCryptoNetwork createEthereumNetwork(boolean isMainnet, long blockHeight) {
-        BRCryptoCurrency eth = CoreBRCryptoCurrency
-                .create("ethereum", "ethereum", "eth", "native", null)
-                .asBRCryptoCurrency();
+        BRCryptoCurrency eth = null;
+        BRCryptoUnit wei = null;
+        BRCryptoUnit gwei = null;
+        BRCryptoUnit ether = null;
+        BRCryptoAmount factor = null;
+        BRCryptoNetworkFee fee = null;
+        BRCryptoNetwork network = null;
 
-        BRCryptoUnit wei = CoreBRCryptoUnit
-                .createAsBase(eth, "wei", "wei", "wei")
-                .asBRCryptoUnit();
+        try {
 
-        BRCryptoUnit gwei = CoreBRCryptoUnit
-                .create(eth, "gwei", "gwei", "gwei", wei, UnsignedInteger.valueOf(9))
-                .asBRCryptoUnit();
+            eth = BRCryptoCurrency
+                    .create("ethereum", "ethereum", "eth", "native", null);
 
-        BRCryptoUnit ether = CoreBRCryptoUnit
-                .create(eth, "ether", "eth", "E", wei, UnsignedInteger.valueOf(18))
-                .asBRCryptoUnit();
+            wei = BRCryptoUnit
+                    .createAsBase(eth, "wei", "wei", "wei");
 
-        BRCryptoNetwork network = CoreBRCryptoNetwork
-                .createAsEth("ethereum-" + (isMainnet ? "mainnet" : "testnet"), "ethereum", isMainnet)
-                .get()
-                .asBRCryptoNetwork();
+            gwei = BRCryptoUnit
+                    .create(eth, "gwei", "gwei", "gwei", wei, UnsignedInteger.valueOf(9));
 
-        BRCryptoAmount feePricePerCostFactor = CoreBRCryptoAmount
-                .create(2.0, gwei)
-                .asBRCryptoAmount();
+            ether = BRCryptoUnit
+                    .create(eth, "ether", "eth", "E", wei, UnsignedInteger.valueOf(18));
 
-        BRCryptoNetworkFee fee = CoreBRCryptoNetworkFee
-                .create(UnsignedLong.valueOf(1000), feePricePerCostFactor, gwei)
-                .asBRCryptoNetworkFee();
+            network = BRCryptoNetwork
+                    .createAsEth("ethereum-" + (isMainnet ? "mainnet" : "testnet"), "ethereum", isMainnet)
+                    .get();
 
-        network.setHeight(UnsignedLong.valueOf(blockHeight));
+            factor = BRCryptoAmount
+                    .create(2.0, gwei);
 
-        network.setCurrency(eth);
+            fee = BRCryptoNetworkFee
+                    .create(UnsignedLong.valueOf(1000), factor, gwei);
 
-        network.addCurrency(eth, wei, ether);
+            network.setHeight(UnsignedLong.valueOf(blockHeight));
 
-        network.addCurrencyUnit(eth, wei);
-        network.addCurrencyUnit(eth, gwei);
-        network.addCurrencyUnit(eth, ether);
+            network.setCurrency(eth);
 
-        network.addFee(fee);
+            network.addCurrency(eth, wei, ether);
 
-        return network;
+            network.addCurrencyUnit(eth, wei);
+            network.addCurrencyUnit(eth, gwei);
+            network.addCurrencyUnit(eth, ether);
+
+            network.addFee(fee);
+
+            return network.take();
+
+        } finally {
+            if (null != eth) eth.give();
+            if (null != wei) wei.give();
+            if (null != gwei) gwei.give();
+            if (null != ether) ether.give();
+            if (null != factor) factor.give();
+            if (null != fee) fee.give();
+            if (null != network) network.give();
+        }
     }
 
     public interface TestCryptoLibrary extends Library {

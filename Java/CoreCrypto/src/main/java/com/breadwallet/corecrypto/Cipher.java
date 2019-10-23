@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCipher;
 import com.google.common.base.Optional;
 
@@ -19,7 +20,7 @@ final class Cipher implements com.breadwallet.crypto.Cipher {
     static Cipher createForAesEcb(byte[] key) {
         BRCryptoCipher cipher = BRCryptoCipher.createAesEcb(key).orNull();
         checkNotNull(cipher);
-        return new Cipher(cipher);
+        return Cipher.create(cipher);
     }
 
     /* package */
@@ -30,7 +31,7 @@ final class Cipher implements com.breadwallet.crypto.Cipher {
                 ad)
                 .orNull();
         checkNotNull(cipher);
-        return new Cipher(cipher);
+        return Cipher.create(cipher);
     }
 
     /* package */
@@ -43,7 +44,13 @@ final class Cipher implements com.breadwallet.crypto.Cipher {
                 nonce12)
                 .orNull();
         checkNotNull(cipher);
-        return new Cipher(cipher);
+        return Cipher.create(cipher);
+    }
+
+    private static Cipher create(BRCryptoCipher core) {
+        Cipher cipher = new Cipher(core);
+        ReferenceCleaner.register(cipher, core::give);
+        return cipher;
     }
 
     private final BRCryptoCipher core;

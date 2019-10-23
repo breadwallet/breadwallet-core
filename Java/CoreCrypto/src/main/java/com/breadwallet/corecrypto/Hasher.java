@@ -7,6 +7,9 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoHasher;
 import com.google.common.base.Optional;
 
@@ -15,47 +18,87 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /* package */
 final class Hasher implements com.breadwallet.crypto.Hasher {
 
+    @Nullable
+    private static final Hasher HASHER_SHA1 = BRCryptoHasher.createSha1().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA224 = BRCryptoHasher.createSha224().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA256 = BRCryptoHasher.createSha256().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA256_2 = BRCryptoHasher.createSha256_2().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA384 = BRCryptoHasher.createSha384().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA512 = BRCryptoHasher.createSha512().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_SHA3 = BRCryptoHasher.createSha3().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_RMD160 = BRCryptoHasher.createRmd160().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_HASH160 = BRCryptoHasher.createHash160().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_KECCAK256 = BRCryptoHasher.createKeccak256().transform(Hasher::create).orNull();
+
+    @Nullable
+    private static final Hasher HASHER_MD5 = BRCryptoHasher.createMd5().transform(Hasher::create).orNull();
+
     /* package */
     static Hasher createForAlgorithm(Algorithm algorithm) {
-        BRCryptoHasher core = null;
+        Hasher hasher = null;
+
         switch (algorithm) {
             case SHA1:
-                core = BRCryptoHasher.createSha1().orNull();
+                hasher = HASHER_SHA1;
                 break;
             case SHA224:
-                core = BRCryptoHasher.createSha224().orNull();
+                hasher = HASHER_SHA224;
                 break;
             case SHA256:
-                core = BRCryptoHasher.createSha256().orNull();
+                hasher = HASHER_SHA256;
                 break;
             case SHA256_2:
-                core = BRCryptoHasher.createSha256_2().orNull();
+                hasher = HASHER_SHA256_2;
                 break;
             case SHA384:
-                core = BRCryptoHasher.createSha384().orNull();
+                hasher = HASHER_SHA384;
                 break;
             case SHA512:
-                core = BRCryptoHasher.createSha512().orNull();
+                hasher = HASHER_SHA512;
                 break;
             case SHA3:
-                core = BRCryptoHasher.createSha3().orNull();
+                hasher = HASHER_SHA3;
                 break;
             case RMD160:
-                core = BRCryptoHasher.createRmd160().orNull();
+                hasher = HASHER_RMD160;
                 break;
             case HASH160:
-                core = BRCryptoHasher.createHash160().orNull();
+                hasher = HASHER_HASH160;
                 break;
             case KECCAK256:
-                core = BRCryptoHasher.createKeccak256().orNull();
+                hasher = HASHER_KECCAK256;
                 break;
             case MD5:
-                core = BRCryptoHasher.createMd5().orNull();
+                hasher = HASHER_MD5;
                 break;
         }
 
-        checkNotNull(core);
-        return new Hasher(core);
+        checkNotNull(hasher);
+        return hasher;
+    }
+
+    private static Hasher create(BRCryptoHasher core) {
+        Hasher hasher = new Hasher(core);
+        ReferenceCleaner.register(hasher, core::give);
+        return hasher;
     }
 
     private final BRCryptoHasher core;

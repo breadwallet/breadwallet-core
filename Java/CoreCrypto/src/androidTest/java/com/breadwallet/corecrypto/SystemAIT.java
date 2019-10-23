@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -19,12 +20,15 @@ import java.util.concurrent.TimeUnit;
 
 import com.breadwallet.corecrypto.HelpersAIT.RecordingSystemListener;
 import com.breadwallet.crypto.AddressScheme;
+import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
+import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletState;
+import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.errors.MigrateBlockError;
 import com.breadwallet.crypto.errors.MigrateError;
 import com.breadwallet.crypto.errors.MigrateTransactionError;
@@ -49,6 +53,8 @@ public class SystemAIT {
 
     @Before
     public void setup() {
+        HelpersAIT.registerCryptoApiProvider();
+
         coreDataDir = HelpersAIT.generateCoreDataDir();
         HelpersAIT.createOrOverwriteDirectory(coreDataDir);
     }
@@ -56,6 +62,47 @@ public class SystemAIT {
     @After
     public void teardown() {
         HelpersAIT.deleteFile(coreDataDir);
+    }
+
+    @Test
+    public void testSystemAppCurrencies() {
+        // Create a query that fails (no authentication)
+        BlockchainDb query = HelpersAIT.createDefaultBlockchainDbWithoutToken();
+
+        // We need the UIDS to contain a valid ETH address BUT not be a default.  Since we are
+        // using `isMainnet = false` use a mainnet address.
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> currencies = Collections.singletonList(
+                System.asBlockChainDBModelCurrency(
+                        "ethereum-ropsten" + ":" + Blockchains.ADDRESS_BRD_MAINNET,
+                        "FOO Token",
+                        "FOO",
+                        "ERC20",
+                        UnsignedInteger.valueOf(10)
+                ).get()
+        );
+
+        System system = HelpersAIT.createAndConfigureSystemWithBlockchainDbAndCurrencies(coreDataDir, query, currencies);
+        assertTrue(system.getNetworks().size() >= 1);
+
+        Network network = null;
+        for (Network n: system.getNetworks()) if (n.getCurrency().getCode().equals("eth") && !n.isMainnet()) network = n;
+        assertNotNull(network);
+
+        assertTrue(network.getCurrencyByCode("eth").isPresent());
+        Optional<? extends Currency> fooCurrency = network.getCurrencyByCode("FOO");
+        assertTrue(fooCurrency.isPresent());
+
+        assertEquals("erc20", fooCurrency.get().getType());
+
+        Optional<? extends Unit> fooDefault = network.defaultUnitFor(fooCurrency.get());
+        assertTrue(fooDefault.isPresent());
+        assertEquals(UnsignedInteger.valueOf(10), fooDefault.get().getDecimals());
+        assertEquals("foo", fooDefault.get().getSymbol());
+
+        Optional<? extends Unit> fooBase = network.baseUnitFor(fooCurrency.get());
+        assertTrue(fooBase.isPresent());
+        assertEquals(UnsignedInteger.ZERO, fooBase.get().getDecimals());
+        assertEquals("fooi", fooBase.get().getSymbol());
     }
 
     @Test
@@ -110,7 +157,7 @@ public class SystemAIT {
 
     private void testSystemForCurrency(String currencyCode, WalletManagerMode mode, AddressScheme scheme) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir, recorder);
+        System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
         // networks
 
@@ -155,7 +202,7 @@ public class SystemAIT {
 
     private void testSystemMigrationNotRequiredForCurrency(String currencyCode) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir, recorder);
+        System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
         Collection<Network> networks = recorder.getAddedNetworks();
         Network network = HelpersAIT.getNetworkByCurrencyCode(networks, currencyCode).get();
@@ -165,7 +212,7 @@ public class SystemAIT {
 
     private void testSystemMigrationSuccessForBitcoinCurrency(String currencyCode) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir, recorder);
+        System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
         Collection<Network> networks = recorder.getAddedNetworks();
         Network network = HelpersAIT.getNetworkByCurrencyCode(networks, currencyCode).get();
@@ -226,7 +273,7 @@ public class SystemAIT {
 
     private void testSystemMigrationFailureOnTransactionForBitcoinCurrency(String currencyCode) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir, recorder);
+        System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
         Collection<Network> networks = recorder.getAddedNetworks();
         Network network = HelpersAIT.getNetworkByCurrencyCode(networks, currencyCode).get();
@@ -255,7 +302,7 @@ public class SystemAIT {
 
     private void testSystemMigrationFailureOnBlockForBitcoinCurrency(String currencyCode) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir, recorder);
+        System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
         Collection<Network> networks = recorder.getAddedNetworks();
         Network network = HelpersAIT.getNetworkByCurrencyCode(networks, currencyCode).get();

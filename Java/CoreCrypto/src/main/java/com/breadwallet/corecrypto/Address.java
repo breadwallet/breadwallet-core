@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -18,7 +19,9 @@ final class Address implements com.breadwallet.crypto.Address {
 
     /* package */
     static Address create(BRCryptoAddress core) {
-        return new Address(core);
+        Address address = new Address(core);
+        ReferenceCleaner.register(address, core::give);
+        return address;
     }
 
     /* package */

@@ -7,24 +7,12 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.Ints;
-import com.google.common.primitives.UnsignedInteger;
-import com.google.common.primitives.UnsignedInts;
-import com.google.common.primitives.UnsignedLong;
-import com.sun.jna.Memory;
-import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-import com.sun.jna.StringArray;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-
-import static com.google.common.base.Preconditions.checkState;
 
 public class BRCryptoHasher extends PointerType {
 
@@ -86,42 +74,32 @@ public class BRCryptoHasher extends PointerType {
     }
 
     private static Optional<BRCryptoHasher> create(int alg) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoHasherCreate(alg));
-    }
-
-    public BRCryptoHasher(Pointer address) {
-        super(address);
+        return Optional.fromNullable(CryptoLibraryDirect.cryptoHasherCreate(alg)).transform(BRCryptoHasher::new);
     }
 
     public BRCryptoHasher() {
         super();
     }
 
+    public BRCryptoHasher(Pointer address) {
+        super(address);
+    }
+
     public Optional<byte[]> hash(byte[] data) {
-        SizeT length = CryptoLibrary.INSTANCE.cryptoHasherLength(this);
+        Pointer thisPtr = this.getPointer();
+
+        SizeT length = CryptoLibraryDirect.cryptoHasherLength(thisPtr);
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] hash = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoHasherHash(this, hash, new SizeT(hash.length), data, new SizeT(data.length));
+        int result = CryptoLibraryDirect.cryptoHasherHash(thisPtr, hash, new SizeT(hash.length), data, new SizeT(data.length));
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(hash) : Optional.absent();
     }
 
-    public static class OwnedBRCryptoHasher extends BRCryptoHasher {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoHasher(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoHasher() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoHasherGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoHasherGive(thisPtr);
     }
 }

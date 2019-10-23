@@ -7,62 +7,54 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRCryptoFeeBasis extends PointerType {
 
-    public static BRCryptoFeeBasis createOwned(BRCryptoFeeBasis basis) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoFeeBasis.OwnedBRCryptoFeeBasis as its field, instead of BRCryptoFeeBasis?
-        return new OwnedBRCryptoFeeBasis(basis.getPointer());
+    public BRCryptoFeeBasis() {
+        super();
     }
 
     public BRCryptoFeeBasis(Pointer address) {
         super(address);
     }
 
-    public BRCryptoFeeBasis() {
-        super();
-    }
-
     public double getCostFactor() {
-        return CryptoLibrary.INSTANCE.cryptoFeeBasisGetCostFactor(this);
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoFeeBasisGetCostFactor(thisPtr);
     }
 
     public BRCryptoUnit getPricePerCostFactorUnit() {
-        return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactorUnit(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoFeeBasisGetPricePerCostFactorUnit(thisPtr));
     }
 
     public BRCryptoAmount getPricePerCostFactor() {
-        return CryptoLibrary.INSTANCE.cryptoFeeBasisGetPricePerCostFactor(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoFeeBasisGetPricePerCostFactor(thisPtr));
     }
 
     public Optional<BRCryptoAmount> getFee() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoFeeBasisGetFee(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(CryptoLibraryDirect.cryptoFeeBasisGetFee(thisPtr)).transform(BRCryptoAmount::new);
     }
 
     public boolean isIdentical(BRCryptoFeeBasis other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoFeeBasisIsIdentical(thisPtr, other.getPointer());
     }
 
-    public static class OwnedBRCryptoFeeBasis extends BRCryptoFeeBasis {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoFeeBasis(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoFeeBasis() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoFeeBasisGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoFeeBasisGive(thisPtr);
     }
 }

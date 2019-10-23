@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -20,13 +21,16 @@ import java.util.Objects;
 final class Currency implements com.breadwallet.crypto.Currency {
 
     /* package */
-    static Currency create(BRCryptoCurrency core) {
-        return new Currency(core);
+    static Currency create (String uids, String name, String code, String type, @Nullable String issuer) {
+        BRCryptoCurrency core = BRCryptoCurrency.create(uids, name, code, type, issuer);
+        return Currency.create(core);
     }
 
     /* package */
-    static Currency create (String uids, String name, String code, String type, @Nullable String issuer) {
-        return new Currency(BRCryptoCurrency.create(uids, name, code, type, issuer));
+    static Currency create(BRCryptoCurrency core) {
+        Currency currency = new Currency(core);
+        ReferenceCleaner.register(currency, core::give);
+        return currency;
     }
 
     /* package */

@@ -7,28 +7,32 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRCryptoAddress extends PointerType {
 
-    public BRCryptoAddress(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoAddress() {
         super();
     }
 
+    public BRCryptoAddress(Pointer address) {
+        super(address);
+    }
+
     public boolean isIdentical(BRCryptoAddress o) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAddressIsIdentical(this, o);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAddressIsIdentical(thisPtr, o.getPointer());
     }
 
     @Override
     public String toString() {
-        Pointer addressPtr = CryptoLibrary.INSTANCE.cryptoAddressAsString(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer addressPtr = CryptoLibraryDirect.cryptoAddressAsString(thisPtr);
         try {
             return addressPtr.getString(0, "UTF-8");
         } finally {
@@ -36,21 +40,9 @@ public class BRCryptoAddress extends PointerType {
         }
     }
 
-    public static class OwnedBRCryptoAddress extends BRCryptoAddress {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoAddress(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoAddress() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoAddressGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoAddressGive(thisPtr);
     }
 }

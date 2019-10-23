@@ -7,99 +7,129 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.ptr.IntByReference;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class BRCryptoAmount extends PointerType {
 
     public static BRCryptoAmount create(double value, BRCryptoUnit unit) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit);
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoAmountCreateDouble(value, unit.getPointer()));
     }
 
     public static BRCryptoAmount create(long value, BRCryptoUnit unit) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit);
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoAmountCreateInteger(value, unit.getPointer()));
     }
 
     public static Optional<BRCryptoAmount> create(String value, boolean isNegative, BRCryptoUnit unit) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoAmountCreateString(
+                CryptoLibraryDirect.cryptoAmountCreateString(
                         value,
                         isNegative ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
-                        unit)
-        );
-    }
-
-    public static BRCryptoAmount createOwned(BRCryptoAmount amount) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoAmount.OwnedBRCryptoAmount as its field, instead of BRCryptoAmount?
-        return new OwnedBRCryptoAmount(amount.getPointer());
-    }
-
-    public BRCryptoAmount(Pointer address) {
-        super(address);
+                        unit.getPointer())
+        ).transform(BRCryptoAmount::new);
     }
 
     public BRCryptoAmount() {
         super();
     }
 
+    public BRCryptoAmount(Pointer address) {
+        super(address);
+    }
+
     public BRCryptoCurrency getCurrency() {
-        return CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(CryptoLibraryDirect.cryptoAmountGetCurrency(thisPtr));
     }
 
     public BRCryptoUnit getUnit() {
-        return CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoAmountGetUnit(thisPtr));
     }
 
     public Optional<Double> getDouble(BRCryptoUnit unit) {
+        Pointer thisPtr = this.getPointer();
+
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(this, unit, overflowRef);
+        double value = CryptoLibraryDirect.cryptoAmountGetDouble(thisPtr, unit.getPointer(), overflowRef);
         return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
     }
 
-    public Optional<BRCryptoAmount> add(BRCryptoAmount o) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountAdd(this, o));
+    public Optional<BRCryptoAmount> add(BRCryptoAmount other) {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoAmountAdd(
+                        thisPtr,
+                        other.getPointer()
+                )
+        ).transform(BRCryptoAmount::new);
     }
 
-    public Optional<BRCryptoAmount> sub(BRCryptoAmount o) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountSub(this, o));
+    public Optional<BRCryptoAmount> sub(BRCryptoAmount other) {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoAmountSub(
+                        thisPtr,
+                        other.getPointer()
+                )
+        ).transform(BRCryptoAmount::new);
     }
 
     public BRCryptoAmount negate() {
-        return CryptoLibrary.INSTANCE.cryptoAmountNegate(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoAmountNegate(thisPtr));
     }
 
     public Optional<BRCryptoAmount> convert(BRCryptoUnit toUnit) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoAmountConvertToUnit(
+                        thisPtr,
+                        toUnit.getPointer()
+                )
+        ).transform(BRCryptoAmount::new);
     }
 
     public boolean isNegative() {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAmountIsNegative(thisPtr);
     }
 
-    public int compare(BRCryptoAmount o) {
-        return CryptoLibrary.INSTANCE.cryptoAmountCompare(this, o);
+    public BRCryptoComparison compare(BRCryptoAmount other) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoComparison.fromCore(CryptoLibraryDirect.cryptoAmountCompare(thisPtr, other.getPointer()));
     }
 
-    public boolean isCompatible(BRCryptoAmount o) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, o);
+    public boolean isCompatible(BRCryptoAmount amount) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAmountIsCompatible(thisPtr, amount.getPointer());
     }
 
-    public boolean hasCurrency(BRCryptoCurrency o) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, o);
+    public boolean hasCurrency(BRCryptoCurrency currency) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAmountHasCurrency(thisPtr, currency.getPointer());
     }
 
     public String toStringWithBase(int base, String preface) {
-        UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(this);
-        Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
+        Pointer thisPtr = this.getPointer();
+
+        UInt256.ByValue value = CryptoLibraryDirect.cryptoAmountGetValue(thisPtr);
+        Pointer ptr = CryptoLibraryDirect.coerceStringPrefaced(value, base, preface);
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
@@ -108,21 +138,9 @@ public class BRCryptoAmount extends PointerType {
 
     }
 
-    public static class OwnedBRCryptoAmount extends BRCryptoAmount {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoAmount(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoAmount() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoAmountGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoAmountGive(thisPtr);
     }
 }

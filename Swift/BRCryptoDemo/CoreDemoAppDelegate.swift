@@ -62,9 +62,10 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         let accountSpecificationsPath = Bundle(for: CoreDemoAppDelegate.self).path(forResource: "CoreTestsConfig", ofType: "json")!
         let accountSpecifications     = AccountSpecification.loadFrom(configPath: accountSpecificationsPath)
-        let accountIdentifier         = CommandLine.arguments[1]
+        let accountIdentifier         = (CommandLine.argc >= 2 ? CommandLine.arguments[1] : "ginger")
 
         guard let accountSpecification = accountSpecifications.first (where: { $0.identifier == accountIdentifier })
+            ?? (accountSpecifications.count > 0 ? accountSpecifications[0] : nil)
             else {
                 precondition (false, "No AccountSpecification: \(accountIdentifier)");
                 return false
@@ -129,8 +130,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         }
 
         registerCurrencyCodes = [
-            "ZLA",
-            "ADT"]
+            "zla",
+            "adt"]
 
         print ("APP: CurrenciesToMode  : \(currencyCodesToMode!)")
 
@@ -274,7 +275,10 @@ extension UIApplication {
 
         accountSpecifications
             .forEach { (accountSpecification) in
-                let action = UIAlertAction (title: accountSpecification.identifier, style: .default) { (action) in
+                let action = UIAlertAction (
+                    title: "\(accountSpecification.identifier) (\(accountSpecification.network))",
+                    style: .default)
+                { (action) in
                     app.summaryController.reset()
 
                     System.wipe (system: app.system)

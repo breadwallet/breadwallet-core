@@ -1,48 +1,40 @@
 package com.breadwallet.corenative.support;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRDisconnectReasonType {
 
     DISCONNECT_REASON_REQUESTED  {
         @Override
-        public int toNative() {
-            return 0;
+        public int toCore() {
+            return DISCONNECT_REASON_REQUESTED_VALUE;
         }
     },
 
     DISCONNECT_REASON_UNKNOWN  {
         @Override
-        public int toNative() {
-            return 1;
+        public int toCore() {
+            return DISCONNECT_REASON_UNKNOWN_VALUE;
         }
     },
 
     DISCONNECT_REASON_POSIX  {
         @Override
-        public int toNative() {
-            return 2;
+        public int toCore() {
+            return DISCONNECT_REASON_POSIX_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRDisconnectReasonType> LOOKUP;
+    private static final int DISCONNECT_REASON_REQUESTED_VALUE  = 0;
+    private static final int DISCONNECT_REASON_UNKNOWN_VALUE    = 1;
+    private static final int DISCONNECT_REASON_POSIX_VALUE      = 2;
 
-    static {
-        ImmutableMap.Builder<Integer, BRDisconnectReasonType> b = ImmutableMap.builder();
-
-        b.put(DISCONNECT_REASON_REQUESTED.toNative(),       DISCONNECT_REASON_REQUESTED);
-        b.put(DISCONNECT_REASON_UNKNOWN.toNative(),         DISCONNECT_REASON_UNKNOWN);
-        b.put(DISCONNECT_REASON_POSIX.toNative(),           DISCONNECT_REASON_POSIX);
-        LOOKUP = b.build();
+    public static BRDisconnectReasonType fromCore(int nativeValue) {
+        switch (nativeValue) {
+            case DISCONNECT_REASON_REQUESTED_VALUE: return DISCONNECT_REASON_REQUESTED;
+            case DISCONNECT_REASON_UNKNOWN_VALUE:   return DISCONNECT_REASON_UNKNOWN;
+            case DISCONNECT_REASON_POSIX_VALUE:     return DISCONNECT_REASON_POSIX;
+            default: throw new IllegalArgumentException("Invalid core value");
+        }
     }
 
-    public static BRDisconnectReasonType fromNative(int nativeValue) {
-        BRDisconnectReasonType status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
-    }
-
-    public abstract int toNative();
+    public abstract int toCore();
 }

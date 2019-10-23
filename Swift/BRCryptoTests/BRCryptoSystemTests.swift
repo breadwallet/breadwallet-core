@@ -90,8 +90,8 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (network.currencyBy(code: "FOO"))
 
         let fooCurrency = network.currencyBy(code: "FOO")!
-        XCTAssertEqual("ERC20",  fooCurrency.type)
-        
+        XCTAssertEqual("erc20",  fooCurrency.type)
+
         guard let fooDef = network.defaultUnitFor(currency: fooCurrency)
             else { XCTAssertTrue (false); return }
         XCTAssertEqual(10, fooDef.decimals)

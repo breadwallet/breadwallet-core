@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
+import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
@@ -34,8 +35,15 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private static final String TAG = Wallet.class.getName();
 
     /* package */
-    static Wallet create(BRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
-        return new Wallet(wallet, walletManager, callbackCoordinator);
+    static Wallet takeAndCreate(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        return Wallet.create(core.take(), walletManager, callbackCoordinator);
+    }
+
+    /* package */
+    static Wallet create(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        Wallet wallet = new Wallet(core, walletManager, callbackCoordinator);
+        ReferenceCleaner.register(wallet, core::give);
+        return wallet;
     }
 
     /* package */
@@ -76,14 +84,15 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
-        return Optional.of(Transfer.create(core.createTransfer(coreAddress, coreAmount, coreFeeBasis), this));
+        return core.createTransfer(coreAddress, coreAmount, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
     /* package */
-    public Optional<Transfer> createTransfer(BRCryptoWalletSweeper sweeper,
-                                             com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+    Optional<Transfer> createTransfer(WalletSweeper sweeper,
+                                      com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+        BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
-        return core.createTransferForWalletSweep(sweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
+        return core.createTransferForWalletSweep(coreSweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
     @Override
@@ -96,10 +105,11 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    void estimateFee(BRCryptoWalletSweeper sweeper,
+    void estimateFee(WalletSweeper sweeper,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), sweeper, coreFee);
+        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
     }
 
     @Override
@@ -196,32 +206,15 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    void setDefaultFeeBasis(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        core.setDefaultFeeBasis(TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis());
-    }
-
-    /* package */
-    void setState(WalletState newState) {
-        core.setState(Utilities.walletStateToCrypto(newState));
-    }
-
-    /* package */
     Optional<Transfer> getTransfer(BRCryptoTransfer transfer) {
         return core.containsTransfer(transfer) ?
-                Optional.of(Transfer.create(transfer, this)) :
+                Optional.of(Transfer.takeAndCreate(transfer, this)) :
                 Optional.absent();
     }
 
     /* package */
-    Optional<Transfer> getTransferOrCreate(BRCryptoTransfer transfer) {
-        Optional<Transfer> optional = getTransfer(transfer);
-        if (optional.isPresent()) {
-            return optional;
-
-        } else {
-            Log.d(TAG, "Transfer not found, creating wrapping instance");
-            return Optional.of(Transfer.create(transfer, this));
-        }
+    Transfer createTransfer(BRCryptoTransfer transfer) {
+        return Transfer.takeAndCreate(transfer, this);
     }
 
     /* package */

@@ -7,90 +7,122 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRCryptoTransfer extends PointerType {
 
-    public static BRCryptoTransfer createOwned(BRCryptoTransfer transfer) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoTransfer.OwnedBRCryptoTransfer as its field, instead of BRCryptoTransfer?
-        return new OwnedBRCryptoTransfer(transfer.getPointer());
+    public BRCryptoTransfer() {
+        super();
     }
 
     public BRCryptoTransfer(Pointer address) {
         super(address);
     }
 
-    public BRCryptoTransfer() {
-        super();
-    }
-
     public Optional<BRCryptoAddress> getSourceAddress() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetSourceAddress(
+                        thisPtr
+                )
+        ).transform(BRCryptoAddress::new);
     }
 
     public Optional<BRCryptoAddress> getTargetAddress() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetTargetAddress(
+                        thisPtr
+                )
+        ).transform(BRCryptoAddress::new);
     }
 
     public BRCryptoAmount getAmount() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoTransferGetAmount(thisPtr));
     }
 
     public BRCryptoAmount getAmountDirected() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetAmountDirected(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoTransferGetAmountDirected(thisPtr));
     }
 
     public Optional<BRCryptoHash> getHash() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetHash(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetHash(
+                        thisPtr
+                )
+        ).transform(BRCryptoHash::new);
     }
 
-    public int getDirection() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetDirection(this);
+    public BRCryptoTransferDirection getDirection() {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoTransferDirection.fromCore(CryptoLibraryDirect.cryptoTransferGetDirection(thisPtr));
     }
 
     public BRCryptoTransferState getState() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetState(this);
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoTransferGetState(thisPtr);
     }
 
     public Optional<BRCryptoFeeBasis> getEstimatedFeeBasis() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetEstimatedFeeBasis(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetEstimatedFeeBasis(
+                        thisPtr
+                )
+        ).transform(BRCryptoFeeBasis::new);
     }
 
     public Optional<BRCryptoFeeBasis> getConfirmedFeeBasis() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetConfirmedFeeBasis(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetConfirmedFeeBasis(
+                        thisPtr
+                )
+        ).transform(BRCryptoFeeBasis::new);
     }
 
     public BRCryptoUnit getUnitForFee() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForFee(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoTransferGetUnitForFee(thisPtr));
     }
 
     public BRCryptoUnit getUnitForAmount() {
-        return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForAmount(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoTransferGetUnitForAmount(thisPtr));
     }
 
     public boolean isIdentical(BRCryptoTransfer other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoTransferEqual(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoTransferEqual(thisPtr, other.getPointer());
     }
 
-    public static class OwnedBRCryptoTransfer extends BRCryptoTransfer {
+    public BRCryptoTransfer take() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoTransfer(Pointer address) {
-            super(address);
-        }
+        return new BRCryptoTransfer(CryptoLibraryDirect.cryptoTransferTake(thisPtr));
+    }
 
-        public OwnedBRCryptoTransfer() {
-            super();
-        }
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoTransferGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoTransferGive(thisPtr);
     }
 }

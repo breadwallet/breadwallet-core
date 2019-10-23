@@ -700,6 +700,7 @@ public enum WalletManagerEvent {
     case syncStarted
     case syncProgress (timestamp: Date?, percentComplete: Float)
     case syncEnded (reason: WalletManagerSyncStoppedReason)
+    case syncRecommended (depth: WalletManagerSyncDepth)
 
     /// An event capturing a change in the block height of the network associated with a
     /// WalletManager. Developers should listen for this event when making use of

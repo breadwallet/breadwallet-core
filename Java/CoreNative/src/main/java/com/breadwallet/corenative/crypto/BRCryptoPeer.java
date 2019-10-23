@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
@@ -17,53 +17,60 @@ public class BRCryptoPeer extends PointerType {
 
     public static Optional<BRCryptoPeer> create(BRCryptoNetwork network, String address, UnsignedInteger port, String publicKey) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoPeerCreate(network, address, port.shortValue(), publicKey)
-        );
-    }
-
-    public BRCryptoPeer(Pointer address) {
-        super(address);
+                CryptoLibraryDirect.cryptoPeerCreate(
+                        network.getPointer(),
+                        address,
+                        port.shortValue(),
+                        publicKey
+                )
+        ).transform(BRCryptoPeer::new);
     }
 
     public BRCryptoPeer() {
         super();
     }
 
+    public BRCryptoPeer(Pointer address) {
+        super(address);
+    }
+
     public BRCryptoNetwork getNetwork() {
-        return CryptoLibrary.INSTANCE.cryptoPeerGetNetwork(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoNetwork(CryptoLibraryDirect.cryptoPeerGetNetwork(thisPtr));
     }
 
     public String getAddress() {
-        return CryptoLibrary.INSTANCE.cryptoPeerGetAddress(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoPeerGetAddress(thisPtr).getString(0, "UTF-8");
     }
 
     public Optional<String> getPublicKey() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoPeerGetPublicKey(this)).transform(p -> p.getString(0, "UTF-8"));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoPeerGetPublicKey(
+                        thisPtr
+                )
+        ).transform(p -> p.getString(0, "UTF-8"));
     }
 
     public UnsignedInteger getPort() {
-        return UnsignedInteger.fromIntBits(CryptoLibrary.INSTANCE.cryptoPeerGetPort(this));
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedInteger.fromIntBits(CryptoLibraryDirect.cryptoPeerGetPort(thisPtr));
     }
 
-    public boolean isIdentical(BRCryptoPeer core) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoPeerIsIdentical(this, core);
+    public boolean isIdentical(BRCryptoPeer other) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoPeerIsIdentical(thisPtr, other.getPointer());
     }
 
-    public static class OwnedBRCryptoPeer extends BRCryptoPeer {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoPeer(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoPeer() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoPeerGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoPeerGive(thisPtr);
     }
 }

@@ -7,32 +7,38 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRCryptoHash extends PointerType {
 
-    public BRCryptoHash(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoHash() {
         super();
     }
 
-    public int getValue() {
-        return CryptoLibrary.INSTANCE.cryptoHashGetHashValue(this);
+    public BRCryptoHash(Pointer address) {
+        super(address);
     }
 
-    public boolean isIdentical(BRCryptoHash other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoHashEqual(this, other);
+    public int getValue() {
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoHashGetHashValue(thisPtr);
+    }
+
+    public boolean isIdentical(BRCryptoHash o) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoHashEqual(thisPtr, o.getPointer());
     }
 
     @Override
     public String toString() {
-        Pointer ptr = CryptoLibrary.INSTANCE.cryptoHashString(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer ptr = CryptoLibraryDirect.cryptoHashString(thisPtr);
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
@@ -40,21 +46,9 @@ public class BRCryptoHash extends PointerType {
         }
     }
 
-    public static class OwnedBRCryptoHash extends BRCryptoHash {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoHash(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoHash() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoHashGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoHashGive(thisPtr);
     }
 }

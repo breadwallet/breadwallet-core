@@ -7,14 +7,14 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRCryptoCurrency extends PointerType {
 
     public static BRCryptoCurrency create(String uids, String name, String code, String type, String issuer) {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyCreate(uids, name, code, type, issuer);
+        return new BRCryptoCurrency(CryptoLibraryDirect.cryptoCurrencyCreate(uids, name, code, type, issuer));
     }
 
     public BRCryptoCurrency(Pointer address) {
@@ -26,45 +26,45 @@ public class BRCryptoCurrency extends PointerType {
     }
 
     public String getUids() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetUids(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoCurrencyGetUids(thisPtr).getString(0, "UTF-8");
     }
 
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoCurrencyGetName(thisPtr).getString(0, "UTF-8");
     }
 
     public String getCode() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoCurrencyGetCode(thisPtr).getString(0, "UTF-8");
     }
 
     public String getType() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoCurrencyGetType(thisPtr).getString(0, "UTF-8");
     }
 
     public String getIssuer() {
-        Pointer issuer = CryptoLibrary.INSTANCE.cryptoCurrencyGetIssuer(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer issuer = CryptoLibraryDirect.cryptoCurrencyGetIssuer(thisPtr);
         return issuer == null ? null : issuer.getString(0, "UTF-8");
     }
 
     public boolean isIdentical(BRCryptoCurrency o) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, o);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoCurrencyIsIdentical(thisPtr, o.getPointer());
     }
 
-    public static class OwnedBRCryptoCurrency extends BRCryptoCurrency {
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoCurrency(Pointer address) {
-            super(address);
-        }
-
-        public OwnedBRCryptoCurrency() {
-            super();
-        }
-
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoCurrencyGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoCurrencyGive(thisPtr);
     }
 }

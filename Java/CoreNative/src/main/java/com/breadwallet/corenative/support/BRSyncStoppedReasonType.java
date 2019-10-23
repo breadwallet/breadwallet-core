@@ -1,56 +1,49 @@
 package com.breadwallet.corenative.support;
 
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public enum BRSyncStoppedReasonType {
 
     SYNC_STOPPED_REASON_COMPLETE  {
         @Override
-        public int toNative() {
-            return 0;
+        public int toCore() {
+            return SYNC_STOPPED_REASON_COMPLETE_VALUE;
         }
     },
 
     SYNC_STOPPED_REASON_REQUESTED  {
         @Override
-        public int toNative() {
-            return 1;
+        public int toCore() {
+            return SYNC_STOPPED_REASON_REQUESTED_VALUE;
         }
     },
 
     SYNC_STOPPED_REASON_UNKNOWN  {
         @Override
-        public int toNative() {
-            return 2;
+        public int toCore() {
+            return SYNC_STOPPED_REASON_UNKNOWN_VALUE;
         }
     },
 
     SYNC_STOPPED_REASON_POSIX  {
         @Override
-        public int toNative() {
-            return 3;
+        public int toCore() {
+            return SYNC_STOPPED_REASON_POSIX_VALUE;
         }
     };
 
-    private static final ImmutableMap<Integer, BRSyncStoppedReasonType> LOOKUP;
+    private static final int SYNC_STOPPED_REASON_COMPLETE_VALUE  = 0;
+    private static final int SYNC_STOPPED_REASON_REQUESTED_VALUE = 1;
+    private static final int SYNC_STOPPED_REASON_UNKNOWN_VALUE   = 2;
+    private static final int SYNC_STOPPED_REASON_POSIX_VALUE     = 3;
 
-    static {
-        ImmutableMap.Builder<Integer, BRSyncStoppedReasonType> b = ImmutableMap.builder();
-
-        b.put(SYNC_STOPPED_REASON_COMPLETE.toNative(),          SYNC_STOPPED_REASON_COMPLETE);
-        b.put(SYNC_STOPPED_REASON_REQUESTED.toNative(),         SYNC_STOPPED_REASON_REQUESTED);
-        b.put(SYNC_STOPPED_REASON_UNKNOWN.toNative(),           SYNC_STOPPED_REASON_UNKNOWN);
-        b.put(SYNC_STOPPED_REASON_POSIX.toNative(),             SYNC_STOPPED_REASON_POSIX);
-        LOOKUP = b.build();
+    public static BRSyncStoppedReasonType fromCore(int nativeValue) {
+        switch (nativeValue) {
+            case SYNC_STOPPED_REASON_COMPLETE_VALUE:  return SYNC_STOPPED_REASON_COMPLETE;
+            case SYNC_STOPPED_REASON_REQUESTED_VALUE: return SYNC_STOPPED_REASON_REQUESTED;
+            case SYNC_STOPPED_REASON_UNKNOWN_VALUE:   return SYNC_STOPPED_REASON_UNKNOWN;
+            case SYNC_STOPPED_REASON_POSIX_VALUE:     return SYNC_STOPPED_REASON_POSIX;
+            default: throw new IllegalArgumentException("Invalid core value");
+        }
     }
 
-    public static BRSyncStoppedReasonType fromNative(int nativeValue) {
-        BRSyncStoppedReasonType status = LOOKUP.get(nativeValue);
-        checkState(null != status);
-        return status;
-    }
-
-    public abstract int toNative();
+    public abstract int toCore();
 }

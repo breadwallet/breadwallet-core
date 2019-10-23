@@ -7,7 +7,8 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
+import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInts;
@@ -20,33 +21,31 @@ import java.util.List;
 
 public class BRCryptoWallet extends PointerType {
 
-    public static BRCryptoWallet createOwned(BRCryptoWallet wallet) {
-        // TODO(fix): Can the use case here (called when parsed out of struct) be replaced by changing struct to
-        //            have BRCryptoWallet.OwnedBRCryptoWallet as its field, instead of BRCryptoWallet?
-        return new OwnedBRCryptoWallet(wallet.getPointer());
+    public BRCryptoWallet() {
+        super();
     }
 
     public BRCryptoWallet(Pointer address) {
         super(address);
     }
 
-    public BRCryptoWallet() {
-        super();
-    }
-
     public BRCryptoAmount getBalance() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoWalletGetBalance(thisPtr));
     }
 
     public List<BRCryptoTransfer> getTransfers() {
+        Pointer thisPtr = this.getPointer();
+
         List<BRCryptoTransfer> transfers = new ArrayList<>();
         SizeTByReference count = new SizeTByReference();
-        Pointer transfersPtr = CryptoLibrary.INSTANCE.cryptoWalletGetTransfers(this, count);
+        Pointer transfersPtr = CryptoLibraryDirect.cryptoWalletGetTransfers(thisPtr, count);
         if (null != transfersPtr) {
             try {
                 int transfersSize = UnsignedInts.checkedCast(count.getValue().longValue());
                 for (Pointer transferPtr: transfersPtr.getPointerArray(0, transfersSize)) {
-                    transfers.add(new BRCryptoTransfer.OwnedBRCryptoTransfer(transferPtr));
+                    transfers.add(new BRCryptoTransfer(transferPtr));
                 }
 
             } finally {
@@ -58,92 +57,105 @@ public class BRCryptoWallet extends PointerType {
 
 
     public boolean containsTransfer(BRCryptoTransfer transfer) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletHasTransfer(this,
-                transfer);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasTransfer(thisPtr, transfer.getPointer());
     }
 
     public BRCryptoCurrency getCurrency() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(CryptoLibraryDirect.cryptoWalletGetCurrency(thisPtr));
     }
 
     public BRCryptoUnit getUnitForFee() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoWalletGetUnitForFee(thisPtr));
     }
 
     public BRCryptoUnit getUnit() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoWalletGetUnit(thisPtr));
     }
 
-    public int getState() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetState(this);
+    public BRCryptoWalletState getState() {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoWalletState.fromCore(CryptoLibraryDirect.cryptoWalletGetState(thisPtr));
     }
 
-    public void setState(int state) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetState(this, state);
+    public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
-    public BRCryptoFeeBasis getDefaultFeeBasis() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
+    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
-    public void setDefaultFeeBasis(BRCryptoFeeBasis feeBasis) {
-        CryptoLibrary.INSTANCE.cryptoWalletSetDefaultFeeBasis(this, feeBasis);
-    }
+    public Optional<BRCryptoTransfer> createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
+                                                     BRCryptoFeeBasis estimatedFeeBasis) {
+        Pointer thisPtr = this.getPointer();
 
-    public BRCryptoAddress getSourceAddress(int addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
-    }
-
-    public BRCryptoAddress getTargetAddress(int addressScheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme);
-    }
-
-    public BRCryptoTransfer createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
-                                               BRCryptoFeeBasis estimatedFeeBasis) {
-        // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target, amount, estimatedFeeBasis);
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateTransfer(
+                        thisPtr,
+                        target.getPointer(),
+                        amount.getPointer(),
+                        estimatedFeeBasis.getPointer()
+                )
+        ).transform(BRCryptoTransfer::new);
     }
 
     public Optional<BRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, BRCryptoFeeBasis estimatedFeeBasis) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletCreateTransferForWalletSweep(this,
-                sweeper, estimatedFeeBasis));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateTransferForWalletSweep(
+                        thisPtr,
+                        sweeper.getPointer(),
+                        estimatedFeeBasis.getPointer()
+                )
+        ).transform(BRCryptoTransfer::new);
     }
 
-    public void estimateFeeBasis(Pointer cookie,
+    public void estimateFeeBasis(Cookie cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
-                this,
-                cookie,
-                target,
-                amount,
-                fee);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletEstimateFeeBasis(
+                thisPtr,
+                cookie.getPointer(),
+                target.getPointer(),
+                amount.getPointer(),
+                fee.getPointer());
     }
 
-    public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
+    public void estimateFeeBasisForWalletSweep(Cookie cookie, BRCryptoWalletSweeper sweeper,
                                                BRCryptoNetworkFee fee) {
-        CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasisForWalletSweep(
-                this,
-                cookie,
-                sweeper,
-                fee);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForWalletSweep(
+                thisPtr,
+                cookie.getPointer(),
+                sweeper.getPointer(),
+                fee.getPointer());
     }
 
-    public static class OwnedBRCryptoWallet extends BRCryptoWallet {
+    public BRCryptoWallet take() {
+        Pointer thisPtr = this.getPointer();
 
-        public OwnedBRCryptoWallet(Pointer address) {
-            super(address);
-        }
+        return new BRCryptoWallet(CryptoLibraryDirect.cryptoWalletTake(thisPtr));
+    }
 
-        public OwnedBRCryptoWallet() {
-            super();
-        }
+    public void give() {
+        Pointer thisPtr = this.getPointer();
 
-        @Override
-        protected void finalize() {
-            if (null != getPointer()) {
-                CryptoLibrary.INSTANCE.cryptoWalletGive(this);
-            }
-        }
+        CryptoLibraryDirect.cryptoWalletGive(thisPtr);
     }
 }
