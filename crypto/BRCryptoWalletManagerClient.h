@@ -20,7 +20,7 @@
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
-#include "generic/BRGenericWalletManager.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {

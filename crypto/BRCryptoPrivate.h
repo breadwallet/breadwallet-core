@@ -119,8 +119,7 @@ extern "C" {
     cryptoAddressCreateAsETH (BREthereumAddress eth);
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsGEN (BRGenericNetwork nid,
-                              BRGenericAddress aid);
+    cryptoAddressCreateAsGEN (BRGenericAddress aid);
 
     private_extern BRCryptoBlockChainType
     cryptoAddressGetType (BRCryptoAddress address);
@@ -174,7 +173,6 @@ extern "C" {
 
     private_extern BRCryptoFeeBasis
     cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
-                               BRGenericWalletManager gwm,
                                OwnershipGiven BRGenericFeeBasis bid);
 
     /// MARK: Transfer
@@ -200,7 +198,6 @@ extern "C" {
     extern BRCryptoTransfer
     cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
-                               BRGenericWalletManager gwm,
                                BRGenericTransfer tid);
 
     private_extern void
@@ -359,7 +356,7 @@ extern "C" {
     private_extern BRCryptoWallet
     cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
-                             BRGenericWalletManager gwm,
+                             BRGenericManager gwm,
                              BRGenericWallet wid);
 
     private_extern BRCryptoTransfer
@@ -412,7 +409,7 @@ extern "C" {
 
     private_extern BRCryptoBoolean
     cryptoWalletManagerHasGEN (BRCryptoWalletManager manager,
-                               BRGenericWalletManager gwm);
+                               BRGenericManager gwm);
 
     private_extern BRCryptoWallet
     cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager manager,
@@ -437,6 +434,12 @@ extern "C" {
     extern void
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                           BRGenericTransfer transferGeneric);
+
+    // TODO:  Used in crytoWallet estimate fee (actually no - don't hold `CWM` there....
+    extern void
+    cryptoWalletManagerSignalWalletEvent (BRCryptoWalletManager cwm,
+                                          BRCryptoWallet wallet,
+                                          BRCryptoWalletEvent event);
 
     /// MARK: - WalletSweeper
 

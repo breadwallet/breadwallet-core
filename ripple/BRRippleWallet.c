@@ -36,7 +36,7 @@ struct BRRippleWalletRecord
 extern BRRippleWallet
 rippleWalletCreate (BRRippleAccount account)
 {
-    BRRippleWallet wallet = calloc(1, sizeof(struct BRRippleWalletRecord));
+    BRRippleWallet wallet = (BRRippleWallet) calloc (1, sizeof(struct BRRippleWalletRecord));
     array_new(wallet->transfers, 0);
     wallet->account = account;
     return wallet;

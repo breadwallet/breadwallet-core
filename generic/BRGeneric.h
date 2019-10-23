@@ -14,8 +14,9 @@
 #include "support/BRInt.h" // UInt256
 #include "support/BRSet.h" // BRSet
 #include "support/BRKey.h" // BRKey
+#include "support/BRArray.h"
 #include "BRGenericBase.h"
-#include "BRGenericWalletManager.h"
+#include "BRGenericClient.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,138 +25,223 @@ extern "C" {
     // MARK: - Network
 
     extern BRGenericNetwork
-    gwmNetworkCreate (const char * type);
+    genNetworkCreate (const char * type);
 
     extern void
-    gwmNetworkRelease (BRGenericNetwork network);
+    genNetworkRelease (BRGenericNetwork network);
 
-    extern BRGenericAddress
-    gwmNetworkAddressCreate (BRGenericNetwork network, const char * address);
-
-    extern void
-    gwmNetworkAddressRelease (BRGenericNetwork network, BRGenericAddress address);
+    extern const char *
+    genNetworkGetType (BRGenericNetwork network);
 
     // MARK: - Account
 
     extern BRGenericAccount
-    gwmAccountCreate (const char *type,
+    genAccountCreate (const char *type,
                       UInt512 seed);
 
     extern BRGenericAccount
-    gwmAccountCreateWithPublicKey (const char *type,
+    genAccountCreateWithPublicKey (const char *type,
                                    BRKey publicKey);
 
     extern BRGenericAccount
-    gwmAccountCreateWithSerialization (const char *type,
+    genAccountCreateWithSerialization (const char *type,
                                        uint8_t *bytes,
                                        size_t   bytesCount);
     
     extern void
-    gwmAccountRelease (BRGenericAccount account);
+    genAccountRelease (BRGenericAccount account);
 
     extern const char *
-    gwmAccountGetType (BRGenericAccount account);
+    genAccountGetType (BRGenericAccount account);
 
     extern int
-    gwmAccountHasType (BRGenericAccount account,
+    genAccountHasType (BRGenericAccount account,
                        const char *type);
 
     extern BRGenericAddress
-    gwmAccountGetAddress (BRGenericAccount account);
+    genAccountGetAddress (BRGenericAccount account);
 
     extern uint8_t *
-    gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount);
+    genAccountGetSerialization (BRGenericAccount account, size_t *bytesCount);
 
-     // Address
+    extern void
+    genAccountSignTransferWithSeed (BRGenericAccount account,
+                                    BRGenericTransfer transfer,
+                                    UInt512 seed);
+
+    extern void
+    genAccountSignTransferWithKey (BRGenericAccount account,
+                                   BRGenericTransfer transfer,
+                                   BRKey *key);
+    // Address
+
+    extern BRGenericAddress
+    genAddressCreate (const char *type,
+                      const char *string);
 
     extern char *
-    gwmAddressAsString (BRGenericNetwork nid,
-                        BRGenericAddress aid);
+    genAddressAsString (BRGenericAddress aid);
 
     extern int
-    gwmAddressEqual (BRGenericNetwork nid,
-                     BRGenericAddress aid1,
+    genAddressEqual (BRGenericAddress aid1,
                      BRGenericAddress aid2);
+
+    extern void
+    genAddressRelease (BRGenericAddress address);
 
     // Transfer
 
     extern void
-    gwmTransferRelease (BRGenericWalletManager gwm, BRGenericTransfer transfer);
+    genTransferRelease (BRGenericTransfer transfer);
 
     extern BRGenericAddress
-    gwmTransferGetSourceAddress (BRGenericWalletManager gwm,
-                                 BRGenericTransfer tid);
+    genTransferGetSourceAddress (BRGenericTransfer transfer);
 
     extern BRGenericAddress
-    gwmTransferGetTargetAddress (BRGenericWalletManager gwm,
-                                 BRGenericTransfer tid);
+    genTransferGetTargetAddress (BRGenericTransfer transfer);
 
     extern UInt256
-    gwmTransferGetAmount (BRGenericWalletManager gwm,
-                          BRGenericTransfer tid);
+    genTransferGetAmount (BRGenericTransfer transfer);
 
     extern UInt256
-    gwmTransferGetFee (BRGenericWalletManager gwm,
-                       BRGenericTransfer tid);
+    genTransferGetFee (BRGenericTransfer transfer);
 
     extern BRGenericFeeBasis
-    gwmTransferGetFeeBasis (BRGenericWalletManager gwm,
-                            BRGenericTransfer tid);
+    genTransferGetFeeBasis (BRGenericTransfer transfer);
+
+    extern BRGenericTransferDirection
+    genTransferGetDirection (BRGenericTransfer transfer);
 
     extern BRGenericHash
-    gwmTransferGetHash (BRGenericWalletManager gwm,
-                        BRGenericTransfer tid);
+    genTransferGetHash (BRGenericTransfer transfer);
 
-    extern BRArrayOf(BRGenericTransfer)
-    gwmLoadTransfers (BRGenericWalletManager gwm);
+    extern uint8_t *
+    genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
-    // Wallet
+    // MARK: - Generic Wallet
 
-
-    /**
-     * Create the PrimaryWallet for `gwm`
-     */
+    /// Create the primary wallet.  The `account` is provided because wallet's create transfers which
+    /// requires addresses that are derived from account properties.
+    ///
+    /// @param account The account to use for addresses derived from public keys, tyically.
+    ///
     extern BRGenericWallet
-    gwmWalletCreate (BRGenericWalletManager gwm);
+    genWalletCreate (BRGenericAccount account);
 
     extern void
-    gwmWalletRelease (BRGenericWalletManager gwm, BRGenericWallet wallet);
+    genWalletRelease (BRGenericWallet wallet);
 
     extern UInt256
-    gwmWalletGetBalance (BRGenericWalletManager gwm,
-                          BRGenericWallet wallet);
+    genWalletGetBalance (BRGenericWallet wallet);
 
     extern BRGenericAddress
-    gwmWalletGetAddress (BRGenericWalletManager gwm,
-                         BRGenericWallet wid);
+    genWalletGetAddress (BRGenericWallet wid);
 
     extern BRGenericFeeBasis
-    gwmWalletGetDefaultFeeBasis (BRGenericWalletManager gwm,
-                                 BRGenericWallet wid);
+    genWalletGetDefaultFeeBasis (BRGenericWallet wid);
 
     extern void
-    gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
-                                 BRGenericWallet wid,
+    genWalletSetDefaultFeeBasis (BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
 
     extern BRGenericTransfer
-    gwmWalletCreateTransfer (BRGenericWalletManager gwm,
-                             BRGenericWallet wid,
+    genWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,
-                             UInt256 amount);
-                             // ...
+                             UInt256 amount,
+                             BRGenericFeeBasis estimatedFeeBasis);
 
     extern UInt256
-    gwmWalletEstimateTransferFee (BRGenericWalletManager gwm,
-                                  BRGenericWallet wid,
+    genWalletEstimateTransferFee (BRGenericWallet wid,
+                                  BRGenericAddress target,
                                   UInt256 amount,
-                                  BRGenericFeeBasis feeBasis,
+                                  UInt256 pricePerCostFactor,
                                   int *overflow);
 
+    // MARK: Generic (Wallet) Manager
+
+    extern BRGenericManager
+    genManagerCreate (BRGenericClient client,
+                      const char *type,
+                      BRGenericNetwork network,
+                      BRGenericAccount account,
+                      uint64_t accountTimestamp,
+                      const char *storagePath,
+                      uint32_t syncPeriodInSeconds,
+                      uint64_t blockHeight);
+
     extern void
-    gwmWalletSubmitTransfer (BRGenericWalletManager gwm,
-                             BRGenericWallet wid,
-                             BRGenericTransfer tid,
-                             UInt512 seed);
+    genManagerRelease (BRGenericManager gwm);
+
+    extern void
+    genManagerStop (BRGenericManager gwm);
+
+    extern void
+    genManagerConnect (BRGenericManager gwm);
+
+    extern void
+    genManagerDisconnect (BRGenericManager gwm);
+
+    extern void
+    genManagerSync (BRGenericManager gwm);
+
+    #if 0
+    extern BRArrayOf (BRGenericTransfer) // BRSetOf
+    genManagerRestorePersistentTransfers (BRGenericManager gwm);
+
+    extern void
+    genManagerPersistTransfer (BRGenericManager gwm,
+                               BRGenericTransfer  tid);
+    #endif
+    extern BRGenericAddress
+    genManagerGetAccountAddress (BRGenericManager gwm);
+
+    extern BRGenericWallet
+    genManagerCreatePrimaryWallet (BRGenericManager gwm);
+
+    extern BRGenericAccount
+    genManagerGetAccount (BRGenericManager gwm);
+
+    extern BRGenericNetwork
+    genManagerGetNetwork (BRGenericManager gwm);
+
+    extern BRGenericClient
+    genManagerGetClient (BRGenericManager gwm);
+
+    extern BRGenericTransfer
+    genManagerRecoverTransfer (BRGenericManager gwm,
+                               BRGenericWallet wallet,
+                               const char *hash,
+                               const char *from,
+                               const char *to,
+                               const char *amount,
+                               const char *currency,
+                               uint64_t timestamp,
+                               uint64_t blockHeight);
+
+    extern BRArrayOf(BRGenericTransfer)
+    genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
+                                                  uint8_t *bytes,
+                                                  size_t   bytesCount);
+
+    extern int
+    genManagerSignTransfer (BRGenericManager gwm,
+                            BRGenericWallet wid,
+                            BRGenericTransfer transfer,
+                            UInt512 seed);
+
+    extern int
+    genManagerSignTransferWithKey (BRGenericManager gwm,
+                                   BRGenericWallet wid,
+                                   BRGenericTransfer transfer,
+                                   BRKey *key);
+
+    extern void
+    genManagerSubmitTransfer (BRGenericManager gwm,
+                              BRGenericWallet wid,
+                              BRGenericTransfer transfer);
+
+
+    extern BRArrayOf(BRGenericTransfer)
+    genManagerLoadTransfers (BRGenericManager gwm);
 
 #endif /* BRGeneric_h */

@@ -34,7 +34,7 @@
 #define WORD_LIST_LENGTH 2048
 
 struct BRRippleAccountRecord {
-    BRRippleAddress address;
+    BRRippleAddress address; // The 20 byte account id
 
     // The public key - needed when sending 
     BRKey publicKey;  // BIP44: 'Master Public Key 'M' (264 bits) - 8

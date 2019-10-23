@@ -12,9 +12,9 @@
 #define BRRipple_private_structs_h
 
 #include <stdbool.h>
+#include "BRKey.h"
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
-#include "BRKey.h"
 
 // A structure to hold some bytes and a length
 typedef struct _vl_bytes {

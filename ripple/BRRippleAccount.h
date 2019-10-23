@@ -16,6 +16,7 @@
 
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
+
 /**
  * Create a Ripple account object
  *
@@ -24,7 +25,6 @@ typedef struct BRRippleAccountRecord *BRRippleAccount;
  */
 extern BRRippleAccount /* caller must free - rippleAccountFree */
 rippleAccountCreate (const char *paperKey);
-
 /**
  * Create a Ripple account object
  *

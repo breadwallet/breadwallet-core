@@ -209,7 +209,7 @@ cryptoNetworkCreateAsGEN (const char *uids,
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
     network->u.gen.mainnet = isMainnet;
-    network->u.gen.net = gwmNetworkCreate(cryptoCurrencyGetCode(currency));
+    network->u.gen.net = genNetworkCreate(cryptoCurrencyGetCode(currency));
     network->currency = cryptoCurrencyTake(currency);
     return network;
 }
@@ -517,7 +517,6 @@ extern BRCryptoAddress
 cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
                                       const char *string) {
     switch (network->type) {
-
         case BLOCK_CHAIN_TYPE_BTC:
             return (BRChainParamsIsBitcoin (network->u.btc.params)
                     ? cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string)
@@ -527,9 +526,7 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
             return cryptoAddressCreateFromStringAsETH (string);
 
         case BLOCK_CHAIN_TYPE_GEN:
-        {
-            return cryptoAddressCreateFromStringAsGEN(network->u.gen.net, string);
-        }
+            return cryptoAddressCreateFromStringAsGEN (network->u.gen.net, string);
     }
 }
 

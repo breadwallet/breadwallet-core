@@ -25,7 +25,7 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      BRRippleTransactionHash hash,
                      uint64_t timestamp, uint64_t blockHeight)
 {
-    BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
+    BRRippleTransfer transfer = (BRRippleTransfer) calloc (1, sizeof (struct BRRippleTransferRecord));
     transfer->sourceAddress = rippleAddressClone (from);
     transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
@@ -40,7 +40,7 @@ extern BRRippleTransfer /* caller must free - rippleTransferFree */
 rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount)
 {
-    BRRippleTransfer transfer = calloc (1, sizeof (struct BRRippleTransferRecord));
+    BRRippleTransfer transfer = (BRRippleTransfer) calloc (1, sizeof (struct BRRippleTransferRecord));
     transfer->sourceAddress = rippleAddressClone (from);
     transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
