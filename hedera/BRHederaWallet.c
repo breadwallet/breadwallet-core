@@ -33,6 +33,7 @@ hederaWalletGetSourceAddress (BRHederaWallet wallet)
     assert(wallet);
     assert(wallet->account);
     // In the Hedera system there is only a single address per account
+    // No need to clone the address here since the account code will do that
     return hederaAccountGetPrimaryAddress(wallet->account);
 }
 
@@ -42,6 +43,7 @@ hederaWalletGetTargetAddress (BRHederaWallet wallet)
     assert(wallet);
     assert(wallet->account);
     // In the Hedera system there is only a single address per account
+    // No need to clone the address here since the account code will do that
     return hederaAccountGetPrimaryAddress(wallet->account);
 }
 

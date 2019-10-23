@@ -3,7 +3,6 @@
 
 #include "BRHederaAccount.h"
 #include "BRHederaCrypto.h"
-#include "BRHederaUtils.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -29,13 +28,14 @@ extern BRHederaAccount hederaAccountCreateWithSeed (UInt512 seed)
 extern void hederaAccountFree (BRHederaAccount account)
 {
     assert(account);
+    if (account->address) hederaAddressFree (account->address);
     free(account);
 }
 
 extern void hederaAccountSetAddress (BRHederaAccount account, BRHederaAddress address)
 {
     assert(account);
-    account->address = address;
+    account->address = hederaAddressClone (address);
 }
 
 extern BRKey hederaAccountGetPublicKey (BRHederaAccount account)
@@ -47,41 +47,13 @@ extern BRKey hederaAccountGetPublicKey (BRHederaAccount account)
 extern BRHederaAddress hederaAccountGetAddress (BRHederaAccount account)
 {
     assert(account);
-    return account->address;
+    return hederaAddressClone (account->address);
 }
 
 extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account)
 {
     assert(account);
-    return account->address;
-}
-
-extern size_t hederaAccountGetAddressString(BRHederaAccount account, char * address, size_t addressLength)
-{
-    assert(account);
-
-    // Check if the account ID has been set
-    if (account->address.account > 0) {
-        char accountIDString[128];
-        hederaAddressGetString(account->address, accountIDString, sizeof(accountIDString));
-        // Copy the address if we have enough room in the buffer
-        size_t accountStringLength = strlen(accountIDString);
-        // Copy the address if we have a buffer and it is big enough
-        // to hold the string and the null terminator
-        if (address && addressLength > accountStringLength) {
-            strcpy(address, accountIDString);
-        }
-        return (accountStringLength + 1); // string length plus terminating byte
-    } else {
-        return 0;
-    }
-}
-
-extern int // 1 if equal
-hederaAddressEqual (BRHederaAddress a1, BRHederaAddress a2) {
-    return (a1.shard == a2.shard &&
-            a1.realm == a2.shard &&
-            a1.account == a2.account) ? 1 : 0;
+    return hederaAddressClone (account->address);
 }
 
 extern uint8_t *hederaAccountGetSerialization (BRHederaAccount account, size_t *bytesCount) {

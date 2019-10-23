@@ -4,7 +4,6 @@
 #include "BRHederaTransaction.h"
 #include "BRHederaCrypto.h"
 #include "BRHederaSerialize.h"
-#include "BRHederaUtils.h"
 #include "proto/Transaction.pb-c.h"
 #include "proto/TransactionBody.pb-c.h"
 #include "vendor/ed25519/ed25519.h"
@@ -16,7 +15,7 @@ struct BRHederaTransactionRecord {
     BRHederaAddress source;
     BRHederaAddress target;
     BRHederaUnitTinyBar amount;
-    BRHederaTransactionId txId;
+    char * transactionId;
     BRHederaUnitTinyBar fee;
     uint8_t * serializedBytes;
     size_t serializedSize;
@@ -28,13 +27,9 @@ extern BRHederaTransaction hederaTransactionCreateNew (BRHederaAddress source,
                                                        BRHederaUnitTinyBar amount)
 {
     BRHederaTransaction transaction = calloc (1, sizeof(struct BRHederaTransactionRecord));
-    transaction->serializedSize = 0;
-    transaction->serializedBytes = NULL;
-
-    transaction->source = source;
-    transaction->target = target;
+    transaction->source = hederaAddressClone (source);
+    transaction->target = hederaAddressClone (target);
     transaction->amount = amount;
-
     return transaction;
 }
 
@@ -45,17 +40,18 @@ extern BRHederaTransaction hederaTransactionCreate (BRHederaAddress source,
                                                     BRHederaTransactionHash hash)
 {
     // This is an existing transaction - it must have a transaction ID
-    assert(txID);
+    assert(source);
+    assert(target);
     BRHederaTransaction transaction = calloc (1, sizeof(struct BRHederaTransactionRecord));
-    transaction->serializedSize = 0;
-    transaction->serializedBytes = NULL;
-
-    transaction->source = source;
-    transaction->target = target;
+    transaction->source = hederaAddressClone (source);
+    transaction->target = hederaAddressClone (target);
     transaction->amount = amount;
 
     // Parse the transactionID
-    transaction->txId = hederaParseTransactionId(txID);
+    if (txID && strlen(txID) > 1) {
+        transaction->transactionId = (char*) calloc(1, strlen(txID) + 1);
+        strcpy(transaction->transactionId, txID);
+    }
     transaction->hash = hash;
 
     return transaction;
@@ -65,6 +61,9 @@ extern void hederaTransactionFree (BRHederaTransaction transaction)
 {
     assert (transaction);
     if (transaction->serializedBytes) free (transaction->serializedBytes);
+    if (transaction->transactionId) free (transaction->transactionId);
+    if (transaction->source) hederaAddressFree (transaction->source);
+    if (transaction->target) hederaAddressFree (transaction->target);
     free (transaction);
 }
 
@@ -76,13 +75,20 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
                                   BRHederaUnitTinyBar fee,
                                   UInt512 seed)
 {
-    assert(transaction);
+    assert (transaction);
+    assert (nodeAddress);
+
+    // If previously signed - delete and resign
+    if (transaction->serializedBytes) {
+        free (transaction->serializedBytes);
+        transaction->serializedSize = 0;
+    }
 
     // Generate the private key from the seed
-    BRKey key = hederaKeyCreate(seed);
+    BRKey key = hederaKeyCreate (seed);
     unsigned char privateKey[64] = {0};
     unsigned char temp[32] = {0}; // Use the public key that is sent in instead
-    ed25519_create_keypair(temp, privateKey, key.secret.u8);
+    ed25519_create_keypair (temp, privateKey, key.secret.u8);
 
     // First we need to serialize the body since it is the thing we sign
     size_t bodySize;
@@ -97,7 +103,7 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
 
     // Create signature from the body bytes
     unsigned char signature[64];
-    memset(signature, 0x00, 64);
+    memset (signature, 0x00, 64);
     ed25519_sign(signature, body, bodySize, publicKey.pubKey, privateKey);
 
     // Serialize the full transaction including signature and public key
@@ -105,6 +111,11 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
                                                           publicKey.pubKey, 32,
                                                           body, bodySize,
                                                           &transaction->serializedSize);
+
+    // We are now done with the body - it was copied to the serialized bytes so we
+    // must clean up it now.
+    free (body);
+
     return transaction->serializedSize;
 }
 
@@ -125,10 +136,13 @@ extern BRHederaTransactionHash hederaTransactionGetHash(BRHederaTransaction tran
     return transaction->hash;
 }
 
-extern BRHederaTransactionId hederaTransactionGetTransactionId(BRHederaTransaction transaction)
+extern char * hederaTransactionGetTransactionId(BRHederaTransaction transaction)
 {
     assert(transaction);
-    return transaction->txId;
+    if (transaction->transactionId) {
+        return strdup(transaction->transactionId);
+    }
+    return NULL;
 }
 
 extern BRHederaUnitTinyBar hederaTransactionGetFee(BRHederaTransaction transaction)
@@ -146,11 +160,11 @@ extern BRHederaUnitTinyBar hederaTransactionGetAmount(BRHederaTransaction transa
 extern BRHederaAddress hederaTransactionGetSource(BRHederaTransaction transaction)
 {
     assert(transaction);
-    return transaction->source;
+    return hederaAddressClone (transaction->source);
 }
 
 extern BRHederaAddress hederaTransactionGetTarget(BRHederaTransaction transaction)
 {
     assert(transaction);
-    return transaction->target;
+    return hederaAddressClone (transaction->target);
 }

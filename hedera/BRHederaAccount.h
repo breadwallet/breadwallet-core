@@ -15,6 +15,7 @@
 #include "support/BRKey.h"
 #include "support/BRInt.h"
 #include "BRHederaBase.h"
+#include "BRHederaAddress.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,21 +84,6 @@ extern BRHederaAddress hederaAccountGetAddress (BRHederaAccount account);
  * @return address
  */
 extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account);
-
-/**
- * Get the string representation of the specified account
- *
- * Get the friendly string version of the address OR get the number of
- * bytes needed to store the string
- *
- * @param account   - the specified account
- * @param address   - character buffer to hold the results
- * @param length    - length of the "address" buffer
- *
- * @return number of bytes written to "address" if address is not null, otherwise
- *         return the number of bytes needed to store the address including the null terminator
- */
-extern size_t hederaAccountGetAddressString(BRHederaAccount account, char * address, size_t length);
 
 /**
  * Check if 2 Hedera addresses are equal

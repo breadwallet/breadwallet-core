@@ -69,10 +69,7 @@ static BRHederaAccount getDefaultAccount()
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, paper_key_12, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
-    BRHederaAddress address;
-    address.shard = 0;
-    address.realm = 0;
-    address.account = 114008;
+    BRHederaAddress address = hederaAddressCreateFromString("0.0.114008");
     hederaAccountSetAddress(account, address);
     return account;
 }
@@ -85,17 +82,11 @@ static void createNewTransaction() {
 
     BRKey publicKey = hederaAccountGetPublicKey(account);
 
-    BRHederaAddress source;
-    BRHederaAddress target;
-    source.shard = 0;
-    source.realm = 0;
-    source.account = 55;
-    target = source;
-    target.account = 78;
+    BRHederaAddress source = hederaAddressCreateFromString ("0.0.55");
+    BRHederaAddress target = hederaAddressCreateFromString ("0.0.78");
     BRHederaTransaction transaction = hederaTransactionCreateNew(source, target, 400);
 
-    BRHederaAddress nodeAddress = source;
-    nodeAddress.account = 2;
+    BRHederaAddress nodeAddress = hederaAddressCreateFromString("0.0.2");
     BRHederaTimeStamp timeStamp;
     timeStamp.seconds = 25;
     timeStamp.nano = 4;
@@ -109,6 +100,12 @@ static void createNewTransaction() {
     uint8_t expected_output_bytes[strlen(expectedOutput)];
     hex2bin(expectedOutput, expected_output_bytes);
     assert(memcmp(expected_output_bytes, serializedBytes, serializedSize) == 0);
+
+    hederaAddressFree (source);
+    hederaAddressFree (target);
+    hederaAddressFree (nodeAddress);
+    hederaTransactionFree (transaction);
+    hederaAccountFree (account);
 }
 
 static void createExistingTransaction()
@@ -116,13 +113,9 @@ static void createExistingTransaction()
     // Create a hedera account
     BRHederaAccount account = getDefaultAccount();
 
-    BRHederaAddress source;
-    BRHederaAddress target;
-    source.shard = 0;
-    source.realm = 0;
-    source.account = 55;
-    target = source;
-    target.account = 78;
+    BRHederaAddress source = hederaAddressCreateFromString ("0.0.55");
+    BRHederaAddress target = hederaAddressCreateFromString ("0.0.78");
+
     const char * txId = "0.0.14623-1568420904-460838529";
     BRHederaTransactionHash expectedHash;
     // Create a fake hash for this transaction
@@ -132,21 +125,25 @@ static void createExistingTransaction()
     // Check the values
     BRHederaTransactionHash hash = hederaTransactionGetHash(transaction);
     assert(memcmp(hash.bytes, expectedHash.bytes, 32) == 0);
-    BRHederaAddress tempAddress = hederaTransactionGetSource(transaction);
-    assert(hederaAddressEqual(source, tempAddress) == 1);
-    tempAddress = hederaTransactionGetTarget(transaction);
-    assert(hederaAddressEqual(target, tempAddress) == 1);
+    BRHederaAddress address = hederaTransactionGetSource(transaction);
+    assert(hederaAddressEqual(source, address) == 1);
+    hederaAddressFree(address);
+
+    address = hederaTransactionGetTarget(transaction);
+    assert(hederaAddressEqual(target, address) == 1);
+    hederaAddressFree(address);
 
     BRHederaUnitTinyBar amount = hederaTransactionGetAmount(transaction);
     assert(amount == 400);
 
-    BRHederaTransactionId transactionId = hederaTransactionGetTransactionId(transaction);
-    assert(transactionId.address.account == 14623);
-    assert(transactionId.timeStamp.seconds == 1568420904);
-    assert(transactionId.timeStamp.nano == 460838529);
+    char * transactionId = hederaTransactionGetTransactionId(transaction);
+    assert(strcmp(txId, transactionId) == 0);
+    free (transactionId);
 
     hederaTransactionFree(transaction);
     hederaAccountFree(account);
+    hederaAddressFree (source);
+    hederaAddressFree (target);
 }
 
 static void hederaAccountCheckPublicKey(const char * paper_key, const char * public_key_string)
@@ -154,11 +151,6 @@ static void hederaAccountCheckPublicKey(const char * paper_key, const char * pub
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
-    BRHederaAddress address;
-    address.shard = 0;
-    address.realm = 0;
-    address.account = 1000;
-    hederaAccountSetAddress(account, address);
     BRKey publicKey = hederaAccountGetPublicKey(account);
     // Validate the public key
     uint8_t expected_public_key[32];
@@ -169,30 +161,40 @@ static void hederaAccountCheckPublicKey(const char * paper_key, const char * pub
 static void accountStringTest(const char * paper_key) {
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
-    BRHederaAccount account = hederaAccountCreateWithSeed(seed);
-    BRHederaAddress address;
-    address.shard = 0;
-    address.realm = 0;
-    address.account = 114008;
-    hederaAccountSetAddress(account, address);
-    // Get the length of the account string
-    size_t length = hederaAccountGetAddressString(account, NULL, 0);
-    assert(length == 11); // 0.0.114008 plus NULL byte
-    char addressString[length];
-    hederaAccountGetAddressString(account, addressString, length);
-    assert(strcmp(addressString, "0.0.114008") == 0);
+    BRHederaAccount account = hederaAccountCreateWithSeed (seed);
+    BRHederaAddress inAddress = hederaAddressCreateFromString ("0.0.114008");
+    hederaAccountSetAddress (account, inAddress);
+
+    // Now get the address from the account
+    BRHederaAddress outAddress = hederaAccountGetAddress (account);
+    assert(hederaAddressEqual(inAddress, outAddress) == 1);
+
+    char * outAddressString = hederaAddressAsString (outAddress);
+    assert(strcmp(outAddressString, "0.0.114008") == 0);
+
+    // Cleanup
+    hederaAddressFree (inAddress);
+    hederaAddressFree (outAddress);
+    free (outAddressString);
+    hederaAccountFree (account);
 }
 
 static void addressEqualTest()
 {
-    BRHederaAddress a1;
-    a1.shard = 0;
-    a1.realm = 0;
-    a1.account = 25;
-    BRHederaAddress a2 = a1;
+    BRHederaAddress a1 = hederaAddressCreateFromString("0.0.1000000");
+    BRHederaAddress a2 = hederaAddressClone (a1);
+    BRHederaAddress a3 = hederaAddressCreateFromString("0.0.1000000");
     assert(1 == hederaAddressEqual(a1, a2));
-    a1.account = 26;
-    assert(0 == hederaAddressEqual(a1, a2));
+    assert(1 == hederaAddressEqual(a1, a3));
+
+    // now check no equal
+    BRHederaAddress a4 = hederaAddressCreateFromString("0.0.1000001");
+    assert(0 == hederaAddressEqual(a1, a4));
+
+    hederaAddressFree (a1);
+    hederaAddressFree (a2);
+    hederaAddressFree (a3);
+    hederaAddressFree (a4);
 }
 
 static void createAndDeleteWallet()
@@ -202,10 +204,7 @@ static void createAndDeleteWallet()
     BRHederaWallet wallet = hederaWalletCreate(account);
 
     // Source and target addresses should be the same for Hedera
-    BRHederaAddress expectedAddress;
-    expectedAddress.shard = 0;
-    expectedAddress.realm = 0;
-    expectedAddress.account = 114008;
+    BRHederaAddress expectedAddress = hederaAddressCreateFromString("0.0.114008");
 
     BRHederaAddress sourceAddress = hederaWalletGetSourceAddress(wallet);
     assert(hederaAddressEqual(sourceAddress, expectedAddress) == 1);
@@ -215,6 +214,9 @@ static void createAndDeleteWallet()
 
     hederaAccountFree(account);
     hederaWalletFree(wallet);
+    hederaAddressFree (expectedAddress);
+    hederaAddressFree (sourceAddress);
+    hederaAddressFree (targetAddress);
 }
 
 static void walletBalanceTests()
@@ -225,6 +227,9 @@ static void walletBalanceTests()
     hederaWalletSetBalance (wallet, expectedBalance);
     BRHederaUnitTinyBar balance = hederaWalletGetBalance (wallet);
     assert(balance == expectedBalance);
+
+    hederaAccountFree (account);
+    hederaWalletFree (wallet);
 }
 
 static void transaction_tests() {

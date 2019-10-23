@@ -14,6 +14,7 @@
 #include "support/BRInt.h"
 #include "support/BRKey.h"
 #include "BRHederaAccount.h"
+#include "BRHederaAddress.h"
 #include "BRHederaBase.h"
 
 #ifdef __cplusplus
@@ -92,10 +93,10 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
 extern uint8_t * /* caller owns and must free using normal "free" function */
 hederaTransactionSerialize (BRHederaTransaction transaction, size_t *size);
 
-
 // Getters for the various transaction fields
 extern BRHederaTransactionHash hederaTransactionGetHash(BRHederaTransaction transaction);
-extern BRHederaTransactionId hederaTransactionGetTransactionId(BRHederaTransaction transaction);
+extern char * // Caller owns memory and must free calling "free"
+hederaTransactionGetTransactionId(BRHederaTransaction transaction);
 extern BRHederaUnitTinyBar hederaTransactionGetFee(BRHederaTransaction transaction);
 extern BRHederaUnitTinyBar hederaTransactionGetAmount(BRHederaTransaction transaction);
 extern BRHederaAddress hederaTransactionGetSource(BRHederaTransaction transaction);

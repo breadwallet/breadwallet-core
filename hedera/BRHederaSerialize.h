@@ -11,6 +11,7 @@
 #define BRHederaSerialize_h
 
 #include "BRHederaBase.h"
+#include "BRHederaAddress.h"
 #include "support/BRKey.h"
 
 #ifdef __cplusplus
