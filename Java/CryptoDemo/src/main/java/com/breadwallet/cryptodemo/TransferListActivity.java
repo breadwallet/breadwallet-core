@@ -38,25 +38,32 @@ import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
+import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
-import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
+import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.Lists;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TransferListActivity extends AppCompatActivity implements DefaultSystemListener {
 
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
+
+    private static final int TRANSFER_CHUNK_SIZE = 10;
 
     public static void start(Activity callerActivity, Wallet wallet) {
         Intent intent = new Intent(callerActivity, TransferListActivity.class);
@@ -76,9 +83,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
     }
 
     private Wallet wallet;
-
     private Adapter transferAdapter;
-
     private ClipboardManager clipboardManager;
 
     @Override
@@ -117,19 +122,21 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
         Toolbar toolbar = findViewById(R.id.toolbar_view);
         toolbar.setTitle(String.format("Wallet: %s", wallet.getName()));
         setSupportActionBar(toolbar);
-
-        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, this);
-        ApplicationExecutors.runOnUiExecutor(() -> {
-            List<TransferViewModel> vms = TransferViewModel.create(wallet.getTransfers());
-            runOnUiThread(() -> transferAdapter.set(vms));
-        });
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onResume() {
+        super.onResume();
+
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, this);
+        loadTransfers();
+    }
+
+    @Override
+    protected void onPause() {
         CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, this);
 
-        super.onDestroy();
+        super.onPause();
     }
 
     @Override
@@ -159,29 +166,60 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
 
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        ApplicationExecutors.runOnUiExecutor(() -> event.accept(new DefaultTransferEventVisitor<Void>() {
+        event.accept(new DefaultTransferEventVisitor<Void>() {
             @Override
             public Void visit(TransferCreatedEvent event) {
-                TransferViewModel vm = TransferViewModel.create(transfer);
-                runOnUiThread(() -> transferAdapter.add(vm));
+                addTransfer(transfer);
                 return null;
             }
 
             @Override
             public Void visit(TransferChangedEvent event) {
-                TransferViewModel vm = TransferViewModel.create(transfer);
-                runOnUiThread(() -> transferAdapter.changed(vm));
+                updateTransfer(transfer);
                 return null;
             }
 
 
             @Override
             public Void visit(TransferDeletedEvent event) {
-                TransferViewModel vm = TransferViewModel.create(transfer);
-                runOnUiThread(() -> transferAdapter.remove(vm));
+                removeTransfer(transfer);
                 return null;
             }
-        }));
+        });
+    }
+
+    private void loadTransfers() {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            List<? extends Transfer> transfers = wallet.getTransfers();
+            List<TransferViewModel> viewModels = TransferViewModel.create(transfers);
+            Collections.sort(viewModels, TransferViewModel::compare);
+
+            runOnUiThread(transferAdapter::clear);
+            for (List<TransferViewModel> viewModelsChunk: Lists.partition(viewModels, TRANSFER_CHUNK_SIZE)) {
+                runOnUiThread(() -> transferAdapter.add(viewModelsChunk));
+            }
+        });
+    }
+
+    private void addTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.add(vm));
+        });
+    }
+
+    private void removeTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.remove(vm));
+        });
+    }
+
+    private void updateTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.update(vm));
+        });
     }
 
     private void connect() {
@@ -223,16 +261,14 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
                 itemTexts[i] = itemModes[i].toString();
             }
 
-            runOnUiThread(() -> {
-                new AlertDialog.Builder(this)
-                        .setSingleChoiceItems(itemTexts,
-                                -1,
-                                (d, w) -> {
-                                    ApplicationExecutors.runOnBlockingExecutor(() -> wm.setMode(itemModes[w]));
-                                    d.dismiss();
-                                })
-                        .show();
-            });
+            runOnUiThread(() -> new AlertDialog.Builder(this)
+                    .setSingleChoiceItems(itemTexts,
+                            -1,
+                            (d, w) -> {
+                                ApplicationExecutors.runOnBlockingExecutor(() -> wm.setMode(itemModes[w]));
+                                d.dismiss();
+                            })
+                    .show());
         });
     }
 
@@ -244,9 +280,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             String escapedValue = Html.escapeHtml(value);
             Spanned message = Html.fromHtml(String.format("Copied receive address <b>%s</b> to clipboard", escapedValue));
 
-            runOnUiThread(() -> {
-                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-            });
+            runOnUiThread(() -> Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show());
         });
     }
 
@@ -254,15 +288,48 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
         void onItemClick(T item);
     }
 
-    private static class TransferViewModel implements Comparable<TransferViewModel> {
+    private static class TransferViewModel {
 
-        private static final ThreadLocal<DateFormat> DATE_FORMAT = new ThreadLocal<DateFormat>() {
+        static final ThreadLocal<DateFormat> DATE_FORMAT = new ThreadLocal<DateFormat>() {
             @Override protected DateFormat initialValue() {
                 return DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
             }
         };
 
-        private static List<TransferViewModel> create(List<? extends Transfer> transfers) {
+        static int compare(TransferViewModel vm1, TransferViewModel vm2) {
+            if (vm1.transfer.equals(vm2.transfer)) return 0;
+
+            TransferConfirmation vm1Conf = vm1.confirmation().orNull();
+            TransferConfirmation vm2Conf = vm2.confirmation().orNull();
+
+            if (vm1Conf != null && vm2Conf != null) {
+                int blockCompare = vm2Conf.getBlockNumber().compareTo(vm1Conf.getBlockNumber());
+                if (blockCompare != 0) return blockCompare;
+
+                return vm2Conf.getTransactionIndex().compareTo(vm1Conf.getTransactionIndex());
+
+            } else if (vm1Conf != null) {
+                return 1;
+            } else if (vm2Conf != null) {
+                return -1;
+            } else {
+                return vm2.transferHashCode - vm1.transferHashCode;
+            }
+        }
+
+        static boolean areContentsTheSame(TransferViewModel vm1, TransferViewModel vm2) {
+            return vm1.dateText().equals(vm2.dateText()) &&
+                    vm1.addressText().equals(vm2.addressText()) &&
+                    vm1.amountText().equals(vm2.amountText()) &&
+                    vm1.feeText().equals(vm2.feeText()) &&
+                    vm1.stateText().equals(vm2.stateText());
+        }
+
+        static boolean areItemsTheSame(TransferViewModel vm1, TransferViewModel vm2) {
+            return vm1.transfer.equals(vm2.transfer);
+        }
+
+        static List<TransferViewModel> create(List<? extends Transfer> transfers) {
             List<TransferViewModel> vms = new ArrayList<>(transfers.size());
             for (Transfer t: transfers) {
                 vms.add(create(t));
@@ -270,94 +337,114 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             return vms;
         }
 
-        private static TransferViewModel create(Transfer transfer) {
+        static TransferViewModel create(Transfer transfer) {
             return new TransferViewModel(transfer);
         }
 
         final Transfer transfer;
         final int transferHashCode;
-        final TransferConfirmation confirmation;
 
-        final String dateText;
-        final String addressText;
-        final String amountText;
-        final String feeText;
-        final String stateText;
+        final Supplier<TransferState> state;
+        final Supplier<TransferConfirmation> confirmation;
 
-        private TransferViewModel(Transfer transfer) {
+        final Supplier<String> amountText;
+        final Supplier<String> feeText;
+        final Supplier<String> stateText;
+        final Supplier<String> dateText;
+        final Supplier<String> addressText;
+
+        TransferViewModel(Transfer transfer) {
             this.transfer = transfer;
-            this.confirmation = transfer.getConfirmation().orNull();
             this.transferHashCode = transfer.hashCode();
 
-            this.dateText = confirmation == null ? "<pending>" : DATE_FORMAT.get().format(confirmation.getConfirmationTime());
-            this.addressText = transfer.getHash().transform(h -> String.format("Hash: %s", h)).or("<pending>");
-            this.amountText = transfer.getAmountDirected().toString();
-            this.feeText = String.format("Fee: %s", transfer.getFee());
-            this.stateText = String.format("State: %s", transfer.getState());
+            this.state = Suppliers.memoize(transfer::getState);
+            this.confirmation = Suppliers.memoize(() -> state().getIncludedConfirmation().orNull());
+
+            this.amountText = Suppliers.memoize(() -> transfer.getAmountDirected().toString());
+            this.feeText = Suppliers.memoize(() -> String.format("Fee: %s", transfer.getFee()));
+            this.stateText = Suppliers.memoize(() -> String.format("State: %s", state()));
+            this.dateText = Suppliers.memoize(() -> confirmation()
+                    .transform(TransferConfirmation::getConfirmationTime)
+                    .transform(t -> DATE_FORMAT.get().format(t))
+                    .or("<pending>"));
+            this.addressText = Suppliers.memoize(() -> transfer.getHash()
+                    .transform(h -> String.format("Hash: %s", h))
+                    .or("<pending>"));
+        }
+
+        TransferState state() {
+            return state.get();
+        }
+
+        Optional<TransferConfirmation> confirmation() {
+            return Optional.fromNullable(confirmation.get());
+        }
+
+        String dateText() {
+            return dateText.get();
+        }
+
+        String addressText() {
+            return addressText.get();
+        }
+
+        String amountText() {
+            return amountText.get();
+        }
+
+        String feeText() {
+            return feeText.get();
+        }
+
+        String stateText() {
+            return stateText.get();
+        }
+    }
+
+    private static class TransferViewModelSortedListAdapterCallback extends SortedListAdapterCallback<TransferViewModel> {
+
+        TransferViewModelSortedListAdapterCallback(Adapter adapter) {
+            super(adapter);
         }
 
         @Override
-        public int compareTo(TransferViewModel vm) {
-            if (transfer.equals(vm.transfer)) return 0;
-
-            if (confirmation != null && vm.confirmation != null) {
-                int blockCompare = vm.confirmation.getBlockNumber().compareTo(confirmation.getBlockNumber());
-                if (blockCompare != 0) return blockCompare;
-
-                return vm.confirmation.getTransactionIndex().compareTo(confirmation.getTransactionIndex());
-
-            } else if (confirmation != null) {
-                return 1;
-            } else if (vm.confirmation != null) {
-                return -1;
-            } else {
-                return vm.transferHashCode - this.transferHashCode;
-            }
+        public int compare(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.compare(t1, t2);
         }
 
-        boolean areContentsTheSame(TransferViewModel vm) {
-            return dateText.equals(vm.dateText) &&
-                    addressText.equals(vm.addressText) &&
-                    amountText.equals(vm.amountText) &&
-                    feeText.equals(vm.feeText) &&
-                    stateText.equals(vm.stateText);
+        @Override
+        public boolean areContentsTheSame(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.areContentsTheSame(t1, t2);
         }
 
-        boolean areItemsTheSame(TransferViewModel vm) {
-            return transfer.equals(vm.transfer);
+        @Override
+        public boolean areItemsTheSame(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.areItemsTheSame(t1, t2);
         }
     }
 
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
-        private final OnItemClickListener<Transfer> listener;
-        private final SortedList<TransferViewModel> viewModels;
+        final OnItemClickListener<Transfer> listener;
+        final SortedList<TransferViewModel> viewModels;
 
         Adapter(OnItemClickListener<Transfer> listener) {
             this.listener = listener;
-            this.viewModels = new SortedList<>(TransferViewModel.class, new SortedListAdapterCallback<TransferViewModel>(this) {
-                @Override
-                public int compare(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.compareTo(t2);
-                }
-
-                @Override
-                public boolean areContentsTheSame(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.areContentsTheSame(t2);
-                }
-
-                @Override
-                public boolean areItemsTheSame(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.areItemsTheSame(t2);
-                }
-            });
+            this.viewModels = new SortedList<>(TransferViewModel.class, new TransferViewModelSortedListAdapterCallback(this));
         }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_transfer_item, viewGroup, false);
-            return new ViewHolder(v);
+            return new ViewHolder(
+                    LayoutInflater.from(
+                            viewGroup.getContext()
+                    ).inflate(
+                            R.layout.layout_transfer_item,
+                            viewGroup,
+                            false
+                    )
+            );
         }
 
         @Override
@@ -365,11 +452,11 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             TransferViewModel vm = viewModels.get(i);
 
             vh.itemView.setOnClickListener(v -> listener.onItemClick(vm.transfer));
-            vh.dateView.setText(vm.dateText);
-            vh.amountView.setText(vm.amountText);
-            vh.addressView.setText(vm.addressText);
-            vh.feeView.setText(vm.feeText);
-            vh.stateView.setText(vm.stateText);
+            vh.dateView.setText(vm.dateText());
+            vh.amountView.setText(vm.amountText());
+            vh.addressView.setText(vm.addressText());
+            vh.feeView.setText(vm.feeText());
+            vh.stateView.setText(vm.stateText());
         }
 
         @Override
@@ -377,32 +464,36 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             return viewModels.size();
         }
 
-        private void set(List<TransferViewModel> newTransfers) {
+        void clear() {
+            viewModels.clear();
+        }
+
+        void add(List<TransferViewModel> newTransfers) {
             viewModels.addAll(newTransfers);
         }
 
-        private void add(TransferViewModel transfer) {
+        void add(TransferViewModel transfer) {
             viewModels.add(transfer);
         }
 
-        private void remove(TransferViewModel transfer) {
-            viewModels.remove(transfer);
+        void remove(TransferViewModel transfer) {
+            viewModels.add(transfer); // add it; will display with state of deledted
         }
 
-        private void changed(TransferViewModel transfer) {
+        void update(TransferViewModel transfer) {
             viewModels.add(transfer);
         }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
 
-        private TextView dateView;
-        private TextView amountView;
-        private TextView addressView;
-        private TextView feeView;
-        private TextView stateView;
+        TextView dateView;
+        TextView amountView;
+        TextView addressView;
+        TextView feeView;
+        TextView stateView;
 
-        private ViewHolder(@NonNull View view) {
+        ViewHolder(@NonNull View view) {
             super(view);
 
             dateView = view.findViewById(R.id.item_date);
