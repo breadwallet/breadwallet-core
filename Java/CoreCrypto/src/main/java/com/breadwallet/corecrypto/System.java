@@ -35,6 +35,7 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
+import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
@@ -219,6 +220,36 @@ final class System implements com.breadwallet.crypto.System {
         SYSTEMS_ACTIVE.put(context, system);
 
         return system;
+    }
+
+    /* package */
+    static Optional<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> asBDBCurrency(String uids,
+                                                                                           String name,
+                                                                                           String code,
+                                                                                           String type,
+                                                                                           UnsignedInteger decimals) {
+        int index = uids.indexOf(':');
+        if (index == -1) return Optional.absent();
+
+        type = type.toLowerCase(Locale.ROOT);
+        if (!"erc20".equals(type) && !"native".equals(type)) return Optional.absent();
+
+        code = code.toLowerCase(Locale.ROOT);
+        String blockchainId = uids.substring(0, index);
+        String address = uids.substring(index);
+
+        return Optional.of(
+                new com.breadwallet.crypto.blockchaindb.models.bdb.Currency(
+                        uids,
+                        name,
+                        code,
+                        type,
+                        blockchainId,
+                        address.equals("__native__") ? null : address,
+                        true,
+                        Blockchains.makeCurrencyDemominationsErc20(code, decimals)
+                )
+        );
     }
 
     /* package */
