@@ -137,6 +137,10 @@ extern "C" {
     extern BRGenericAddress
     genWalletGetAddress (BRGenericWallet wid);
 
+    extern int
+    genWalletHasAddress (BRGenericWallet wallet,
+                         BRGenericAddress address);
+
     extern BRGenericFeeBasis
     genWalletGetDefaultFeeBasis (BRGenericWallet wid);
 

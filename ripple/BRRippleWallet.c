@@ -71,6 +71,12 @@ rippleWalletGetTargetAddress (BRRippleWallet wallet)
     return rippleAccountGetPrimaryAddress(wallet->account);
 }
 
+extern int
+rippleWalletHasAddress (BRRippleWallet wallet,
+                        BRRippleAddress address) {
+    return rippleAccountHasAddress (wallet->account, address);
+}
+
 extern BRRippleUnitDrops
 rippleWalletGetBalance (BRRippleWallet wallet)
 {

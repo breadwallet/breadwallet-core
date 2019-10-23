@@ -109,6 +109,9 @@ extern "C" {
     typedef BRGenericWalletRef (*BRGenericWalletCreate) (BRGenericAccountRef account);
     typedef void (*BRGenericWalletFree) (BRGenericWalletRef wallet);
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWalletRef wallet);
+    typedef int (*BRGenericWalletHasAddress) (BRGenericWalletRef wallet,
+                                              BRGenericAddressRef address);
+
     // Unneeded?
     typedef BRGenericTransferRef (*BRGenericWalletCreateTransfer) (BRGenericWalletRef wallet,
                                                                    BRGenericAddressRef target,
@@ -124,6 +127,7 @@ extern "C" {
         BRGenericWalletFree free;
         BRGenericWalletGetBalance balance;
         // set balance
+        BRGenericWalletHasAddress hasAddress;
         // ...
         BRGenericWalletCreateTransfer createTransfer; // Unneeded.
         BRGenericWalletEstimateFeeBasis estimateFeeBasis;

@@ -220,6 +220,12 @@ genWalletGetAddress (BRGenericWallet wid) {
     return NULL;
 }
 
+extern int
+genWalletHasAddress (BRGenericWallet wallet,
+                     BRGenericAddress address) {
+    return wallet->handlers.hasAddress (wallet->ref, address->ref);
+}
+
 extern BRGenericFeeBasis
 genWalletGetDefaultFeeBasis (BRGenericWallet wid) {
     return wid->defaultFeeBasis;
