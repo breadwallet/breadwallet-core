@@ -11,15 +11,16 @@
 #define BRHederaSerialize_h
 
 #include "BRHederaBase.h"
+#include "BRHederaAddress.h"
 #include "support/BRKey.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint8_t * hederaTransactionBodyPack (BRHederaAccountID source,
-                                     BRHederaAccountID target,
-                                          BRHederaAccountID nodeAccountID,
+uint8_t * hederaTransactionBodyPack (BRHederaAddress source,
+                                     BRHederaAddress target,
+                                          BRHederaAddress nodeAddress,
                                           BRHederaUnitTinyBar amount,
                                           BRHederaTimeStamp timeStamp,
                                           BRHederaUnitTinyBar fee,

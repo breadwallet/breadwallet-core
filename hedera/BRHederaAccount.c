@@ -8,7 +8,7 @@
 #include <assert.h>
 
 struct BRHederaAccountRecord {
-    BRHederaAccountID accountID;
+    BRHederaAddress address;
     BRKey publicKey;
 };
 
@@ -28,13 +28,14 @@ extern BRHederaAccount hederaAccountCreateWithSeed (UInt512 seed)
 extern void hederaAccountFree (BRHederaAccount account)
 {
     assert(account);
+    if (account->address) hederaAddressFree (account->address);
     free(account);
 }
 
-extern void hederaAccountSetAccountID (BRHederaAccount account, BRHederaAccountID accountID)
+extern void hederaAccountSetAddress (BRHederaAccount account, BRHederaAddress address)
 {
     assert(account);
-    account->accountID = accountID;
+    account->address = hederaAddressClone (address);
 }
 
 extern BRKey hederaAccountGetPublicKey (BRHederaAccount account)
@@ -43,8 +44,26 @@ extern BRKey hederaAccountGetPublicKey (BRHederaAccount account)
     return account->publicKey;
 }
 
-extern BRHederaAccountID hederaAccountGetAccountID (BRHederaAccount account)
+extern BRHederaAddress hederaAccountGetAddress (BRHederaAccount account)
 {
     assert(account);
-    return account->accountID;
+    return hederaAddressClone (account->address);
+}
+
+extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account)
+{
+    assert(account);
+    return hederaAddressClone (account->address);
+}
+
+extern uint8_t *hederaAccountGetSerialization (BRHederaAccount account, size_t *bytesCount) {
+    assert (NULL != bytesCount);
+    assert (NULL != account);
+
+    *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
+    uint8_t *bytes = calloc (1, *bytesCount);
+    // TODO - since we cannot generate the account string from the public key
+    // who stores it?
+    BRKeyPubKey(&account->publicKey, bytes, *bytesCount);
+    return bytes;
 }
