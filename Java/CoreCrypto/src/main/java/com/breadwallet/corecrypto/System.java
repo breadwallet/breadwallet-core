@@ -239,7 +239,7 @@ final class System implements com.breadwallet.crypto.System {
         type = type.toLowerCase(Locale.ROOT);
         if (!"erc20".equals(type) && !"native".equals(type)) return Optional.absent();
 
-        code = code.toUpperCase(Locale.ROOT);
+        code = code.toLowerCase(Locale.ROOT);
         String blockchainId = uids.substring(0, index);
         String address = uids.substring(index);
 
