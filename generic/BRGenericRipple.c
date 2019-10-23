@@ -38,7 +38,6 @@ genericRippleAccountCreateWithSerialization (const char *type, uint8_t *bytes, s
 static void
 genericRippleAccountFree (BRGenericAccountRef account) {
     rippleAccountFree ((BRRippleAccount) account);
-    free (account);
 }
 
 static BRGenericAddressRef
