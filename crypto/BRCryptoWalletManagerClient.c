@@ -2073,6 +2073,7 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                OwnershipKept const char *to,
                                OwnershipKept const char *amount,
                                OwnershipKept const char *currency,
+                               OwnershipKept const char *fee,
                                uint64_t timestamp,
                                uint64_t blockHeight) {
     assert (cwm); assert (callbackState);
@@ -2081,7 +2082,9 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
 
     // TOTO - get the wallet for the supplied currency instead of the default wallet
     BRGenericWallet wallet = cryptoWalletAsGEN(cwm->wallet);
-    BRGenericTransfer transfer = genManagerRecoverTransfer (cwm->u.gen, wallet, hash, from, to, amount, currency,
+    BRGenericTransfer transfer = genManagerRecoverTransfer (cwm->u.gen, wallet, hash,
+                                                            from, to,
+                                                            amount, currency, fee,
                                                             timestamp, blockHeight);
 
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to

@@ -250,10 +250,11 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            const char *to,
                            const char *amount,
                            const char *currency,
+                           const char *fee,
                            uint64_t timestamp,
                            uint64_t blockHeight) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
-                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
+                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
 
     BRGenericAddress source = genTransferGetSourceAddress (transfer);
     BRGenericAddress target = genTransferGetTargetAddress (transfer);
