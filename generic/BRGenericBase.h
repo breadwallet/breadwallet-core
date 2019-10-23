@@ -11,6 +11,7 @@
 #ifndef BRGenericBase_h
 #define BRGenericBase_h
 
+#include <stdint.h>
 #include <math.h>   // fabs() - via static inline
 #include "ethereum/util/BRUtil.h"
 
@@ -107,6 +108,91 @@ extern "C" {
         GENERIC_TRANSFER_RECEIVED,
         GENERIC_TRANSFER_RECOVERED
     } BRGenericTransferDirection;
+
+    // MARK: - Generic Transfer State
+
+    typedef enum {
+        GENERIC_TRANSFER_SUBMIT_ERROR_ONE,
+        GENERIC_TRANSFER_SUBMIT_ERROR_TWO,
+    } BRGenericTransferSubmitError;
+
+    typedef enum {
+        GENERIC_TRANSFER_STATE_CREATED,
+        GENERIC_TRANSFER_STATE_SIGNED,
+        GENERIC_TRANSFER_STATE_SUBMITTED,
+        GENERIC_TRANSFER_STATE_INCLUDED,
+        GENERIC_TRANSFER_STATE_ERRORED,
+        GENERIC_TRANSFER_STATE_DELETED,
+    } BRGenericTransferStateType;
+
+    typedef struct {
+        BRGenericTransferStateType type;
+        union {
+            struct {
+                uint64_t blockNumber;
+                uint64_t transactionIndex;
+                uint64_t timestamp;
+                UInt256 fee;
+            } included;
+            BRGenericTransferSubmitError errored;
+        } u;
+    } BRGenericTransferState;
+
+#define GENERIC_TRANSFER_BLOCK_NUMBER_UNKNOWN       (UINT64_MAX)
+#define GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN  (UINT64_MAX)
+#define GENERIC_TRANSFER_TIMESTAMP_UNKNOWN          (UINT64_MAX)
+#define GENERIC_TRANSFER_FEE_UNKNOWN                (UINT256_ZERO)
+
+    static inline BRGenericTransferState
+    genTransferStateCreateIncluded (uint64_t blockNumber,
+                                    uint64_t transactionIndex,
+                                    uint64_t timestamp,
+                                    UInt256  fee) {
+        return (BRGenericTransferState) {
+            GENERIC_TRANSFER_STATE_INCLUDED,
+            { .included = { blockNumber, transactionIndex, timestamp, fee }}
+        };
+    }
+
+    static inline BRGenericTransferState
+    genTransferStateCreateErrored (BRGenericTransferSubmitError error) {
+        return (BRGenericTransferState) {
+            GENERIC_TRANSFER_STATE_ERRORED,
+            { .errored = error }
+        };
+    }
+
+    static inline BRGenericTransferState
+    genTransferStateCreateOther (BRGenericTransferStateType type) {
+        return (BRGenericTransferState) { type };
+    }
+
+    static inline int
+    genTransferStateEqual (BRGenericTransferState state1,
+                           BRGenericTransferState state2) {
+        return state1.type == state2.type &&
+        ((GENERIC_TRANSFER_STATE_INCLUDED != state1.type && GENERIC_TRANSFER_STATE_ERRORED != state1.type) ||
+         (GENERIC_TRANSFER_STATE_INCLUDED == state1.type                           &&
+          state1.u.included.blockNumber      == state2.u.included.blockNumber      &&
+          state1.u.included.transactionIndex == state2.u.included.transactionIndex &&
+          state1.u.included.timestamp        == state2.u.included.timestamp        &&
+          eqUInt256 (state1.u.included.fee, state2.u.included.fee)) ||
+         (GENERIC_TRANSFER_STATE_ERRORED == state1.type &&
+          state1.u.errored == state2.u.errored));
+    }
+
+    static inline int
+    genTransferStateHasType (BRGenericTransferState state,
+                             BRGenericTransferStateType type) {
+        return type == state.type;
+    }
+
+    static inline int
+    genTransferStateHasTypeOr (BRGenericTransferState state,
+                               BRGenericTransferStateType type1,
+                               BRGenericTransferStateType type2) {
+        return type1 == state.type || type2 == state.type;
+    }
 
 #ifdef __cplusplus
 }

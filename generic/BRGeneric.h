@@ -115,6 +115,13 @@ extern "C" {
     extern BRGenericHash
     genTransferGetHash (BRGenericTransfer transfer);
 
+    extern BRGenericTransferState
+    genTransferGetState (BRGenericTransfer transfer);
+
+    extern void
+    genTransferSetState (BRGenericTransfer transfer,
+                         BRGenericTransferState state);
+
     extern uint8_t *
     genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
@@ -225,7 +232,9 @@ extern "C" {
     extern BRArrayOf(BRGenericTransfer)
     genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                                   uint8_t *bytes,
-                                                  size_t   bytesCount);
+                                                  size_t   bytesCount,
+                                                  uint64_t timestamp,
+                                                  uint64_t blockHeight);
 
     extern int
     genManagerSignTransfer (BRGenericManager gwm,
