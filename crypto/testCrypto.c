@@ -306,6 +306,16 @@ _CWMNopGetTransactionsGenCallback (BRCryptoCWMClientContext context,
 }
 
 static void
+_CWMNopGetTransfersGenCallback (BRCryptoCWMClientContext context,
+                                OwnershipGiven BRCryptoWalletManager manager,
+                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                OwnershipKept const char *address,
+                                uint64_t begBlockNumber,
+                                uint64_t endBlockNumber) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
 _CWMNopSubmitTransactionGenCallback (BRCryptoCWMClientContext context,
                                             OwnershipGiven BRCryptoWalletManager manager,
                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
@@ -797,6 +807,7 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
     BRCryptoCWMClientGEN genClient = (BRCryptoCWMClientGEN) {
         _CWMNopGetBlockNumberGenCallback,
         _CWMNopGetTransactionsGenCallback,
+        _CWMNopGetTransfersGenCallback,
         _CWMNopSubmitTransactionGenCallback,
     };
 
