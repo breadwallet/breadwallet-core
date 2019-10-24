@@ -108,6 +108,10 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
 extern BRRippleAddress
 rippleAccountGetAddress(BRRippleAccount account);
 
+extern int
+rippleAccountHasAddress (BRRippleAccount account,
+                         BRRippleAddress address);
+
 // Serialize `account`; return `bytes` and set `bytesCount`
 extern uint8_t * /* caller must free - using "free" function */
 rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);

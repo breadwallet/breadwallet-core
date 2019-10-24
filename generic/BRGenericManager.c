@@ -252,26 +252,58 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            const char *currency,
                            uint64_t timestamp,
                            uint64_t blockHeight) {
-    return genTransferAllocAndInit (gwm->handlers->type,
-                                    gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
+    BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
+                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
+
+    BRGenericAddress source = genTransferGetSourceAddress (transfer);
+    BRGenericAddress target = genTransferGetTargetAddress (transfer);
+
+    int isSource = genWalletHasAddress (wallet, source);
+    int isTarget = genWalletHasAddress (wallet, target);
+
+    transfer->direction = (isSource && isTarget
+                           ? GENERIC_TRANSFER_RECOVERED
+                           : (isSource
+                              ? GENERIC_TRANSFER_SENT
+                              : GENERIC_TRANSFER_RECEIVED));
+
+    genTransferSetState (transfer,
+                         genTransferStateCreateIncluded (blockHeight,
+                                                         GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
+                                                         timestamp,
+                                                         GENERIC_TRANSFER_FEE_UNKNOWN));
+
+    genAddressRelease (source);
+    genAddressRelease (target);
+    return transfer;
 }
 
 extern BRArrayOf(BRGenericTransfer)
 genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                               uint8_t *bytes,
-                                              size_t   bytesCount) {
+                                              size_t   bytesCount,
+                                              uint64_t timestamp,
+                                              uint64_t blockHeight) {
+    pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
     for (size_t index = 0; index < array_count(refs); index++) {
         BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
+        genTransferSetState (obj,
+                             genTransferStateCreateIncluded (blockHeight,
+                                                             GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
+                                                             timestamp,
+                                                             GENERIC_TRANSFER_FEE_UNKNOWN));
         array_add (objs, obj);
     }
+    pthread_mutex_unlock (&gwm->lock);
     return objs;
 }
 
 extern BRArrayOf(BRGenericTransfer)
 genManagerLoadTransfers (BRGenericManager gwm) {
+    pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
@@ -279,6 +311,7 @@ genManagerLoadTransfers (BRGenericManager gwm) {
         BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
         array_add (objs, obj);
     }
+    pthread_mutex_unlock (&gwm->lock);
     return objs;
 
 }

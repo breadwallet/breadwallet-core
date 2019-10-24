@@ -191,6 +191,13 @@ genericRippleWalletGetBalance (BRGenericWalletRef wallet) {
     return createUInt256 (rippleWalletGetBalance ((BRRippleWallet) wallet));
 }
 
+static int
+genericRippleWalletHasAddress (BRGenericWalletRef wallet,
+                               BRGenericAddressRef address) {
+    return rippleWalletHasAddress ((BRRippleWallet) wallet,
+                                   (BRRippleAddress) address);
+}
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
@@ -363,7 +370,6 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleTransferGetAmount,
         genericRippleTransferGetFee,
         genericRippleTransferGetFeeBasis,
-        NULL,
         genericRippleTransferGetHash,
         genericRippleTransferGetSerialization,
     },
@@ -372,6 +378,7 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletCreate,
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
+        genericRippleWalletHasAddress,
         genericRippleWalletCreateTransfer,
         genericRippleWalletEstimateFeeBasis
     },

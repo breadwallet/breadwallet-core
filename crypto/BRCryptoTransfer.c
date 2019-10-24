@@ -529,7 +529,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
 
         case BLOCK_CHAIN_TYPE_GEN:
             switch (genTransferGetDirection (transfer->u.gen)) {
-                case GENERiC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
+                case GENERIC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
                 case GENERIC_TRANSFER_RECEIVED:  return CRYPTO_TRANSFER_RECEIVED;
                 case GENERIC_TRANSFER_RECOVERED: return CRYPTO_TRANSFER_RECOVERED;
             }
@@ -675,7 +675,9 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 private_extern BRCryptoBoolean
 cryptoTransferHasGEN (BRCryptoTransfer transfer,
                       BRGenericTransfer gen) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type && gen == transfer->u.gen);
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type &&
+                              genericHashEqual (genTransferGetHash(gen),
+                                                genTransferGetHash(transfer->u.gen)));
 }
 
 static int
@@ -690,7 +692,8 @@ cryptoTransferEqualAsETH (BRCryptoTransfer t1, BRCryptoTransfer t2) {
 
 static int
 cryptoTransferEqualAsGEN (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    return (t1->u.gen == t2->u.gen);
+    return genericHashEqual (genTransferGetHash(t1->u.gen),
+                             genTransferGetHash(t2->u.gen));
 }
 
 extern BRCryptoBoolean

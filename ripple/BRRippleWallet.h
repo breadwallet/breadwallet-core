@@ -63,6 +63,10 @@ rippleWalletGetSourceAddress (BRRippleWallet wallet);
 extern BRRippleAddress // caller owns object, must free with rippleAddressFree
 rippleWalletGetTargetAddress (BRRippleWallet wallet);
 
+extern int
+rippleWalletHasAddress (BRRippleWallet wallet,
+                        BRRippleAddress address);
+
 /**
  * Return the ripple balance for this wallet
  *

@@ -131,7 +131,17 @@ genAddressRelease (BRGenericAddress address) {
 
 // MARK: - Transfer
 
-IMPLEMENT_GENERIC_TYPE(Transfer, transfer)
+private_extern BRGenericTransfer
+genTransferAllocAndInit (const char *type,
+                         BRGenericTransferRef ref) {
+    BRGenericTransfer transfer = calloc (1, sizeof (struct BRGenericTransferRecord));
+    transfer->type = type;
+    transfer->handlers = genHandlerLookup (type)->transfer;
+    transfer->ref = ref;
+    transfer->state = genTransferStateCreateOther (GENERIC_TRANSFER_STATE_CREATED);
+    transfer->direction = GENERIC_TRANSFER_RECOVERED;
+    return transfer;
+}
 
 extern void
 genTransferRelease (BRGenericTransfer transfer) {
@@ -170,12 +180,23 @@ genTransferGetFeeBasis (BRGenericTransfer transfer) {
 
 extern BRGenericTransferDirection
 genTransferGetDirection (BRGenericTransfer transfer) {
-    return transfer->handlers.direction (transfer->ref);
+    return transfer->direction;
 }
 
 extern BRGenericHash
 genTransferGetHash (BRGenericTransfer transfer) {
     return transfer->handlers.hash (transfer->ref);
+}
+
+extern BRGenericTransferState
+genTransferGetState (BRGenericTransfer transfer) {
+    return transfer->state;
+}
+
+extern void
+genTransferSetState (BRGenericTransfer transfer,
+                     BRGenericTransferState state) {
+    transfer->state = state;
 }
 
 extern uint8_t *
@@ -220,6 +241,12 @@ genWalletGetAddress (BRGenericWallet wid) {
     return NULL;
 }
 
+extern int
+genWalletHasAddress (BRGenericWallet wallet,
+                     BRGenericAddress address) {
+    return wallet->handlers.hasAddress (wallet->ref, address->ref);
+}
+
 extern BRGenericFeeBasis
 genWalletGetDefaultFeeBasis (BRGenericWallet wid) {
     return wid->defaultFeeBasis;
@@ -236,11 +263,21 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount,
                          BRGenericFeeBasis estimatedFeeBasis) {
-    return genTransferAllocAndInit (wallet->type,
-                                    wallet->handlers.createTransfer (wallet->ref,
-                                                                     target->ref,
-                                                                     amount,
-                                                                     estimatedFeeBasis));
+    BRGenericTransfer transfer = genTransferAllocAndInit (wallet->type,
+                                                          wallet->handlers.createTransfer (wallet->ref,
+                                                                                           target->ref,
+                                                                                           amount,
+                                                                                           estimatedFeeBasis));
+    int isSource = 1;
+    int isTarget = genWalletHasAddress (wallet, target);
+
+    transfer->direction = (isSource && isTarget
+                           ? GENERIC_TRANSFER_RECOVERED
+                           : (isSource
+                              ? GENERIC_TRANSFER_SENT
+                              : GENERIC_TRANSFER_RECEIVED));
+
+    return transfer;
 }
 
 extern UInt256

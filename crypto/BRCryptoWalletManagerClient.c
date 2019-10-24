@@ -2008,16 +2008,22 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     cwm = cryptoWalletManagerTake (cwm);
 
     // Fundamentally, the `transfer` must allow for determining the `wallet`
-    BRArrayOf(BRGenericTransfer) transfers = genManagerRecoverTransfersFromRawTransaction (cwm->u.gen, transaction, transactionLength);
+    BRArrayOf(BRGenericTransfer) transfers = genManagerRecoverTransfersFromRawTransaction (cwm->u.gen,
+                                                                                           transaction, transactionLength,
+                                                                                           timestamp,
+                                                                                           blockHeight);
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
     // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
     // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
     //
     // genManagerAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
     if (transfers != NULL) {
+        pthread_mutex_lock (&cwm->lock);
         for (size_t index = 0; index < array_count (transfers); index++) {
             cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
         }
+        pthread_mutex_unlock (&cwm->lock);
+
         // The wallet manager takes ownership of the actual transfers - so just
         // delete the array of pointers
         array_free(transfers);
@@ -2120,6 +2126,36 @@ cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
     free (callbackState);
 }
 
+static void
+cwmAnnounceSubmitTransferResultGEN (OwnershipKept BRCryptoWalletManager cwm,
+                                    OwnershipKept BRCryptoCWMClientCallbackState callbackState,
+                                    int error) {
+    assert (cwm); assert(callbackState);
+    assert (CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type);
+    // Assume cwm taken already;
+
+    genManagerAnnounceSubmit (cwm->u.gen,
+                              callbackState->rid,
+                              callbackState->u.genWithTransaction.tid,
+                              error);
+
+    BRCryptoWallet   wallet   = cryptoWalletManagerFindWalletAsGEN (cwm, callbackState->u.genWithTransaction.wid);
+    BRCryptoTransfer transfer = (NULL == wallet ? NULL : cryptoWalletFindTransferAsGEN (wallet, callbackState->u.genWithTransaction.tid));
+
+    // TODO: Assert on these?
+    if (NULL != wallet && NULL != transfer) {
+        cryptoWalletManagerSetTransferStateGEN (cwm,
+                                                wallet,
+                                                transfer,
+                                                (error
+                                                 ? genTransferStateCreateErrored (GENERIC_TRANSFER_SUBMIT_ERROR_ONE)
+                                                 : genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SUBMITTED)));
+    }
+
+    if (NULL != wallet)   cryptoWalletGive(wallet);
+    if (NULL != transfer) cryptoTransferGive(transfer);
+}
+
 extern void
 cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
@@ -2136,10 +2172,7 @@ cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
     }
 
     else if (CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_GEN == cwm->type) {
-        genManagerAnnounceSubmit (cwm->u.gen,
-                                  callbackState->rid,
-                                  callbackState->u.genWithTransaction.tid,
-                                  0);
+        cwmAnnounceSubmitTransferResultGEN (cwm, callbackState, 0);
     }
 
     cryptoWalletManagerGive (cwm);
@@ -2193,11 +2226,7 @@ cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
                                    callbackState->rid);
 
     } else if (CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_GEN == cwm->type) {
-        genManagerAnnounceSubmit (cwm->u.gen,
-                                  callbackState->rid,
-                                  callbackState->u.genWithTransaction.tid,
-                                  EIO);
-
+        cwmAnnounceSubmitTransferResultGEN (cwm, callbackState, EIO);
     } else {
         assert (0);
     }

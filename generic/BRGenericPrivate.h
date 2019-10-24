@@ -46,7 +46,18 @@ DECLARE_GENERIC_TYPE(Account)
 
 DECLARE_GENERIC_TYPE(Address)
 
-DECLARE_GENERIC_TYPE(Transfer)
+struct BRGenericTransferRecord {
+    const char *type;
+    BRGenericTransferHandlers handlers;
+    BRGenericTransferRef ref;
+    BRGenericTransferState state;
+    BRGenericTransferDirection direction;
+};
+
+private_extern BRGenericTransfer
+genTransferAllocAndInit (const char *type,
+                         BRGenericTransferRef ref);
+
 
 struct BRGenericWalletRecord {
     const char *type;

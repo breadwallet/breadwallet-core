@@ -157,6 +157,12 @@ extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
     return rippleAddressClone (account->address);
 }
 
+extern int
+rippleAccountHasAddress (BRRippleAccount account,
+                         BRRippleAddress address) {
+    return rippleAddressEqual (account->address, address);
+}
+
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
     assert (NULL != bytesCount);
     assert (NULL != account);

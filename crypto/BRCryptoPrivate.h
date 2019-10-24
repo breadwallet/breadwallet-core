@@ -435,6 +435,12 @@ extern "C" {
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                           BRGenericTransfer transferGeneric);
 
+    private_extern void
+    cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
+                                            BRCryptoWallet wallet,
+                                            BRCryptoTransfer transfer,
+                                            BRGenericTransferState newGenericState);
+
     // TODO:  Used in crytoWallet estimate fee (actually no - don't hold `CWM` there....
     extern void
     cryptoWalletManagerSignalWalletEvent (BRCryptoWalletManager cwm,
