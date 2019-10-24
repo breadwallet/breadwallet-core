@@ -120,7 +120,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         currencyCodesToMode = [
             "btc" : .api_only,
             "eth" : .api_only,
-//            "bch" : .p2p_only,
+            "bch" : .p2p_only,
             ]
         if mainnet {
 
