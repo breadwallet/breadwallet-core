@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <time.h>
 #include "support/BRArray.h"
 #include "support/BRCrypto.h"
 #include "support/BRBIP32Sequence.h"
@@ -45,6 +47,12 @@ static void hex2bin(const char* src, uint8_t * target)
     }
 }
 
+static void bin2HexString (uint8_t *input, size_t inputSize, char * output) {
+    for (size_t i = 0; i < inputSize; i++) {
+        sprintf(&output[i*2], "%02x", input[i]);
+    }
+}
+
 static void printBytes(const char* message, uint8_t * bytes, size_t byteSize)
 {
     if (message) printf("%s\n", message);
@@ -55,72 +63,162 @@ static void printBytes(const char* message, uint8_t * bytes, size_t byteSize)
     printf("\n");
 }
 
+/*
 const char * paper_key_24 = "inmate flip alley wear offer often piece magnet surge toddler submit right radio absent pear floor belt raven price stove replace reduce plate home";
 const char * public_key_24 = "b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c93894673";
 const char * paper_key_12 = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+const char * paper_key_patient = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
 const char * public_key_12 = "ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f675585";
-// 0.0.114008 Hedera accountID
 const char * paper_key_target = "choose color rich dose toss winter dutch cannon over air cash market";
 const char * public_key_target = "372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d454404";
-// 0.0.114009 Hedera accountID
+*/
+
+struct account_info {
+    const char * name;
+    const char * account_string;
+    const char * paper_key;
+    const char * public_key;
+};
+
+struct account_info accounts[] = {
+    {"patient", "0.0.114008", "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone",
+        "ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f675585"
+    } ,
+    {"choose", "0.0.114009", "choose color rich dose toss winter dutch cannon over air cash market",
+        "372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d454404" },
+    {"node3", "0.0.3", "", ""},
+    {"node2", "0.0.2", "", ""},
+    {"inmate", "", "inmate flip alley wear offer often piece magnet surge toddler submit right radio absent pear floor belt raven price stove replace reduce plate home", "b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c93894673"}
+};
+size_t num_accounts = sizeof (accounts) / sizeof (struct account_info);
+
+struct account_info find_account (const char * accountName) {
+    for (size_t i = 0; i < num_accounts; i++) {
+        if (strcmp(accounts[i].name, accountName) == 0)
+            return accounts[i];
+    }
+    // If we get to here just return the first account
+    return accounts[0];
+}
+
+static int checkAddress (BRHederaAddress address, const char * accountName)
+{
+    struct account_info accountInfo = find_account (accountName);
+    BRHederaAddress accountAddress = hederaAddressCreateFromString(accountInfo.account_string);
+    int equal = hederaAddressEqual(address, accountAddress);
+    hederaAddressFree (accountAddress);
+    return equal;
+}
 
 static BRHederaAccount getDefaultAccount()
 {
+    // There is no account named "default_account" BUT the find function
+    // will give me back a valid account anyway.
+    struct account_info default_account = find_account("default_account");
     UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paper_key_12, NULL); // no passphrase
+    BRBIP39DeriveKey(seed.u8, default_account.paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
-    BRHederaAddress address = hederaAddressCreateFromString("0.0.114008");
+    BRHederaAddress address = hederaAddressCreateFromString(default_account.account_string);
     hederaAccountSetAddress(account, address);
     return account;
 }
 
-static void createNewTransaction() {
+static BRHederaTransaction createSignedTransaction (const char * source, const char * target, const char * node,
+                                  int64_t amount, int64_t seconds, int32_t nanos,
+                                  int64_t fee)
+{
+    struct account_info source_account = find_account (source);
+    struct account_info target_account = find_account (target);
+    struct account_info node_account = find_account (node);
+
     // Create a hedera account
     UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paper_key_24, NULL); // no passphrase
+    BRBIP39DeriveKey(seed.u8, source_account.paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
 
+    BRHederaAddress sourceAddress = hederaAddressCreateFromString (source_account.account_string);
+    BRHederaAddress targetAddress = hederaAddressCreateFromString (target_account.account_string);
+    BRHederaTransaction transaction = hederaTransactionCreateNew(sourceAddress, targetAddress, amount);
+
+    // Sign the transaction
+    BRHederaAddress nodeAddress = hederaAddressCreateFromString (node_account.account_string);
     BRKey publicKey = hederaAccountGetPublicKey(account);
-
-    BRHederaAddress source = hederaAddressCreateFromString ("0.0.55");
-    BRHederaAddress target = hederaAddressCreateFromString ("0.0.78");
-    BRHederaTransaction transaction = hederaTransactionCreateNew(source, target, 400);
-
-    BRHederaAddress nodeAddress = hederaAddressCreateFromString("0.0.2");
     BRHederaTimeStamp timeStamp;
-    timeStamp.seconds = 25;
-    timeStamp.nano = 4;
-    hederaTransactionSignTransaction(transaction, publicKey, nodeAddress, timeStamp, 100000, seed);
-    size_t serializedSize = 0;
-    uint8_t * serializedBytes = hederaTransactionSerialize(transaction, &serializedSize);
-    if (debug_log) printBytes("Serialized bytes: ", serializedBytes, serializedSize);
-    // The following output came from a hedera-sdk-java unit test with the same parameters
-    const char * expectedOutput = "1a660a640a20b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c938946731a401a27eaa0d2f04302ea1722cf111b5f91429c0cba10eca1f7417154779c37c2e487b07a36706a75cbafaf048326a8c199b7832d6668c88585934dcf639ff6bd0d222e0a0a0a0408191004120218371202180218a08d062202087872140a120a070a021837109f060a070a02184e10a006";
-    // Convert the expected output to bytes and compare
-    uint8_t expected_output_bytes[strlen(expectedOutput)];
-    hex2bin(expectedOutput, expected_output_bytes);
-    assert(memcmp(expected_output_bytes, serializedBytes, serializedSize) == 0);
+    timeStamp.seconds = seconds;
+    timeStamp.nano = nanos;
+    hederaTransactionSignTransaction (transaction, publicKey, nodeAddress, timeStamp, fee, seed);
 
-    hederaAddressFree (source);
-    hederaAddressFree (target);
+    // Cleaup
+    hederaAddressFree (sourceAddress);
+    hederaAddressFree (targetAddress);
     hederaAddressFree (nodeAddress);
-    hederaTransactionFree (transaction);
     hederaAccountFree (account);
+
+    return transaction;
 }
 
-static void createExistingTransaction()
+static void createNewTransaction (const char * source, const char * target, const char * node,
+                                   int64_t amount, int64_t seconds, int32_t nanos,
+                                   int64_t fee, const char * expectedOutput, bool printOutput)
 {
+    BRHederaTransaction transaction = createSignedTransaction(source, target, node, amount, seconds, nanos, fee);
+
+    // Get the signed bytes
+    size_t serializedSize = 0;
+    uint8_t * serializedBytes = hederaTransactionSerialize(transaction, &serializedSize);
+    char * transactionOutput = NULL;
+    if (printOutput || expectedOutput) {
+        transactionOutput = calloc (1, (serializedSize * 2) + 1);
+        bin2HexString (serializedBytes, serializedSize, transactionOutput);
+        if (expectedOutput) {
+            assert (strcmp (expectedOutput, transactionOutput) == 0);
+        }
+        if (printOutput) {
+            printf("Transaction output:\n%s\n", transactionOutput);
+        }
+        free (transactionOutput);
+    }
+
+    // Cleanup
+    hederaTransactionFree (transaction);
+}
+
+static void transaction_value_test(const char * source, const char * target, const char * node, int64_t amount,
+                                   int64_t seconds, int32_t nanos, int64_t fee)
+{
+    BRHederaTransaction transaction = createSignedTransaction(source, target, node, amount, seconds, nanos, fee);
+    // Check the fee and amount
+    BRHederaUnitTinyBar txFee = hederaTransactionGetFee (transaction);
+    assert (txFee == fee);
+    BRHederaUnitTinyBar txAmount = hederaTransactionGetAmount (transaction);
+    assert (txAmount == amount);
+
+    // Check the addresses
+    BRHederaAddress sourceAddress = hederaTransactionGetSource (transaction);
+    BRHederaAddress targetAddress = hederaTransactionGetTarget (transaction);
+    assert (1 == checkAddress(sourceAddress, source));
+    assert (1 == checkAddress(targetAddress, target));
+
+    hederaAddressFree (sourceAddress);
+    hederaAddressFree (targetAddress);
+    hederaTransactionFree (transaction);
+}
+
+static void createExistingTransaction(const char * sourceUserName, const char *targetUserName, int64_t amount)
+{
+    struct account_info sourceAccountInfo  = find_account (sourceUserName);
+    struct account_info targetAccountInfo = find_account (targetUserName);
     // Create a hedera account
     BRHederaAccount account = getDefaultAccount();
 
-    BRHederaAddress source = hederaAddressCreateFromString ("0.0.55");
-    BRHederaAddress target = hederaAddressCreateFromString ("0.0.78");
+    BRHederaAddress source = hederaAddressCreateFromString (sourceAccountInfo.account_string);
+    BRHederaAddress target = hederaAddressCreateFromString (targetAccountInfo.account_string);
 
     const char * txId = "0.0.14623-1568420904-460838529";
     BRHederaTransactionHash expectedHash;
     // Create a fake hash for this transaction
-    BRSHA256(expectedHash.bytes, paper_key_24, strlen(paper_key_24));
-    BRHederaTransaction transaction = hederaTransactionCreate(source, target, 400, txId, expectedHash);
+    BRSHA256(expectedHash.bytes, sourceAccountInfo.paper_key, strlen(sourceAccountInfo.paper_key));
+    BRHederaTransaction transaction = hederaTransactionCreate(source, target, amount, txId, expectedHash);
 
     // Check the values
     BRHederaTransactionHash hash = hederaTransactionGetHash(transaction);
@@ -133,8 +231,8 @@ static void createExistingTransaction()
     assert(hederaAddressEqual(target, address) == 1);
     hederaAddressFree(address);
 
-    BRHederaUnitTinyBar amount = hederaTransactionGetAmount(transaction);
-    assert(amount == 400);
+    BRHederaUnitTinyBar txAmount = hederaTransactionGetAmount(transaction);
+    assert(amount == txAmount);
 
     char * transactionId = hederaTransactionGetTransactionId(transaction);
     assert(strcmp(txId, transactionId) == 0);
@@ -146,23 +244,25 @@ static void createExistingTransaction()
     hederaAddressFree (target);
 }
 
-static void hederaAccountCheckPublicKey(const char * paper_key, const char * public_key_string)
+static void hederaAccountCheckPublicKey(const char * userName)
 {
+    struct account_info accountInfo = find_account (userName);
     UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+    BRBIP39DeriveKey(seed.u8, accountInfo.paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
     BRKey publicKey = hederaAccountGetPublicKey(account);
     // Validate the public key
     uint8_t expected_public_key[32];
-    hex2bin(public_key_string, expected_public_key);
+    hex2bin(accountInfo.public_key, expected_public_key);
     assert(memcmp(expected_public_key, publicKey.pubKey, 32) == 0);
 }
 
-static void accountStringTest(const char * paper_key) {
+static void accountStringTest(const char * userName) {
+    struct account_info accountInfo = find_account (userName);
     UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+    BRBIP39DeriveKey(seed.u8, accountInfo.paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed (seed);
-    BRHederaAddress inAddress = hederaAddressCreateFromString ("0.0.114008");
+    BRHederaAddress inAddress = hederaAddressCreateFromString (accountInfo.account_string);
     hederaAccountSetAddress (account, inAddress);
 
     // Now get the address from the account
@@ -170,7 +270,7 @@ static void accountStringTest(const char * paper_key) {
     assert(hederaAddressEqual(inAddress, outAddress) == 1);
 
     char * outAddressString = hederaAddressAsString (outAddress);
-    assert(strcmp(outAddressString, "0.0.114008") == 0);
+    assert(strcmp(outAddressString, accountInfo.account_string) == 0);
 
     // Cleanup
     hederaAddressFree (inAddress);
@@ -179,7 +279,7 @@ static void accountStringTest(const char * paper_key) {
     hederaAccountFree (account);
 }
 
-static void addressEqualTest()
+static void addressEqualTests()
 {
     BRHederaAddress a1 = hederaAddressCreateFromString("0.0.1000000");
     BRHederaAddress a2 = hederaAddressClone (a1);
@@ -197,6 +297,88 @@ static void addressEqualTest()
     hederaAddressFree (a4);
 }
 
+static void addressCloneTests()
+{
+    BRHederaAddress a1 = hederaAddressCreateFromString("0.0.1000000");
+    BRHederaAddress a2 = hederaAddressClone (a1);
+    BRHederaAddress a3 = hederaAddressClone (a1);
+    BRHederaAddress a4 = hederaAddressClone (a1);
+    BRHederaAddress a5 = hederaAddressClone (a2);
+    BRHederaAddress a6 = hederaAddressClone (a3);
+
+    assert(1 == hederaAddressEqual(a1, a2));
+    assert(1 == hederaAddressEqual(a1, a3));
+    assert(1 == hederaAddressEqual(a1, a4));
+    assert(1 == hederaAddressEqual(a1, a5));
+    assert(1 == hederaAddressEqual(a1, a6));
+    assert(1 == hederaAddressEqual(a2, a3));
+
+    // If we indeed have copies then we should not get a double free
+    // assert error here.
+    hederaAddressFree (a1);
+    hederaAddressFree (a2);
+    hederaAddressFree (a3);
+    hederaAddressFree (a4);
+    hederaAddressFree (a5);
+    hederaAddressFree (a6);
+}
+
+static void addressFeeTests()
+{
+    BRHederaAddress feeAddress = hederaAddressCreateFromString("__fee__");
+    assert (1 == hederaAddressIsFeeAddress(feeAddress));
+    char * feeAddressString = hederaAddressAsString (feeAddress);
+    assert(0 == strcmp(feeAddressString, "__fee__"));
+    free (feeAddressString);
+    hederaAddressFree(feeAddress);
+
+    BRHederaAddress address = hederaAddressCreateFromString("0.0.3");
+    assert (0 == hederaAddressIsFeeAddress(address));
+    hederaAddressFree(address);
+}
+
+static void addressValueTests() {
+    BRHederaAddress address = hederaAddressCreateFromString("0.0.0");
+    assert(0 == hederaAddressGetShard (address));
+    assert(0 == hederaAddressGetRealm (address));
+    assert(0 == hederaAddressGetAccount (address));
+    hederaAddressFree (address);
+
+    // Check a max int64 account number
+    address = hederaAddressCreateFromString("0.0.9223372036854775807");
+    assert(0 == hederaAddressGetShard (address));
+    assert(0 == hederaAddressGetRealm (address));
+    assert(9223372036854775807 == hederaAddressGetAccount (address));
+    hederaAddressFree (address);
+
+    // Check when all numbers are max int64
+    address = hederaAddressCreateFromString("9223372036854775807.9223372036854775807.9223372036854775807");
+    assert(9223372036854775807 == hederaAddressGetShard (address));
+    assert(9223372036854775807 == hederaAddressGetRealm (address));
+    assert(9223372036854775807 == hederaAddressGetAccount (address));
+    hederaAddressFree (address);
+
+    // Check when the number (string) is too long
+    address = hederaAddressCreateFromString("0.0.9223372036854775807999");
+    assert(address == NULL);
+
+    // Check when the number is the the correct length but is greater than max int64
+    address = hederaAddressCreateFromString("0.0.9993372036854775807");
+    assert(address == NULL);
+
+    // Check when the string is invalid
+    address = hederaAddressCreateFromString("0.0");
+    assert(address == NULL);
+
+    // Check an empty string
+    address = hederaAddressCreateFromString("");
+    assert(address == NULL);
+
+    // Check an null - cannot check this since due to assert in function
+    // address = hederaAddressCreateFromString(NULL);
+    // assert(address == NULL);
+}
+
 static void createAndDeleteWallet()
 {
     BRHederaAccount account = getDefaultAccount();
@@ -204,7 +386,8 @@ static void createAndDeleteWallet()
     BRHederaWallet wallet = hederaWalletCreate(account);
 
     // Source and target addresses should be the same for Hedera
-    BRHederaAddress expectedAddress = hederaAddressCreateFromString("0.0.114008");
+    struct account_info defaultAccountInfo = find_account("default_account");
+    BRHederaAddress expectedAddress = hederaAddressCreateFromString(defaultAccountInfo.account_string);
 
     BRHederaAddress sourceAddress = hederaWalletGetSourceAddress(wallet);
     assert(hederaAddressEqual(sourceAddress, expectedAddress) == 1);
@@ -232,19 +415,40 @@ static void walletBalanceTests()
     hederaWalletFree (wallet);
 }
 
-static void transaction_tests() {
-    createNewTransaction();
-    createExistingTransaction();
+static void create_real_transactions() {
+    // use the function to create sendable transactions to the hedera network
+    time_t now;
+    now = time(&now);
+    printf ("now: %ld\n", now);
+    // Send 10,000,000 tiny bars from patient to chose via node3
+    createNewTransaction ("patient", "choose", "node3", 10000000, now, 0, 500000, NULL, true);
+
+    createNewTransaction ("choose", "patient", "node3", 50000000, now, 0, 500000, NULL, true);
+}
+
+static void create_new_transactions() {
+    const char * testOneOutput = "1a660a640a20ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f6755851a40e9086013e266e779a08a6b5f56efef98a1d9a9a5d3dce2f40dba01b35ea429247872c98e2fe0f6150ba3d82e7b9848a2c95d118d9f8bc66ae285be42d1e94407223b0a0e0a060889f0c6ed05120418d8fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d8fa0610ffd9c4090a0b0a0418d9fa061080dac409";
+    // Send 10,000,000 tiny bars to "choose" from "patient" via node3.
+    createNewTransaction ("patient", "choose", "node3", 10000000, 1571928073, 0, 500000, testOneOutput, false);
+
+    const char * testTwoOutput = "1a660a640a20372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d4544041a40be090d58fb3926c5e3e3f8bd19badca4189a42d7ce336bf4e736738bf3932c8b9a12e79bcab3e94beeca17e2acd027c6baedc8b74d70b63669319927bb39f700223b0a0e0a0608d1f1c6ed05120418d9fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d9fa0610ffc1d72f0a0b0a0418d8fa061080c2d72f";
+    // Send 50,000,000 tiny bars to "patient" from "choose" via node3
+    createNewTransaction ("choose", "patient", "node3", 50000000, 1571928273, 0, 500000, testTwoOutput, false);
+}
+
+static void address_tests() {
+    addressEqualTests();
+    addressValueTests();
+    addressFeeTests();
+    addressCloneTests();
 }
 
 static void account_tests() {
-    hederaAccountCheckPublicKey(paper_key_24, public_key_24);
-    hederaAccountCheckPublicKey(paper_key_12, public_key_12);
-    hederaAccountCheckPublicKey(paper_key_target, public_key_target);
+    hederaAccountCheckPublicKey("inmate");
+    hederaAccountCheckPublicKey("patient");
+    hederaAccountCheckPublicKey("choose");
 
-    accountStringTest(paper_key_12);
-
-    addressEqualTest();
+    accountStringTest("patient");
 }
 
 static void wallet_tests()
@@ -253,10 +457,18 @@ static void wallet_tests()
     walletBalanceTests();
 }
 
+static void transaction_tests() {
+    createExistingTransaction("patient", "choose", 400);
+    create_new_transactions();
+    transaction_value_test("patient", "choose", "node3", 10000000, 25, 4, 500000);
+    //create_real_transactions();
+}
+
 extern void
 runHederaTest (void /* ... */) {
     printf("Running hedera unit tests...\n");
+    address_tests();
     account_tests();
-    transaction_tests();
     wallet_tests();
+    transaction_tests();
 }

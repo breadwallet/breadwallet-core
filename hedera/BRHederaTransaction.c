@@ -84,6 +84,8 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
         transaction->serializedSize = 0;
     }
 
+    transaction->fee = fee;
+
     // Generate the private key from the seed
     BRKey key = hederaKeyCreate (seed);
     unsigned char privateKey[64] = {0};
