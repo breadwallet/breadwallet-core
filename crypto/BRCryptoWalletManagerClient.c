@@ -2151,6 +2151,9 @@ cwmAnnounceSubmitTransferResultGEN (OwnershipKept BRCryptoWalletManager cwm,
                                                  ? genTransferStateCreateErrored (GENERIC_TRANSFER_SUBMIT_ERROR_ONE)
                                                  : genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SUBMITTED)));
     }
+
+    if (NULL != wallet)   cryptoWalletGive(wallet);
+    if (NULL != transfer) cryptoTransferGive(transfer);
 }
 
 extern void
