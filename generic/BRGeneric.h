@@ -25,13 +25,17 @@ extern "C" {
     // MARK: - Network
 
     extern BRGenericNetwork
-    genNetworkCreate (const char * type);
+    genNetworkCreate (const char * type,
+                      int isMainnet);
 
     extern void
     genNetworkRelease (BRGenericNetwork network);
 
     extern const char *
     genNetworkGetType (BRGenericNetwork network);
+
+    extern int
+    genNetworkIsMainnet (BRGenericNetwork network);
 
     // MARK: - Account
 

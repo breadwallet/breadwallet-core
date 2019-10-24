@@ -296,13 +296,11 @@ extern "C" {
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsBTC (const char *uids,
                               const char *name,
-                              uint8_t forkId,
                               const BRChainParams *params);
 
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsETH (const char *uids,
                               const char *name,
-                              uint32_t chainId,
                               BREthereumNetwork net);
 
     private_extern BRCryptoNetwork

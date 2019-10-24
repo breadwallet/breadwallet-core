@@ -16,12 +16,24 @@
 
 // MARK: - Network
 
-IMPLEMENT_GENERIC_TYPE(Network,network)
+// IMPLEMENT_GENERIC_TYPE(Network,network)
+
+private_extern BRGenericNetwork
+genNetworkAllocAndInit (const char *type,
+                        BRGenericNetworkRef ref,
+                        int isMainnet) {
+    BRGenericNetwork network = calloc (1, sizeof (struct BRGenericNetworkRecord));
+    network->type = type;
+    network->handlers = genHandlerLookup(type)->network;
+    network->ref = ref;
+    network->isMainnet = isMainnet;
+    return network;
+}
 
 extern BRGenericNetwork
-genNetworkCreate (const char *type) {
+genNetworkCreate (const char *type, int isMainnet) {
     // There is no 'gen handler' for network create
-    return genNetworkAllocAndInit (type, NULL);
+    return genNetworkAllocAndInit (type, NULL, isMainnet);
 }
 
 extern void
@@ -32,6 +44,11 @@ genNetworkRelease (BRGenericNetwork network) {
 extern const char *
 genNetworkGetType (BRGenericNetwork network) {
     return network->type;
+}
+
+extern int
+genNetworkIsMainnet (BRGenericNetwork network) {
+    return network->isMainnet;
 }
 
 // MARK: - Account
