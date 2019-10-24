@@ -284,6 +284,7 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                               size_t   bytesCount,
                                               uint64_t timestamp,
                                               uint64_t blockHeight) {
+    pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
@@ -296,11 +297,13 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                                              GENERIC_TRANSFER_FEE_UNKNOWN));
         array_add (objs, obj);
     }
+    pthread_mutex_unlock (&gwm->lock);
     return objs;
 }
 
 extern BRArrayOf(BRGenericTransfer)
 genManagerLoadTransfers (BRGenericManager gwm) {
+    pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
     BRArrayOf(BRGenericTransfer) objs;
     array_new (objs, array_count(refs));
@@ -308,6 +311,7 @@ genManagerLoadTransfers (BRGenericManager gwm) {
         BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
         array_add (objs, obj);
     }
+    pthread_mutex_unlock (&gwm->lock);
     return objs;
 
 }

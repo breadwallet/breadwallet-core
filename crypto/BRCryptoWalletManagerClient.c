@@ -2018,9 +2018,12 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     //
     // genManagerAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
     if (transfers != NULL) {
+        pthread_mutex_lock (&cwm->lock);
         for (size_t index = 0; index < array_count (transfers); index++) {
             cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
         }
+        pthread_mutex_unlock (&cwm->lock);
+
         // The wallet manager takes ownership of the actual transfers - so just
         // delete the array of pointers
         array_free(transfers);

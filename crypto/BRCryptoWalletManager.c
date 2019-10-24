@@ -210,6 +210,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         case BLOCK_CHAIN_TYPE_GEN: {
 #define GEN_DISPATCHER_PERIOD       (10)        // related to block proccessing
 
+            pthread_mutex_lock (&cwm->lock);
             BRGenericClient client = cryptoWalletManagerClientCreateGENClient (cwm);
 
             // Create CWM as 'GEN' based on the network's base currency.
@@ -223,13 +224,18 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                            cwmPath,
                                            GEN_DISPATCHER_PERIOD,
                                            cryptoNetworkGetHeight(network));
-            if (NULL == cwm->u.gen) { error = 1; break; }
+            if (NULL == cwm->u.gen) {
+                pthread_mutex_unlock (&cwm->lock);
+                error = 1;
+                break; }
 
             // ... and create the primary wallet
             cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerCreatePrimaryWallet (cwm->u.gen));
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
+
+            pthread_mutex_unlock (&cwm->lock);
 
             // Announce the new wallet manager;
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
@@ -253,6 +259,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
+            pthread_mutex_lock (&cwm->lock);
 
             // Load transfers from persistent storage
             BRArrayOf(BRGenericTransfer) transfers = genManagerLoadTransfers (cwm->u.gen);
@@ -262,6 +269,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
             // Having added the transfers, get the wallet balance...
             BRCryptoAmount balance = cryptoWalletGetBalance (cwm->wallet);
+            pthread_mutex_unlock (&cwm->lock);
 
             // ... and announce the balance
             cwm->listener.walletEventCallback (cwm->listener.context,
@@ -366,6 +374,8 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
             ewmUpdateMode (cwm->u.eth, mode);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            assert (SYNC_MODE_BRD_ONLY == mode);
+            break;
         default:
             assert (0);
             break;
@@ -374,20 +384,18 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
 
 extern BRSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
-    BRSyncMode mode = SYNC_MODE_BRD_ONLY;
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            mode = BRWalletManagerGetMode (cwm->u.btc);
-            break;
+           return BRWalletManagerGetMode (cwm->u.btc);
         case BLOCK_CHAIN_TYPE_ETH:
-            mode = ewmGetMode (cwm->u.eth);
-            break;
+            return ewmGetMode (cwm->u.eth);
         case BLOCK_CHAIN_TYPE_GEN:
+            return SYNC_MODE_BRD_ONLY;
         default:
             assert (0);
-            break;
+            return SYNC_MODE_BRD_ONLY;
+
     }
-    return mode;
 }
 
 extern BRCryptoWalletManagerState
@@ -716,6 +724,8 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
                                         BRCryptoWallet wallet,
                                         BRCryptoTransfer transfer,
                                         BRGenericTransferState newGenericState) {
+    pthread_mutex_lock (&cwm->lock);
+
     BRGenericTransfer      genericTransfer = cryptoTransferAsGEN (transfer);
     BRGenericTransferState oldGenericState = genTransferGetState (genericTransfer);
 
@@ -724,6 +734,7 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
         BRCryptoTransferState newState = cryptoTransferStateCreateGEN (newGenericState,
                                                                        cryptoTransferGetUnitForFee(transfer));
 
+        pthread_mutex_unlock (&cwm->lock);
         cwm->listener.transferEventCallback (cwm->listener.context,
                                              cryptoWalletManagerTake (cwm),
                                              cryptoWalletTake (wallet),
@@ -734,6 +745,7 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
                 cryptoTransferStateCopy (&oldState),
                 cryptoTransferStateCopy (&newState) }}
         });
+        pthread_mutex_lock (&cwm->lock);
 
         genTransferSetState (genericTransfer, newGenericState);
         cryptoTransferSetState (transfer, newState);
@@ -741,6 +753,7 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
         cryptoTransferStateRelease (&oldState);
         cryptoTransferStateRelease (&newState);
     }
+    pthread_mutex_unlock (&cwm->lock);
 }
 
 extern BRCryptoBoolean
@@ -994,7 +1007,8 @@ cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                       BRGenericTransfer transferGeneric) {
-
+    // TODO: I don't think any locks are needed here...
+    
     // TODO: Determine the currency from `transferGeneric`
     BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
 
