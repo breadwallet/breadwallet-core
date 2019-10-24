@@ -997,7 +997,7 @@ cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
             
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               wallet,
+                                               cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                 CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                 { .feeBasisEstimated = {
