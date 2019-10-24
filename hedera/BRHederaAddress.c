@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <memory.h>
+#include <stdbool.h>
 
 struct BRHederaAddressRecord {
     int64_t shard;
@@ -31,7 +32,9 @@ extern void hederaAddressFree (BRHederaAddress address)
 BRHederaAddress hederaAddressCreateFeeAddress()
 {
     BRHederaAddress address = calloc(1, sizeof(struct BRHederaAddressRecord));
-    address->account = 0; // Account 0.0.0 will be the __fee__ address
+    address->shard  = -1;
+    address->realm  = -1;
+    address->account = -1;
     return address;
 }
 
@@ -42,7 +45,7 @@ extern char * hederaAddressAsString (BRHederaAddress address)
 
     // Check for our special case __fee__ address
     // See the note above with respect to the feeAddressBytes
-    if (address->account == 0) {
+    if (address->account == -1) {
         string = calloc(1, 8);
         strcpy(string, "__fee__");
     } else {
@@ -57,8 +60,33 @@ extern char * hederaAddressAsString (BRHederaAddress address)
     return string;
 }
 
+static bool hederaStringIsValid (const char * input)
+{
+    const char * largestInt64Number = "9223372036854775807";
+    bool valid = false;
+    char * testInput = strdup(input);
+    char * shard = strtok(testInput, ".");
+    if (shard && strlen(shard) <= 19 && strcmp(shard, largestInt64Number) <= 0) {
+        char * realm = strtok(NULL, ".");
+        if (realm && strlen(realm) <= 19 && strcmp(realm, largestInt64Number) <= 0) {
+            char * account = strtok(NULL, ".");
+            if (account && strlen(account) <= 19 && strcmp(account, largestInt64Number) <= 0) {
+                // Now we have all 3 values
+                valid = true;
+            }
+        }
+    }
+
+    free (testInput);
+    return valid;
+}
+
 BRHederaAddress hederaAddressStringToAddress(const char* input)
 {
+    if (!hederaStringIsValid(input)) {
+        return NULL;
+    }
+
     // Hedera address are shard.realm.account
     BRHederaAddress address = (BRHederaAddress) calloc(1, sizeof(struct BRHederaAddressRecord));
     sscanf(input, "%lld.%lld.%lld",
@@ -69,6 +97,12 @@ BRHederaAddress hederaAddressStringToAddress(const char* input)
 extern BRHederaAddress
 hederaAddressCreateFromString(const char * hederaAddressString)
 {
+    assert(hederaAddressString);
+
+    if (!hederaAddressString) {
+        return NULL;
+    }
+
     // 1 special case so far - the __fee__ address.
     // See the note in BRHederaAcount.h with respect to the feeAddressBytes
     if (strcmp(hederaAddressString, "__fee__") == 0) {
@@ -91,7 +125,7 @@ extern int
 hederaAddressIsFeeAddress (BRHederaAddress address)
 {
     assert(address);
-    if (address->account == 0) {
+    if (address->shard == -1 && address->realm == -1 && address->account == -1) {
         return 1;
     } else {
         return 0;

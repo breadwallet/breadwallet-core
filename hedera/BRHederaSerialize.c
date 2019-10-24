@@ -76,19 +76,28 @@ uint8_t * hederaTransactionBodyPack (BRHederaAddress source,
     body->nodeaccountid = createAccountID(nodeAddress);
     body->transactionfee = fee;
     // Set the duration
-    body->transactionvalidduration = createTransactionDuration(120);
-    // For this case we will add 3 transfers
+    // *** NOTE 1 *** if the transaction is unable to be verified in this
+    // duration then it will fail. The default value in the Hedera Java SDK
+    // is 120. I have set ours to 180 since it requires a couple of extra hops
+    // *** NOTE 2 *** if you change this value then it will break the unit tests
+    // since it will change the serialized bytes.
+    body->transactionvalidduration = createTransactionDuration(180);
+
+    // We are creating a "Cryto Transfer" transaction which has a transfer list
     body->data_case =  PROTO__TRANSACTION_BODY__DATA_CRYPTO_TRANSFER;
     body->cryptotransfer = calloc(1, sizeof(Proto__CryptoTransferTransactionBody));
     proto__crypto_transfer_transaction_body__init(body->cryptotransfer);
     body->cryptotransfer->transfers = calloc(1, sizeof(Proto__TransferList));
     proto__transfer_list__init(body->cryptotransfer->transfers);
-    // Create 3 transfers
+
+    // We are only supporting sending from A to B at this point - so create 2 transfers
     body->cryptotransfer->transfers->n_accountamounts = 2;
     body->cryptotransfer->transfers->accountamounts = calloc(2, sizeof(Proto__AccountAmount*));
+    // NOTE - the amounts in the transfer MUST add up to 0
     body->cryptotransfer->transfers->accountamounts[0] = createAccountAmount(source, -(amount));
     body->cryptotransfer->transfers->accountamounts[1] = createAccountAmount(target, amount);
 
+    // Serialize the transaction body
     *size = proto__transaction_body__get_packed_size(body);
     uint8_t * buffer = calloc(1, *size);
     proto__transaction_body__pack(body, buffer);

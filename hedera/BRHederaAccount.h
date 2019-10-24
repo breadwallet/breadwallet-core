@@ -85,17 +85,6 @@ extern BRHederaAddress hederaAccountGetAddress (BRHederaAccount account);
  */
 extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account);
 
-/**
- * Check if 2 Hedera addresses are equal
- *
- * @param address   - first address
- * @param address   - second address
- *
- * @return 1 if equal, 0 if not equal
- */
-extern int // 1 if equal
-hederaAddressEqual (BRHederaAddress a1, BRHederaAddress a2);
-
 extern uint8_t * // Caller owns memory and must delete calling "free"
 hederaAccountGetSerialization (BRHederaAccount account, size_t *bytesCount);
 
