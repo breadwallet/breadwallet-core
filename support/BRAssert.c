@@ -34,15 +34,13 @@
 
 #define PTHREAD_NULL            ((pthread_t) NULL)
 
-#if defined(TARGET_OS_MAC)
-#include <Foundation/Foundation.h>
-#define assert_log(...) NSLog(__VA_ARGS__)
-#elif defined(__ANDROID__)
+#include <stdio.h>
+#if defined(__ANDROID__)
 #include <android/log.h>
 #define assert_log(...) __android_log_print(ANDROID_LOG_INFO, "bread", __VA_ARGS__)
 #else
-#include <stdio.h>
-#define assert_log(...) printf(__VA_ARGS__)
+#include <os/log.h>
+#define assert_log(...) os_log(OS_LOG_DEFAULT, __VA_ARGS__)
 #endif
 
 #define ASSERT_THREAD_NAME      "Core Assert Handler"
