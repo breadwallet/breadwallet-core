@@ -24,14 +24,14 @@ public class BRCryptoCWMListener extends Structure {
     public interface BRCryptoCWMListenerWalletManagerEvent extends Callback {
         void callback(Pointer context,
                       Pointer manager,
-                      BRCryptoWalletManagerEvent.ByValue event);
+                      Pointer event);
     }
 
     public interface BRCryptoCWMListenerWalletEvent extends Callback {
         void callback(Pointer context,
                       Pointer manager,
                       Pointer wallet,
-                      BRCryptoWalletEvent.ByValue event);
+                      Pointer event);
     }
 
     public interface BRCryptoCWMListenerTransferEvent extends Callback {
@@ -39,7 +39,7 @@ public class BRCryptoCWMListener extends Structure {
                       Pointer manager,
                       Pointer wallet,
                       Pointer transfer,
-                      BRCryptoTransferEvent.ByValue event);
+                      Pointer event);
     }
 
     //
@@ -49,15 +49,15 @@ public class BRCryptoCWMListener extends Structure {
     public interface WalletManagerEventCallback extends BRCryptoCWMListenerWalletManagerEvent {
         void handle(Cookie context,
                     BRCryptoWalletManager manager,
-                    BRCryptoWalletManagerEvent.ByValue event);
+                    BRCryptoWalletManagerEvent event);
 
         @Override
         default void callback(Pointer context,
                               Pointer manager,
-                              BRCryptoWalletManagerEvent.ByValue event) {
+                              Pointer event) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
-                   event);
+                   BRCryptoWalletManagerEvent.create(event));
         }
     }
 
@@ -65,17 +65,17 @@ public class BRCryptoCWMListener extends Structure {
         void handle(Cookie context,
                     BRCryptoWalletManager manager,
                     BRCryptoWallet wallet,
-                    BRCryptoWalletEvent.ByValue event);
+                    BRCryptoWalletEvent event);
 
         @Override
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer wallet,
-                              BRCryptoWalletEvent.ByValue event) {
+                              Pointer event) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoWallet(wallet),
-                   event);
+                   BRCryptoWalletEvent.create(event));
         }
     }
 
@@ -84,19 +84,19 @@ public class BRCryptoCWMListener extends Structure {
                     BRCryptoWalletManager manager,
                     BRCryptoWallet wallet,
                     BRCryptoTransfer transfer,
-                    BRCryptoTransferEvent.ByValue event);
+                    BRCryptoTransferEvent event);
 
         @Override
         default void callback(Pointer context,
                               Pointer manager,
                               Pointer wallet,
                               Pointer transfer,
-                              BRCryptoTransferEvent.ByValue event) {
+                              Pointer event) {
             handle(new Cookie(context),
                    new BRCryptoWalletManager(manager),
                    new BRCryptoWallet(wallet),
                    new BRCryptoTransfer(transfer),
-                   event);
+                   BRCryptoTransferEvent.create(event));
         }
     }
 

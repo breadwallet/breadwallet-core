@@ -73,7 +73,7 @@ public class BRCryptoTransfer extends PointerType {
     public BRCryptoTransferState getState() {
         Pointer thisPtr = this.getPointer();
 
-        return CryptoLibraryDirect.cryptoTransferGetState(thisPtr);
+        return BRCryptoTransferState.create(CryptoLibraryDirect.cryptoTransferGetState(thisPtr));
     }
 
     public Optional<BRCryptoFeeBasis> getEstimatedFeeBasis() {

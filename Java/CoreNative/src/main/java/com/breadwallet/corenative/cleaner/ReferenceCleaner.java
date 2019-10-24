@@ -34,6 +34,7 @@ public final class ReferenceCleaner {
         this.queue = new ReferenceQueue<>();
         this.thread = new Thread(new ReferenceCleanerRunnable(queue));
         this.thread.setDaemon(true);
+        this.thread.setPriority(Thread.MIN_PRIORITY);
         this.thread.setName(getClass().getName());
         this.thread.start();
     }

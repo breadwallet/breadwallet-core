@@ -173,7 +173,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoTransferGetAmount(Pointer transfer);
     public static native Pointer cryptoTransferGetAmountDirected(Pointer transfer);
     public static native int cryptoTransferGetDirection(Pointer transfer);
-    public static native BRCryptoTransferState.ByValue cryptoTransferGetState(Pointer transfer);
+    public static native BRCryptoTransferState.Struct.ByValue cryptoTransferGetState(Pointer transfer);
     public static native Pointer cryptoTransferGetHash(Pointer transfer);
     public static native Pointer cryptoTransferGetUnitForAmount (Pointer transfer);
     public static native Pointer cryptoTransferGetUnitForFee (Pointer transfer);
@@ -223,7 +223,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletManagerGetAccount(Pointer cwm);
     public static native int cryptoWalletManagerGetMode(Pointer cwm);
     public static native void cryptoWalletManagerSetMode(Pointer cwm, int mode);
-    public static native BRCryptoWalletManagerState.ByValue cryptoWalletManagerGetState(Pointer cwm);
+    public static native BRCryptoWalletManagerState.Struct.ByValue cryptoWalletManagerGetState(Pointer cwm);
     public static native int cryptoWalletManagerGetAddressScheme (Pointer cwm);
     public static native void cryptoWalletManagerSetAddressScheme (Pointer cwm, int scheme);
     public static native Pointer cryptoWalletManagerGetPath(Pointer cwm);
@@ -337,9 +337,9 @@ public final class CryptoLibraryDirect {
     //
 
     // support/BRSyncMode.h
-    public static native Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
-    public static native Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
-    public static native Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
+    public static native Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason.Struct reason);
+    public static native Pointer BRDisconnectReasonGetMessage(BRDisconnectReason.Struct reason);
+    public static native Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError.Struct  error);
 
     //
     // Ethereum

@@ -110,20 +110,20 @@ extern "C" {
     /// Handler must 'give': manager, event.wallet.value
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager,
-                                                           BRCryptoWalletManagerEvent event);
+                                                           BRCryptoWalletManagerEvent *event);
 
     /// Handler must 'give': manager, wallet, event.*
     typedef void (*BRCryptoCWMListenerWalletEvent) (BRCryptoCWMListenerContext context,
                                                     BRCryptoWalletManager manager,
                                                     BRCryptoWallet wallet,
-                                                    BRCryptoWalletEvent event);
+                                                    BRCryptoWalletEvent *event);
 
     /// Handler must 'give': manager, wallet, transfer
     typedef void (*BRCryptoCWMListenerTransferEvent) (BRCryptoCWMListenerContext context,
                                                       BRCryptoWalletManager manager,
                                                       BRCryptoWallet wallet,
                                                       BRCryptoTransfer transfer,
-                                                      BRCryptoTransferEvent event);
+                                                      BRCryptoTransferEvent *event);
 
     typedef struct {
         BRCryptoCWMListenerContext context;

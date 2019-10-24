@@ -145,7 +145,7 @@ public class BRCryptoWalletManager extends PointerType {
     public BRCryptoWalletManagerState getState() {
         Pointer thisPtr = this.getPointer();
 
-        return CryptoLibraryDirect.cryptoWalletManagerGetState(thisPtr);
+        return BRCryptoWalletManagerState.create(CryptoLibraryDirect.cryptoWalletManagerGetState(thisPtr));
     }
 
     public BRCryptoAddressScheme getAddressScheme() {

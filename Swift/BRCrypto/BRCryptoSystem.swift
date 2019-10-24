@@ -1135,8 +1135,10 @@ extension System {
             context: systemContext,
 
             walletManagerEventCallback: { (context, cwm, event) in
-                precondition (nil != context  && nil != cwm)
+                precondition (nil != context  && nil != cwm && nil != event)
                 defer { cryptoWalletManagerGive(cwm) }
+
+                let event = event!.pointee
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: Event: \(event.type): Missed {cwm}"); return }
@@ -1211,8 +1213,10 @@ extension System {
         },
 
             walletEventCallback: { (context, cwm, wid, event) in
-                precondition (nil != context  && nil != cwm && nil != wid)
+                precondition (nil != context  && nil != cwm && nil != wid && nil != event)
                 defer { cryptoWalletManagerGive(cwm); cryptoWalletGive(wid) }
+
+                let event = event!.pointee
 
                 guard let (system, manager, wallet) = System.systemExtract (context, cwm, wid)
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid}"); return }
@@ -1290,8 +1294,10 @@ extension System {
         },
 
             transferEventCallback: { (context, cwm, wid, tid, event) in
-                precondition (nil != context  && nil != cwm && nil != wid && nil != tid)
+                precondition (nil != context  && nil != cwm && nil != wid && nil != tid && nil != event)
                 defer { cryptoWalletManagerGive(cwm); cryptoWalletGive(wid); cryptoTransferGive(tid) }
+
+                let event = event!.pointee
 
                 guard let (system, manager, wallet, transfer) = System.systemExtract (context, cwm, wid, tid)
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid, tid}"); return }

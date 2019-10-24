@@ -17,108 +17,173 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRTransferSubmitError extends Structure {
+import static com.google.common.base.Preconditions.checkState;
 
-    public int typeEnum;
-    public u_union u;
+public class BRTransferSubmitError {
 
-    public static class u_union extends Union {
+    public static BRTransferSubmitError create(Struct struct) {
+        BRTransferSubmitError event = null;
 
-        public posix_struct posix;
+        BRTransferSubmitErrorType type = struct.type();
 
-        public static class posix_struct extends Structure {
-
-            public int errnum = 0;
-
-            public posix_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("errnum");
-            }
-
-            public posix_struct(int errnum) {
-                super();
-                this.errnum = errnum;
-            }
-
-            public posix_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends posix_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends posix_struct implements Structure.ByValue {
-
-            }
+        switch (type) {
+            case TRANSFER_SUBMIT_ERROR_POSIX:
+                event = new BRTransferSubmitError(type, struct.u.posix.errnum);
+                break;
+            case TRANSFER_SUBMIT_ERROR_UNKNOWN:
+                event = new BRTransferSubmitError(type);
+                break;
         }
 
-        public u_union() {
-            super();
+        checkState(null != event);
+        return event;
+    }
+
+    public static BRTransferSubmitError create(Pointer ptr) {
+        BRTransferSubmitError event = null;
+
+        long offset = STRUCT.offsetOfType();
+        BRTransferSubmitErrorType type = BRTransferSubmitErrorType.fromCore(ptr.getInt(offset));
+
+        offset = STRUCT.offsetOfUnion();
+        switch (type) {
+            case TRANSFER_SUBMIT_ERROR_POSIX:
+                int errnum = ptr.getInt(offset + STRUCT.u.posix.offsetOfErrnum());
+
+                event = new BRTransferSubmitError(type, errnum);
+                break;
+            case TRANSFER_SUBMIT_ERROR_UNKNOWN:
+                event = new BRTransferSubmitError(type);
+                break;
         }
 
-        public u_union(posix_struct state) {
-            super();
-            this.posix = state;
-            setType(posix_struct.class);
-        }
-
-        public u_union(Pointer peer) {
-            super(peer);
-        }
-
-        public static class ByReference extends u_union implements Structure.ByReference {
-
-        }
-
-        public static class ByValue extends u_union implements Structure.ByValue {
-
-        }
+        checkState(null != event);
+        return event;
     }
 
-    public BRTransferSubmitError() {
-        super();
+    private static Struct STRUCT = new Struct();
+
+    public final BRTransferSubmitErrorType type;
+    public final BRTransferSubmitErrorPosix posix;
+
+    private BRTransferSubmitError(BRTransferSubmitErrorType type,
+                                  BRTransferSubmitErrorPosix posix) {
+        this.type = type;
+        this.posix = posix;
     }
 
-    public BRTransferSubmitErrorType type() {
-        return BRTransferSubmitErrorType.fromCore(typeEnum);
+    public BRTransferSubmitError(BRTransferSubmitErrorType type) {
+        this(
+                type,
+                null
+        );
     }
 
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("typeEnum", "u");
-    }
-
-    public BRTransferSubmitError(int type, u_union u) {
-        super();
-        this.typeEnum = type;
-        this.u = u;
-    }
-
-    public BRTransferSubmitError(Pointer peer) {
-        super(peer);
-    }
-
-    @Override
-    public void read() {
-        super.read();
-        if (type() == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX)
-            u.setType(u_union.posix_struct.class);
-        u.read();
+    public BRTransferSubmitError(BRTransferSubmitErrorType type,
+                                 int errnum) {
+        this(
+                type,
+                new BRTransferSubmitErrorPosix(errnum)
+        );
     }
 
     public Optional<String> getMessage() {
-        Pointer ptr = CryptoLibraryDirect.BRTransferSubmitErrorGetMessage(this);
-        try {
-            return Optional.fromNullable(
-                    ptr
-            ).transform(
-                    a -> a.getString(0, "UTF-8")
-            );
-        } finally {
-            if (ptr != null) Native.free(Pointer.nativeValue(ptr));
+        // TODO(fix): Cache this?
+        Struct core = new Struct(this);
+        core.setAutoRead(false);
+        core.setAutoWrite(true);
+        return core.getMessage();
+    }
+
+    public static class BRTransferSubmitErrorPosix {
+
+        public final int errnum;
+
+        BRTransferSubmitErrorPosix(int errnum) {
+            this.errnum = errnum;
+        }
+    }
+
+    public static class Struct extends Structure {
+        public int typeEnum;
+        public u_union u;
+
+        public static class u_union extends Union {
+
+            public posix_struct posix;
+
+            public static class posix_struct extends Structure {
+
+                public int errnum = 0;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("errnum");
+                }
+
+                long offsetOfErrnum() {
+                    return fieldOffset("errnum");
+                }
+            }
+        }
+
+        public Struct() {
+            super();
+        }
+
+        public Struct(Pointer pointer) {
+            super(pointer);
+        }
+
+        public Struct(BRTransferSubmitError error) {
+            this.typeEnum =  error.type.toCore();
+            // TODO(fix): Figure out how to get the errnum field populated
+        }
+
+        public BRTransferSubmitErrorType type() {
+            return BRTransferSubmitErrorType.fromCore(typeEnum);
+        }
+
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("typeEnum", "u");
+        }
+
+        @Override
+        public void read() {
+            super.read();
+            if (type() == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX) {
+                u.setType(u_union.posix_struct.class);
+                u.read();
+            }
+        }
+
+        @Override
+        public void write() {
+            if (type() == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX) {
+                u.setType(u_union.posix_struct.class);
+                u.write();
+            }
+            super.write();
+        }
+
+        long offsetOfType() {
+            return fieldOffset("typeEnum");
+        }
+
+        long offsetOfUnion() {
+            return fieldOffset("u");
+        }
+
+        public Optional<String> getMessage() {
+            Pointer ptr = CryptoLibraryDirect.BRTransferSubmitErrorGetMessage(this);
+            try {
+                return Optional.fromNullable(
+                        ptr
+                ).transform(
+                        a -> a.getString(0, "UTF-8")
+                );
+            } finally {
+                if (ptr != null) Native.free(Pointer.nativeValue(ptr));
+            }
         }
     }
 }

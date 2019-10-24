@@ -713,7 +713,7 @@ final class System implements com.breadwallet.crypto.System {
             try {
                 Log.d(TAG, "WalletManagerEventCallback");
 
-                switch (event.type()) {
+                switch (event.type) {
                     case CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
                         handleWalletManagerCreated(context, coreWalletManager);
                         break;
@@ -781,8 +781,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerChanged(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        WalletManagerState oldState = Utilities.walletManagerStateFromCrypto(event.u.state.oldValue);
-        WalletManagerState newState = Utilities.walletManagerStateFromCrypto(event.u.state.newValue);
+        WalletManagerState oldState = Utilities.walletManagerStateFromCrypto(event.state.oldState);
+        WalletManagerState newState = Utilities.walletManagerStateFromCrypto(event.state.newState);
 
         Log.d(TAG, String.format("WalletManagerChanged (%s -> %s)", oldState, newState));
 
@@ -826,7 +826,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerWalletAdded(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        BRCryptoWallet coreWallet = event.u.wallet.value;
+        BRCryptoWallet coreWallet = event.wallet.value;
         try {
             Log.d(TAG, "WalletManagerWalletAdded");
 
@@ -861,7 +861,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerWalletChanged(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        BRCryptoWallet coreWallet = event.u.wallet.value;
+        BRCryptoWallet coreWallet = event.wallet.value;
         try {
             Log.d(TAG, "WalletManagerWalletChanged");
 
@@ -896,7 +896,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerWalletDeleted(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        BRCryptoWallet coreWallet = event.u.wallet.value;
+        BRCryptoWallet coreWallet = event.wallet.value;
         try {
             Log.d(TAG, "WalletManagerWalletDeleted");
 
@@ -952,8 +952,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncProgress(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        float percent = event.u.syncContinues.percentComplete;
-        Date timestamp = 0 == event.u.syncContinues.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.syncContinues.timestamp));
+        float percent = event.syncContinues.percentComplete;
+        Date timestamp = 0 == event.syncContinues.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.syncContinues.timestamp));
 
         Log.d(TAG, String.format("WalletManagerSyncProgress (%s)", percent));
 
@@ -976,7 +976,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncStopped(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        WalletManagerSyncStoppedReason reason = Utilities.walletManagerSyncStoppedReasonFromCrypto(event.u.syncStopped.reason);
+        WalletManagerSyncStoppedReason reason = Utilities.walletManagerSyncStoppedReasonFromCrypto(event.syncStopped.reason);
         Log.d(TAG, String.format("WalletManagerSyncStopped: (%s)", reason));
 
         Optional<System> optSystem = getSystem(context);
@@ -998,7 +998,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncRecommended(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        WalletManagerSyncDepth depth = Utilities.syncDepthFromCrypto(event.u.syncRecommended.depth());
+        WalletManagerSyncDepth depth = Utilities.syncDepthFromCrypto(event.syncRecommended.depth);
         Log.d(TAG, String.format("WalletManagerSyncRecommended: (%s)", depth));
 
         Optional<System> optSystem = getSystem(context);
@@ -1020,7 +1020,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerBlockHeightUpdated(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.blockHeight.value);
+        UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.blockHeight.value);
 
         Log.d(TAG, String.format("WalletManagerBlockHeightUpdated (%s)", blockHeight));
 
@@ -1054,7 +1054,7 @@ final class System implements com.breadwallet.crypto.System {
             try {
                 Log.d(TAG, "WalletEventCallback");
 
-                switch (event.type()) {
+                switch (event.type) {
                     case CRYPTO_WALLET_EVENT_CREATED: {
                         handleWalletCreated(context, coreWalletManager, coreWallet);
                         break;
@@ -1127,8 +1127,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletChanged(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState());
-        WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState());
+        WalletState oldState = Utilities.walletStateFromCrypto(event.state.oldState);
+        WalletState newState = Utilities.walletStateFromCrypto(event.state.newState);
 
         Log.d(TAG, String.format("WalletChanged (%s -> %s)", oldState, newState));
 
@@ -1188,7 +1188,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletTransferAdded(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        BRCryptoTransfer coreTransfer = event.u.transfer.value;
+        BRCryptoTransfer coreTransfer = event.transfer.value;
         try {
             Log.d(TAG, "WalletTransferAdded");
 
@@ -1230,7 +1230,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletTransferChanged(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        BRCryptoTransfer coreTransfer = event.u.transfer.value;
+        BRCryptoTransfer coreTransfer = event.transfer.value;
         try {
             Log.d(TAG, "WalletTransferChanged");
 
@@ -1272,7 +1272,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletTransferSubmitted(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        BRCryptoTransfer coreTransfer = event.u.transfer.value;
+        BRCryptoTransfer coreTransfer = event.transfer.value;
         try {
             Log.d(TAG, "WalletTransferSubmitted");
 
@@ -1314,7 +1314,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletTransferDeleted(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        BRCryptoTransfer coreTransfer = event.u.transfer.value;
+        BRCryptoTransfer coreTransfer = event.transfer.value;
         try {
             Log.d(TAG, "WalletTransferDeleted");
 
@@ -1358,7 +1358,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletBalanceUpdated(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletBalanceUpdated");
 
-        Amount amount = Amount.create(event.u.balanceUpdated.amount);
+        Amount amount = Amount.create(event.balanceUpdated.amount);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1391,7 +1391,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletFeeBasisUpdated(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletFeeBasisUpdate");
 
-        TransferFeeBasis feeBasis = TransferFeeBasis.create(event.u.feeBasisUpdated.basis);
+        TransferFeeBasis feeBasis = TransferFeeBasis.create(event.feeBasisUpdated.basis);
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
@@ -1422,25 +1422,24 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletFeeBasisEstimated(Cookie context, BRCryptoWalletEvent event) {
-        BRCryptoStatus status = event.u.feeBasisEstimated.status();
+        BRCryptoStatus status = event.feeBasisEstimated.status;
 
         Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
 
         boolean success = status == BRCryptoStatus.CRYPTO_SUCCESS;
-        TransferFeeBasis feeBasis = success ? TransferFeeBasis.create(event.u.feeBasisEstimated.basis) : null;
+        TransferFeeBasis feeBasis = success ? TransferFeeBasis.create(event.feeBasisEstimated.basis) : null;
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
-            Cookie opCookie = new Cookie(event.u.feeBasisEstimated.cookie);
 
             if (success) {
                 Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", feeBasis));
-                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithSuccess(opCookie, feeBasis);
+                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithSuccess(event.feeBasisEstimated.cookie, feeBasis);
             } else {
                 FeeEstimationError error = Utilities.feeEstimationErrorFromStatus(status);
                 Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", error));
-                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithError(opCookie, error);
+                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithError(event.feeBasisEstimated.cookie, error);
             }
 
         } else {
@@ -1461,7 +1460,7 @@ final class System implements com.breadwallet.crypto.System {
             try {
                 Log.d(TAG, "TransferEventCallback");
 
-                switch (event.type()) {
+                switch (event.type) {
                     case CRYPTO_TRANSFER_EVENT_CREATED: {
                         handleTransferCreated(context, coreWalletManager, coreWallet, coreTransfer);
                         break;
@@ -1516,8 +1515,8 @@ final class System implements com.breadwallet.crypto.System {
 
     private static void handleTransferChanged(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoWallet coreWallet, BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent event) {
-        TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
-        TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
+        TransferState oldState = Utilities.transferStateFromCrypto(event.state.oldState);
+        TransferState newState = Utilities.transferStateFromCrypto(event.state.newState);
 
         Log.d(TAG, String.format("TransferChanged (%s -> %s)", oldState, newState));
 

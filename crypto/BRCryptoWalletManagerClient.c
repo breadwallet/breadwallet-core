@@ -182,7 +182,7 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             // Generate a CRYPTO wallet manager event for CREATED...
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_CREATED
                                                       });
 
@@ -190,14 +190,14 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (cwm->wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
 
             // ... and then a CRYPTO wallet manager event for WALLET_ADDED
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
@@ -228,7 +228,7 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             };
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      cwmEvent);
+                                                      &cwmEvent);
 
             BRCryptoWalletManagerState state = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING);
             cwmEvent = (BRCryptoWalletManagerEvent) {
@@ -257,7 +257,7 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             };
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      cwmEvent);
+                                                      &cwmEvent);
 
             BRCryptoWalletManagerState state = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
             cwmEvent = (BRCryptoWalletManagerEvent) {
@@ -291,7 +291,7 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
     if (needEvent)
         cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                   cryptoWalletManagerTake (cwm),
-                                                  cwmEvent);
+                                                  &cwmEvent);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -338,7 +338,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                    { .balanceUpdated = { cryptoAmountTake (amount) }}
                                                });
@@ -346,7 +346,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
                                                           { .wallet = { cryptoWalletTake (wallet) }}
                                                       });
@@ -375,7 +375,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
                                                    { .feeBasisUpdated = { cryptoFeeBasisTake (feeBasis) }}
                                                });
@@ -383,7 +383,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
                                                           { .wallet = { cryptoWalletTake (wallet) }}
                                                       });
@@ -414,7 +414,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
                                                  cryptoTransferTake (transfer),
-                                                 (BRCryptoTransferEvent) {
+                                                 &(BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_CHANGED,
                                                      { .state = { oldState, newState }}
                                                  });
@@ -444,7 +444,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
                                                  cryptoTransferTake (transfer),
-                                                 (BRCryptoTransferEvent) {
+                                                 &(BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_CHANGED,
                                                      { .state = { oldState, newState }}
                                                  });
@@ -471,7 +471,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                                                    { .feeBasisEstimated = {
                                                        CRYPTO_SUCCESS,
@@ -500,7 +500,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // Generate a CRYPTO wallet manager event for WALLET_DELETED...
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
                                                           { .wallet = { cryptoWalletTake (wallet) }}
                                                       });
@@ -509,7 +509,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_DELETED
                                                });
 
@@ -564,7 +564,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
                                                  cryptoTransferTake (transfer),
-                                                 (BRCryptoTransferEvent) {
+                                                 &(BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_CREATED
                                                  });
 
@@ -575,7 +575,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                    { .transfer = { cryptoTransferTake (transfer) }}
                                                });
@@ -600,7 +600,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
                                                  cryptoTransferTake (transfer ),
-                                                 (BRCryptoTransferEvent) {
+                                                 &(BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_CHANGED,
                                                      { .state = { oldState, newState }}
                                                  });
@@ -632,7 +632,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CREATED
                                                      });
 
@@ -643,7 +643,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    cryptoWalletTake (wallet),
-                                                   (BRCryptoWalletEvent) {
+                                                   &(BRCryptoWalletEvent) {
                                                        CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                        { .transfer = { cryptoTransferTake (transfer) }}
                                                    });
@@ -678,7 +678,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -709,7 +709,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -736,7 +736,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -759,7 +759,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_TRANSFER_DELETED,
                                                    { .transfer = { cryptoTransferTake (transfer) }}
                                                });
@@ -772,7 +772,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
                                                  cryptoTransferTake (transfer),
-                                                 (BRCryptoTransferEvent) {
+                                                 &(BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_DELETED
                                                  });
 
@@ -825,7 +825,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
             // Generate a CRYPTO wallet manager event for CREATED...
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_CREATED
                                                       });
 
@@ -833,14 +833,14 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (cwm->wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
 
             // ... and then a CRYPTO wallet manager event for WALLET_ADDED
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
@@ -854,7 +854,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 assert (EWM_STATE_CONNECTED == event.u.changed.oldState);
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake(cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED
                                                           });
             }
@@ -864,7 +864,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 assert (EWM_STATE_CONNECTED == event.u.changed.newState);
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake(cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
                                                               { .syncStopped = { BRSyncStoppedReasonComplete() } }
                                                           });
@@ -916,7 +916,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
     if (needEvent)
         cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                   cryptoWalletManagerTake (cwm),
-                                                  cwmEvent);
+                                                  &cwmEvent);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -1002,13 +1002,13 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    cryptoWalletTake (wallet),
-                                                   (BRCryptoWalletEvent) {
+                                                   &(BRCryptoWalletEvent) {
                                                        CRYPTO_WALLET_EVENT_CREATED
                                                    });
 
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                               { .wallet = { wallet }}
                                                           });
@@ -1037,7 +1037,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback(cwm->listener.context,
                                                   cryptoWalletManagerTake(cwm),
                                                   cryptoWalletTake (wallet),
-                                                  (BRCryptoWalletEvent) {
+                                                  &(BRCryptoWalletEvent) {
                                                       CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                       {.balanceUpdated = {cryptoAmount}}
                                                   });
@@ -1045,7 +1045,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
                                                               { .wallet = { wallet }}
                                                           });
@@ -1065,7 +1065,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback(cwm->listener.context,
                                                   cryptoWalletManagerTake(cwm),
                                                   cryptoWalletTake (wallet),
-                                                  (BRCryptoWalletEvent) {
+                                                  &(BRCryptoWalletEvent) {
                                                       CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
                                                       {.feeBasisUpdated = {feeBasis}}
                                                   });
@@ -1073,7 +1073,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
                                                               { .wallet = { wallet }}
                                                           });
@@ -1091,7 +1091,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                     cwm->listener.walletEventCallback(cwm->listener.context,
                                                       cryptoWalletManagerTake(cwm),
                                                       wallet,
-                                                      (BRCryptoWalletEvent) {
+                                                      &(BRCryptoWalletEvent) {
                                                            CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                                                            { .feeBasisEstimated = {
                                                                CRYPTO_SUCCESS,
@@ -1105,7 +1105,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                     cwm->listener.walletEventCallback(cwm->listener.context,
                                                       cryptoWalletManagerTake(cwm),
                                                       wallet,
-                                                      (BRCryptoWalletEvent) {
+                                                      &(BRCryptoWalletEvent) {
                                                            CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                                                            { .feeBasisEstimated = {
                                                                cryptoStatusFromETH (event.status),
@@ -1121,7 +1121,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // Generate a CRYPTO wallet manager event for WALLET_DELETED...
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
-                                                          (BRCryptoWalletManagerEvent) {
+                                                          &(BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
                                                               { .wallet = { cryptoWalletTake (wallet) }}
                                                           });
@@ -1130,7 +1130,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    wallet,
-                                                   (BRCryptoWalletEvent) {
+                                                   &(BRCryptoWalletEvent) {
                                                        CRYPTO_WALLET_EVENT_DELETED
                                                    });
             }
@@ -1220,7 +1220,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CREATED
                                                      });
 
@@ -1229,7 +1229,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    cryptoWalletTake (wallet),
-                                                   (BRCryptoWalletEvent) {
+                                                   &(BRCryptoWalletEvent) {
                                                        CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                        { .transfer = { cryptoTransferTake (transfer) }}
                                                    });
@@ -1252,7 +1252,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -1272,7 +1272,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -1314,7 +1314,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -1334,7 +1334,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -1356,7 +1356,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    cryptoWalletTake (wallet),
-                                                   (BRCryptoWalletEvent) {
+                                                   &(BRCryptoWalletEvent) {
                                                        CRYPTO_WALLET_EVENT_TRANSFER_DELETED,
                                                        { .transfer = { cryptoTransferTake (transfer) }}
                                                    });
@@ -1371,7 +1371,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
@@ -1380,7 +1380,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                      cryptoWalletManagerTake (cwm),
                                                      cryptoWalletTake (wallet),
                                                      cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
+                                                     &(BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_DELETED
                                                      });
             }

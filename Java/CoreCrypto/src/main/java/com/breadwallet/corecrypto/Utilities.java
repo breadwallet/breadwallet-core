@@ -65,13 +65,13 @@ final class Utilities {
 
     /* package */
     static WalletManagerState walletManagerStateFromCrypto(BRCryptoWalletManagerState state) {
-        switch (state.type()) {
+        switch (state.type) {
             case CRYPTO_WALLET_MANAGER_STATE_CREATED: return WalletManagerState.CREATED();
             case CRYPTO_WALLET_MANAGER_STATE_DELETED: return WalletManagerState.DELETED();
             case CRYPTO_WALLET_MANAGER_STATE_CONNECTED: return WalletManagerState.CONNECTED();
             case CRYPTO_WALLET_MANAGER_STATE_SYNCING: return WalletManagerState.SYNCING();
             case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-                switch (state.u.disconnected.reason.type()) {
+                switch (state.disconnected.reason.type) {
                     case DISCONNECT_REASON_REQUESTED: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.REQUESTED()
                     );
@@ -80,8 +80,8 @@ final class Utilities {
                     );
                     case DISCONNECT_REASON_POSIX: return WalletManagerState.DISCONNECTED(
                             WalletManagerDisconnectReason.POSIX(
-                                    state.u.disconnected.reason.u.posix.errnum,
-                                    state.u.disconnected.reason.getMessage().orNull()
+                                    state.disconnected.reason.posix.errnum,
+                                    state.disconnected.reason.getMessage().orNull()
                             )
                     );
                     default: throw new IllegalArgumentException("Unsupported reason");
@@ -92,12 +92,12 @@ final class Utilities {
 
     /* package */
     static WalletManagerSyncStoppedReason walletManagerSyncStoppedReasonFromCrypto(BRSyncStoppedReason reason) {
-        switch (reason.type()) {
+        switch (reason.type) {
             case SYNC_STOPPED_REASON_COMPLETE: return WalletManagerSyncStoppedReason.COMPLETE();
             case SYNC_STOPPED_REASON_REQUESTED: return WalletManagerSyncStoppedReason.REQUESTED();
             case SYNC_STOPPED_REASON_UNKNOWN: return WalletManagerSyncStoppedReason.UNKNOWN();
             case SYNC_STOPPED_REASON_POSIX: return WalletManagerSyncStoppedReason.POSIX(
-                    reason.u.posix.errnum,
+                    reason.posix.errnum,
                     reason.getMessage().orNull()
             );
             default: throw new IllegalArgumentException("Unsupported reason");
@@ -125,30 +125,30 @@ final class Utilities {
 
     /* package */
     static TransferState transferStateFromCrypto(BRCryptoTransferState state) {
-        switch (state.type()) {
+        switch (state.type) {
             case CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
             case CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
             case CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
             case CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
             case CRYPTO_TRANSFER_STATE_ERRORED:
-                switch (state.u.errored.error.type()) {
+                switch (state.errored.error.type) {
                     case TRANSFER_SUBMIT_ERROR_UNKNOWN: return TransferState.FAILED(
                             new TransferSubmitUnknownError()
                     );
                     case TRANSFER_SUBMIT_ERROR_POSIX: return TransferState.FAILED(
                             new TransferSubmitPosixError(
-                                    state.u.errored.error.u.posix.errnum,
-                                    state.u.errored.error.getMessage().orNull()
+                                    state.errored.error.posix.errnum,
+                                    state.errored.error.getMessage().orNull()
                             )
                     );
                     default: throw new IllegalArgumentException("Unsupported error");
                 }
             case CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(
                     new TransferConfirmation(
-                            UnsignedLong.fromLongBits(state.u.included.blockNumber),
-                            UnsignedLong.fromLongBits(state.u.included.transactionIndex),
-                            UnsignedLong.fromLongBits(state.u.included.timestamp),
-                            Optional.fromNullable(state.u.included.fee)
+                            UnsignedLong.fromLongBits(state.included.blockNumber),
+                            UnsignedLong.fromLongBits(state.included.transactionIndex),
+                            UnsignedLong.fromLongBits(state.included.timestamp),
+                            Optional.fromNullable(state.included.fee)
                                     .transform(Amount::create)
                     )
             );

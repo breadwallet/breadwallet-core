@@ -567,16 +567,16 @@ CWMEventRecordingStateFree (CWMEventRecordingState *state) {
 static void
 _CWMEventRecordingManagerCallback (BRCryptoCWMListenerContext context,
                                    BRCryptoWalletManager manager,
-                                   BRCryptoWalletManagerEvent event) {
+                                   BRCryptoWalletManagerEvent *event) {
     CWMEventRecordingState *state = (CWMEventRecordingState*) context;
     CWMEvent *cwmEvent = calloc (1, sizeof (CWMEvent));
     cwmEvent->type = SYNC_EVENT_WALLET_MANAGER_TYPE;
     cwmEvent->u.m.manager= manager;
-    cwmEvent->u.m.event = event;
+    cwmEvent->u.m.event = *event;
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added MANAGER event: %s (%zu total)\n", BRCryptoWalletManagerEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added MANAGER event: %s (%zu total)\n", BRCryptoWalletManagerEventTypeString (event->type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -584,17 +584,17 @@ static void
 _CWMEventRecordingWalletCallback (BRCryptoCWMListenerContext context,
                                   BRCryptoWalletManager manager,
                                   BRCryptoWallet wallet,
-                                  BRCryptoWalletEvent event) {
+                                  BRCryptoWalletEvent *event) {
     CWMEventRecordingState *state = (CWMEventRecordingState*) context;
     CWMEvent *cwmEvent = calloc (1, sizeof (CWMEvent));
     cwmEvent->type = SYNC_EVENT_WALLET_TYPE;
     cwmEvent->u.w.manager= manager;
     cwmEvent->u.w.wallet= wallet;
-    cwmEvent->u.w.event = event;
+    cwmEvent->u.w.event = *event;
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added WALLET event: %s (%zu total)\n", BRCryptoWalletEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added WALLET event: %s (%zu total)\n", BRCryptoWalletEventTypeString (event->type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -603,18 +603,18 @@ _CWMEventRecordingTransferCallback (BRCryptoCWMListenerContext context,
                                     BRCryptoWalletManager manager,
                                     BRCryptoWallet wallet,
                                     BRCryptoTransfer transfer,
-                                    BRCryptoTransferEvent event) {
+                                    BRCryptoTransferEvent *event) {
     CWMEventRecordingState *state = (CWMEventRecordingState*) context;
     CWMEvent *cwmEvent = calloc (1, sizeof (CWMEvent));
     cwmEvent->type = SYNC_EVENT_TXN_TYPE;
     cwmEvent->u.t.manager= manager;
     cwmEvent->u.t.wallet= wallet;
     cwmEvent->u.t.transfer = transfer;
-    cwmEvent->u.t.event = event;
+    cwmEvent->u.t.event = *event;
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added TXN event: %s (%zu total)\n", BRCryptoTransferEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added TXN event: %s (%zu total)\n", BRCryptoTransferEventTypeString (event->type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 

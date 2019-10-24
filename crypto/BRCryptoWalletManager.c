@@ -351,7 +351,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // Announce the new wallet manager;
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_CREATED
                                                       });
 
@@ -359,14 +359,14 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (cwm->wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
 
             // ... and announce the manager's new wallet.
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
+                                                      &(BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
@@ -384,7 +384,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (cwm->wallet),
-                                               (BRCryptoWalletEvent) {
+                                               &(BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                    { .balanceUpdated = { balance }}
                                                });
@@ -1043,7 +1043,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                          cryptoWalletManagerTake (cwm),
                                          cryptoWalletTake (wallet),
                                          cryptoTransferTake(transfer),
-                                         (BRCryptoTransferEvent) {
+                                         &(BRCryptoTransferEvent) {
                                              CRYPTO_TRANSFER_EVENT_CREATED
                                          });
 
@@ -1054,7 +1054,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     cwm->listener.walletEventCallback (cwm->listener.context,
                                        cryptoWalletManagerTake (cwm),
                                        cryptoWalletTake (wallet),
-                                       (BRCryptoWalletEvent) {
+                                       &(BRCryptoWalletEvent) {
                                            CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                            { .transfer = { transfer }}
                                        });

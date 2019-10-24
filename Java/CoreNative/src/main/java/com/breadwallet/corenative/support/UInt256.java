@@ -21,10 +21,6 @@ public class UInt256 extends Structure {
         super();
     }
 
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("u8");
-    }
-
     public UInt256(byte u8[]) {
         super();
         if ((u8.length != this.u8.length)) {
@@ -33,17 +29,14 @@ public class UInt256 extends Structure {
         this.u8 = u8;
     }
 
-    public UInt256(Pointer peer) {
-        super(peer);
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("u8");
     }
 
     public ByValue toByValue() {
         ByValue other = new ByValue();
         System.arraycopy(this.u8, 0, other.u8, 0, this.u8.length);
         return other;
-    }
-
-    public static class ByReference extends UInt256 implements Structure.ByReference {
     }
 
     public static class ByValue extends UInt256 implements Structure.ByValue {

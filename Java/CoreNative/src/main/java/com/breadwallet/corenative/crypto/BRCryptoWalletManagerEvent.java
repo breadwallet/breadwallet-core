@@ -15,320 +15,353 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRCryptoWalletManagerEvent extends Structure {
-
-    public int typeEnum;
-    public u_union u;
-
-    public static class u_union extends Union {
-
-        public state_struct state;
-        public wallet_struct wallet;
-        public syncContinues_struct syncContinues;
-        public syncStopped_struct syncStopped;
-        public syncRecommended_struct syncRecommended;
-        public blockHeight_struct blockHeight;
-
-        public static class state_struct extends Structure {
-
-            public BRCryptoWalletManagerState oldValue;
-            public BRCryptoWalletManagerState newValue;
-
-            public state_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("oldValue", "newValue");
-            }
-
-            public state_struct(BRCryptoWalletManagerState oldValue, BRCryptoWalletManagerState newValue) {
-                super();
-                this.oldValue = oldValue;
-                this.newValue = newValue;
-            }
-
-            public state_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends state_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends state_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public static class wallet_struct extends Structure {
-
-            public BRCryptoWallet value;
-
-            public wallet_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("value");
-            }
-
-            public wallet_struct(BRCryptoWallet value) {
-                super();
-                this.value = value;
-            }
-
-            public wallet_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends wallet_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends wallet_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public static class syncContinues_struct extends Structure {
-
-            public int timestamp;
-            public float percentComplete;
-            public syncContinues_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("timestamp", "percentComplete");
-            }
-
-            public syncContinues_struct(int timestamp, float percentComplete) {
-                super();
-                this.timestamp = timestamp;
-                this.percentComplete = percentComplete;
-            }
-
-            public syncContinues_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends syncContinues_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends syncContinues_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public static class syncStopped_struct extends Structure {
-
-            public BRSyncStoppedReason reason;
-
-            public syncStopped_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("reason");
-            }
-
-            public syncStopped_struct(BRSyncStoppedReason reason) {
-                super();
-                this.reason = reason;
-            }
-
-            public syncStopped_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends syncStopped_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends syncStopped_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public static class syncRecommended_struct extends Structure {
-
-            public int depthEnum;
-
-            public syncRecommended_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("depthEnum");
-            }
-
-            public syncRecommended_struct(int depth) {
-                super();
-                this.depthEnum = depth;
-            }
-
-            public syncRecommended_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public BRSyncDepth depth() {
-                return BRSyncDepth.fromCore(depthEnum);
-            }
-
-            public static class ByReference extends syncRecommended_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends syncRecommended_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public static class blockHeight_struct extends Structure {
-
-            public long value;
-
-            public blockHeight_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("value");
-            }
-
-            public blockHeight_struct(long value) {
-                super();
-                this.value = value;
-            }
-
-            public blockHeight_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends blockHeight_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends blockHeight_struct implements Structure.ByValue {
-
-            }
-        }
-
-        public u_union() {
-            super();
-        }
-
-        public u_union(state_struct state) {
-            super();
-            this.state = state;
-            setType(state_struct.class);
-        }
-
-        public u_union(wallet_struct wallet) {
-            super();
-            this.wallet = wallet;
-            setType(wallet_struct.class);
-        }
-
-        public u_union(syncContinues_struct syncContinues) {
-            super();
-            this.syncContinues = syncContinues;
-            setType(syncContinues_struct.class);
-        }
-
-        public u_union(syncStopped_struct syncStopped) {
-            super();
-            this.syncStopped = syncStopped;
-            setType(syncStopped_struct.class);
-        }
-
-        public u_union(syncRecommended_struct syncRecommended) {
-            super();
-            this.syncRecommended = syncRecommended;
-            setType(syncRecommended_struct.class);
-        }
-
-        public u_union(blockHeight_struct blockHeight) {
-            super();
-            this.blockHeight = blockHeight;
-            setType(blockHeight_struct.class);
-        }
-
-        public u_union(Pointer peer) {
-            super(peer);
-        }
-
-        public static class ByReference extends u_union implements Structure.ByReference {
-
-        }
-
-        public static class ByValue extends u_union implements Structure.ByValue {
-
-        }
-    }
-
-    public BRCryptoWalletManagerEvent() {
-        super();
-    }
-
-    public BRCryptoWalletManagerEventType type() {
-        return BRCryptoWalletManagerEventType.fromCore(typeEnum);
-    }
-
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("typeEnum", "u");
-    }
-
-    public BRCryptoWalletManagerEvent(int type, u_union u) {
-        super();
-        this.typeEnum = type;
-        this.u = u;
-    }
-
-    public BRCryptoWalletManagerEvent(Pointer peer) {
-        super(peer);
-    }
-
-    @Override
-    public void read() {
-        super.read();
-        switch (type()){
+import static com.google.common.base.Preconditions.checkState;
+
+public class BRCryptoWalletManagerEvent {
+
+    public static BRCryptoWalletManagerEvent create(Pointer ptr) {
+        BRCryptoWalletManagerEvent event = null;
+
+        long offset = STRUCT.offsetOfType();
+        BRCryptoWalletManagerEventType type = BRCryptoWalletManagerEventType.fromCore(ptr.getInt(offset));
+
+        offset = STRUCT.offsetOfUnion();
+        switch (type) {
+            case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
+            case CRYPTO_WALLET_MANAGER_EVENT_DELETED:
+            case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:
+                event = new BRCryptoWalletManagerEvent(type);
+                break;
             case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                u.setType(u_union.blockHeight_struct.class);
-                u.read();
+                long height = ptr.getLong(offset + STRUCT.u.blockHeight.offsetOfHeight());
+
+                event = new BRCryptoWalletManagerEvent(type, height);
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
-                u.setType(u_union.state_struct.class);
-                u.read();
+                BRCryptoWalletManagerState oldState = BRCryptoWalletManagerState.create(ptr.share(offset + STRUCT.u.state.offsetOfOldState()));
+                BRCryptoWalletManagerState newState = BRCryptoWalletManagerState.create(ptr.share(offset + STRUCT.u.state.offsetOfNewState()));
+
+                event = new BRCryptoWalletManagerEvent(type, oldState, newState);
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                u.setType(u_union.syncContinues_struct.class);
-                u.read();
+                int timestamp = ptr.getInt(offset + STRUCT.u.syncContinues.offsetOfTimestamp());
+                float percentComplete = ptr.getFloat(offset + STRUCT.u.syncContinues.offsetOfPercentComplete());
+
+                event = new BRCryptoWalletManagerEvent(type, timestamp, percentComplete);
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                u.setType(u_union.syncStopped_struct.class);
-                u.read();
+                BRSyncStoppedReason reason = BRSyncStoppedReason.create(ptr.share(offset + STRUCT.u.syncStopped.offsetOfReason()));
+
+                event = new BRCryptoWalletManagerEvent(type, reason);
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_SYNC_RECOMMENDED:
-                u.setType(u_union.syncRecommended_struct.class);
-                u.read();
+                BRSyncDepth depth = BRSyncDepth.fromCore(ptr.getInt(offset + STRUCT.u.syncRecommended.offsetOfDepth()));
+
+                event = new BRCryptoWalletManagerEvent(type, depth);
                 break;
             case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
             case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
             case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
-                u.setType(u_union.wallet_struct.class);
-                u.read();
+                BRCryptoWallet wallet = new BRCryptoWallet(ptr.getPointer(offset + STRUCT.u.wallet.offsetOfWallet()));
+
+                event = new BRCryptoWalletManagerEvent(type, wallet);
                 break;
+        }
+
+        checkState(null != event);
+        return event;
+    }
+
+    private static Struct STRUCT = new Struct();
+
+    public final BRCryptoWalletManagerEventType type;
+    public final BRCryptoWalletManagerEventState state;
+    public final BRCryptoWalletManagerEventSyncContinues syncContinues;
+    public final BRCryptoWalletManagerEventSyncStopped syncStopped;
+    public final BRCryptoWalletManagerEventSyncRecommended syncRecommended;
+    public final BRCryptoWalletManagerEventBlockHeight blockHeight;
+    public final BRCryptoWalletManagerEventWallet wallet;
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       BRCryptoWalletManagerEventState state,
+                                       BRCryptoWalletManagerEventSyncContinues syncContinues,
+                                       BRCryptoWalletManagerEventSyncStopped syncStopped,
+                                       BRCryptoWalletManagerEventSyncRecommended syncRecommended,
+                                       BRCryptoWalletManagerEventBlockHeight blockHeight,
+                                       BRCryptoWalletManagerEventWallet wallet) {
+        this.type = type;
+        this.state = state;
+        this.syncContinues = syncContinues;
+        this.syncStopped = syncStopped;
+        this.syncRecommended = syncRecommended;
+        this.blockHeight = blockHeight;
+        this.wallet = wallet;
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type) {
+        this(
+                type,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       BRCryptoWalletManagerState oldState,
+                                       BRCryptoWalletManagerState newState) {
+        this(
+                type,
+                new BRCryptoWalletManagerEventState(oldState, newState),
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       int timestamp,
+                                       float percentComplete) {
+        this(
+                type,
+                null,
+                new BRCryptoWalletManagerEventSyncContinues(timestamp, percentComplete),
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       BRSyncStoppedReason reason) {
+        this(
+                type,
+                null,
+                null,
+                new BRCryptoWalletManagerEventSyncStopped(reason),
+                null,
+                null,
+                null
+        );
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       BRSyncDepth depth) {
+        this(
+                type,
+                null,
+                null,
+                null,
+                new BRCryptoWalletManagerEventSyncRecommended(depth),
+                null,
+                null
+        );
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       long height) {
+        this(
+                type,
+                null,
+                null,
+                null,
+                null,
+                new BRCryptoWalletManagerEventBlockHeight(height),
+                null
+        );
+    }
+
+    private BRCryptoWalletManagerEvent(BRCryptoWalletManagerEventType type,
+                                       BRCryptoWallet wallet) {
+        this(
+                type,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new BRCryptoWalletManagerEventWallet(wallet)
+        );
+    }
+
+    public static class BRCryptoWalletManagerEventState {
+
+        public final BRCryptoWalletManagerState oldState;
+        public final BRCryptoWalletManagerState newState;
+
+        BRCryptoWalletManagerEventState(BRCryptoWalletManagerState oldState, BRCryptoWalletManagerState newState) {
+            this.oldState = oldState;
+            this.newState = newState;
         }
     }
 
-    public static class ByReference extends BRCryptoWalletManagerEvent implements Structure.ByReference {
+    public static class BRCryptoWalletManagerEventSyncContinues {
 
+        public final int timestamp;
+        public final float percentComplete;
+
+        BRCryptoWalletManagerEventSyncContinues(int timestamp, float percentComplete) {
+            this.timestamp = timestamp;
+            this.percentComplete = percentComplete;
+        }
     }
 
-    public static class ByValue extends BRCryptoWalletManagerEvent implements Structure.ByValue {
+    public static class BRCryptoWalletManagerEventSyncStopped {
 
+        public final BRSyncStoppedReason reason;
+
+        BRCryptoWalletManagerEventSyncStopped(BRSyncStoppedReason reason) {
+            this.reason = reason;
+        }
+    }
+
+    public static class BRCryptoWalletManagerEventSyncRecommended {
+
+        public final BRSyncDepth depth;
+
+        BRCryptoWalletManagerEventSyncRecommended(BRSyncDepth depth) {
+            this.depth = depth;
+        }
+    }
+
+    public static class BRCryptoWalletManagerEventBlockHeight {
+
+        public final long value;
+
+        BRCryptoWalletManagerEventBlockHeight(long value) {
+            this.value = value;
+        }
+    }
+
+    public static class BRCryptoWalletManagerEventWallet {
+
+        public final BRCryptoWallet value;
+
+        BRCryptoWalletManagerEventWallet(BRCryptoWallet value) {
+            this.value = value;
+        }
+    }
+
+    public static class Struct extends Structure {
+
+        public int typeEnum;
+        public u_union u;
+
+        public static class u_union extends Union {
+
+            public state_struct state;
+            public wallet_struct wallet;
+            public syncContinues_struct syncContinues;
+            public syncStopped_struct syncStopped;
+            public syncRecommended_struct syncRecommended;
+            public blockHeight_struct blockHeight;
+
+            public static class state_struct extends Structure {
+
+                public BRCryptoWalletManagerState.Struct oldValue;
+                public BRCryptoWalletManagerState.Struct newValue;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("oldValue", "newValue");
+                }
+
+                long offsetOfOldState() {
+                    return fieldOffset("oldValue");
+                }
+
+                long offsetOfNewState() {
+                    return fieldOffset("newValue");
+                }
+            }
+
+            public static class wallet_struct extends Structure {
+
+                public BRCryptoWallet value;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("value");
+                }
+
+                long offsetOfWallet() {
+                    return fieldOffset("value");
+                }
+            }
+
+            public static class syncContinues_struct extends Structure {
+
+                public int timestamp;
+                public float percentComplete;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("timestamp", "percentComplete");
+                }
+
+                long offsetOfTimestamp() {
+                    return fieldOffset("timestamp");
+                }
+
+                long offsetOfPercentComplete() {
+                    return fieldOffset("percentComplete");
+                }
+            }
+
+            public static class syncStopped_struct extends Structure {
+
+                public BRSyncStoppedReason.Struct reason;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("reason");
+                }
+
+                long offsetOfReason() {
+                    return fieldOffset("reason");
+                }
+            }
+
+            public static class syncRecommended_struct extends Structure {
+
+                public int depthEnum;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("depthEnum");
+                }
+
+                long offsetOfDepth() {
+                    return fieldOffset("depthEnum");
+                }
+            }
+
+            public static class blockHeight_struct extends Structure {
+
+                public long value;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("value");
+                }
+
+                long offsetOfHeight() {
+                    return fieldOffset("value");
+                }
+            }
+        }
+
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("typeEnum", "u");
+        }
+
+        long offsetOfType() {
+            return fieldOffset("typeEnum");
+        }
+
+        long offsetOfUnion() {
+            return fieldOffset("u");
+        }
     }
 }

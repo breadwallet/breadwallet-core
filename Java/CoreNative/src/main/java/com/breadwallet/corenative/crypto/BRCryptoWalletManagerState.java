@@ -15,106 +15,153 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRCryptoWalletManagerState extends Structure {
+import static com.google.common.base.Preconditions.checkState;
 
-    public int typeEnum;
-    public u_union u;
+public class BRCryptoWalletManagerState {
 
-    public static class u_union extends Union {
+    public static BRCryptoWalletManagerState create(Struct struct) {
+        BRCryptoWalletManagerState state = null;
 
-        public disconnected_struct disconnected;
+        BRCryptoWalletManagerStateType type = struct.type();
 
-        public static class disconnected_struct extends Structure {
+        switch (struct.type()) {
+            case CRYPTO_WALLET_MANAGER_STATE_CREATED:
+            case CRYPTO_WALLET_MANAGER_STATE_DELETED:
+            case CRYPTO_WALLET_MANAGER_STATE_SYNCING:
+            case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:
+                state = new BRCryptoWalletManagerState(type);
+                break;
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                BRDisconnectReason reason = BRDisconnectReason.create(struct.u.disconnected.reason);
 
-            public BRDisconnectReason reason;
+                state = new BRCryptoWalletManagerState(type, reason);
+                break;
+        }
 
-            public disconnected_struct() {
-                super();
-            }
+        checkState(null != state);
+        return state;
+    }
 
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("reason");
-            }
+    public static BRCryptoWalletManagerState create(Pointer ptr) {
+        BRCryptoWalletManagerState state = null;
 
-            public disconnected_struct(BRDisconnectReason reason) {
-                super();
-                this.reason = reason;
-            }
+        long offset = STRUCT.offsetOfType();
+        BRCryptoWalletManagerStateType type = BRCryptoWalletManagerStateType.fromCore(ptr.getInt(offset));
 
-            public disconnected_struct(Pointer peer) {
-                super(peer);
-            }
+        offset = STRUCT.offsetOfUnion();
+        switch (type) {
+            case CRYPTO_WALLET_MANAGER_STATE_CREATED:
+            case CRYPTO_WALLET_MANAGER_STATE_DELETED:
+            case CRYPTO_WALLET_MANAGER_STATE_SYNCING:
+            case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:
+                state = new BRCryptoWalletManagerState(type);
+                break;
+            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                BRDisconnectReason reason = BRDisconnectReason.create(ptr.share(offset + STRUCT.u.disconnected.offsetOfReason()));
 
-            public static class ByReference extends disconnected_struct implements Structure.ByReference {
+                state = new BRCryptoWalletManagerState(type, reason);
+                break;
+        }
 
-            }
+        checkState(null != state);
+        return state;
+    }
 
-            public static class ByValue extends disconnected_struct implements Structure.ByValue {
+    private static Struct STRUCT = new Struct();
 
+    public final BRCryptoWalletManagerStateType type;
+    public final BRCryptoWalletManagerStateDisconnected disconnected;
+
+    private BRCryptoWalletManagerState(BRCryptoWalletManagerStateType type,
+                                       BRCryptoWalletManagerStateDisconnected disconnected) {
+        this.type = type;
+        this.disconnected = disconnected;
+    }
+
+    public BRCryptoWalletManagerState(BRCryptoWalletManagerStateType type) {
+        this(
+                type,
+                (BRCryptoWalletManagerStateDisconnected) null
+        );
+    }
+
+    public BRCryptoWalletManagerState(BRCryptoWalletManagerStateType type,
+                                      BRDisconnectReason reason) {
+        this(
+                type,
+                new BRCryptoWalletManagerStateDisconnected(reason)
+        );
+    }
+
+    public static class BRCryptoWalletManagerStateDisconnected {
+
+        public final BRDisconnectReason reason;
+
+        BRCryptoWalletManagerStateDisconnected(BRDisconnectReason reason) {
+            this.reason = reason;
+        }
+    }
+
+    public static class Struct extends Structure {
+
+        public int typeEnum;
+        public u_union u;
+
+        public static class u_union extends Union {
+
+            public disconnected_struct disconnected;
+
+            public static class disconnected_struct extends Structure {
+
+                public BRDisconnectReason.Struct reason;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("reason");
+                }
+
+                long offsetOfReason() {
+                    return fieldOffset("reason");
+                }
             }
         }
 
-        public u_union() {
+        public Struct() {
             super();
         }
 
-        public u_union(disconnected_struct state) {
-            super();
-            this.disconnected = state;
-            setType(disconnected_struct.class);
-        }
-
-        public u_union(Pointer peer) {
+        public Struct(Pointer peer) {
             super(peer);
         }
 
-        public static class ByReference extends u_union implements Structure.ByReference {
-
+        public BRCryptoWalletManagerStateType type() {
+            return BRCryptoWalletManagerStateType.fromCore(typeEnum);
         }
 
-        public static class ByValue extends u_union implements Structure.ByValue {
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("typeEnum", "u");
+        }
+
+        @Override
+        public void read() {
+            super.read();
+            switch (type()){
+                case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
+                    u.setType(u_union.disconnected_struct.class);
+                    u.read();
+                    break;
+            }
+        }
+
+        long offsetOfType() {
+            return fieldOffset("typeEnum");
+        }
+
+        long offsetOfUnion() {
+            return fieldOffset("u");
+        }
+
+        public static class ByValue extends Struct implements Structure.ByValue {
 
         }
-    }
-
-    public BRCryptoWalletManagerState() {
-        super();
-    }
-
-    public BRCryptoWalletManagerStateType type() {
-        return BRCryptoWalletManagerStateType.fromCore(typeEnum);
-    }
-
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("typeEnum", "u");
-    }
-
-    public BRCryptoWalletManagerState(int type, u_union u) {
-        super();
-        this.typeEnum = type;
-        this.u = u;
-    }
-
-    public BRCryptoWalletManagerState(Pointer peer) {
-        super(peer);
-    }
-
-    @Override
-    public void read() {
-        super.read();
-        switch (type()){
-            case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED:
-                u.setType(u_union.disconnected_struct.class);
-                u.read();
-                break;
-        }
-    }
-
-    public static class ByReference extends BRCryptoWalletManagerState implements Structure.ByReference {
-
-    }
-
-    public static class ByValue extends BRCryptoWalletManagerState implements Structure.ByValue {
-
     }
 }

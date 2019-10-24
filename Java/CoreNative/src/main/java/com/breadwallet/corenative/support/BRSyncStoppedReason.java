@@ -17,108 +17,157 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRSyncStoppedReason extends Structure {
+import static com.google.common.base.Preconditions.checkState;
 
-    public int typeEnum;
-    public u_union u;
+public class BRSyncStoppedReason {
 
-    public static class u_union extends Union {
+    public static BRSyncStoppedReason create(Pointer ptr) {
+        BRSyncStoppedReason event = null;
 
-        public posix_struct posix;
+        long offset = STRUCT.offsetOfType();
+        BRSyncStoppedReasonType type = BRSyncStoppedReasonType.fromCore(ptr.getInt(offset));
 
-        public static class posix_struct extends Structure {
+        offset = STRUCT.offsetOfUnion();
+        switch (type) {
+            case SYNC_STOPPED_REASON_POSIX:
+                int errnum = ptr.getInt(offset + STRUCT.u.posix.offsetOfErrnum());
 
-            public int errnum = 0;
-
-            public posix_struct() {
-                super();
-            }
-
-            protected List<String> getFieldOrder() {
-                return Arrays.asList("errnum");
-            }
-
-            public posix_struct(int errnum) {
-                super();
-                this.errnum = errnum;
-            }
-
-            public posix_struct(Pointer peer) {
-                super(peer);
-            }
-
-            public static class ByReference extends posix_struct implements Structure.ByReference {
-
-            }
-
-            public static class ByValue extends posix_struct implements Structure.ByValue {
-
-            }
+                event = new BRSyncStoppedReason(type, errnum);
+                break;
+            case SYNC_STOPPED_REASON_UNKNOWN:
+            case SYNC_STOPPED_REASON_COMPLETE:
+            case SYNC_STOPPED_REASON_REQUESTED:
+                event = new BRSyncStoppedReason(type);
+                break;
         }
 
-        public u_union() {
-            super();
-        }
-
-        public u_union(posix_struct state) {
-            super();
-            this.posix = state;
-            setType(posix_struct.class);
-        }
-
-        public u_union(Pointer peer) {
-            super(peer);
-        }
-
-        public static class ByReference extends u_union implements Structure.ByReference {
-
-        }
-
-        public static class ByValue extends u_union implements Structure.ByValue {
-
-        }
+        checkState(null != event);
+        return event;
     }
 
-    public BRSyncStoppedReason() {
-        super();
+    private static Struct STRUCT = new Struct();
+
+    public final BRSyncStoppedReasonType type;
+    public final BRSyncStoppedReasonPosix posix;
+
+    private BRSyncStoppedReason(BRSyncStoppedReasonType type,
+                                BRSyncStoppedReasonPosix posix) {
+        this.type = type;
+        this.posix = posix;
     }
 
-    public BRSyncStoppedReasonType type() {
-        return BRSyncStoppedReasonType.fromCore(typeEnum);
+    public BRSyncStoppedReason(BRSyncStoppedReasonType type) {
+        this(
+                type,
+                null
+        );
     }
 
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("typeEnum", "u");
-    }
-
-    public BRSyncStoppedReason(int type, u_union u) {
-        super();
-        this.typeEnum = type;
-        this.u = u;
-    }
-
-    public BRSyncStoppedReason(Pointer peer) {
-        super(peer);
-    }
-
-    @Override
-    public void read() {
-        super.read();
-        if (type() == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX)
-            u.setType(u_union.posix_struct.class);
-        u.read();
+    public BRSyncStoppedReason(BRSyncStoppedReasonType type,
+                               int errnum) {
+        this(
+                type,
+                new BRSyncStoppedReasonPosix(errnum)
+        );
     }
 
     public Optional<String> getMessage() {
-        Pointer ptr = CryptoLibraryDirect.BRSyncStoppedReasonGetMessage(this);
-        try {
-            return Optional.fromNullable(
-                    ptr
-            ).transform(
-                    a -> a.getString(0, "UTF-8")
-            );
-        } finally {
-            if (ptr != null) Native.free(Pointer.nativeValue(ptr));
+        // TODO(fix): Cache this?
+        Struct core = new Struct(this);
+        core.setAutoRead(false);
+        core.setAutoWrite(true);
+        return core.getMessage();
+    }
+
+    public static class BRSyncStoppedReasonPosix {
+
+        public final int errnum;
+
+        BRSyncStoppedReasonPosix(int errnum) {
+            this.errnum = errnum;
+        }
+    }
+
+    public static class Struct extends Structure {
+        public int typeEnum;
+        public u_union u;
+
+        public static class u_union extends Union {
+
+            public posix_struct posix;
+
+            public static class posix_struct extends Structure {
+
+                public int errnum = 0;
+
+                protected List<String> getFieldOrder() {
+                    return Arrays.asList("errnum");
+                }
+
+                long offsetOfErrnum() {
+                    return fieldOffset("errnum");
+                }
+            }
+        }
+
+        public Struct() {
+            super();
+        }
+
+        public Struct(Pointer pointer) {
+            super(pointer);
+        }
+
+        public Struct(BRSyncStoppedReason reason) {
+            this.typeEnum =  reason.type.toCore();
+            // TODO(fix): Figure out how to get the errnum field populated
+        }
+
+        public BRSyncStoppedReasonType type() {
+            return BRSyncStoppedReasonType.fromCore(typeEnum);
+        }
+
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("typeEnum", "u");
+        }
+
+        @Override
+        public void read() {
+            super.read();
+            if (type() == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX) {
+                u.setType(u_union.posix_struct.class);
+                u.read();
+            }
+        }
+
+        @Override
+        public void write() {
+            if (type() == BRSyncStoppedReasonType.SYNC_STOPPED_REASON_POSIX) {
+                u.setType(u_union.posix_struct.class);
+                u.write();
+            }
+            super.write();
+        }
+
+        public Optional<String> getMessage() {
+            Pointer ptr = CryptoLibraryDirect.BRSyncStoppedReasonGetMessage(this);
+            try {
+                return Optional.fromNullable(
+                        ptr
+                ).transform(
+                        a -> a.getString(0, "UTF-8")
+                );
+            } finally {
+                if (ptr != null) Native.free(Pointer.nativeValue(ptr));
+            }
+        }
+
+        long offsetOfType() {
+            return fieldOffset("typeEnum");
+        }
+
+        long offsetOfUnion() {
+            return fieldOffset("u");
         }
     }
 }
