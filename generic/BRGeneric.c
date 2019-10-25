@@ -34,6 +34,11 @@ genNetworkGetType (BRGenericNetwork network) {
     return network->type;
 }
 
+extern int
+genNetworkIsMainnet (BRGenericNetwork network) {
+    return 1;
+}
+
 // MARK: - Account
 
 IMPLEMENT_GENERIC_TYPE(Account, account)
@@ -202,6 +207,23 @@ genTransferSetState (BRGenericTransfer transfer,
 extern uint8_t *
 genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount) {
     return transfer->handlers.getSerialization (transfer->ref, bytesCount);
+}
+
+static size_t
+genTransferSetHash (const void *transferPtr) {
+    BRGenericTransfer transfer = (BRGenericTransfer) transferPtr;
+    return genTransferGetHash (transfer).value.u32[0];
+}
+
+static int
+genTransferSetEqual (const void *transferPtr1, const void *transferPtr2) {
+    return eqUInt256 (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
+                      genTransferGetHash((BRGenericTransfer) transferPtr2).value);
+}
+
+extern BRSetOf (BRGenericTransfer)
+genTransferSetCreate (size_t capacity) {
+    return BRSetNew (genTransferSetHash, genTransferSetEqual, capacity);
 }
 
 // MARK: - Wallet

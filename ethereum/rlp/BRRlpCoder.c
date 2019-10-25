@@ -670,7 +670,7 @@ rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
 // String
 //
 extern BRRlpItem
-rlpEncodeString (BRRlpCoder coder, char *string) {
+rlpEncodeString (BRRlpCoder coder, const char *string) {
     if (NULL == string) string = "";
     return rlpEncodeBytes(coder, (uint8_t *) string, strlen (string));
 }
@@ -710,7 +710,7 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item) {
 // Hex String
 //
 extern BRRlpItem
-rlpEncodeHexString (BRRlpCoder coder, char *string) {
+rlpEncodeHexString (BRRlpCoder coder, const char *string) {
     if (NULL == string || string[0] == '\0')
         return rlpEncodeString(coder, "");
     
