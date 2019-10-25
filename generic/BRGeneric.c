@@ -210,20 +210,20 @@ genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount) {
 }
 
 static size_t
-genTransferSetHash (const void *transferPtr) {
+genTransferGetHashForSet (const void *transferPtr) {
     BRGenericTransfer transfer = (BRGenericTransfer) transferPtr;
     return genTransferGetHash (transfer).value.u32[0];
 }
 
 static int
-genTransferSetEqual (const void *transferPtr1, const void *transferPtr2) {
+genTransferIsEqualForSet (const void *transferPtr1, const void *transferPtr2) {
     return eqUInt256 (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
                       genTransferGetHash((BRGenericTransfer) transferPtr2).value);
 }
 
 extern BRSetOf (BRGenericTransfer)
 genTransferSetCreate (size_t capacity) {
-    return BRSetNew (genTransferSetHash, genTransferSetEqual, capacity);
+    return BRSetNew (genTransferGetHashForSet, genTransferIsEqualForSet, capacity);
 }
 
 // MARK: - Wallet
