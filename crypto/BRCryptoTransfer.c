@@ -19,6 +19,10 @@
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
 
+static void
+cryptoTransferUpdateConfirmedFeeBasis (BRCryptoTransfer transfer,
+                                       BRCryptoAmount fee);
+
 /**
  *
  */
@@ -480,6 +484,13 @@ cryptoTransferSetState (BRCryptoTransfer transfer,
 
     pthread_mutex_lock (&transfer->lock);
     BRCryptoTransferState oldState = transfer->state;
+
+    // If we are now 'included', update the 'confirmedFeeBasis
+    if (CRYPTO_TRANSFER_STATE_INCLUDED == newState.type &&
+        CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type) {
+        cryptoTransferUpdateConfirmedFeeBasis (transfer, cryptoAmountTake (newState.u.included.fee));
+    }
+
     transfer->state = newState;
     pthread_mutex_unlock (&transfer->lock);
 
@@ -640,6 +651,47 @@ cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
     pthread_mutex_unlock (&transfer->lock);
 
     if (NULL != oldFeeBasisConfirmed) cryptoFeeBasisGive (oldFeeBasisConfirmed);
+}
+
+static void
+cryptoTransferUpdateConfirmedFeeBasis (BRCryptoTransfer transfer,
+                                       BRCryptoAmount fee) {
+    BRCryptoFeeBasis feeBasisConfirmed = NULL;
+
+    BRCryptoUnit unit = cryptoAmountGetUnit(fee);
+
+    switch (transfer->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRCryptoBoolean overflow = CRYPTO_FALSE;
+            uint64_t feeInSAT = cryptoAmountGetIntegerRaw(fee, &overflow);
+            assert (CRYPTO_FALSE == overflow);
+
+            uint32_t sizeInByte = (uint32_t) BRTransactionVSize (transfer->u.btc.tid);
+            uint32_t feePerKb   = (uint32_t) ((1000 * feeInSAT) / sizeInByte);
+            feeBasisConfirmed = cryptoFeeBasisCreateAsBTC (unit, feePerKb, sizeInByte);
+            break;
+        }
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumFeeBasis ethFeeBasis = ewmTransferGetFeeBasis (transfer->u.eth.ewm, transfer->u.eth.tid);
+            // TODO: Modify the gas.limit such that (fee = price * limit)
+            feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit, ethFeeBasis.u.gas.limit, ethFeeBasis.u.gas.price);
+            break;
+        }
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericFeeBasis genFeeBasis = genTransferGetFeeBasis (transfer->u.gen);
+            // TODO: Modify genFeeBasis to have 'fee'
+            feeBasisConfirmed = cryptoFeeBasisCreateAsGEN (unit, genFeeBasis);
+            break;
+        }
+    }
+
+    cryptoUnitGive(unit);
+    cryptoAmountGive(fee);
+
+    if (NULL != feeBasisConfirmed) {
+        cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
+        cryptoFeeBasisGive(feeBasisConfirmed);
+    }
 }
 
 private_extern BRTransaction *
