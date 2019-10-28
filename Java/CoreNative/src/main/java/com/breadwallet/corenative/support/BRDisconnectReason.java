@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.support;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.base.Optional;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -110,7 +110,7 @@ public class BRDisconnectReason extends Structure {
     }
 
     public Optional<String> getMessage() {
-        Pointer ptr = CryptoLibrary.INSTANCE.BRDisconnectReasonGetMessage(this);
+        Pointer ptr = CryptoLibraryDirect.BRDisconnectReasonGetMessage(this);
         try {
             return Optional.fromNullable(
                     ptr

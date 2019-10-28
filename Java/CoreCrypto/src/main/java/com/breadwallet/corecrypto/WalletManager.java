@@ -293,15 +293,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    Optional<Wallet> getWalletOrCreate(BRCryptoWallet wallet) {
-        Optional<Wallet> optional = getWallet(wallet);
-        if (optional.isPresent()) {
-            return optional;
-
-        } else {
-            Log.d(TAG, "Wallet not found, creating wrapping instance");
-            return Optional.of(Wallet.takeAndCreate(wallet, this, callbackCoordinator));
-        }
+    Wallet createWallet(BRCryptoWallet wallet) {
+        return Wallet.takeAndCreate(wallet, this, callbackCoordinator);
     }
 
     /* package */

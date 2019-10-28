@@ -213,15 +213,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransferOrCreate(BRCryptoTransfer transfer) {
-        Optional<Transfer> optional = getTransfer(transfer);
-        if (optional.isPresent()) {
-            return optional;
-
-        } else {
-            Log.d(TAG, "Transfer not found, creating wrapping instance");
-            return Optional.of(Transfer.takeAndCreate(transfer, this));
-        }
+    Transfer createTransfer(BRCryptoTransfer transfer) {
+        return Transfer.takeAndCreate(transfer, this);
     }
 
     /* package */

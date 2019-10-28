@@ -57,7 +57,7 @@ android {
 }
 
 dependencies {
-    api 'net.java.dev.jna:jna:5.3.1@aar'
+    api 'net.java.dev.jna:jna:5.4.0@aar'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.guava:guava:25.1-android'
     testImplementation 'junit:junit:4.12'

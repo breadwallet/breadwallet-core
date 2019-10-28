@@ -7,14 +7,12 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
-import com.sun.jna.FromNativeContext;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
-import com.sun.jna.NativeMapped;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.StringArray;
@@ -42,7 +40,7 @@ public class BRCryptoKey extends PointerType {
                 keyMemory.write(0, keyString, 0, keyString.length);
                 ByteBuffer keyBuffer = keyMemory.getByteBuffer(0, keyString.length);
 
-                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyIsProtectedPrivate(keyBuffer);
+                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoKeyIsProtectedPrivate(keyBuffer);
             } finally {
                 keyMemory.clear();
             }
@@ -63,7 +61,12 @@ public class BRCryptoKey extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromPhraseWithWords(phraseBuffer, wordsArray));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateFromPhraseWithWords(
+                                phraseBuffer,
+                                wordsArray
+                        )
+                ).transform(BRCryptoKey::new);
             } finally {
                 phraseMemory.clear();
             }
@@ -82,7 +85,11 @@ public class BRCryptoKey extends PointerType {
                 keyMemory.write(0, keyString, 0, keyString.length);
                 ByteBuffer keyBuffer = keyMemory.getByteBuffer(0, keyString.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromStringPrivate(keyBuffer));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateFromStringPrivate(
+                                keyBuffer
+                        )
+                ).transform(BRCryptoKey::new);
             } finally {
                 keyMemory.clear();
             }
@@ -105,7 +112,12 @@ public class BRCryptoKey extends PointerType {
                 ByteBuffer keyBuffer = memory.getByteBuffer(0, keyString.length);
                 ByteBuffer phraseBuffer = memory.getByteBuffer(keyString.length, phraseString.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromStringProtectedPrivate(keyBuffer, phraseBuffer));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateFromStringProtectedPrivate(
+                                keyBuffer,
+                                phraseBuffer
+                        )
+                ).transform(BRCryptoKey::new);
             } finally {
                 memory.clear();
             }
@@ -125,7 +137,11 @@ public class BRCryptoKey extends PointerType {
                 keyMemory.write(0, keyString, 0, keyString.length);
                 ByteBuffer keyBuffer = keyMemory.getByteBuffer(0, keyString.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromStringPublic(keyBuffer));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateFromStringPublic(
+                                keyBuffer
+                        )
+                ).transform(BRCryptoKey::new);
             } finally {
                 keyMemory.clear();
             }
@@ -136,7 +152,13 @@ public class BRCryptoKey extends PointerType {
     }
 
     public static Optional<BRCryptoKey> createForPigeon(BRCryptoKey key, byte[] nonce) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateForPigeon(key, nonce, new SizeT(nonce.length)));
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoKeyCreateForPigeon(
+                        key.getPointer(),
+                        nonce,
+                        new SizeT(nonce.length)
+                )
+        ).transform(BRCryptoKey::new);
     }
 
     public static Optional<BRCryptoKey> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words) {
@@ -150,7 +172,12 @@ public class BRCryptoKey extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateForBIP32ApiAuth(phraseBuffer, wordsArray));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateForBIP32ApiAuth(
+                                phraseBuffer,
+                                wordsArray
+                        )
+                ).transform(BRCryptoKey::new);
             } finally {
                 phraseMemory.clear();
             }
@@ -171,7 +198,14 @@ public class BRCryptoKey extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateForBIP32BitID(phraseBuffer, index, uri, wordsArray));
+                return Optional.fromNullable(
+                        CryptoLibraryDirect.cryptoKeyCreateForBIP32BitID(
+                                phraseBuffer,
+                                index,
+                                uri,
+                                wordsArray
+                        )
+                ).transform(BRCryptoKey::new);
 
             } finally {
                 phraseMemory.clear();
@@ -183,11 +217,17 @@ public class BRCryptoKey extends PointerType {
     }
 
     public static Optional<BRCryptoKey> cryptoKeyCreateFromSecret(byte[] secret) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromSecret(new UInt256(secret).toByValue()));
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoKeyCreateFromSecret(
+                        new UInt256(secret).toByValue()
+                )
+        ).transform(BRCryptoKey::new);
     }
 
     public byte[] encodeAsPrivate() {
-        Pointer ptr = CryptoLibrary.INSTANCE.cryptoKeyEncodePrivate(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer ptr = CryptoLibraryDirect.cryptoKeyEncodePrivate(thisPtr);
         try {
             return ptr.getByteArray(0, (int) ptr.indexOf(0, (byte) 0));
         } finally {
@@ -196,7 +236,9 @@ public class BRCryptoKey extends PointerType {
     }
 
     public byte[] encodeAsPublic() {
-        Pointer ptr = CryptoLibrary.INSTANCE.cryptoKeyEncodePublic(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer ptr = CryptoLibraryDirect.cryptoKeyEncodePublic(thisPtr);
         try {
             return ptr.getByteArray(0, (int) ptr.indexOf(0, (byte) 0));
         } finally {
@@ -205,26 +247,38 @@ public class BRCryptoKey extends PointerType {
     }
 
     public boolean hasSecret() {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyHasSecret(this);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoKeyHasSecret(thisPtr);
     }
 
     public byte[] getSecret() {
-        return CryptoLibrary.INSTANCE.cryptoKeyGetSecret(this).u8;
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoKeyGetSecret(thisPtr).u8;
     }
 
     public boolean privateKeyMatch(BRCryptoKey other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeySecretMatch(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoKeySecretMatch(thisPtr, other.getPointer());
     }
 
     public boolean publicKeyMatch(BRCryptoKey other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyPublicMatch(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoKeyPublicMatch(thisPtr, other.getPointer());
     }
 
     public void providePublicKey(int useCompressed, int compressed) {
-        CryptoLibrary.INSTANCE.cryptoKeyProvidePublicKey(this, useCompressed, compressed);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoKeyProvidePublicKey(thisPtr, useCompressed, compressed);
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoKeyGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoKeyGive(thisPtr);
     }
 }
