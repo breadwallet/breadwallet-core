@@ -264,6 +264,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // Load transfers from persistent storage
             BRArrayOf(BRGenericTransfer) transfers = genManagerLoadTransfers (cwm->u.gen);
             for (size_t index = 0; index < array_count (transfers); index++) {
+                // TODO: A BRGenericTransfer must allow us to determine the Wallet (via a Currency).
                 cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
             }
 
@@ -1011,9 +1012,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     
     // TODO: Determine the currency from `transferGeneric`
     BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-
-    // TODO: Determine the wallet from transferGeneric (not always the primaryWallet)
-    BRCryptoWallet wallet = cwm->wallet;
+    BRCryptoWallet   wallet   = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
 
     // Look for a known transfer
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsGEN (wallet, transferGeneric);
@@ -1074,6 +1073,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     }
 
     cryptoTransferGive(transfer);
+    cryptoWalletGive (wallet);
     cryptoCurrencyGive(currency);
 }
 
