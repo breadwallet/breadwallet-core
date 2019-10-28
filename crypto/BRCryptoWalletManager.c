@@ -1042,7 +1042,10 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
         });
 
         // Add the restored transfer to its wallet...
-        cryptoWalletAddTransfer (cwm->wallet, transfer);
+        cryptoWalletAddTransfer (wallet, transfer);
+
+        // ... tell 'generic wallet' about it.
+        genWalletAddTransfer (cryptoWalletAsGEN(wallet), transferGeneric);
 
         // ... and announce the wallet's newly added transfer
         cwm->listener.walletEventCallback (cwm->listener.context,
