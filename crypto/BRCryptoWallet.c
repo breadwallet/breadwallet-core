@@ -182,22 +182,6 @@ cryptoWalletGetUnitForFee (BRCryptoWallet wallet) {
     return cryptoUnitTake (wallet->unitForFee);
 }
 
-static BRCryptoAmount cryptoWalletGenerateBalance(BRCryptoWallet wallet) {
-    // Go through the list of transfers and add up the amounts.
-    pthread_mutex_lock (&wallet->lock); // no list changes allowed while processing
-    BRCryptoAmount total = cryptoAmountCreateInteger(0, wallet->unit);
-    for (size_t index = 0; index < array_count(wallet->transfers); index++) {
-        BRCryptoTransfer transfer = wallet->transfers[index];
-        BRCryptoAmount amountDirected = cryptoTransferGetAmountDirected(transfer);
-        BRCryptoAmount nextTotal = cryptoAmountAdd(total, amountDirected);
-        cryptoAmountGive(amountDirected);
-        cryptoAmountGive(total);
-        total = nextTotal;
-    }
-    pthread_mutex_unlock (&wallet->lock); // list is open for changes now
-    return total;
-}
-
 extern BRCryptoAmount
 cryptoWalletGetBalance (BRCryptoWallet wallet) {
     switch (wallet->type) {
@@ -218,7 +202,9 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
             return amount;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
-            return cryptoWalletGenerateBalance(wallet);
+            return cryptoAmountCreate (wallet->unit,
+                                       CRYPTO_FALSE,
+                                       genWalletGetBalance (cryptoWalletAsGEN(wallet)));
         }
     }
 }
