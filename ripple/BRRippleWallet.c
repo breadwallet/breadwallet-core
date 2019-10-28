@@ -155,9 +155,9 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
         BRRippleAddress source = rippleTransferGetSource(transfer);
         if (1 == rippleAddressEqual(accountAddress, source)) {
-            wallet->balance = wallet->balance - amount;
+            wallet->balance -= (amount + rippleTransferGetFee (transfer));
         } else {
-            wallet->balance = wallet->balance + amount;
+            wallet->balance += amount;
         }
         rippleAddressFree (source);
 
