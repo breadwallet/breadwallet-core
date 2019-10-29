@@ -663,15 +663,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
                 // the feeBasisConfirmed is identical to feeBasisEstimated
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
-                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
-                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
 
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (btcTransaction->blockHeight,
                                                                                   0,
                                                                                   btcTransaction->timestamp,
-                                                                                  fee);
+                                                                                  feeBasisConfirmed);
 
-                cryptoAmountGive (fee);
                 cryptoFeeBasisGive (feeBasisConfirmed);
 
                 cryptoTransferSetState (transfer, newState);
@@ -721,15 +718,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
                 // the feeBasisConfirmed is identical to feeBasisEstimated
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
-                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
-                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
 
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (event.u.updated.blockHeight,
                                                                                   0,
                                                                                   event.u.updated.timestamp,
-                                                                                  fee);
+                                                                                  feeBasisConfirmed);
 
-                cryptoAmountGive (fee);
                 cryptoFeeBasisGive(feeBasisConfirmed);
 
                 cryptoTransferSetState (transfer, newState);
@@ -1296,17 +1290,13 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit,
                                                                                 feeBasisGetGasLimit(ethFeeBasis),
                                                                                 feeBasisGetGasPrice(ethFeeBasis));
-                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
-
-                cryptoTransferSetConfirmedFeeBasis(transfer, feeBasisConfirmed);
 
                 ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (blockNumber,
                                                                                   blockTransactionIndex,
                                                                                   blockTimestamp,
-                                                                                  fee);
+                                                                                  feeBasisConfirmed);
 
-                cryptoAmountGive (fee);
                 cryptoFeeBasisGive (feeBasisConfirmed);
                 cryptoUnitGive (unit);
 

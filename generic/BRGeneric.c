@@ -168,11 +168,6 @@ genTransferGetAmount (BRGenericTransfer transfer) {
 
 // TODO: Direction is needed?
 
-extern UInt256
-genTransferGetFee (BRGenericTransfer transfer) {
-    return transfer->handlers.fee (transfer->ref);
-}
-
 extern BRGenericFeeBasis
 genTransferGetFeeBasis (BRGenericTransfer transfer) {
     return transfer->handlers.feeBasis (transfer->ref);

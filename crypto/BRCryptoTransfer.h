@@ -40,7 +40,7 @@ extern "C" {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
                 uint64_t timestamp;
-                BRCryptoAmount fee;
+                BRCryptoFeeBasis feeBasis;
             } included;
 
             struct {
@@ -56,7 +56,7 @@ extern "C" {
     cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                      uint64_t transactionIndex,
                                      uint64_t timestamp,
-                                     BRCryptoAmount fee);
+                                     BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoTransferState
     cryptoTransferStateErroredInit (BRTransferSubmitError error);

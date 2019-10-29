@@ -103,9 +103,6 @@ extern "C" {
     extern UInt256
     genTransferGetAmount (BRGenericTransfer transfer);
 
-    extern UInt256
-    genTransferGetFee (BRGenericTransfer transfer);
-
     extern BRGenericFeeBasis
     genTransferGetFeeBasis (BRGenericTransfer transfer);
 
