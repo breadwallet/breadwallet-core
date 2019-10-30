@@ -138,7 +138,7 @@ public class CoreCryptoApplication extends Application {
 
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
-            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch");
+            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch", "xrp");
             systemListener = new DispatchingSystemListener();
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 

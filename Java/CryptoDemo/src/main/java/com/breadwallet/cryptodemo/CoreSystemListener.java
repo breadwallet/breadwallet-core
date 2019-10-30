@@ -121,16 +121,17 @@ public class CoreSystemListener implements SystemListener {
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
         Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
 
-        ApplicationExecutors.runOnBlockingExecutor(() -> {
-            event.accept(new DefaultWalletEventVisitor<Void>() {
-                @Nullable
-                @Override
-                public Void visit(WalletCreatedEvent event) {
-                    Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
-                    return null;
-                }
-            });
-        });
+//        TODO(fix): Uncomment when GEN address works
+//        ApplicationExecutors.runOnBlockingExecutor(() -> {
+//            event.accept(new DefaultWalletEventVisitor<Void>() {
+//                @Nullable
+//                @Override
+//                public Void visit(WalletCreatedEvent event) {
+//                    Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
+//                    return null;
+//                }
+//            });
+//        });
     }
 
     @Override
