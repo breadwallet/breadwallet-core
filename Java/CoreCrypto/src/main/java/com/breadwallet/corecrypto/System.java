@@ -89,6 +89,7 @@ import com.breadwallet.crypto.migration.PeerBlob;
 import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
@@ -2427,26 +2428,7 @@ final class System implements com.breadwallet.crypto.System {
                                         Log.d(TAG, "BRCryptoCWMGenGetTransfersCallback received transfers");
 
                                         for (Transaction transaction : transactions) {
-                                            UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
-                                            UnsignedLong timestamp =
-                                                    transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
-
-                                            for (com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transfer: transaction.getTransfers()) {
-                                                // TODO - see the note in JIRA item CORE-648 about what we do with
-                                                // the following check (remove or assert)
-                                                if (address.equals(transfer.getSource().orNull()) ||
-                                                    address.equals(transfer.getTarget().orNull())) {
-                                                    Log.d(TAG, "BRCryptoCWMGenGetTransfersCallback  announcing " + transfer.getId());
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState,
-                                                            transaction.getHash(),
-                                                            transfer.getSource().orNull(),
-                                                            transfer.getTarget().orNull(),
-                                                            transfer.getAmountValue(),
-                                                            transfer.getAmountCurrency(),
-                                                            timestamp,
-                                                            blockHeight);
-                                                }
-                                            }
+                                            System.announceMergedFees(walletManager, callbackState, address, transaction);
                                         }
 
                                         Log.d(TAG, "BRCryptoCWMGenGetTransfersCallback : complete");
@@ -2473,6 +2455,52 @@ final class System implements com.breadwallet.crypto.System {
                 coreWalletManager.give();
             }
         });
+    }
+
+    private static void announceMergedFees(WalletManager walletManager, BRCryptoCWMClientCallbackState callbackState, String address, Transaction transaction) {
+        UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+        UnsignedLong timestamp = transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
+
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfers;
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfersWithFee;
+        com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transferWithFee;
+
+        // Only consider transfers w/ `address`
+        transfers = new ArrayList<>(Collections2.filter(transaction.getTransfers(), t -> address.equals(t.getSource().orNull()) || address.equals(t.getTarget().orNull())));
+
+        // Find a transfer with a target of "__fee__" if one exists.
+        transfersWithFee = new ArrayList<>(Collections2.filter(transfers, t -> "__fee__".equals(t.getTarget().orNull())));
+        checkState(transfersWithFee.size() <= 1);
+
+        // Get the transferWithFee if we have one
+        transferWithFee = transfersWithFee.isEmpty() ? null : transfersWithFee.get(0);
+
+        // There sould be one an only one transfer that matches the fee.  We match based on
+        // transactionId and source (address).  Sufficient?
+        for (com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transfer: transfersWithFee) {
+            String fee;
+            if (transferWithFee == null) {
+                fee = null;
+            } else {
+                if (transferWithFee.getTransactionId().equals(transfer.getTransactionId()) &&
+                    transferWithFee.getSource().equals(transfer.getSource())) {
+                    fee = transferWithFee.getAmountValue();
+                } else {
+                    fee = null;
+                }
+            }
+
+            Log.d(TAG, "BRCryptoCWMGenGetTransfersCallback  announcing " + transfer.getId());
+            walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState,
+                    transaction.getHash(),
+                    transfer.getSource().orNull(),
+                    transfer.getTarget().orNull(),
+                    transfer.getAmountValue(),
+                    transfer.getAmountCurrency(),
+                    fee,
+                    timestamp,
+                    blockHeight);
+        }
     }
 
     private static void genSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,

@@ -276,6 +276,7 @@ public class BRCryptoWalletManager extends PointerType {
                                             String to,
                                             String amount,
                                             String currency,
+                                            String fee,
                                             UnsignedLong timestamp,
                                             UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
@@ -288,6 +289,7 @@ public class BRCryptoWalletManager extends PointerType {
                 to,
                 amount,
                 currency,
+                fee,
                 timestamp.longValue(),
                 blockHeight.longValue());
     }

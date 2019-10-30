@@ -276,7 +276,7 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
                                                             String hash, String sourceAddr, String targetAddr,
-                                                            String amount, String currency,
+                                                            String amount, String currency, String fee,
                                                             long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransfersComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceSubmitTransferSuccess(Pointer cwm, Pointer callbackState);
