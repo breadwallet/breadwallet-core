@@ -28,6 +28,10 @@ public final class CryptoApi {
         boolean validatePhrase(byte[] phraseUtf8, List<String> words);
     }
 
+    public interface AddressProvider {
+        Optional<Address> create(String address, Network network);
+    }
+
     public interface AmountProvider {
         Amount create(long value, Unit unit);
         Amount create(double value, Unit unit);
@@ -81,6 +85,7 @@ public final class CryptoApi {
 
     public interface Provider {
         AccountProvider accountProvider();
+        AddressProvider addressProvider();
         AmountProvider amountProvider();
         SystemProvider systemProvider();
         PaymentProvider paymentProvider();

@@ -49,6 +49,7 @@ public final class CryptoLibraryDirect {
     public static native void cryptoAccountGive(Pointer obj);
 
     // crypto/BRCryptoAddress.h
+    public static native Pointer cryptoAddressCreateFromString(Pointer pointer, String address);
     public static native Pointer cryptoAddressAsString(Pointer address);
     public static native int cryptoAddressIsIdentical(Pointer a1, Pointer a2);
     public static native void cryptoAddressGive(Pointer obj);
@@ -130,7 +131,6 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoNetworkGetUnitAt(Pointer network, Pointer currency, SizeT index);
     // public static native void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
     public static native Pointer cryptoNetworkGetNetworkFees(Pointer network, SizeTByReference count);
-    public static native Pointer cryptoNetworkCreateAddressFromString(Pointer network, String address);
     public static native Pointer cryptoNetworkTake(Pointer obj);
     public static native void cryptoNetworkGive(Pointer obj);
 
