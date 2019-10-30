@@ -29,12 +29,9 @@
 
 ///
 #include "support/BRBIP32Sequence.h"
-#include "bitcoin/BRChainParams.h"
 #include "bitcoin/BRTransaction.h"
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
-#include "bcash/BRBCashParams.h"
-#include "ethereum/BREthereum.h"
 #include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
