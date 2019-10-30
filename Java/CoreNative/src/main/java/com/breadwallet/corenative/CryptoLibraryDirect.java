@@ -9,6 +9,7 @@ package com.breadwallet.corenative;
 
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
+import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbacks;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
@@ -147,6 +148,53 @@ public final class CryptoLibraryDirect {
     public static native int cryptoPeerIsIdentical(Pointer peer, Pointer other);
     public static native void cryptoPeerGive(Pointer peer);
 
+    // crypto/BRCryptoPayment.h (BRCryptoPaymentProtocolRequestBitPayBuilder)
+    public static native Pointer cryptoPaymentProtocolRequestBitPayBuilderCreate(Pointer network,
+                                                                                 Pointer currency,
+                                                                                 BRCryptoPayProtReqBitPayAndBip70Callbacks.ByValue callbacks,
+                                                                                 String name,
+                                                                                 long time,
+                                                                                 long expires,
+                                                                                 double feePerByte,
+                                                                                 String memo,
+                                                                                 String paymentUrl,
+                                                                                 byte[] merchantData,
+                                                                                 SizeT merchantDataLen);
+    public static native void cryptoPaymentProtocolRequestBitPayBuilderAddOutput(Pointer builder, String address, long amount);
+    public static native Pointer cryptoPaymentProtocolRequestBitPayBuilderBuild(Pointer builder);
+    public static native void cryptoPaymentProtocolRequestBitPayBuilderGive(Pointer builder);
+
+    // crypto/BRCryptoPayment.h (BRCryptoPaymentProtocolRequest)
+    public static native int cryptoPaymentProtocolRequestValidateSupported(int type,
+                                                                           Pointer network,
+                                                                           Pointer currency,
+                                                                           Pointer wallet);
+    public static native Pointer cryptoPaymentProtocolRequestCreateForBip70(Pointer network,
+                                                                            Pointer currency,
+                                                                            BRCryptoPayProtReqBitPayAndBip70Callbacks.ByValue callbacks,
+                                                                            byte[] serialization,
+                                                                            SizeT serializationLen);
+    public static native int cryptoPaymentProtocolRequestGetType(Pointer request);
+    public static native int cryptoPaymentProtocolRequestIsSecure(Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetMemo(Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetPaymentURL(Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetTotalAmount(Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetRequiredNetworkFee (Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetPrimaryTargetAddress(Pointer request);
+    public static native Pointer cryptoPaymentProtocolRequestGetCommonName(Pointer request);
+    public static native int cryptoPaymentProtocolRequestIsValid(Pointer request);
+    public static native void cryptoPaymentProtocolRequestGive(Pointer request);
+
+    // crypto/BRCryptoPayment.h (BRCryptoPaymentProtocolPayment)
+    public static native Pointer cryptoPaymentProtocolPaymentCreate(Pointer request, Pointer transfer, Pointer refundAddress);
+    public static native Pointer cryptoPaymentProtocolPaymentEncode(Pointer payment, SizeTByReference encodedLength);
+    public static native void cryptoPaymentProtocolPaymentGive(Pointer payment);
+
+    // crypto/BRCryptoPayment.h (BRCryptoPaymentProtocolPaymentACK)
+    public static native Pointer cryptoPaymentProtocolPaymentACKCreateForBip70(byte[] serialization, SizeT serializationLen);
+    public static native Pointer cryptoPaymentProtocolPaymentACKGetMemo(Pointer ack);
+    public static native void cryptoPaymentProtocolPaymentACKGive(Pointer ack);
+
     // crypto/BRCryptoPrivate.h (BRCryptoCurrency)
     public static native Pointer cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
 
@@ -204,10 +252,13 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletGetUnit(Pointer wallet);
     public static native Pointer cryptoWalletGetUnitForFee(Pointer wallet);
     public static native Pointer cryptoWalletGetCurrency(Pointer wallet);
+    public static native Pointer cryptoWalletCreateFeeBasis(Pointer wallet, Pointer pricePerCostFactor, double costFactor);
     public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis);
     public static native Pointer cryptoWalletCreateTransferForWalletSweep(Pointer wallet, Pointer sweeper, Pointer feeBasis);
+    public static native Pointer cryptoWalletCreateTransferForPaymentProtocolRequest(Pointer wallet, Pointer request, Pointer feeBasis);
     public static native void cryptoWalletEstimateFeeBasis(Pointer wallet, Pointer cookie, Pointer target, Pointer amount, Pointer fee);
     public static native void cryptoWalletEstimateFeeBasisForWalletSweep(Pointer wallet, Pointer cookie, Pointer sweeper, Pointer fee);
+    public static native void cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(Pointer wallet, Pointer cookie, Pointer request, Pointer fee);
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
 
@@ -237,8 +288,10 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletManagerSync(Pointer cwm);
     public static native void cryptoWalletManagerSyncToDepth(Pointer cwm, int depth);
     public static native void cryptoWalletManagerStop(Pointer cwm);
+    public static native int cryptoWalletManagerSign(Pointer cwm, Pointer wid, Pointer tid, ByteBuffer paperKey);
     public static native void cryptoWalletManagerSubmit(Pointer cwm, Pointer wid, Pointer tid, ByteBuffer paperKey);
     public static native void cryptoWalletManagerSubmitForKey(Pointer cwm, Pointer wid, Pointer tid, Pointer key);
+    public static native void cryptoWalletManagerSubmitSigned(Pointer cwm, Pointer wid, Pointer tid);
     public static native Pointer cryptoWalletManagerTake(Pointer cwm);
     public static native void cryptoWalletManagerGive(Pointer cwm);
 

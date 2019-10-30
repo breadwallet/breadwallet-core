@@ -190,6 +190,28 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cryptoWalletManagerSyncToDepth(thisPtr, depth.toCore());
     }
 
+    public boolean sign(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
+        Pointer thisPtr = this.getPointer();
+
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+        try {
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+
+                int success = CryptoLibraryDirect.cryptoWalletManagerSign(thisPtr, wallet.getPointer(), transfer.getPointer(), phraseBuffer);
+                return BRCryptoBoolean.CRYPTO_TRUE == success;
+            } finally {
+                phraseMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
+        }
+    }
+
     public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer, byte[] phraseUtf8) {
         Pointer thisPtr = this.getPointer();
 
@@ -216,6 +238,13 @@ public class BRCryptoWalletManager extends PointerType {
 
         CryptoLibraryDirect.cryptoWalletManagerSubmitForKey(thisPtr, wallet.getPointer(), transfer.getPointer(), key.getPointer());
     }
+
+    public void submit(BRCryptoWallet wallet, BRCryptoTransfer transfer) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletManagerSubmitSigned(thisPtr, wallet.getPointer(), transfer.getPointer());
+    }
+
 
     public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
         Pointer thisPtr = this.getPointer();

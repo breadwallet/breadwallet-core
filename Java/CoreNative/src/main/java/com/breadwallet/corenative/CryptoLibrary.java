@@ -18,8 +18,4 @@ public interface CryptoLibrary extends Library {
 
     String JNA_LIBRARY_NAME = "crypto";
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
-
-    // crypto/BRCryptoNetwork.h
-    // TODO(fix): Can this be migrated to CryptoLibraryNative?
-    void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count);
 }
