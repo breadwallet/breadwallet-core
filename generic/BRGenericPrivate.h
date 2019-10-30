@@ -40,7 +40,17 @@ gen##name##AllocAndInit (const char *type,         \
   return __obj;                                    \
 }
 
-DECLARE_GENERIC_TYPE(Network)
+struct BRGenericNetworkRecord {
+    const char *type;
+    BRGenericNetworkHandlers handlers;
+    BRGenericNetworkRef ref;
+    int isMainnet;
+};
+
+private_extern BRGenericNetwork
+genNetworkAllocAndInit (const char *type,
+                        BRGenericNetworkRef ref,
+                        int isMainet);
 
 DECLARE_GENERIC_TYPE(Account)
 
