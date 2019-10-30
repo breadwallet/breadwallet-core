@@ -151,7 +151,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                                           strTarget,
                                           strAmount,
                                           currency,
-                                          // strFee,
+                                          strFee,
                                           timestamp,
                                           blockHeight);
 
