@@ -1687,6 +1687,34 @@ extension System {
 }
 
 extension System {
+    private static func mergeTransfers (_ transfers: [BlockChainDB.Model.Transfer], with address: String)
+        -> [(transfer: BlockChainDB.Model.Transfer, fee: String?)] {
+            // Only consider transfers w/ `address`
+            let transfers = transfers.filter { address == $0.source || address == $0.target }
+
+            // Find a transfer with a target of "__fee__" if one exists.
+            let transfersWithFee = transfers.filter { "__fee__" == $0.target }
+            precondition (transfersWithFee.count <= 1, "Too many _fee_ transfers")
+
+            // Get the transferWithFee if we have one
+            let transferWithFee = transfersWithFee.isEmpty ? nil : transfersWithFee[0]
+
+            // There sould be one an only one transfer that matches the fee.  We match based on
+            // transactionId and source (address).  Sufficient?
+            return transfers
+                .filter { "__fee__" != $0.target }
+                .map { (transfer) in
+                    return (transfer: transfer,
+                            fee: transferWithFee.flatMap {
+                                return ($0.transactionId == transfer.transactionId && $0.source == transfer.source
+                                    ? $0.amountValue
+                                    : nil)
+                    })
+            }
+    }
+}
+
+extension System {
     internal var clientGEN: BRCryptoCWMClientGEN {
         return BRCryptoCWMClientGEN (
             funcGetBlockNumber: { (context, cwm, sid) in
@@ -1760,17 +1788,18 @@ extension System {
                                                         $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
                                                             let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = transaction.blockHeight ?? 0
-                                                            transaction.transfers.forEach { (transfer: BlockChainDB.Model.Transfer) in
-                                                                // TODO - see the note in JIRA item CORE-648 about what we do with
-                                                                // the following check (remove or assert)
-                                                                if (accountAddress == transfer.source ||
-                                                                    accountAddress == transfer.target) {
+
+                                                            System.mergeTransfers (transaction.transfers, with: accountAddress)
+                                                                .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
+                                                                    let (transfer, fee) = arg
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
-                                                                                                  transfer.source, transfer.target,
+                                                                                                  transfer.source,
+                                                                                                  transfer.target,
                                                                                                   transfer.amountValue,
                                                                                                   transfer.amountCurrency,
-                                                                                                  timestamp, height)
-                                                                }
+                                                                                                  fee,
+                                                                                                  timestamp,
+                                                                                                  height)
                                                             }
                                                         }
                                                         cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },

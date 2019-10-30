@@ -274,6 +274,7 @@ extern "C" {
                                    OwnershipKept const char *to,
                                    OwnershipKept const char *amount,
                                    OwnershipKept const char *currency,
+                                   OwnershipKept const char *fee,
                                    uint64_t timestamp,
                                    uint64_t blockHeight);
 

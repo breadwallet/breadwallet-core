@@ -232,6 +232,7 @@ extern "C" {
                                const char *to,
                                const char *amount,
                                const char *currency,
+                               const char *fee,
                                uint64_t timestamp,
                                uint64_t blockHeight);
 

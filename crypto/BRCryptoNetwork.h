@@ -184,6 +184,9 @@ extern "C" {
     cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                      const char *code);
 
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
+                                     const char *uids);
     /**
      * Returns the number of units for network's `currency`.  This is the index exclusive limit to
      * be used in `cryptoNetworkGetUnitAt()`.
