@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.utility.Cookie;
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -16,57 +17,376 @@ import java.util.List;
 
 public class BRCryptoCWMClientEth extends Structure {
 
+    //
+    // Implementation Detail
+    //
+
     public interface BRCryptoCWMEthGetEtherBalanceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String address);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String address);
     }
 
     public interface BRCryptoCWMEthGetTokenBalanceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String address, String tokenAddress);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String address,
+                      String tokenAddress);
     }
 
     public interface BRCryptoCWMEthGetGasPriceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName);
     }
 
     public interface BRCryptoCWMEthEstimateGasCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String from, String to, String amount, String gasPrice, String data);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String from,
+                      String to,
+                      String amount,
+                      String gasPrice,
+                      String data);
     }
 
     public interface BRCryptoCWMEthSubmitTransactionCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String transaction);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String transaction);
     }
 
     public interface BRCryptoCWMEthGetTransactionsCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String address, long begBlockNumber, long endBlockNumber);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String address,
+                      long begBlockNumber,
+                      long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetLogsCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String contract, String address, String event, long begBlockNumber, long endBlockNumber);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String contract,
+                      String address,
+                      String event,
+                      long begBlockNumber,
+                      long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetBlocksCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String address, int interests, long blockNumberStart, long blockNumberStop);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String address,
+                      int interests,
+                      long blockNumberStart,
+                      long blockNumberStop);
     }
 
     public interface BRCryptoCWMEthGetTokensCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState);
     }
 
     public interface BRCryptoCWMEthGetBlockNumberCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName);
     }
 
     public interface BRCryptoCWMEthGetNonceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String address);
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String networkName,
+                      String address);
     }
+
+    //
+    // Client Interface
+    //
+
+    public interface GetEtherBalanceCallback extends BRCryptoCWMEthGetEtherBalanceCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String address);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String address) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   address);
+        }
+    }
+
+    public interface GetTokenBalanceCallback extends BRCryptoCWMEthGetTokenBalanceCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String address,
+                    String tokenAddress);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String address,
+                              String tokenAddress) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   address,
+                   tokenAddress);
+        }
+    }
+
+    public interface GetGasPriceCallback extends BRCryptoCWMEthGetGasPriceCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName);
+        }
+    }
+
+    public interface EstimateGasCallback extends BRCryptoCWMEthEstimateGasCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String from,
+                    String to,
+                    String amount,
+                    String gasPrice,
+                    String data);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String from,
+                              String to,
+                              String amount,
+                              String gasPrice,
+                              String data) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   from,
+                   to,
+                   amount,
+                   gasPrice,
+                   data);
+        }
+    }
+
+    public interface SubmitTransactionCallback extends BRCryptoCWMEthSubmitTransactionCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String transaction);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String transaction) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   transaction);
+        }
+    }
+
+    public interface GetTransactionsCallback  extends BRCryptoCWMEthGetTransactionsCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String address,
+                    long begBlockNumber,
+                    long endBlockNumber);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String address,
+                              long begBlockNumber,
+                              long endBlockNumber) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   address,
+                   begBlockNumber,
+                   endBlockNumber);
+        }
+    }
+
+    public interface GetLogsCallback extends BRCryptoCWMEthGetLogsCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String contract,
+                    String address,
+                    String event,
+                    long begBlockNumber,
+                    long endBlockNumber);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String contract,
+                              String address,
+                              String event,
+                              long begBlockNumber,
+                              long endBlockNumber) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   contract,
+                   address,
+                   event,
+                   begBlockNumber,
+                   endBlockNumber);
+        }
+    }
+
+    public interface GetBlocksCallback extends BRCryptoCWMEthGetBlocksCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String address,
+                    int interests,
+                    long blockNumberStart,
+                    long blockNumberStop);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String address,
+                              int interests,
+                              long blockNumberStart,
+                              long blockNumberStop) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   address,
+                   interests,
+                   blockNumberStart,
+                   blockNumberStop);
+        }
+    }
+
+    public interface GetTokensCallback extends BRCryptoCWMEthGetTokensCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState));
+        }
+    }
+
+    public interface GetBlockNumberCallback extends BRCryptoCWMEthGetBlockNumberCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName);
+        }
+    }
+
+    public interface GetNonceCallback extends BRCryptoCWMEthGetNonceCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String networkName,
+                    String address);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String networkName,
+                              String address) {
+            handle(new Cookie(context),
+                   new BRCryptoWalletManager(manager),
+                   new BRCryptoCWMClientCallbackState(callbackState),
+                   networkName,
+                   address);
+        }
+    }
+
+    //
+    // Client Struct
+    //
 
     public BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
     public BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
@@ -84,23 +404,21 @@ public class BRCryptoCWMClientEth extends Structure {
         super();
     }
 
-    protected List<String> getFieldOrder() {
-        return Arrays.asList("funcGetEtherBalance", "funcGetTokenBalance", "funcGetGasPrice", "funcEstimateGas", "funcSubmitTransaction",
-                "funcGetTransactions", "funcGetLogs", "funcGetBlocks", "funcGetTokens", "funcGetBlockNumber",
-                "funcGetNonce");
+    public BRCryptoCWMClientEth(Pointer peer) {
+        super(peer);
     }
 
-    public BRCryptoCWMClientEth(BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance,
-                                BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance,
-                                BRCryptoCWMEthGetGasPriceCallback funcGetGasPrice,
-                                BRCryptoCWMEthEstimateGasCallback funcEstimateGas,
-                                BRCryptoCWMEthSubmitTransactionCallback funcSubmitTransaction,
-                                BRCryptoCWMEthGetTransactionsCallback funcGetTransactions,
-                                BRCryptoCWMEthGetLogsCallback funcGetLogs,
-                                BRCryptoCWMEthGetBlocksCallback funcGetBlocks,
-                                BRCryptoCWMEthGetTokensCallback funcGetTokens,
-                                BRCryptoCWMEthGetBlockNumberCallback funcGetBlockNumber,
-                                BRCryptoCWMEthGetNonceCallback funcGetNonce) {
+    public BRCryptoCWMClientEth(GetEtherBalanceCallback funcGetEtherBalance,
+                                GetTokenBalanceCallback funcGetTokenBalance,
+                                GetGasPriceCallback funcGetGasPrice,
+                                EstimateGasCallback funcEstimateGas,
+                                SubmitTransactionCallback funcSubmitTransaction,
+                                GetTransactionsCallback funcGetTransactions,
+                                GetLogsCallback funcGetLogs,
+                                GetBlocksCallback funcGetBlocks,
+                                GetTokensCallback funcGetTokens,
+                                GetBlockNumberCallback funcGetBlockNumber,
+                                GetNonceCallback funcGetNonce) {
         super();
         this.funcGetEtherBalance = funcGetEtherBalance;
         this.funcGetTokenBalance = funcGetTokenBalance;
@@ -115,8 +433,10 @@ public class BRCryptoCWMClientEth extends Structure {
         this.funcGetNonce = funcGetNonce;
     }
 
-    public BRCryptoCWMClientEth(Pointer peer) {
-        super(peer);
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("funcGetEtherBalance", "funcGetTokenBalance", "funcGetGasPrice", "funcEstimateGas", "funcSubmitTransaction",
+                "funcGetTransactions", "funcGetLogs", "funcGetBlocks", "funcGetTokens", "funcGetBlockNumber",
+                "funcGetNonce");
     }
 
     public BRCryptoCWMClientEth toByValue() {

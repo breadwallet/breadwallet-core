@@ -34,6 +34,11 @@ genNetworkGetType (BRGenericNetwork network) {
     return network->type;
 }
 
+extern int
+genNetworkIsMainnet (BRGenericNetwork network) {
+    return 1;
+}
+
 // MARK: - Account
 
 IMPLEMENT_GENERIC_TYPE(Account, account)
@@ -204,6 +209,23 @@ genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount) {
     return transfer->handlers.getSerialization (transfer->ref, bytesCount);
 }
 
+static size_t
+genTransferGetHashForSet (const void *transferPtr) {
+    BRGenericTransfer transfer = (BRGenericTransfer) transferPtr;
+    return genTransferGetHash (transfer).value.u32[0];
+}
+
+static int
+genTransferIsEqualForSet (const void *transferPtr1, const void *transferPtr2) {
+    return eqUInt256 (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
+                      genTransferGetHash((BRGenericTransfer) transferPtr2).value);
+}
+
+extern BRSetOf (BRGenericTransfer)
+genTransferSetCreate (size_t capacity) {
+    return BRSetNew (genTransferGetHashForSet, genTransferIsEqualForSet, capacity);
+}
+
 // MARK: - Wallet
 
 private_extern BRGenericWallet
@@ -280,16 +302,13 @@ genWalletCreateTransfer (BRGenericWallet wallet,
     return transfer;
 }
 
-extern UInt256
+extern BRGenericFeeBasis
 genWalletEstimateTransferFee (BRGenericWallet wallet,
                               BRGenericAddress target,
                               UInt256 amount,
-                              UInt256 pricePerCostFactor,
-                              int *overflow) {
-    BRGenericFeeBasis feeBasis = wallet->handlers.estimateFeeBasis (wallet->ref,
-                                                                    target->ref,
-                                                                    amount,
-                                                                    pricePerCostFactor);
-
-    return genFeeBasisGetFee (&feeBasis, overflow);
+                              UInt256 pricePerCostFactor) {
+    return wallet->handlers.estimateFeeBasis (wallet->ref,
+                                              target->ref,
+                                              amount,
+                                              pricePerCostFactor);
 }

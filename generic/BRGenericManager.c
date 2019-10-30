@@ -17,6 +17,8 @@
 #include "support/BRFileService.h"
 #include "ethereum/event/BREvent.h"
 #include "ethereum/event/BREventAlarm.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/util/BRUtil.h"
 
 static void
 genManagerPeriodicDispatcher (BREventHandler handler,
@@ -31,11 +33,13 @@ extern const unsigned int gwmEventTypesCount;
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
-static void
-genManagerInstallFileService (BRGenericManager gwm,
-                              const char *storagePath,
-                              const char *currencyName,
-                              const char *networkName);
+static BRRlpItem
+genTransferStateEncode (BRGenericTransferState state,
+                        BRRlpCoder coder);
+
+static BRGenericTransferState
+genTransferStateDecode (BRRlpItem item,
+                        BRRlpCoder Coder);
 
 ///
 ///
@@ -84,6 +88,143 @@ struct BRGenericManagerRecord {
     } brdSync;
 };
 
+
+/// MARK: - File Service
+
+static const char *fileServiceTypeTransactions = "transactions";
+
+enum {
+    GENERIC_TRANSFER_VERSION_1
+};
+
+static UInt256
+fileServiceTypeTransferV1Identifier (BRFileServiceContext context,
+                                     BRFileService fs,
+                                     const void *entity) {
+    BRGenericTransfer transfer = (BRGenericTransfer) entity;
+    return genTransferGetHash (transfer).value;
+}
+
+static void *
+fileServiceTypeTransferV1Reader (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 uint8_t *bytes,
+                                 uint32_t bytesCount) {
+    BRGenericManager gwm = (BRGenericManager) context;
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpData  data  = (BRRlpData) { bytesCount, bytes };
+    BRRlpItem  item  = rlpGetItem (coder, data);
+
+    size_t itemsCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (7 == itemsCount);
+
+    BRRlpData hashData = rlpDecodeBytes (coder, items[0]);
+    char *strSource = rlpDecodeString  (coder, items[1]);
+    char *strTarget = rlpDecodeString  (coder, items[2]);
+    UInt256 amount  = rlpDecodeUInt256 (coder, items[3], 0);
+    char *currency  = rlpDecodeString  (coder, items[4]);
+    UInt256 fee     = rlpDecodeUInt256 (coder, items[5], 0);
+    BRGenericTransferState state = genTransferStateDecode (items[6], coder);
+
+
+    BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
+    char *strHash   = genericHashAsString (*hash);
+
+    char *strAmount = coerceString (amount, 10);
+    char *strFee    = coerceString (fee,    10); (void) strFee;
+
+    uint64_t timestamp = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
+                          ? state.u.included.timestamp
+                          : GENERIC_TRANSFER_TIMESTAMP_UNKNOWN);
+
+    uint64_t blockHeight = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
+                            ? state.u.included.blockNumber
+                            : GENERIC_TRANSFER_BLOCK_NUMBER_UNKNOWN);
+
+    // Derive `wallet` from currency
+    BRGenericWallet  wallet = genManagerCreatePrimaryWallet (gwm);
+
+    BRGenericTransfer transfer = genManagerRecoverTransfer (gwm, wallet, strHash,
+                                          strSource,
+                                          strTarget,
+                                          strAmount,
+                                          currency,
+                                          strFee,
+                                          timestamp,
+                                          blockHeight);
+
+    free (strFee);
+    free (strAmount);
+    free (strHash);
+    free (currency);
+    free (strTarget);
+    free (strSource);
+
+    rlpReleaseItem (coder, item);
+    rlpCoderRelease(coder);
+
+    return transfer;
+}
+
+static uint8_t *
+fileServiceTypeTransferV1Writer (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void* entity,
+                                 uint32_t *bytesCount) {
+    BRGenericTransfer transfer = (BRGenericTransfer) entity;
+
+    BRGenericHash    hash   = genTransferGetHash (transfer);
+    BRGenericAddress source = genTransferGetSourceAddress (transfer);
+    BRGenericAddress target = genTransferGetTargetAddress (transfer);
+    UInt256 amount = genTransferGetAmount (transfer);
+    UInt256 fee    = genTransferGetFee    (transfer);  // feeBasis
+    BRGenericTransferState state = genTransferGetState (transfer);
+
+    // Code it Up!
+    BRRlpCoder coder = rlpCoderCreate();
+
+    char *strSource = genAddressAsString(source);
+    char *strTarget = genAddressAsString(target);
+
+    BRRlpItem item = rlpEncodeList (coder, 7,
+                                    rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
+                                    rlpEncodeString (coder, strSource),
+                                    rlpEncodeString (coder, strTarget),
+                                    rlpEncodeUInt256 (coder, amount, 0),
+                                    rlpEncodeString (coder, transfer->type),
+                                    rlpEncodeUInt256 (coder, fee, 0),
+                                    genTransferStateEncode (state, coder));
+
+    BRRlpData data = rlpGetData (coder, item);
+
+    rlpReleaseItem (coder, item);
+    rlpCoderRelease (coder);
+
+    free (strSource); genAddressRelease (source);
+    free (strTarget); genAddressRelease (target);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void
+genManagerInitializeFileService (BRGenericManager gwm) {
+    if (1 != fileServiceDefineType (gwm->fileService, fileServiceTypeTransactions, GENERIC_TRANSFER_VERSION_1,
+                                    gwm,
+                                    fileServiceTypeTransferV1Identifier,
+                                    fileServiceTypeTransferV1Reader,
+                                    fileServiceTypeTransferV1Writer) ||
+
+        1 != fileServiceDefineCurrentVersion (gwm->fileService, fileServiceTypeTransactions,
+                                              GENERIC_TRANSFER_VERSION_1))
+
+        return; //  bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
+}
+
+/// MARK: - Manager
+
 extern BRGenericManager
 genManagerCreate (BRGenericClient client,
                   const char *type,
@@ -129,7 +270,11 @@ genManagerCreate (BRGenericClient client,
                                        &gwm->lock);
 
     // File Service
-    genManagerInstallFileService (gwm, storagePath, type, "mainnet");
+    const char *networkName  = (genNetworkIsMainnet (gwm->network) ? "mainnet" : "testnet");
+    const char *currencyCode = type;
+
+    gwm->fileService = fileServiceCreate (storagePath, currencyCode, networkName, gwm, NULL);
+    genManagerInitializeFileService (gwm);
 
     // Wallet ??
 
@@ -250,10 +395,11 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            const char *to,
                            const char *amount,
                            const char *currency,
+                           const char *fee,
                            uint64_t timestamp,
                            uint64_t blockHeight) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
-                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, timestamp, blockHeight));
+                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
 
     BRGenericAddress source = genTransferGetSourceAddress (transfer);
     BRGenericAddress target = genTransferGetTargetAddress (transfer);
@@ -303,17 +449,25 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
 
 extern BRArrayOf(BRGenericTransfer)
 genManagerLoadTransfers (BRGenericManager gwm) {
-    pthread_mutex_lock (&gwm->lock);
-    BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
-    BRArrayOf(BRGenericTransfer) objs;
-    array_new (objs, array_count(refs));
-    for (size_t index = 0; index < array_count(refs); index++) {
-        BRGenericTransfer obj = genTransferAllocAndInit (gwm->handlers->type, refs[index]);
-        array_add (objs, obj);
-    }
-    pthread_mutex_unlock (&gwm->lock);
-    return objs;
+    BRArrayOf (BRGenericTransfer) transfers;
+    BRSetOf   (BRGenericTransfer) transferSet = genTransferSetCreate (25);
 
+    fileServiceLoad (gwm->fileService, transferSet, fileServiceTypeTransactions, 1);
+
+    pthread_mutex_lock (&gwm->lock);
+    array_new (transfers, BRSetCount(transferSet));
+    FOR_SET (BRGenericTransfer, transfer, transferSet)
+        array_add (transfers, transfer);
+    pthread_mutex_unlock (&gwm->lock);
+
+    BRSetFree(transferSet);
+    return transfers;
+}
+
+extern void
+genManagerSaveTransfer (BRGenericManager gwm,
+                        BRGenericTransfer transfer) {
+    fileServiceSave (gwm->fileService, fileServiceTypeTransactions, transfer);
 }
 
 /// MARK: Periodic Dispatcher
@@ -423,14 +577,71 @@ genManagerAnnounceSubmit (BRGenericManager manager,
     // Event
 }
 
-static void
-genManagerInstallFileService(BRGenericManager gwm,
-                             const char *storagePath,
-                             const char *currencyName,
-                             const char *networkName) {
-    gwm->fileService = fileServiceCreate (storagePath, currencyName, networkName, gwm, NULL);
+/// MARK: - Transfer State Encode/Decode
 
-    gwm->handlers->manager.fileServiceInit (gwm, gwm->fileService);
+static BRRlpItem
+genTransferStateEncode (BRGenericTransferState state,
+                        BRRlpCoder coder) {
+    switch (state.type) {
+        case GENERIC_TRANSFER_STATE_INCLUDED:
+            return rlpEncodeList (coder, 5,
+                                  rlpEncodeUInt64  (coder, state.type, 0),
+                                  rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
+                                  rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
+                                  rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
+                                  rlpEncodeUInt256 (coder, state.u.included.fee, 0));
+
+        case GENERIC_TRANSFER_STATE_ERRORED:
+            return rlpEncodeList2 (coder,
+                                   rlpEncodeUInt64 (coder, state.type, 0),
+                                   rlpEncodeUInt64 (coder, state.u.errored, 0));
+
+        case GENERIC_TRANSFER_STATE_CREATED:
+        case GENERIC_TRANSFER_STATE_SIGNED:
+        case GENERIC_TRANSFER_STATE_SUBMITTED:
+        case GENERIC_TRANSFER_STATE_DELETED:
+            return rlpEncodeList1 (coder,
+                                   rlpEncodeUInt64 (coder, state.type, 0));
+
+    }
+}
+
+static BRGenericTransferState
+genTransferStateDecode (BRRlpItem item,
+                        BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (itemsCount >= 1);
+
+    BRGenericTransferStateType type = (BRGenericTransferStateType) rlpDecodeUInt64 (coder, items[0], 0);
+    switch (type) {
+        case GENERIC_TRANSFER_STATE_INCLUDED:
+            assert (5 == itemsCount);
+
+            return (BRGenericTransferState) {
+                type,
+                { .included = {
+                    rlpDecodeUInt64  (coder, items[1], 0),
+                    rlpDecodeUInt64  (coder, items[2], 0),
+                    rlpDecodeUInt64  (coder, items[3], 0),
+                    rlpDecodeUInt256 (coder, items[4], 0),
+                }}
+            };
+
+        case GENERIC_TRANSFER_STATE_ERRORED: {
+            assert (2 == itemsCount);
+            return (BRGenericTransferState) {
+                type,
+                { .errored = (BRGenericTransferSubmitError) rlpDecodeUInt64 (coder, items[1], 0) }
+            };
+        }
+
+        case GENERIC_TRANSFER_STATE_CREATED:
+        case GENERIC_TRANSFER_STATE_SIGNED:
+        case GENERIC_TRANSFER_STATE_SUBMITTED:
+        case GENERIC_TRANSFER_STATE_DELETED:
+            return (BRGenericTransferState) { type };
+    }
 }
 
 /// MARK: - Events

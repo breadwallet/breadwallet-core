@@ -372,6 +372,22 @@ cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
     return currency;
 }
 
+extern BRCryptoCurrency
+cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
+                                   const char *uids) {
+    BRCryptoCurrency currency = NULL;
+    pthread_mutex_lock (&network->lock);
+    for (size_t index = 0; index < array_count(network->associations); index++) {
+        if (0 == strcmp (uids, cryptoCurrencyGetUids (network->associations[index].currency))) {
+            currency = cryptoCurrencyTake (network->associations[index].currency);
+            break;
+        }
+    }
+    pthread_mutex_unlock (&network->lock);
+    return currency;
+}
+
+
 private_extern BRCryptoCurrency
 cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
                                      BREthereumToken token) {

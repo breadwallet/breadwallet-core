@@ -21,7 +21,6 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -55,7 +54,6 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testLoad() {
-        assertNotNull(CryptoLibrary.INSTANCE);
         assertNotNull(TestCryptoLibrary.INSTANCE);
     }
 

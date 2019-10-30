@@ -12,11 +12,11 @@ import com.sun.jna.PointerType;
 
 public class BRCryptoCWMClientCallbackState extends PointerType {
 
-    public BRCryptoCWMClientCallbackState(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoCWMClientCallbackState() {
         super();
+    }
+
+    public BRCryptoCWMClientCallbackState(Pointer address) {
+        super(address);
     }
 }

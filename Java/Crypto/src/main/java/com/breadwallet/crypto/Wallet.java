@@ -17,6 +17,14 @@ import java.util.List;
 
 public interface Wallet {
 
+    /**
+     * Create a TransferFeeBasis using a pricePerCostFactor and costFactor.
+     *
+     * Note: This is 'private' until the parameters are described.  Meant for testing for now.
+     *
+     */
+    Optional<? extends TransferFeeBasis> createTransferFeeBasis(Amount pricePerCostFactor, double costFactor);
+
     Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis);
 
     void estimateFee(Address target, Amount amount, NetworkFee fee, CompletionHandler<TransferFeeBasis, FeeEstimationError> completion);

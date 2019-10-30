@@ -108,6 +108,7 @@ struct BRRippleTransferRecord {
     BRRippleAddress sourceAddress;
     BRRippleAddress targetAddress;
     BRRippleUnitDrops amount;
+    BRRippleUnitDrops fee;
     BRRippleTransactionHash transactionId;
     uint64_t timestamp;
     uint64_t blockHeight;
