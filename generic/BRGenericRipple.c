@@ -59,8 +59,6 @@ genericRippleAccountSignTransferWithSeed (BRGenericAccountRef account,
     // Get the transaction pointer from this transfer
     BRRippleTransaction transaction = rippleTransferGetTransaction((BRRippleTransfer) transfer);
     if (transaction) {
-        // Hard code the sequence to 7
-        rippleAccountSetSequence ((BRRippleAccount) account, 7);
         rippleAccountSignTransaction ((BRRippleAccount) account, transaction, seed);
     }
 }
@@ -73,8 +71,6 @@ genericRippleAccountSignTransferWithKey (BRGenericAccountRef account,
     // Get the transaction pointer from this transfer
     BRRippleTransaction transaction = rippleTransferGetTransaction ((BRRippleTransfer) transfer);
     if (transaction) {
-        // Hard code the sequence to 7
-        rippleAccountSetSequence ((BRRippleAccount) account, 7);
 //        rippleAccountSignTransaction(account, transaction, seed);
         assert (0);
     }
@@ -198,6 +194,18 @@ genericRippleWalletHasAddress (BRGenericWalletRef wallet,
                                    (BRRippleAddress) address);
 }
 
+static int
+genericRippleWalletHasTransfer (BRGenericWalletRef wallet,
+                                BRGenericTransferRef transfer) {
+    return rippleWalletHasTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
+}
+
+static void
+genericRippleWalletAddTransfer (BRGenericWalletRef wallet,
+                                BRGenericTransferRef transfer) {
+    rippleWalletAddTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
+}
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
@@ -303,6 +311,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
         genericRippleWalletHasAddress,
+        genericRippleWalletHasTransfer,
+        genericRippleWalletAddTransfer,
         genericRippleWalletCreateTransfer,
         genericRippleWalletEstimateFeeBasis
     },
