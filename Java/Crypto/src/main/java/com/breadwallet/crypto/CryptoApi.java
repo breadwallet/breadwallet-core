@@ -41,6 +41,13 @@ public final class CryptoApi {
         void wipeAll(String path, List<System> exemptSystems);
     }
 
+    public interface PaymentProvider {
+        Optional<PaymentProtocolRequest> createRequestForBip70(Wallet wallet, byte[] serialization);
+        Optional<PaymentProtocolRequest> createRequestForBitPay(Wallet wallet, String json);
+        Optional<PaymentProtocolPaymentAck> createAckForBip70(byte[] serialization);
+        Optional<PaymentProtocolPaymentAck> createAckForBitPay(String json);
+    }
+
     public interface CoderProvider {
         Coder createCoderForAlgorithm(Coder.Algorithm algorithm);
     }
@@ -76,6 +83,7 @@ public final class CryptoApi {
         AccountProvider accountProvider();
         AmountProvider amountProvider();
         SystemProvider systemProvider();
+        PaymentProvider paymentProvider();
 
         CoderProvider coderPrivider();
         CipherProvider cipherProvider();

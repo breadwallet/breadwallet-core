@@ -241,6 +241,7 @@ public class TransferCreateSweepActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Error")
                 .setMessage(message)
+                .setCancelable(false)
                 .setNeutralButton("Ok", (dialog, which) -> { })
                 .show();
     }

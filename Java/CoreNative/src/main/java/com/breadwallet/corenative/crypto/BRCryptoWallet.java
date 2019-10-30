@@ -124,6 +124,18 @@ public class BRCryptoWallet extends PointerType {
         ).transform(BRCryptoTransfer::new);
     }
 
+    public Optional<BRCryptoTransfer> createTransferForPaymentProtocolRequest(BRCryptoPaymentProtocolRequest request, BRCryptoFeeBasis estimatedFeeBasis) {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateTransferForPaymentProtocolRequest(
+                        thisPtr,
+                        request.getPointer(),
+                        estimatedFeeBasis.getPointer()
+                )
+        ).transform(BRCryptoTransfer::new);
+    }
+
     public void estimateFeeBasis(Cookie cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         Pointer thisPtr = this.getPointer();
@@ -144,6 +156,17 @@ public class BRCryptoWallet extends PointerType {
                 thisPtr,
                 cookie.getPointer(),
                 sweeper.getPointer(),
+                fee.getPointer());
+    }
+
+    public void estimateFeeBasisForPaymentProtocolRequest(Cookie cookie, BRCryptoPaymentProtocolRequest request,
+                                                          BRCryptoNetworkFee fee) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(
+                thisPtr,
+                cookie.getPointer(),
+                request.getPointer(),
                 fee.getPointer());
     }
 

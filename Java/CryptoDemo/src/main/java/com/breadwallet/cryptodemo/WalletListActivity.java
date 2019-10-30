@@ -239,7 +239,10 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             // all currencies have wallets; ignore
             if (missingList.isEmpty()) {
                 runOnUiThread(() -> new AlertDialog.Builder(this)
+                        .setTitle("Add Wallet")
                         .setMessage("All currencies added and accounted for!")
+                        .setCancelable(false)
+                        .setNeutralButton("Ok", (d, w) -> { })
                         .show());
 
                 // extract the currencies and their descriptions
@@ -252,6 +255,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
                 }
 
                 runOnUiThread(() -> new AlertDialog.Builder(this)
+                        .setTitle("Add Wallet")
                         .setSingleChoiceItems(itemTexts,
                                 -1,
                                 (d, w) -> {
