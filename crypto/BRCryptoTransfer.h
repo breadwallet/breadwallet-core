@@ -140,6 +140,16 @@ extern "C" {
     cryptoTransferGetAmountDirected (BRCryptoTransfer transfer);
 
     /**
+     * Returns the transfers amount after considering the direction and fee
+     *
+     * @param transfer the transfer
+     *
+     * @return the signed, net amoount
+     */
+    extern BRCryptoAmount
+    cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer);
+
+    /**
      * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different
      * currencies.
      *

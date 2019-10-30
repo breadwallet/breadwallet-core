@@ -144,19 +144,11 @@ extern "C" {
     typedef BRArrayOf(BRGenericTransferRef) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
                                                                                                          size_t   bytesCount);
 
-    typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
-                                                                 BRFileService fileService);
-
-    typedef BRArrayOf(BRGenericTransferRef) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
-                                                                                    BRFileService fileService);
-
     typedef BRGenericAPISyncType (*BRGenericWalletManagerGetAPISyncType) (void);
 
     typedef struct {
         BRGenericWalletManagerRecoverTransfer transferRecover;
         BRGenericWalletManagerRecoverTransfersFromRawTransaction transfersRecoverFromRawTransaction;
-        BRGenericWalletManagerInitializeFileService fileServiceInit;
-        BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
         BRGenericWalletManagerGetAPISyncType apiSyncType;
     } BRGenericManagerHandlers;
 

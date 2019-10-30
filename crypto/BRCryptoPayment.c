@@ -790,11 +790,18 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
                 array_add_array (encodedArray, PP_JSON_TXNS_PST, PP_JSON_TXNS_PST_SZ);
 
                 array_add (encodedArray, '}');
+
+                // This function returns a `uint8_t*`.  Normally to convert such an array to
+                // a `char*` once needs to encode the result, typically as 'hex' or 'baseXYZ'.
+                // However, as the actual data in the `uint8_t*` can be a true string in the
+                // BitPay case and thus down the line a User might simply cast as `char*`, we'll
+                // add a trailing `\0` to make sure that that thoughtless cast succeeds.
                 array_add (encodedArray, '\0');
 
                 *encodedLen = array_count (encodedArray);
                 encoded = malloc(*encodedLen);
                 memcpy (encoded, encodedArray, *encodedLen);
+                *encodedLen -= 1; // don't include the NULL terminator in the count
 
                 array_free (encodedArray);
             }

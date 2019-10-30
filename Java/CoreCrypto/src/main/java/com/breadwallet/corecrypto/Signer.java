@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoSigner;
 import com.google.common.base.Optional;
@@ -16,23 +18,33 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /* package */
 final class Signer implements com.breadwallet.crypto.Signer {
 
+    @Nullable
+    private static final Signer SIGNER_BASIC_DER = BRCryptoSigner.createBasicDer().transform(Signer::create).orNull();
+
+    @Nullable
+    private static final Signer SIGNER_BASIC_JOSE = BRCryptoSigner.createBasicJose().transform(Signer::create).orNull();
+
+    @Nullable
+    private static final Signer SIGNER_COMPACT = BRCryptoSigner.createCompact().transform(Signer::create).orNull();
+
     /* package */
     static Signer createForAlgorithm(Algorithm algorithm) {
-        BRCryptoSigner core = null;
+        Signer signer = null;
+
         switch (algorithm) {
             case BASIC_DER:
-                core = BRCryptoSigner.createBasicDer().orNull();
+                signer = SIGNER_BASIC_DER;
                 break;
             case BASIC_JOSE:
-                core = BRCryptoSigner.createBasicJose().orNull();
+                signer = SIGNER_BASIC_JOSE;
                 break;
             case COMPACT:
-                core = BRCryptoSigner.createCompact().orNull();
+                signer = SIGNER_COMPACT;
                 break;
         }
 
-        checkNotNull(core);
-        return Signer.create(core);
+        checkNotNull(signer);
+        return signer;
     }
 
     private static Signer create(BRCryptoSigner core) {

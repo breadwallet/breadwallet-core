@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -17,29 +17,38 @@ public class BRCryptoNetworkFee extends PointerType {
     public static BRCryptoNetworkFee create(UnsignedLong timeIntervalInMilliseconds,
                                             BRCryptoAmount pricePerCostFactor,
                                             BRCryptoUnit pricePerCostFactorUnit) {
-        return CryptoLibrary.INSTANCE.cryptoNetworkFeeCreate(
+        return new BRCryptoNetworkFee(
+                CryptoLibraryDirect.cryptoNetworkFeeCreate(
                         timeIntervalInMilliseconds.longValue(),
-                        pricePerCostFactor,
-                        pricePerCostFactorUnit);
-    }
-
-    public BRCryptoNetworkFee(Pointer address) {
-        super(address);
+                        pricePerCostFactor.getPointer(),
+                        pricePerCostFactorUnit.getPointer()
+                )
+        );
     }
 
     public BRCryptoNetworkFee() {
         super();
     }
 
+    public BRCryptoNetworkFee(Pointer address) {
+        super(address);
+    }
+
     public UnsignedLong getConfirmationTimeInMilliseconds() {
-        return UnsignedLong.valueOf(CryptoLibrary.INSTANCE.cryptoNetworkFeeGetConfirmationTimeInMilliseconds(this));
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedLong.valueOf(CryptoLibraryDirect.cryptoNetworkFeeGetConfirmationTimeInMilliseconds(thisPtr));
     }
 
     public boolean isIdentical(BRCryptoNetworkFee other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoNetworkFeeEqual(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoNetworkFeeEqual(thisPtr, other.getPointer());
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoNetworkFeeGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoNetworkFeeGive(thisPtr);
     }
 }

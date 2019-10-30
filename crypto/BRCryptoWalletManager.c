@@ -927,6 +927,152 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
     }
 }
 
+extern void
+cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
+                                     BRCryptoWallet  wallet,
+                                     BRCryptoCookie cookie,
+                                     BRCryptoAddress target,
+                                     BRCryptoAmount  amount,
+                                     BRCryptoNetworkFee fee) {
+    //    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = cwm->u.btc;
+            BRWallet *wid = cryptoWalletAsBTC(wallet);
+
+            BRCryptoBoolean overflow = CRYPTO_FALSE;
+            uint64_t feePerKB        = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t btcAmount       = cryptoAmountGetIntegerRaw (amount, &overflow);
+            assert(CRYPTO_FALSE == overflow);
+
+            BRWalletManagerEstimateFeeForTransfer (bwm,
+                                                   wid,
+                                                   cookie,
+                                                   btcAmount,
+                                                   feePerKB);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = cwm->u.eth;
+            BREthereumWallet wid = cryptoWalletAsETH(wallet);
+
+            BRCryptoAddress source = cryptoWalletGetAddress (wallet, CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT);
+            UInt256 ethValue       = cryptoAmountGetValue (amount);
+
+            BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
+            BREthereumAmount ethAmount = (NULL != ethToken
+                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
+                                          : amountCreateEther (etherCreate (ethValue)));
+
+            ewmWalletEstimateTransferFeeForTransfer (ewm,
+                                                     wid,
+                                                     cookie,
+                                                     cryptoAddressAsETH (source),
+                                                     cryptoAddressAsETH (target),
+                                                     ethAmount,
+                                                     cryptoNetworkFeeAsETH (fee),
+                                                     ewmWalletGetDefaultGasLimit (ewm, wid));
+
+            cryptoAddressGive (source);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericWallet  genWallet  = cryptoWalletAsGEN (wallet);
+            BRGenericAddress genAddress = cryptoAddressAsGEN (target);
+
+            UInt256 genValue = cryptoAmountGetValue(amount);
+            UInt256 genPricePerCostFactor = createUInt256 (cryptoNetworkFeeAsGEN(fee));
+
+            BRGenericFeeBasis genFeeBasis = genWalletEstimateTransferFee (genWallet,
+                                                                          genAddress,
+                                                                          genValue,
+                                                                          genPricePerCostFactor);
+
+            BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee (wallet);
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsGEN (unitForFee, genFeeBasis);
+            
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                { .feeBasisEstimated = {
+                    CRYPTO_SUCCESS,
+                    cookie,
+                    cryptoFeeBasisTake (feeBasis)
+                }}
+            });
+
+            cryptoFeeBasisGive (feeBasis);
+            cryptoUnitGive(unitForFee);
+        }
+    }
+}
+
+extern void
+cryptoWalletManagerEstimateFeeBasisForWalletSweep (BRCryptoWalletManager cwm,
+                                                   BRCryptoWallet wallet,
+                                                   BRCryptoCookie cookie,
+                                                   BRCryptoWalletSweeper sweeper,
+                                                   BRCryptoNetworkFee fee) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = cwm->u.btc;
+            BRWallet *wid = cryptoWalletAsBTC (wallet);
+            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
+
+            BRWalletManagerEstimateFeeForSweep (bwm,
+                                                wid,
+                                                cookie,
+                                                cryptoWalletSweeperAsBTC(sweeper),
+                                                feePerKB);
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+}
+
+extern void
+cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWalletManager cwm,
+                                                              BRCryptoWallet wallet,
+                                                              BRCryptoCookie cookie,
+                                                              BRCryptoPaymentProtocolRequest request,
+                                                              BRCryptoNetworkFee fee) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = cwm->u.btc;
+            BRWallet *wid = cryptoWalletAsBTC (wallet);
+            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
+
+            switch (cryptoPaymentProtocolRequestGetType (request)) {
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+                    BRArrayOf(BRTxOutput) outputs = cryptoPaymentProtocolRequestGetOutputsAsBTC (request);
+                    if (NULL != outputs) {
+                        BRWalletManagerEstimateFeeForOutputs (bwm, wid, cookie, outputs, array_count (outputs),
+                                                              feePerKB);
+                        array_free (outputs);
+                    }
+                    break;
+                }
+                default: {
+                    assert (0);
+                    break;
+                }
+            }
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+}
+
+
 private_extern BRWalletManager
 cryptoWalletManagerAsBTC (BRCryptoWalletManager manager) {
     assert (BLOCK_CHAIN_TYPE_BTC == manager->type);
@@ -1039,6 +1185,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
 
         // Add the restored transfer to its wallet...
         cryptoWalletAddTransfer (cwm->wallet, transfer);
+        genManagerSaveTransfer (cwm->u.gen, transferGeneric);
 
         // ... and announce the wallet's newly added transfer
         cwm->listener.walletEventCallback (cwm->listener.context,

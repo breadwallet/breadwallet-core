@@ -390,6 +390,33 @@ cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
     return amount;
 }
 
+extern BRCryptoAmount
+cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer) {
+    BRCryptoAmount amount = cryptoTransferGetAmountDirected (transfer);
+
+    // If the transfer->unit and transfer->unitForFee differ then there is no fee
+    if (cryptoUnitIsIdentical (transfer->unit, transfer->unitForFee))
+        return amount;
+
+    BRCryptoFeeBasis feeBasis = (NULL != transfer->feeBasisConfirmed
+                                 ? transfer->feeBasisConfirmed
+                                 : transfer->feeBasisEstimated);
+
+    // If there is no fee basis, then there is no fee
+    if (NULL == feeBasis)
+        return amount;
+
+    BRCryptoAmount fee       = cryptoFeeBasisGetFee (feeBasis);
+
+    // Simply subtract off the fee.
+    BRCryptoAmount amountNet = cryptoAmountSub (amount, fee);
+
+    cryptoAmountGive(fee);
+    cryptoAmountGive(amount);
+
+    return amountNet;
+}
+
 extern BRCryptoUnit
 cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer) {
     return cryptoUnitTake (transfer->unit);
