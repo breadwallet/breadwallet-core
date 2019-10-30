@@ -316,16 +316,13 @@ genWalletCreateTransfer (BRGenericWallet wallet,
     return transfer;
 }
 
-extern UInt256
+extern BRGenericFeeBasis
 genWalletEstimateTransferFee (BRGenericWallet wallet,
                               BRGenericAddress target,
                               UInt256 amount,
-                              UInt256 pricePerCostFactor,
-                              int *overflow) {
-    BRGenericFeeBasis feeBasis = wallet->handlers.estimateFeeBasis (wallet->ref,
-                                                                    target->ref,
-                                                                    amount,
-                                                                    pricePerCostFactor);
-
-    return genFeeBasisGetFee (&feeBasis, overflow);
+                              UInt256 pricePerCostFactor) {
+    return wallet->handlers.estimateFeeBasis (wallet->ref,
+                                              target->ref,
+                                              amount,
+                                              pricePerCostFactor);
 }
