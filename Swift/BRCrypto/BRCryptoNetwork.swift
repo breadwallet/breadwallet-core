@@ -176,22 +176,20 @@ public final class Network: CustomStringConvertible {
 
         switch currency.code.lowercased() {
         case Currency.codeAsBTC:
-            let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
-            core = cryptoNetworkCreateAsBTC (uids, name, chainParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
 
         case Currency.codeAsBCH:
-            let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
-            core = cryptoNetworkCreateAsBTC (uids, name, chainParams)
+            core = cryptoNetworkCreateAsBCH (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
 
         case Currency.codeAsETH:
             if uids.contains("mainnet") {
-                core = cryptoNetworkCreateAsETH (uids, name, ethereumMainnet)
+                core = cryptoNetworkCreateAsETHForMainnet (uids, name)
             }
             else if uids.contains("testnet") || uids.contains("ropsten") {
-                core = cryptoNetworkCreateAsETH (uids, name, ethereumTestnet)
+                core = cryptoNetworkCreateAsETHForTestnet (uids, name)
             }
             else if uids.contains ("rinkeby") {
-                core = cryptoNetworkCreateAsETH (uids, name, ethereumRinkeby)
+                core = cryptoNetworkCreateAsETHForRinkeby (uids, name)
             }
             else {
                 precondition (false)

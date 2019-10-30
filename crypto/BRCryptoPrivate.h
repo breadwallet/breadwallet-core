@@ -296,12 +296,24 @@ extern "C" {
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsBTC (const char *uids,
                               const char *name,
-                              const BRChainParams *params);
+                              BRCryptoBoolean isMainnet);
 
     private_extern BRCryptoNetwork
-    cryptoNetworkCreateAsETH (const char *uids,
+    cryptoNetworkCreateAsBCH (const char *uids,
                               const char *name,
-                              BREthereumNetwork net);
+                              BRCryptoBoolean isMainnet);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETHForMainnet (const char *uids,
+                                        const char *name);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETHForTestnet (const char *uids,
+                                        const char *name);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETHForRinkeby (const char *uids,
+                                        const char *name);
 
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsGEN (const char *uids,

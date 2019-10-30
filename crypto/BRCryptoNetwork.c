@@ -162,25 +162,54 @@ cryptoNetworkCreate (const char *uids,
     return network;
 }
 
-// TODO: Remove forkId; derivable from BRChainParams (after CORE-284)
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *uids,
                           const char *name,
-                          const BRChainParams *params) {
+                          BRCryptoBoolean isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_BTC;
-    network->u.btc = params;
+    network->u.btc = CRYPTO_TRUE == isMainnet ? BRMainNetParams : BRTestNetParams;
 
     return network;
 }
 
 private_extern BRCryptoNetwork
-cryptoNetworkCreateAsETH (const char *uids,
+cryptoNetworkCreateAsBCH (const char *uids,
                           const char *name,
-                          BREthereumNetwork net) {
+                          BRCryptoBoolean isMainnet) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_BTC;
+    network->u.btc = CRYPTO_TRUE == isMainnet ? BRBCashParams : BRBCashTestNetParams;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForMainnet (const char *uids,
+                                    const char *name) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_ETH;
-    network->u.eth = net;
+    network->u.eth = ethereumMainnet;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForTestnet (const char *uids,
+                                    const char *name) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_ETH;
+    network->u.eth = ethereumTestnet;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForRinkeby (const char *uids,
+                                    const char *name) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_ETH;
+    network->u.eth = ethereumRinkeby;
 
     return network;
 }
