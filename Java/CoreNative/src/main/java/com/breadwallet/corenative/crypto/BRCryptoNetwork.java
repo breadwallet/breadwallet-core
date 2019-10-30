@@ -282,17 +282,6 @@ public class BRCryptoNetwork extends PointerType {
         ).transform(BRCryptoUnit::new);
     }
 
-    public Optional<BRCryptoAddress> addressFor(String address) {
-        Pointer thisPtr = this.getPointer();
-
-        return Optional.fromNullable(
-                CryptoLibraryDirect.cryptoNetworkCreateAddressFromString(
-                        thisPtr,
-                        address
-                )
-        ).transform(BRCryptoAddress::new);
-    }
-
     public BRCryptoNetwork take() {
         Pointer thisPtr = this.getPointer();
 

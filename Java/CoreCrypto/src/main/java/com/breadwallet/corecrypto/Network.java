@@ -266,7 +266,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Address> addressFor(String address) {
-        return core.addressFor(address).transform(Address::create);
+        return Address.create(address, this);
     }
 
     @Override

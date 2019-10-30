@@ -541,21 +541,11 @@ cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
     return fees;
 }
 
-extern BRCryptoAddress
-cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
-                                      const char *string) {
-    switch (network->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return (BRChainParamsIsBitcoin (network->u.btc)
-                    ? cryptoAddressCreateFromStringAsBTC (network->u.btc->addrParams, string)
-                    : cryptoAddressCreateFromStringAsBCH (network->u.btc->addrParams, string));
-
-        case BLOCK_CHAIN_TYPE_ETH:
-            return cryptoAddressCreateFromStringAsETH (string);
-
-        case BLOCK_CHAIN_TYPE_GEN:
-            return cryptoAddressCreateFromStringAsGEN (network->u.gen, string);
-    }
+// TODO(discuss): Is it safe to give out this pointer?
+private_extern const BRChainParams *
+cryptoNetworkAsBTC (BRCryptoNetwork network) {
+    assert (BLOCK_CHAIN_TYPE_BTC == network->type);
+    return network->u.btc;
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
@@ -566,18 +556,13 @@ cryptoNetworkAsETH (BRCryptoNetwork network) {
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
-private_extern const BRChainParams *
-cryptoNetworkAsBTC (BRCryptoNetwork network) {
-    assert (BLOCK_CHAIN_TYPE_BTC == network->type);
-    return network->u.btc;
-}
-
-private_extern void *
+private_extern BRGenericNetwork
 cryptoNetworkAsGEN (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_GEN == network->type);
     return network->u.gen;
 }
 
+// TODO(discuss): Is it safe to give out this pointer?
 private_extern BRCryptoBlockChainType
 cryptoNetworkGetBlockChainType (BRCryptoNetwork network) {
     return network->type;

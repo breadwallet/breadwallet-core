@@ -11,10 +11,7 @@
 import BRCryptoC
 
 ///
-/// An Address for transferring an amount.
-///
-/// - bitcoin: A bitcon-specific address
-/// - ethereum: An ethereum-specific address
+/// An Address for transferring an amount.  Addresses are network specific.
 ///
 public final class Address: Equatable, CustomStringConvertible {
     let core: BRCryptoAddress
@@ -34,10 +31,11 @@ public final class Address: Equatable, CustomStringConvertible {
     ///
     /// Create an Addres from `string` and `network`.  The provided `string` must be valid for
     /// the provided `network` - that is, an ETH address (as a string) differs from a BTC address
-    /// and a BTC mainnet address differs from a BTC testnet address.
+    /// and a BTC mainnet address differs from a BTC testnet address.  If `string` is not
+    /// appropriate for `network`, then `nil` is returned.
     ///
-    /// In practice, 'target' addresses (for receiving crypto) are generated from the wallet and
-    /// 'source' addresses (for sending crypto) are a User input.
+    /// This function is typically used to convert User input - of a 'target address' as a string -
+    /// into an Address.
     ///
     /// - Parameters:
     ///   - string: A string representing a crypto address
@@ -46,30 +44,13 @@ public final class Address: Equatable, CustomStringConvertible {
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
     public static func create (string: String, network: Network) -> Address? {
-        return network.addressFor(string)
+        return cryptoAddressCreateFromString (network.core, string)
+            .map { Address (core: $0, take: false) }
     }
 
     deinit {
         cryptoAddressGive (core)
     }
-
-    //    class EthereumAddress: Address {
-    //        let core: BREthereumAddress
-    //
-    //        internal init (_ core: BREthereumAddress) {
-    //            self.core = core
-    //        }
-    //
-    //        static func create(string: String, network: Network) -> Address? {
-    //            return (ETHEREUM_BOOLEAN_FALSE == addressValidateString(string)
-    //                ? nil
-    //                : EthereumAddress (addressCreate (string)))
-    //        }
-    //
-    //        var description: String {
-    //            return asUTF8String(addressGetEncodedString (core, 1))
-    //        }
-    //    }
 
     public static func == (lhs: Address, rhs: Address) -> Bool {
         return CRYPTO_TRUE == cryptoAddressIsIdentical (lhs.core, rhs.core)
@@ -77,12 +58,11 @@ public final class Address: Equatable, CustomStringConvertible {
 }
 
 ///
-/// An AddressScheme generates addresses for a wallet.  Depending on the scheme, a given wallet may
-/// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
-/// scheme or a 'Legacy' address scheme.
+/// An AddressScheme determines the from of wallet-generated address.  For example, a Bitcoin wallet
+/// can have a 'Segwit/BECH32' address scheme or a 'Legacy' address scheme.  The address, which is
+/// ultimately a sequence of bytes, gets formatted as a string based on the scheme.
 ///
 /// The WalletManager holds an array of AddressSchemes as well as the preferred AddressScheme.
-/// The preferred scheme is selected from among the array of schemes.
 ///
 public enum AddressScheme: Equatable, CustomStringConvertible {
     case btcLegacy
