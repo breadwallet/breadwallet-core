@@ -221,6 +221,23 @@ genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount) {
     return transfer->handlers.getSerialization (transfer->ref, bytesCount);
 }
 
+static size_t
+genTransferGetHashForSet (const void *transferPtr) {
+    BRGenericTransfer transfer = (BRGenericTransfer) transferPtr;
+    return genTransferGetHash (transfer).value.u32[0];
+}
+
+static int
+genTransferIsEqualForSet (const void *transferPtr1, const void *transferPtr2) {
+    return eqUInt256 (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
+                      genTransferGetHash((BRGenericTransfer) transferPtr2).value);
+}
+
+extern BRSetOf (BRGenericTransfer)
+genTransferSetCreate (size_t capacity) {
+    return BRSetNew (genTransferGetHashForSet, genTransferIsEqualForSet, capacity);
+}
+
 // MARK: - Wallet
 
 private_extern BRGenericWallet
@@ -275,6 +292,18 @@ genWalletSetDefaultFeeBasis (BRGenericWallet wid,
     wid->defaultFeeBasis = bid;
 }
 
+extern int
+genWalletHasTransfer (BRGenericWallet wallet,
+                      BRGenericTransfer transfer) {
+    return wallet->handlers.hasTransfer (wallet->ref, transfer->ref);
+}
+
+extern void
+genWalletAddTransfer (BRGenericWallet wallet,
+                      BRGenericTransfer transfer) {
+    wallet->handlers.addTransfer (wallet->ref, transfer->ref);
+}
+
 extern BRGenericTransfer
 genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
@@ -294,19 +323,18 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                               ? GENERIC_TRANSFER_SENT
                               : GENERIC_TRANSFER_RECEIVED));
 
+    genWalletAddTransfer (wallet, transfer);
+
     return transfer;
 }
 
-extern UInt256
+extern BRGenericFeeBasis
 genWalletEstimateTransferFee (BRGenericWallet wallet,
                               BRGenericAddress target,
                               UInt256 amount,
-                              UInt256 pricePerCostFactor,
-                              int *overflow) {
-    BRGenericFeeBasis feeBasis = wallet->handlers.estimateFeeBasis (wallet->ref,
-                                                                    target->ref,
-                                                                    amount,
-                                                                    pricePerCostFactor);
-
-    return genFeeBasisGetFee (&feeBasis, overflow);
+                              UInt256 pricePerCostFactor) {
+    return wallet->handlers.estimateFeeBasis (wallet->ref,
+                                              target->ref,
+                                              amount,
+                                              pricePerCostFactor);
 }

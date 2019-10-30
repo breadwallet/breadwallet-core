@@ -129,6 +129,9 @@ extern "C" {
     extern uint8_t *
     genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
+    extern BRSetOf (BRGenericTransfer)
+    genTransferSetCreate (size_t capacity);
+
     // MARK: - Generic Wallet
 
     /// Create the primary wallet.  The `account` is provided because wallet's create transfers which
@@ -159,18 +162,25 @@ extern "C" {
     genWalletSetDefaultFeeBasis (BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
 
+    extern int
+    genWalletHasTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
+
+    extern void
+    genWalletAddTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
+
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,
                              UInt256 amount,
                              BRGenericFeeBasis estimatedFeeBasis);
 
-    extern UInt256
+    extern BRGenericFeeBasis
     genWalletEstimateTransferFee (BRGenericWallet wid,
                                   BRGenericAddress target,
                                   UInt256 amount,
-                                  UInt256 pricePerCostFactor,
-                                  int *overflow);
+                                  UInt256 pricePerCostFactor);
 
     // MARK: Generic (Wallet) Manager
 
@@ -230,6 +240,7 @@ extern "C" {
                                const char *to,
                                const char *amount,
                                const char *currency,
+                               const char *fee,
                                uint64_t timestamp,
                                uint64_t blockHeight);
 
@@ -260,5 +271,9 @@ extern "C" {
 
     extern BRArrayOf(BRGenericTransfer)
     genManagerLoadTransfers (BRGenericManager gwm);
+
+    extern void
+    genManagerSaveTransfer (BRGenericManager gwm,
+                            BRGenericTransfer transfer);
 
 #endif /* BRGeneric_h */

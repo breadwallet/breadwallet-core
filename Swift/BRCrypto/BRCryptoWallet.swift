@@ -186,29 +186,33 @@ public final class Wallet: Equatable {
                              amount: Amount,
                              fee: NetworkFee,
                              completion: @escaping Wallet.EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasis (self.core,
-                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                      target.core,
-                                      amount.core,
-                                      fee.core)
+        // 'Redirect' up to the 'manager'
+        cryptoWalletManagerEstimateFeeBasis (self.manager.core,
+                                             self.core,
+                                             callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                             target.core,
+                                             amount.core,
+                                             fee.core)
     }
-
+    
     internal func estimateFee (sweeper: WalletSweeper,
                                fee: NetworkFee,
                                completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
-                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                   sweeper.core,
-                                                   fee.core)
+        cryptoWalletManagerEstimateFeeBasisForWalletSweep (self.manager.core,
+                                                           self.core,
+                                                           callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                           sweeper.core,
+                                                           fee.core)
     }
-
+    
     internal func estimateFee (request: PaymentProtocolRequest,
                                fee: NetworkFee,
                                completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
-                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                              request.core,
-                                                              fee.core)
+        cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (self.manager.core,
+                                                                      self.core,
+                                                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                                      request.core,
+                                                                      fee.core)
     }
 
     public enum FeeEstimationError: Error {

@@ -22,6 +22,7 @@ const char * fee = "__fee__";
 extern BRRippleTransfer /* caller must free - rippleTransferFree */
 rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount, // For now assume XRP drops.
+                     BRRippleUnitDrops fee,
                      BRRippleTransactionHash hash,
                      uint64_t timestamp, uint64_t blockHeight)
 {
@@ -29,6 +30,7 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
     transfer->sourceAddress = rippleAddressClone (from);
     transfer->targetAddress = rippleAddressClone (to);
     transfer->amount = amount;
+    transfer->fee = fee;
     transfer->transactionId = hash;
     transfer->timestamp = timestamp;
     transfer->blockHeight = blockHeight;
@@ -47,6 +49,7 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
     BRRippleFeeBasis feeBasis; // NOTE - hard code for DEMO purposes
     feeBasis.pricePerCostFactor = 10;
     feeBasis.costFactor = 1;
+    transfer->fee = 10; // Consistent w/ feeBasis
     transfer->transaction = rippleTransactionCreate(from, to, amount, feeBasis);
     return transfer;
 }
@@ -93,6 +96,8 @@ extern BRRippleAddress rippleTransferGetTarget(BRRippleTransfer transfer)
 extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
 {
     assert(transfer);
+    return transfer->fee;
+#if 0
     // See the note in BRRippleAcount.h with respect to the feeAddressBytes
     // If the "target" address is set to the feeAddressBytes then return the
     // amount on this transfer - otherwise return 0.
@@ -101,6 +106,14 @@ extern BRRippleUnitDrops rippleTransferGetFee(BRRippleTransfer transfer)
     } else {
         return (BRRippleUnitDrops)0L;
     }
+#endif
+}
+
+extern BRRippleFeeBasis rippleTransferGetFeeBasis (BRRippleTransfer transfer) {
+    return (BRRippleFeeBasis) {
+        transfer->fee,
+        1
+    };
 }
 
 extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfer)
@@ -109,4 +122,7 @@ extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfe
     return transfer->transaction;
 }
 
-
+extern int rippleTransferHasSource (BRRippleTransfer transfer,
+                                    BRRippleAddress source) {
+    return rippleAddressEqual (transfer->sourceAddress, source);
+}

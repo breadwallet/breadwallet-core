@@ -22,6 +22,9 @@
             android:name=".TransferCreateSweepActivity"
             android:label="Create Sweep Transfer"/>
         <activity
+            android:name=".TransferCreatePaymentActivity"
+            android:label="Create Payment Transfer"/>
+        <activity
             android:name=".TransferDetailsActivity"
             android:label="Transfer Details" />
         <activity

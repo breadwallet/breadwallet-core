@@ -34,7 +34,9 @@ checksumFletcher16 (const uint8_t *data, size_t count);
 static void
 randomBytes (void *bytes, size_t bytesCount);
 
-#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
+// Version 1: BTC (w/ BCH), ETH
+// Version 2: BTC (w/ BCH), ETH, XRP
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
 
 static void
 cryptoAccountRelease (BRCryptoAccount account);
