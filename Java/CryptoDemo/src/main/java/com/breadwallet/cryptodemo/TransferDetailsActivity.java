@@ -30,7 +30,6 @@ import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
-import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisitor;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
@@ -39,7 +38,7 @@ import com.google.common.base.Optional;
 
 import java.text.DateFormat;
 
-public class TransferDetailsActivity extends AppCompatActivity {
+public class TransferDetailsActivity extends AppCompatActivity implements DefaultSystemListener {
 
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferDetailsActivity.EXTRA_WALLET_NAME";
     private static final String EXTRA_TXN_ID = "com.breadwallet.cryptodemo,TransferDetailsActivity.EXTRA_TXN_ID";
@@ -74,8 +73,8 @@ public class TransferDetailsActivity extends AppCompatActivity {
         return null;
     }
 
-    private WalletManager walletManager;
     private Transfer transfer;
+    private WalletManager walletManager;
     private ClipboardManager clipboardManager;
 
     private TextView amountView;
@@ -89,28 +88,6 @@ public class TransferDetailsActivity extends AppCompatActivity {
     private View confirmationContainerView;
     private TextView stateView;
     private TextView directionView;
-
-    private final SystemListener walletManagerListener = new DefaultSystemListener() {
-        @Override
-        public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
-            runOnUiThread(() -> {
-                event.accept(new DefaultWalletManagerEventVisitor<Void>() {
-                    @Override
-                    public Void visit(WalletManagerBlockUpdatedEvent event) {
-                        updateView();
-                        return null;
-                    }
-                });
-            });
-        }
-    };
-
-    private final SystemListener transferListener = new DefaultSystemListener() {
-        @Override
-        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-            runOnUiThread(TransferDetailsActivity.this::updateView);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +110,6 @@ public class TransferDetailsActivity extends AppCompatActivity {
         }
 
         walletManager = wallet.getWalletManager();
-
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
         amountView = findViewById(R.id.amount_view);
@@ -156,69 +132,174 @@ public class TransferDetailsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getDispatchingSystemListener().addWalletManagerListener(walletManager, walletManagerListener);
-        CoreCryptoApplication.getDispatchingSystemListener().addTransferListener(transfer, transferListener);
-
-        updateView();
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletManagerListener(walletManager, this);
+        CoreCryptoApplication.getDispatchingSystemListener().addTransferListener(transfer, this);
+        loadTransfer();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getDispatchingSystemListener().removeTransferListener(transfer, walletManagerListener);
-        CoreCryptoApplication.getDispatchingSystemListener().removeWalletManagerListener(walletManager, transferListener);
+        CoreCryptoApplication.getDispatchingSystemListener().removeTransferListener(transfer, this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletManagerListener(walletManager, this);
     }
 
-    private void updateView() {
-        Optional<TransferConfirmation> confirmation = transfer.getConfirmation();
+    @Override
+    public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
+        event.accept(new DefaultWalletManagerEventVisitor<Void>() {
+            @Override
+            public Void visit(WalletManagerBlockUpdatedEvent event) {
+                loadTransfer();
+                return null;
+            }
+        });
+    }
 
-        String amountText = transfer.getAmountDirected().toString();
+    @Override
+    public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+        loadTransfer();
+    }
+
+    private void loadTransfer() {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel viewModel = new TransferViewModel(transfer);
+            runOnUiThread(() -> bindView(viewModel));
+        });
+    }
+
+    private void bindView(TransferViewModel viewModel) {
+        String amountText = viewModel.amountText();
         amountView.setText(amountText);
-        amountView.setOnClickListener(v -> copyPlaintext("Amount", amountView.getText()));
+        amountView.setOnClickListener(v -> copyPlaintext("Amount", amountText));
 
-        String feeText = transfer.getFee().toString();
+        String feeText = viewModel.feeText();
         feeView.setText(feeText);
-        feeView.setOnClickListener(v -> copyPlaintext("Fee", feeView.getText()));
+        feeView.setOnClickListener(v -> copyPlaintext("Fee", feeText));
 
-        String dateText = confirmation
-                .transform((c) -> DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG).format(c.getConfirmationTime()))
-                .or("<pending>");
+        String dateText = viewModel.dateText();
         dateView.setText(dateText);
 
-        String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
+        String senderText = viewModel.senderText();
         senderView.setText(senderText);
-        senderView.setOnClickListener(v -> copyPlaintext("Sender", senderView.getText()));
+        senderView.setOnClickListener(v -> copyPlaintext("Sender", senderText));
 
-        String receiverText = transfer.getTarget().transform(Address::toString).or("<unknown>");
+        String receiverText = viewModel.receiverText();
         receiverView.setText(receiverText);
-        receiverView.setOnClickListener(v -> copyPlaintext("Receiver", receiverView.getText()));
+        receiverView.setOnClickListener(v -> copyPlaintext("Receiver", receiverText));
 
-        String identifierText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
+        String identifierText = viewModel.identifierText();
         identifierView.setText(identifierText);
-        identifierView.setOnClickListener(v -> copyPlaintext("Identifier", identifierView.getText()));
+        identifierView.setOnClickListener(v -> copyPlaintext("Identifier", identifierText));
 
-        String confirmationText = confirmation.transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
+        String confirmationText = viewModel.confirmationText();
         confirmationView.setText(confirmationText);
 
-        String confirmationCountText = transfer.getConfirmations().transform(String::valueOf).or("");
+        String confirmationCountText = viewModel.confirmationCountText();
         confirmationCountView.setText(confirmationCountText);
 
-        confirmationContainerView.setVisibility(confirmation.isPresent() ? View.VISIBLE : View.INVISIBLE);
+        confirmationContainerView.setVisibility(viewModel.confirmationCountVisible() ? View.VISIBLE : View.INVISIBLE);
 
-        String stateText = transfer.getState().toString();
+        String stateText = viewModel.stateText();
         stateView.setText(stateText);
 
-        String directionText = transfer.getDirection().toString();
+        String directionText = viewModel.directionText();
         directionView.setText(directionText);
     }
 
     private void copyPlaintext(String label, CharSequence value) {
-        clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value));
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value));
 
-        String escapedValue = Html.escapeHtml(value);
-        Spanned message = Html.fromHtml(String.format("Copied <b>%s</b> to clipboard", escapedValue));
+            String escapedValue = Html.escapeHtml(value);
+            Spanned message = Html.fromHtml(String.format("Copied <b>%s</b> to clipboard", escapedValue));
 
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show());
+        });
+    }
+
+    private static class TransferViewModel {
+
+        static final ThreadLocal<DateFormat> DATE_FORMAT = new ThreadLocal<DateFormat>() {
+            @Override protected DateFormat initialValue() {
+                return DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
+            }
+        };
+
+        final Transfer transfer;
+
+        final String amountText;
+        final String feeText;
+        final String dateText;
+        final String senderText;
+        final String receiverText;
+        final String identifierText;
+        final String confirmationText;
+        final String confirmationCountText;
+        final boolean confirmationCountVisible;
+        final String stateText;
+        final String directionText;
+
+        TransferViewModel(Transfer transfer) {
+            this.transfer = transfer;
+
+            Optional<TransferConfirmation> conf = transfer.getConfirmation();
+
+            this.amountText = transfer.getAmountDirected().toString();
+            this.feeText = transfer.getFee().toString();
+            this.senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
+            this.receiverText = transfer.getTarget().transform(Address::toString).or("<unknown>");
+            this.identifierText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
+            this.confirmationText = conf.transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
+            this.confirmationCountText = transfer.getConfirmations().transform(String::valueOf).or("");
+            this.dateText = conf.transform((c) -> DATE_FORMAT.get().format(c.getConfirmationTime())).or("<pending>");
+            this.confirmationCountVisible = conf.isPresent();
+            this.stateText = transfer.getState().toString();
+            this.directionText = transfer.getDirection().toString();
+        }
+
+        String amountText() {
+            return amountText;
+        }
+
+        String feeText() {
+            return feeText;
+        }
+
+        String dateText() {
+            return dateText;
+        }
+
+        String senderText() {
+            return senderText;
+        }
+
+        String receiverText() {
+            return receiverText;
+        }
+
+        String identifierText() {
+            return identifierText;
+        }
+
+        String confirmationText() {
+            return confirmationText;
+        }
+
+        String confirmationCountText() {
+            return confirmationCountText;
+        }
+
+        boolean confirmationCountVisible() {
+            return confirmationCountVisible;
+        }
+
+        String stateText() {
+            return stateText;
+        }
+
+        String directionText() {
+            return directionText;
+        }
     }
 }

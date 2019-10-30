@@ -7,73 +7,77 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.Ints;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-import static com.google.common.base.Preconditions.checkState;
-
 public class BRCryptoCipher extends PointerType {
 
     public static Optional<BRCryptoCipher> createAesEcb(byte[] key) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoCipherCreateForAESECB(key, new SizeT(key.length))
-        );
+                CryptoLibraryDirect.cryptoCipherCreateForAESECB(key, new SizeT(key.length))
+        ).transform(BRCryptoCipher::new);
     }
 
     public static Optional<BRCryptoCipher> createChaCha20Poly1305(BRCryptoKey key, byte[] nonce12, byte[] ad) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoCipherCreateForChacha20Poly1305(
-                        key,
+                CryptoLibraryDirect.cryptoCipherCreateForChacha20Poly1305(
+                        key.getPointer(),
                         nonce12,
                         new SizeT(nonce12.length),
                         ad,
                         new SizeT(ad.length))
-        );
+        ).transform(BRCryptoCipher::new);
     }
 
     public static Optional<BRCryptoCipher> createPigeon(BRCryptoKey privKey, BRCryptoKey pubKey, byte[] nonce12) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoCipherCreateForPigeon(
-                        privKey,
-                        pubKey,
+                CryptoLibraryDirect.cryptoCipherCreateForPigeon(
+                        privKey.getPointer(),
+                        pubKey.getPointer(),
                         nonce12,
                         new SizeT(nonce12.length))
-        );
-    }
-
-    public BRCryptoCipher(Pointer address) {
-        super(address);
+        ).transform(BRCryptoCipher::new);
     }
 
     public BRCryptoCipher() {
         super();
     }
 
+    public BRCryptoCipher(Pointer address) {
+        super(address);
+    }
+
     public Optional<byte[]> encrypt(byte[] input) {
-        SizeT length = CryptoLibrary.INSTANCE.cryptoCipherEncryptLength(this, input, new SizeT(input.length));
+        Pointer thisPtr = this.getPointer();
+
+        SizeT length = CryptoLibraryDirect.cryptoCipherEncryptLength(thisPtr, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoCipherEncrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibraryDirect.cryptoCipherEncrypt(thisPtr, output, new SizeT(output.length), input, new SizeT(input.length));
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
     public Optional<byte[]> decrypt(byte[] input) {
-        SizeT length = CryptoLibrary.INSTANCE.cryptoCipherDecryptLength(this, input, new SizeT(input.length));
+        Pointer thisPtr = this.getPointer();
+
+        SizeT length = CryptoLibraryDirect.cryptoCipherDecryptLength(thisPtr, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoCipherDecrypt(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibraryDirect.cryptoCipherDecrypt(thisPtr, output, new SizeT(output.length), input, new SizeT(input.length));
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoCipherGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoCipherGive(thisPtr);
     }
 }

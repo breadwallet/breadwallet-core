@@ -14,6 +14,7 @@ import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
+import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolRequest;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
@@ -78,6 +79,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
+    public Optional<TransferFeeBasis> createTransferFeeBasis(com.breadwallet.crypto.Amount pricePerCostFactor, double costFactor) {
+        BRCryptoAmount corePricePerCostFactor = Amount.from(pricePerCostFactor).getCoreBRCryptoAmount();
+        return core.createTransferFeeBasis(corePricePerCostFactor, costFactor).transform(TransferFeeBasis::create);
+    }
+
+    @Override
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
@@ -95,6 +102,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         return core.createTransferForWalletSweep(coreSweeper, coreFeeBasis).transform(t -> Transfer.create(t, this));
     }
 
+    /* package */
+    Optional<Transfer> createTransfer(PaymentProtocolRequest request,
+                                      com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+        BRCryptoPaymentProtocolRequest coreRequest = request.getBRCryptoPaymentProtocolRequest();
+        BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
+        return core.createTransferForPaymentProtocolRequest(coreRequest, coreFeeBasis).transform(t -> Transfer.create(t, this));
+    }
+
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
                             com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
@@ -110,6 +125,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
         core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
+    }
+
+    /* package */
+    void estimateFee(PaymentProtocolRequest request,
+                     com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoPaymentProtocolRequest coreRequest = request.getBRCryptoPaymentProtocolRequest();
+        BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
+        core.estimateFeeBasisForPaymentProtocolRequest(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreRequest, coreFee);
     }
 
     @Override
@@ -213,15 +236,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransferOrCreate(BRCryptoTransfer transfer) {
-        Optional<Transfer> optional = getTransfer(transfer);
-        if (optional.isPresent()) {
-            return optional;
-
-        } else {
-            Log.d(TAG, "Transfer not found, creating wrapping instance");
-            return Optional.of(Transfer.takeAndCreate(transfer, this));
-        }
+    Transfer createTransfer(BRCryptoTransfer transfer) {
+        return Transfer.takeAndCreate(transfer, this);
     }
 
     /* package */

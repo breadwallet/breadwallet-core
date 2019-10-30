@@ -14,6 +14,7 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoStatus.h"
 #include "BRCryptoPrivate.h"
+#include "BRCryptoNetwork.h"
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
 #include "BRCryptoWalletManagerPrivate.h"
@@ -2007,7 +2008,6 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // Fundamentally, the `transfer` must allow for determining the `wallet`
     BRArrayOf(BRGenericTransfer) transfers = genManagerRecoverTransfersFromRawTransaction (cwm->u.gen,
                                                                                            transaction, transactionLength,
                                                                                            timestamp,
@@ -2015,11 +2015,11 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
     // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
     // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
-    //
-    // genManagerAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
+
     if (transfers != NULL) {
         pthread_mutex_lock (&cwm->lock);
         for (size_t index = 0; index < array_count (transfers); index++) {
+            // TODO: A BRGenericTransfer must allow us to determine the Wallet (via a Currency).
             cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
         }
         pthread_mutex_unlock (&cwm->lock);
@@ -2080,20 +2080,37 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
     assert (CWM_CALLBACK_TYPE_GEN_GET_TRANSFERS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TOTO - get the wallet for the supplied currency instead of the default wallet
-    BRGenericWallet wallet = cryptoWalletAsGEN(cwm->wallet);
-    BRGenericTransfer transfer = genManagerRecoverTransfer (cwm->u.gen, wallet, hash,
-                                                            from, to,
-                                                            amount, currency, fee,
-                                                            timestamp, blockHeight);
+    // Lookup the network's currency
+    BRCryptoNetwork network = cryptoWalletManagerGetNetwork (cwm);
+    BRCryptoCurrency walletCurrency = cryptoNetworkGetCurrencyForUids (network, currency);
 
-    // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
-    // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
-    // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
-    //
-    // genManagerAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
-    cryptoWalletManagerHandleTransferGEN (cwm, transfer);
+    // Find the corresponding wallet.
+    BRCryptoWallet wallet = (NULL == walletCurrency
+                             ? NULL
+                             : cryptoWalletManagerGetWalletForCurrency (cwm, walletCurrency));
 
+    // If we have a wallet, then proceed
+    if (NULL != wallet) {
+        // Create a 'GEN' transfer
+        BRGenericWallet   genWallet   = cryptoWalletAsGEN(wallet);
+        BRGenericTransfer genTransfer = genManagerRecoverTransfer (cwm->u.gen, genWallet, hash,
+                                                                   from, to,
+                                                                   amount, currency, fee,
+                                                                   timestamp, blockHeight);
+
+        // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
+        // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by
+        // incorporating the BTC+ETH transfer into 'crypto'.  However, GEN does not generate
+        // similar events.
+        //
+        // genManagerAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
+        cryptoWalletManagerHandleTransferGEN (cwm, genTransfer);
+    }
+
+    if (NULL != wallet) cryptoWalletGive (wallet);
+    if (NULL != walletCurrency) cryptoCurrencyGive (walletCurrency);
+
+    cryptoNetworkGive (network);
     cryptoWalletManagerGive (cwm);
     // DON'T free (callbackState);
 }

@@ -7,8 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
-import com.google.common.base.Optional;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
@@ -17,59 +16,95 @@ import com.sun.jna.PointerType;
 public class BRCryptoUnit extends PointerType {
 
     public static BRCryptoUnit createAsBase(BRCryptoCurrency currency, String uids, String name, String symbol) {
-        return CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(currency, uids, name, symbol);
+        return new BRCryptoUnit(
+                CryptoLibraryDirect.cryptoUnitCreateAsBase(
+                        currency.getPointer(),
+                        uids,
+                        name,
+                        symbol
+                )
+        );
     }
 
     public static BRCryptoUnit create(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, UnsignedInteger decimals) {
         byte decimalsAsByte = UnsignedBytes.checkedCast(decimals.longValue());
-        return CryptoLibrary.INSTANCE.cryptoUnitCreate(currency, uids, name, symbol, base, decimalsAsByte);
-    }
-
-    public BRCryptoUnit(Pointer address) {
-        super(address);
+        return new BRCryptoUnit(
+                CryptoLibraryDirect.cryptoUnitCreate(
+                        currency.getPointer(),
+                        uids,
+                        name,
+                        symbol,
+                        base.getPointer(),
+                        decimalsAsByte
+                )
+        );
     }
 
     public BRCryptoUnit() {
         super();
     }
 
+    public BRCryptoUnit(Pointer address) {
+        super(address);
+    }
+
     public String getUids() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetUids(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoUnitGetUids(thisPtr).getString(0, "UTF-8");
     }
 
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetName(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoUnitGetName(thisPtr).getString(0, "UTF-8");
     }
 
     public String getSymbol() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetSymbol(this).getString(0, "UTF-8");
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoUnitGetSymbol(thisPtr).getString(0, "UTF-8");
     }
 
     public UnsignedInteger getDecimals() {
-        return UnsignedInteger.fromIntBits(UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(this)));
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedInteger.fromIntBits(UnsignedBytes.toInt(CryptoLibraryDirect.cryptoUnitGetBaseDecimalOffset(thisPtr)));
     }
 
     public BRCryptoUnit getBaseUnit() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this);
-    }
+        Pointer thisPtr = this.getPointer();
 
-    public boolean isCompatible(BRCryptoUnit other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this, other);
+        return new BRCryptoUnit(CryptoLibraryDirect.cryptoUnitGetBaseUnit(thisPtr));
     }
 
     public BRCryptoCurrency getCurrency() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoCurrency(CryptoLibraryDirect.cryptoUnitGetCurrency(thisPtr));
     }
 
     public boolean hasCurrency(BRCryptoCurrency currency) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitHasCurrency(this,  currency);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoUnitHasCurrency(thisPtr,  currency.getPointer());
+    }
+
+    public boolean isCompatible(BRCryptoUnit other) {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoUnitIsCompatible(thisPtr, other.getPointer());
     }
 
     public boolean isIdentical(BRCryptoUnit other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsIdentical(this, other);
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoUnitIsIdentical(thisPtr, other.getPointer());
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoUnitGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoUnitGive(thisPtr);
     }
 }
