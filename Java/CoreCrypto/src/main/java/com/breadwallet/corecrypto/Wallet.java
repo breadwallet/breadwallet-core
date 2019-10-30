@@ -17,6 +17,7 @@ import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolRequest;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
@@ -113,26 +114,29 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
                             com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
+        coreManager.estimateFeeBasis(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     /* package */
     void estimateFee(WalletSweeper sweeper,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
+        coreManager.estimateFeeBasisForWalletSweep(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
     }
 
     /* package */
     void estimateFee(PaymentProtocolRequest request,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoPaymentProtocolRequest coreRequest = request.getBRCryptoPaymentProtocolRequest();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForPaymentProtocolRequest(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreRequest, coreFee);
+        coreManager.estimateFeeBasisForPaymentProtocolRequest(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreRequest, coreFee);
     }
 
     @Override
