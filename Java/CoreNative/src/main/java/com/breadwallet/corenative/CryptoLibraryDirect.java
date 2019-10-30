@@ -156,7 +156,7 @@ public final class CryptoLibraryDirect {
     // crypto/BRCryptoPrivate.h (BRCryptoNetwork)
     public static native Pointer cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
     public static native Pointer cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
-    public static native Pointer cryptoNetworkCreateAsGEN(String uids, String name, byte isMainnet);
+    public static native Pointer cryptoNetworkCreateAsGEN(String uids, String name, Pointer currency, byte isMainnet);
     public static native void cryptoNetworkSetHeight(Pointer network, long height);
     public static native void cryptoNetworkSetCurrency(Pointer network, Pointer currency);
     public static native void cryptoNetworkAddCurrency(Pointer network, Pointer currency, Pointer baseUnit, Pointer defaultUnit);
@@ -274,6 +274,11 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetTransactionsItemGEN(Pointer cwm, Pointer callbackState,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
+    public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
+                                                            String hash, String sourceAddr, String targetAddr,
+                                                            String amount, String currency,
+                                                            long timestamp, long blockHeight);
+    public static native void cwmAnnounceGetTransfersComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceSubmitTransferSuccess(Pointer cwm, Pointer callbackState);
     public static native void cwmAnnounceSubmitTransferSuccessForHash(Pointer cwm, Pointer callbackState, String hash);
     public static native void cwmAnnounceSubmitTransferFailure(Pointer cwm, Pointer callbackState);

@@ -91,6 +91,20 @@ final class Blockchains {
             "Ξ"
     );
 
+    private static CurrencyDenomination XRP_DROP = new CurrencyDenomination(
+            "drop",
+            "drop",
+            UnsignedInteger.valueOf(0),
+            "drop"
+    );
+
+    private static CurrencyDenomination XRP_RIPPLE = new CurrencyDenomination(
+            "xrp",
+            "xrp",
+            UnsignedInteger.valueOf(6),
+            "xrp"
+    );
+
     ///
     /// Defined Currencies
     ///
@@ -160,6 +174,20 @@ final class Blockchains {
             makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
     );
 
+    private static Currency CURRENCY_XRP_MAINNET = new Currency(
+            "ripple-mainnet:__native__",
+            "Ripple",
+            "xrp",
+            "native",
+            "ripple-mainnet",
+            null,
+            true,
+            ImmutableList.of(
+                    XRP_DROP,
+                    XRP_RIPPLE
+            )
+    );
+
     // Testnet
 
     private static Currency CURRENCY_BTC_TESTNET = new Currency(
@@ -214,6 +242,20 @@ final class Blockchains {
             ADDRESS_BRD_TESTNET,
             true,
             makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
+    );
+
+    private static Currency CURRENCY_XRP_TESTNET = new Currency(
+            "ripple-testnet:__native__",
+            "Ripple Testnet",
+            "xrp",
+            "native",
+            "ripple-testnet",
+            null,
+            true,
+            ImmutableList.of(
+                    XRP_DROP,
+                    XRP_RIPPLE
+            )
     );
 
     private static String makeCurrencyIdentifierErc20(String blockchainId, String address) {
@@ -301,6 +343,23 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
+    private static Blockchain BLOCKCHAIN_XRP_MAINNET = new Blockchain(
+            "ripple-mainnet",
+            "Ripple Mainnet",
+            "testnet",
+            true,
+            "ripple-mainnet:__native__",
+            UnsignedLong.valueOf(50000000),
+            ImmutableList.of(
+                    new BlockchainFee(
+                            "10",
+                            "1m",
+                            UnsignedLong.valueOf(60 * 1000)
+                    )
+            ),
+            UnsignedInteger.valueOf(1)
+    );
+
     // Testnet
 
     private static Blockchain BLOCKCHAIN_BTC_TESTNET = new Blockchain(
@@ -354,6 +413,23 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
+    private static Blockchain BLOCKCHAIN_XRP_TESTNET = new Blockchain(
+            "ripple-testnet",
+            "Ripple Testnet",
+            "testnet",
+            false,
+            "ripple-testnet:__native__",
+            UnsignedLong.valueOf(50000000),
+            ImmutableList.of(
+                    new BlockchainFee(
+                            "10",
+                            "1m",
+                            UnsignedLong.valueOf(60 * 1000)
+                    )
+            ),
+            UnsignedInteger.valueOf(1)
+    );
+
     ///
     /// Supported Blockchains
     ///
@@ -363,10 +439,12 @@ final class Blockchains {
             Blockchains.BLOCKCHAIN_BTC_MAINNET,
             Blockchains.BLOCKCHAIN_BCH_MAINNET,
             Blockchains.BLOCKCHAIN_ETH_MAINNET,
+            Blockchains.BLOCKCHAIN_XRP_MAINNET,
 
             Blockchains.BLOCKCHAIN_BTC_TESTNET,
             Blockchains.BLOCKCHAIN_BCH_TESTNET,
-            Blockchains.BLOCKCHAIN_ETH_ROPSTEN
+            Blockchains.BLOCKCHAIN_ETH_ROPSTEN,
+            Blockchains.BLOCKCHAIN_XRP_TESTNET
     );
 
     ///
@@ -379,11 +457,13 @@ final class Blockchains {
             Blockchains.CURRENCY_BCH_MAINNET,
             Blockchains.CURRENCY_ETH_MAINNET,
             Blockchains.CURRENCY_BRD_MAINNET,
+            Blockchains.CURRENCY_XRP_MAINNET,
 
             Blockchains.CURRENCY_BTC_TESTNET,
             Blockchains.CURRENCY_BCH_TESTNET,
             Blockchains.CURRENCY_ETH_ROPSTEN,
-            Blockchains.CURRENCY_BRD_ROPSTEN
+            Blockchains.CURRENCY_BRD_ROPSTEN,
+            Blockchains.CURRENCY_XRP_TESTNET
     );
 
     ///
@@ -456,6 +536,7 @@ final class Blockchains {
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("ripple-mainnet", WalletManagerMode.API_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
@@ -463,6 +544,7 @@ final class Blockchains {
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-ropsten", WalletManagerMode.P2P_ONLY);
+        builder.put("ripple-testnet", WalletManagerMode.API_ONLY);
         SUPPORTED_MODES = builder.build();
     }
 
@@ -474,10 +556,12 @@ final class Blockchains {
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
         builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
+        builder.put("ripple-mainnet", WalletManagerMode.API_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
+        builder.put("ripple-testnet", WalletManagerMode.API_ONLY);
         DEFAULT_MODES = builder.build();
     }
 }

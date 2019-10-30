@@ -270,6 +270,35 @@ public class BRCryptoWalletManager extends PointerType {
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
+    public void announceGetTransfersItemGen(BRCryptoCWMClientCallbackState callbackState,
+                                            String hash,
+                                            String from,
+                                            String to,
+                                            String amount,
+                                            String currency,
+                                            UnsignedLong timestamp,
+                                            UnsignedLong blockHeight) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cwmAnnounceGetTransferItemGEN(
+                thisPtr,
+                callbackState.getPointer(),
+                hash,
+                from,
+                to,
+                amount,
+                currency,
+                timestamp.longValue(),
+                blockHeight.longValue());
+    }
+
+    public void announceGetTransfersComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cwmAnnounceGetTransfersComplete(thisPtr, callbackState.getPointer(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
     public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState) {
         Pointer thisPtr = this.getPointer();
 

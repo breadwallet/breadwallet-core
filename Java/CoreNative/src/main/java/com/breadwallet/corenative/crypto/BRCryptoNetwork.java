@@ -88,11 +88,12 @@ public class BRCryptoNetwork extends PointerType {
         }
     }
 
-    public static BRCryptoNetwork createAsGen(String uids, String name, boolean isMainnet) {
+    public static BRCryptoNetwork createAsGen(String uids, String name, BRCryptoCurrency currency, boolean isMainnet) {
         return new BRCryptoNetwork(
                 CryptoLibraryDirect.cryptoNetworkCreateAsGEN(
                         uids,
                         name,
+                        currency.getPointer(),
                         isMainnet ? (byte) 1 : 0
                 )
         );
