@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -40,7 +40,7 @@ public class BRCryptoAccount extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return CryptoLibrary.INSTANCE.cryptoAccountCreate(phraseBuffer, timestampAsLong);
+                return new BRCryptoAccount(CryptoLibraryDirect.cryptoAccountCreate(phraseBuffer, timestampAsLong));
             } finally {
                 phraseMemory.clear();
             }
@@ -52,19 +52,19 @@ public class BRCryptoAccount extends PointerType {
 
     public static Optional<BRCryptoAccount> createFromSerialization(byte[] serialization) {
         return Optional.fromNullable(
-                CryptoLibrary.INSTANCE.cryptoAccountCreateFromSerialization(
+                CryptoLibraryDirect.cryptoAccountCreateFromSerialization(
                         serialization,
                         new SizeT(serialization.length)
                 )
-        );
+        ).transform(BRCryptoAccount::new);
     }
 
     public static byte[] generatePhrase(List<String> words) {
-        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateWordsList(new SizeT(words.size())));
+        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAccountValidateWordsList(new SizeT(words.size())));
 
         StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
 
-        Pointer phrasePtr = CryptoLibrary.INSTANCE.cryptoAccountGeneratePaperKey(wordsArray);
+        Pointer phrasePtr = CryptoLibraryDirect.cryptoAccountGeneratePaperKey(wordsArray);
         try {
             return phrasePtr.getByteArray(0, (int) phrasePtr.indexOf(0, (byte) 0));
         } finally {
@@ -73,7 +73,7 @@ public class BRCryptoAccount extends PointerType {
     }
 
     public static boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
-        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateWordsList(new SizeT(words.size())));
+        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAccountValidateWordsList(new SizeT(words.size())));
 
         StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
 
@@ -85,7 +85,7 @@ public class BRCryptoAccount extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidatePaperKey(phraseBuffer, wordsArray);
+                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAccountValidatePaperKey(phraseBuffer, wordsArray);
             } finally {
                 phraseMemory.clear();
             }
@@ -95,20 +95,24 @@ public class BRCryptoAccount extends PointerType {
         }
     }
 
-    public BRCryptoAccount(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoAccount() {
         super();
     }
 
+    public BRCryptoAccount(Pointer address) {
+        super(address);
+    }
+
     public Date getTimestamp() {
-        return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
+        Pointer thisPtr = this.getPointer();
+
+        return new Date(TimeUnit.SECONDS.toMillis(CryptoLibraryDirect.cryptoAccountGetTimestamp(thisPtr)));
     }
 
     public String getFilesystemIdentifier() {
-        Pointer ptr = CryptoLibrary.INSTANCE.cryptoAccountGetFileSystemIdentifier(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer ptr = CryptoLibraryDirect.cryptoAccountGetFileSystemIdentifier(thisPtr);
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
@@ -117,8 +121,10 @@ public class BRCryptoAccount extends PointerType {
     }
 
     public byte[] serialize() {
+        Pointer thisPtr = this.getPointer();
+
         SizeTByReference bytesCount = new SizeTByReference();
-        Pointer serializationPtr = CryptoLibrary.INSTANCE.cryptoAccountSerialize(this, bytesCount);
+        Pointer serializationPtr = CryptoLibraryDirect.cryptoAccountSerialize(thisPtr, bytesCount);
         try {
             return serializationPtr.getByteArray(0, UnsignedInts.checkedCast(bytesCount.getValue().longValue()));
         } finally {
@@ -127,11 +133,15 @@ public class BRCryptoAccount extends PointerType {
     }
 
     public boolean validate(byte[] serialization) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateSerialization(this,
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAccountValidateSerialization(thisPtr,
                 serialization, new SizeT(serialization.length));
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoAccountGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoAccountGive(thisPtr);
     }
 }

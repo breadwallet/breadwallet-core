@@ -188,7 +188,7 @@ static BRCryptoAmount cryptoWalletGenerateBalance(BRCryptoWallet wallet) {
     BRCryptoAmount total = cryptoAmountCreateInteger(0, wallet->unit);
     for (size_t index = 0; index < array_count(wallet->transfers); index++) {
         BRCryptoTransfer transfer = wallet->transfers[index];
-        BRCryptoAmount amountDirected = cryptoTransferGetAmountDirected(transfer);
+        BRCryptoAmount amountDirected = cryptoTransferGetAmountDirectedNet(transfer);
         BRCryptoAmount nextTotal = cryptoAmountAdd(total, amountDirected);
         cryptoAmountGive(amountDirected);
         cryptoAmountGive(total);

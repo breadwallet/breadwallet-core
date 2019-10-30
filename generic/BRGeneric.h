@@ -33,6 +33,9 @@ extern "C" {
     extern const char *
     genNetworkGetType (BRGenericNetwork network);
 
+    extern int
+    genNetworkIsMainnet (BRGenericNetwork network);
+
     // MARK: - Account
 
     extern BRGenericAccount
@@ -124,6 +127,9 @@ extern "C" {
 
     extern uint8_t *
     genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
+
+    extern BRSetOf (BRGenericTransfer)
+    genTransferSetCreate (size_t capacity);
 
     // MARK: - Generic Wallet
 
@@ -225,6 +231,7 @@ extern "C" {
                                const char *to,
                                const char *amount,
                                const char *currency,
+                               const char *fee,
                                uint64_t timestamp,
                                uint64_t blockHeight);
 
@@ -255,5 +262,9 @@ extern "C" {
 
     extern BRArrayOf(BRGenericTransfer)
     genManagerLoadTransfers (BRGenericManager gwm);
+
+    extern void
+    genManagerSaveTransfer (BRGenericManager gwm,
+                            BRGenericTransfer transfer);
 
 #endif /* BRGeneric_h */

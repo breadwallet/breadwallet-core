@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.CurrencyPair;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
@@ -20,11 +19,7 @@ public class CurrencyAIT {
 
     @Before
     public void setup() {
-        try {
-            CryptoApi.initialize(CryptoApiProvider.getInstance());
-        }  catch (IllegalStateException e) {
-            // already initialized, ignore
-        }
+        HelpersAIT.registerCryptoApiProvider();
     }
 
     @Test

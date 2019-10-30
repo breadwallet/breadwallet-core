@@ -147,7 +147,7 @@ rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 // String
 //
 extern BRRlpItem
-rlpEncodeString (BRRlpCoder coder, char *string);
+rlpEncodeString (BRRlpCoder coder, const char *string);
 
 extern char *
 rlpDecodeString (BRRlpCoder coder, BRRlpItem item);
@@ -159,7 +159,7 @@ rlpDecodeStringCheck (BRRlpCoder coder, BRRlpItem item);
 // Hex String
 //
 extern BRRlpItem
-rlpEncodeHexString (BRRlpCoder coder, char *string);
+rlpEncodeHexString (BRRlpCoder coder, const char *string);
 
 extern char *
 rlpDecodeHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
