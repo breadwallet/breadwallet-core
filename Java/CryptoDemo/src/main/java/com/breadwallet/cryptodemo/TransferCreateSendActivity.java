@@ -264,6 +264,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Error")
                 .setMessage(message)
+                .setCancelable(false)
                 .setNeutralButton("Ok", (dialog, which) -> { })
                 .show();
     }

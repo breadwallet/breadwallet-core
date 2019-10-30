@@ -35,6 +35,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
@@ -102,8 +103,11 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
         Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
 
+        Button payView = findViewById(R.id.pay_view);
+        payView.setOnClickListener(v -> showPaymentMenu(TransferListActivity.this, wallet));
+
         Button sweepView = findViewById(R.id.sweep_view);
-        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
+        sweepView.setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
 
         RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
@@ -194,6 +198,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
 
     private void showSyncToDepthMenu() {
         new AlertDialog.Builder(this)
+                .setTitle("Sync Depth")
                 .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
                         -1,
                         (d, w) -> {
@@ -225,6 +230,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
 
             runOnUiThread(() -> {
                 new AlertDialog.Builder(this)
+                        .setTitle("Sync Mode")
                         .setSingleChoiceItems(itemTexts,
                                 -1,
                                 (d, w) -> {
@@ -234,6 +240,22 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
                         .show();
             });
         });
+    }
+
+    private void showPaymentMenu(Activity context, Wallet wallet) {
+        new AlertDialog.Builder(this)
+                .setTitle("Payment Protocol")
+                .setSingleChoiceItems(new String[]{PaymentProtocolRequestType.BITPAY.name(), PaymentProtocolRequestType.BIP70.name()},
+                        -1,
+                        (d, w) -> {
+                            switch (w) {
+                                case 0: TransferCreatePaymentActivity.start(context, wallet, PaymentProtocolRequestType.BITPAY); break;
+                                case 1: TransferCreatePaymentActivity.start(context, wallet, PaymentProtocolRequestType.BIP70); break;
+                                default: break;
+                            };
+                            d.dismiss();
+                        })
+                .show();
     }
 
     private void copyReceiveAddress() {
