@@ -478,7 +478,7 @@ public final class System {
     public func announce (transaction id: String, data: [String: Any]) {
         print ("SYS: Announce: \(id)")
     }
-
+    #if false
     internal func updateSubscribedWallets () {
         let currencyKeyValues = wallets.map { ($0.currency.code, [$0.source.description]) }
         let wallet = (id: account.uids,
@@ -487,7 +487,7 @@ public final class System {
             print ("SYS: SubscribedWallets: \(res)")
         }
     }
-
+    #endif
     /// MARK: - Network Fees
 
     ////
