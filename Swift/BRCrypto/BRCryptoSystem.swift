@@ -1062,7 +1062,7 @@ public typealias SystemEventHandler = (System, SystemEvent) -> Void
 ///
 /// A SystemCallbackCoordinator coordinates callbacks for non-event based announcement interfaces.
 ///
-public final class SystemCallbackCoordinator {
+internal final class SystemCallbackCoordinator {
     enum Handler {
         case walletFeeEstimate (Wallet.EstimateFeeHandler)
     }
