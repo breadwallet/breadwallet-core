@@ -233,10 +233,9 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkGive (core)
     }
 
-    /// TODO: Should use the network's/manager's default address scheme
+    @available(*, deprecated, message: "Replace with Address.create(string:network:)")
     public func addressFor (_ string: String) -> Address? {
-        return cryptoNetworkCreateAddressFromString (core, string)
-            .map { Address (core: $0, take: false) }
+        return Address.create (string: string, network: self)
     }
 }
 

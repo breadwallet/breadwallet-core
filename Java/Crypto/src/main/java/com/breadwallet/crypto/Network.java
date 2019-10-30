@@ -15,6 +15,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
+import java.lang.String;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +27,10 @@ public interface Network {
 
     Optional<Set<? extends Unit>> unitsFor(Currency currency);
 
+    /**
+     * @deprecated Replace with {@link Address#create(String, Network)}
+     */
+    @Deprecated
     Optional<? extends Address> addressFor(String address);
 
     Optional<Boolean> hasUnitFor(Currency currency, Unit unit);

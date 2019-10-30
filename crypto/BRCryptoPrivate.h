@@ -108,15 +108,23 @@ extern "C" {
 
     /// MARK: - Address
 
+    ///
+    /// Create a BTC/BCH address
+    ///
+    /// @param btc The BRAddress
+    /// @param isBTC CRYPTO_TRUE if BTC; CRYPTO_FALSE if BCH
+    ///
+    /// @return An Address or NULL
+    ///
     private_extern BRCryptoAddress
     cryptoAddressCreateAsBTC (BRAddress btc,
-                              BRCryptoBoolean isBTC);  // TRUE if BTC; FALSE if BCH
+                              BRCryptoBoolean isBTC);
 
     private_extern BRCryptoAddress
     cryptoAddressCreateAsETH (BREthereumAddress eth);
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsGEN (BRGenericAddress aid);
+    cryptoAddressCreateAsGEN (OwnershipGiven BRGenericAddress aid);
 
     private_extern BRCryptoBlockChainType
     cryptoAddressGetType (BRCryptoAddress address);
@@ -281,13 +289,13 @@ extern "C" {
                                  const BRCryptoNetworkFee *fees,
                                  size_t count);
 
-    private_extern BREthereumNetwork
-    cryptoNetworkAsETH (BRCryptoNetwork network);
-
     private_extern const BRChainParams *
     cryptoNetworkAsBTC (BRCryptoNetwork network);
 
-    private_extern void *
+    private_extern BREthereumNetwork
+    cryptoNetworkAsETH (BRCryptoNetwork network);
+
+    private_extern BRGenericNetwork
     cryptoNetworkAsGEN (BRCryptoNetwork network);
 
     private_extern BRCryptoNetwork
