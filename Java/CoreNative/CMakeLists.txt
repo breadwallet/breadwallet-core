@@ -278,25 +278,34 @@ target_sources (crypto
                 src/main/cpp/core/ripple/BRRipple.h
                 src/main/cpp/core/ripple/BRRippleAccount.c
                 src/main/cpp/core/ripple/BRRippleAccount.h
+                src/main/cpp/core/ripple/BRRippleAddress.c
+                src/main/cpp/core/ripple/BRRippleAddress.h
                 src/main/cpp/core/ripple/BRRippleBase58.c
                 src/main/cpp/core/ripple/BRRippleBase58.h
+                src/main/cpp/core/ripple/BRRippleFeeBasis.c
+                src/main/cpp/core/ripple/BRRippleFeeBasis.h
                 src/main/cpp/core/ripple/BRRippleSerialize.c
                 src/main/cpp/core/ripple/BRRippleSerialize.h
                 src/main/cpp/core/ripple/BRRippleSignature.c
                 src/main/cpp/core/ripple/BRRippleSignature.h
                 src/main/cpp/core/ripple/BRRippleTransaction.c
                 src/main/cpp/core/ripple/BRRippleTransaction.h
+                src/main/cpp/core/ripple/BRRippleTransfer.c
+                src/main/cpp/core/ripple/BRRippleTransfer.h
+                src/main/cpp/core/ripple/BRRippleUtils.c
+                src/main/cpp/core/ripple/BRRippleUtils.h
                 src/main/cpp/core/ripple/BRRippleWallet.c
                 src/main/cpp/core/ripple/BRRippleWallet.h)
 
 # Ripple Tests
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
-                    PRIVATE
-                    src/main/cpp/core/ripple/testRipple.c
-                    src/main/cpp/core/ripple/testRippleTxList1.h
-                    src/main/cpp/core/ripple/testRippleTxList2.h)
-endif(CMAKE_BUILD_TYPE MATCHES Debug)
+# TODO(fix): Re-enable these once char2int/hex2bin issue is fixed
+# if (CMAKE_BUILD_TYPE MATCHES Debug)
+#     target_sources (crypto
+#                     PRIVATE
+#                     src/main/cpp/core/ripple/testRipple.c
+#                     src/main/cpp/core/ripple/testRippleTxList1.h
+#                     src/main/cpp/core/ripple/testRippleTxList2.h)
+# endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Generic
 target_sources (crypto
@@ -304,10 +313,11 @@ target_sources (crypto
                 src/main/cpp/core/generic/BRGenericBase.h
                 src/main/cpp/core/generic/BRGeneric.c
                 src/main/cpp/core/generic/BRGeneric.h
+                src/main/cpp/core/generic/BRGenericClient.c
+                src/main/cpp/core/generic/BRGenericClient.h
                 src/main/cpp/core/generic/BRGenericHandlers.c
                 src/main/cpp/core/generic/BRGenericHandlers.h
-                src/main/cpp/core/generic/BRGenericWalletManager.c
-                src/main/cpp/core/generic/BRGenericWalletManager.h
+                src/main/cpp/core/generic/BRGenericManager.c
                 src/main/cpp/core/generic/BRGenericRipple.h
                 src/main/cpp/core/generic/BRGenericRipple.c)
 

@@ -818,8 +818,9 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutexattr_destroy(&attr);
 
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
-    assert (NULL != earliestCheckPoint);
+    uint32_t checkpointKeyTime = earliestKeyTime > ONE_WEEK_IN_SECONDS ? earliestKeyTime - ONE_WEEK_IN_SECONDS : 0;
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, checkpointKeyTime);
+    uint32_t checkpointBlockHeight = earliestCheckPoint ? earliestCheckPoint->height : 0;
 
     // Initialize this instance's blockHeight.  This might be out-of-sync with a) the P2P block
     // height which will be derived from the persistently restored blocks and then from the sync()
@@ -837,8 +838,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     // which syncs based on its trusted data (aka the blocks). In API mode, we don't have any trusted
     // data so sync on the whole range to be safe.
     manager->confirmationsUntilFinal = confirmationsUntilFinal;
-    manager->initBlockHeight         = MIN (earliestCheckPoint->height, blockHeight);
-    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
+    manager->initBlockHeight         = MIN (checkpointBlockHeight, blockHeight);
+    manager->networkBlockHeight      = MAX (checkpointBlockHeight, blockHeight);
     manager->syncedBlockHeight       = manager->initBlockHeight;
     manager->isConnected             = 0;
     manager->isNetworkReachable      = isNetworkReachable;
@@ -1568,15 +1569,16 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutexattr_destroy(&attr);
 
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
-    assert (NULL != earliestCheckPoint);
+    uint32_t checkpointKeyTime = earliestKeyTime > ONE_WEEK_IN_SECONDS ? earliestKeyTime - ONE_WEEK_IN_SECONDS : 0;
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, checkpointKeyTime);
+    uint32_t checkpointBlockHeight = earliestCheckPoint ? earliestCheckPoint->height : 0;
 
     // The initial sync will be based on the `blocks` provided to the peer manager as the starting
     // point up to the block height advertised on the P2P network, regardless of if we have synced,
     // in API mode for example, to halfway between those two heights. This is due to how the P2P
     // verifies data it receives from the network.
     manager->confirmationsUntilFinal = confirmationsUntilFinal;
-    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
+    manager->networkBlockHeight      = MAX (checkpointBlockHeight, blockHeight);
     manager->isConnected             = 0;
     manager->isNetworkReachable      = isNetworkReachable;
 

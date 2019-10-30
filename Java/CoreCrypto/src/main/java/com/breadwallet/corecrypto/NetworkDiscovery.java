@@ -337,7 +337,7 @@ final class NetworkDiscovery {
     }
 
     private static Unit currencyToDefaultBaseUnit(Currency currency) {
-        String symb = currency.getCode().toUpperCase(Locale.ROOT) + "I";
+        String symb = currency.getCode().toLowerCase(Locale.ROOT) + "i";
         String name = currency.getCode().toUpperCase(Locale.ROOT) + "_INTEGER";
         String uids = String.format("%s:%s", currency.getUids(), name);
         return Unit.create(currency, uids, name, symb);

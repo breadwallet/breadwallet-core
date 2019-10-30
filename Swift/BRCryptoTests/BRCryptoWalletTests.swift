@@ -203,7 +203,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
     func testWalletETH() {
         isMainnet = false
-        registerCurrencyCodes = ["BRD"]
+        registerCurrencyCodes = ["brd"]
         currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
@@ -249,7 +249,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotEqual (w0, w1)
 
         XCTAssertEqual ("eth", w0.name)
-        XCTAssertEqual ("BRD", w1.name)
+        XCTAssertEqual ("brd", w1.name)
 
         let walletETH = manager.primaryWallet
         XCTAssertNotNil(walletETH)

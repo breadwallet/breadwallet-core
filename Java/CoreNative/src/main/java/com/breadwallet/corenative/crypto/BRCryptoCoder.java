@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.Ints;
@@ -39,38 +39,42 @@ public class BRCryptoCoder extends PointerType {
     }
 
     private static Optional<BRCryptoCoder> create(int alg) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoCoderCreate(alg));
-    }
-
-    public BRCryptoCoder(Pointer address) {
-        super(address);
+        return Optional.fromNullable(CryptoLibraryDirect.cryptoCoderCreate(alg)).transform(BRCryptoCoder::new);
     }
 
     public BRCryptoCoder() {
         super();
     }
 
+    public BRCryptoCoder(Pointer address) {
+        super(address);
+    }
+
     public Optional<String> encode(byte[] input) {
-        SizeT length = CryptoLibrary.INSTANCE.cryptoCoderEncodeLength(this, input, new SizeT(input.length));
+        Pointer thisPtr = this.getPointer();
+
+        SizeT length = CryptoLibraryDirect.cryptoCoderEncodeLength(thisPtr, input, new SizeT(input.length));
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoCoderEncode(this, output, new SizeT(output.length), input, new SizeT(input.length));
+        int result = CryptoLibraryDirect.cryptoCoderEncode(thisPtr, output, new SizeT(output.length), input, new SizeT(input.length));
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(utf8BytesToString(output)) : Optional.absent();
     }
 
     public Optional<byte[]> decode(String inputStr) {
+        Pointer thisPtr = this.getPointer();
+
         // ensure string is null terminated
         byte[] inputWithoutTerminator = inputStr.getBytes(StandardCharsets.UTF_8);
         byte[] inputWithTerminator = Arrays.copyOf(inputWithoutTerminator, inputWithoutTerminator.length + 1);
 
-        SizeT length = CryptoLibrary.INSTANCE.cryptoCoderDecodeLength(this, inputWithTerminator);
+        SizeT length = CryptoLibraryDirect.cryptoCoderDecodeLength(thisPtr, inputWithTerminator);
         int lengthAsInt = Ints.checkedCast(length.longValue());
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];
-        int result = CryptoLibrary.INSTANCE.cryptoCoderDecode(this, output, new SizeT(output.length), inputWithTerminator);
+        int result = CryptoLibraryDirect.cryptoCoderDecode(thisPtr, output, new SizeT(output.length), inputWithTerminator);
         return result == BRCryptoBoolean.CRYPTO_TRUE ? Optional.of(output) : Optional.absent();
     }
 
@@ -84,6 +88,8 @@ public class BRCryptoCoder extends PointerType {
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoCoderGive(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoCoderGive(thisPtr);
     }
 }

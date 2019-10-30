@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
+import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -17,6 +18,7 @@ import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.network.NetworkEvent;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
@@ -78,17 +80,42 @@ class HelpersAIT {
         return file.delete();
     }
 
+    // Module
+
+    /* package */
+    static void registerCryptoApiProvider() {
+        try {
+            CryptoApi.initialize(CryptoApiProvider.getInstance());
+        }  catch (IllegalStateException e) {
+            // already initialized, ignore
+        }
+    }
+
     // System
 
     /* package */
-    static System createAndConfigureSystem(File dataDir, SystemListener listener) {
+    static System createAndConfigureSystemWithListener(File dataDir, SystemListener listener) {
         String storagePath = dataDir.getAbsolutePath();
         Account account = HelpersAIT.createDefaultAccount();
-        BlockchainDb query = HelpersAIT.createDefaultBlockchainDb();
+        BlockchainDb query = HelpersAIT.createDefaultBlockchainDbWithToken();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         com.breadwallet.corecrypto.System system = com.breadwallet.corecrypto.System.create(executor, listener, account, false, storagePath, query);
 
         system.configure(Collections.emptyList());
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+
+        return system;
+    }
+
+    /* package */
+    static System createAndConfigureSystemWithBlockchainDbAndCurrencies(File dataDir, BlockchainDb query, List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> currencies) {
+        String storagePath = dataDir.getAbsolutePath();
+        Account account = HelpersAIT.createDefaultAccount();
+        SystemListener listener = new DefaultSystemListener() {};
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        com.breadwallet.corecrypto.System system = com.breadwallet.corecrypto.System.create(executor, listener, account, false, storagePath, query);
+
+        system.configure(currencies);
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
 
         return system;
@@ -146,7 +173,8 @@ class HelpersAIT {
 
     // BlockchainDB
 
-    private static final OkHttpClient DEFAULT_HTTP_CLIENT = new OkHttpClient();
+    /* package */
+    static final OkHttpClient DEFAULT_HTTP_CLIENT = new OkHttpClient();
 
     private static String DEFAULT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9." +
             "eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ" +
@@ -154,8 +182,13 @@ class HelpersAIT {
             "FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
 
     /* package */
-    static BlockchainDb createDefaultBlockchainDb() {
+    static BlockchainDb createDefaultBlockchainDbWithToken() {
         return BlockchainDb.createForTest(DEFAULT_HTTP_CLIENT, DEFAULT_TOKEN);
+    }
+
+    /* package */
+    static BlockchainDb createDefaultBlockchainDbWithoutToken() {
+        return new BlockchainDb(DEFAULT_HTTP_CLIENT);
     }
 
     // Listeners

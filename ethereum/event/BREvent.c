@@ -162,6 +162,15 @@ eventHandlerThread (BREventHandler handler) {
                 if (handler->lockOnDispatch) pthread_mutex_lock (handler->lockOnDispatch);
                 handler->scratch->type->eventDispatcher (handler, handler->scratch);
                 if (handler->lockOnDispatch) pthread_mutex_unlock (handler->lockOnDispatch);
+
+                // Yield here so that we don't have a situation where we repeatedly acquire
+                // the `lockOnDispatch`, thereby starving other threads, when there are many
+                // events queued (ex: on startup)
+#if defined (ANDROID)
+                nanosleep (&(struct timespec) {0, 1}, NULL); // pthread_yield() isn't POSIX standard :(
+#else
+                pthread_yield_np ();
+#endif
                 break;
 
             case EVENT_STATUS_WAIT_ABORT:

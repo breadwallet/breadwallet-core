@@ -58,7 +58,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
                 break;
             default:
-                core = BRCryptoNetwork.createAsGen(uids, name, isMainnet);
+                core = BRCryptoNetwork.createAsGen(uids, name, currency.getCoreBRCryptoCurrency(), isMainnet);
                 break;
         }
 
