@@ -109,15 +109,29 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
     ed25519_sign(signature, body, bodySize, publicKey.pubKey, privateKey);
 
     // Serialize the full transaction including signature and public key
-    transaction->serializedBytes = hederaTransactionPack (signature, 64,
-                                                          publicKey.pubKey, 32,
-                                                          body, bodySize,
-                                                          &transaction->serializedSize);
+    uint8_t * serializedBytes = hederaTransactionPack (signature, 64,
+                                                       publicKey.pubKey, 32,
+                                                       body, bodySize,
+                                                       &transaction->serializedSize);
 
     // We are now done with the body - it was copied to the serialized bytes so we
     // must clean up it now.
     free (body);
 
+    // The server needs to know what node we are sending to - so let's add those bytes now.
+    // We will need 24 bytes to hold the 3 numbers - so create a new buffers of that size
+    transaction->serializedBytes = calloc(1, transaction->serializedSize + 24);
+
+    int64_t shard = htonl(hederaAddressGetShard(nodeAddress));
+    memcpy(&transaction->serializedBytes[0], &shard, 8);
+    int64_t realm = htonl(hederaAddressGetRealm(nodeAddress));
+    memcpy(&transaction->serializedBytes[8], &realm, 8);
+    int64_t account = htonl(hederaAddressGetAccount(nodeAddress));
+    memcpy(&transaction->serializedBytes[16], &account, 8);
+    memcpy(&transaction->serializedBytes[24], serializedBytes, transaction->serializedSize);
+    free (serializedBytes);
+
+    transaction->serializedSize += 24; // This will be our new size of serialized bytes
     return transaction->serializedSize;
 }
 

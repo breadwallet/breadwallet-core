@@ -88,6 +88,7 @@ struct account_info accounts[] = {
         "372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d454404" },
     {"node3", "0.0.3", "", ""},
     {"node2", "0.0.2", "", ""},
+    {"nodetest", "5412398.75.101101101", "", ""},
     {"inmate", "", "inmate flip alley wear offer often piece magnet surge toddler submit right radio absent pear floor belt raven price stove replace reduce plate home", "b63b3815f453cf697b53b290b1d78e88c725d39bde52c34c79fb5b4c93894673"}
 };
 size_t num_accounts = sizeof (accounts) / sizeof (struct account_info);
@@ -427,11 +428,11 @@ static void create_real_transactions() {
 }
 
 static void create_new_transactions() {
-    const char * testOneOutput = "1a660a640a20ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f6755851a40e9086013e266e779a08a6b5f56efef98a1d9a9a5d3dce2f40dba01b35ea429247872c98e2fe0f6150ba3d82e7b9848a2c95d118d9f8bc66ae285be42d1e94407223b0a0e0a060889f0c6ed05120418d8fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d8fa0610ffd9c4090a0b0a0418d9fa061080dac409";
+    const char * testOneOutput = "0000000000000000000000000000000000000003000000001a660a640a20ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f6755851a40e9086013e266e779a08a6b5f56efef98a1d9a9a5d3dce2f40dba01b35ea429247872c98e2fe0f6150ba3d82e7b9848a2c95d118d9f8bc66ae285be42d1e94407223b0a0e0a060889f0c6ed05120418d8fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d8fa0610ffd9c4090a0b0a0418d9fa061080dac409";
     // Send 10,000,000 tiny bars to "choose" from "patient" via node3.
     createNewTransaction ("patient", "choose", "node3", 10000000, 1571928073, 0, 500000, testOneOutput, false);
 
-    const char * testTwoOutput = "1a660a640a20372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d4544041a40be090d58fb3926c5e3e3f8bd19badca4189a42d7ce336bf4e736738bf3932c8b9a12e79bcab3e94beeca17e2acd027c6baedc8b74d70b63669319927bb39f700223b0a0e0a0608d1f1c6ed05120418d9fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d9fa0610ffc1d72f0a0b0a0418d8fa061080c2d72f";
+    const char * testTwoOutput = "0000000000000000000000000000000000000003000000001a660a640a20372c41776cbdb5cacc7c41ec75b17ad9bd3f242f5c4ab13a1bbeef274d4544041a40be090d58fb3926c5e3e3f8bd19badca4189a42d7ce336bf4e736738bf3932c8b9a12e79bcab3e94beeca17e2acd027c6baedc8b74d70b63669319927bb39f700223b0a0e0a0608d1f1c6ed05120418d9fa061202180318a0c21e220308b401721c0a1a0a0b0a0418d9fa0610ffc1d72f0a0b0a0418d8fa061080c2d72f";
     // Send 50,000,000 tiny bars to "patient" from "choose" via node3
     createNewTransaction ("choose", "patient", "node3", 50000000, 1571928273, 0, 500000, testTwoOutput, false);
 }
