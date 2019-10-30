@@ -26,60 +26,47 @@ import java.util.List;
 public class BRCryptoNetwork extends PointerType {
 
     public static BRCryptoNetwork createAsBtc(String uids, String name, boolean isMainnet) {
-        Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRMainNetParams" : "BRTestNetParams");
         return new BRCryptoNetwork(
                 CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
                         uids,
                         name,
-                        (byte) (isMainnet ? 0x00 : 0x40),
-                        globalPtr.getPointer(0)
+                        isMainnet ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE
                 )
         );
     }
 
     public static BRCryptoNetwork createAsBch(String uids, String name, boolean isMainnet) {
-        Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRBCashParams" : "BRBCashTestNetParams");
         return new BRCryptoNetwork(
-                CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
+                CryptoLibraryDirect.cryptoNetworkCreateAsBCH(
                         uids,
                         name,
-                        (byte) (isMainnet ? 0x00 : 0x40),
-                        globalPtr.getPointer(0)
+                        isMainnet ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE
                 )
         );
     }
 
     public static Optional<BRCryptoNetwork> createAsEth(String uids, String name, boolean isMainnet) {
         if (uids.contains("mainnet")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumMainnet");
             return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETHForMainnet(
                             uids,
-                            name,
-                            1,
-                            globalPtr.getPointer(0)
+                            name
                     )
             ).transform(BRCryptoNetwork::new);
 
         } else if (uids.contains("testnet") || uids.contains("ropsten")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumTestnet");
             return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETHForTestnet(
                             uids,
-                            name,
-                            3,
-                            globalPtr.getPointer(0)
+                            name
                     )
             ).transform(BRCryptoNetwork::new);
 
         } else if (uids.contains ("rinkeby")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumRinkeby");
             return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
+                    CryptoLibraryDirect.cryptoNetworkCreateAsETHForRinkeby(
                             uids,
-                            name,
-                            4,
-                            globalPtr.getPointer(0)
+                            name
                     )
             ).transform(BRCryptoNetwork::new);
 

@@ -127,21 +127,9 @@ struct BRCryptoNetworkRecord {
     
     BRCryptoBlockChainType type;
     union {
-        struct {
-            uint8_t forkId;
-            const BRChainParams *params;
-        } btc;
-
-        struct {
-            uint32_t chainId;
-            BREthereumNetwork net;
-        } eth;
-
-        struct {
-            // TODO: TBD
-            BRGenericNetwork net;
-            uint8_t mainnet;
-        } gen;
+        const BRChainParams *btc;
+        BREthereumNetwork eth;
+        BRGenericNetwork gen;
     } u;
     BRCryptoRef ref;
 };
@@ -174,29 +162,54 @@ cryptoNetworkCreate (const char *uids,
     return network;
 }
 
-// TODO: Remove forkId; derivable from BRChainParams (after CORE-284)
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *uids,
                           const char *name,
-                          uint8_t forkId,
-                          const BRChainParams *params) {
+                          BRCryptoBoolean isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_BTC;
-    network->u.btc.forkId = forkId;
-    network->u.btc.params = params;
+    network->u.btc = CRYPTO_TRUE == isMainnet ? BRMainNetParams : BRTestNetParams;
 
     return network;
 }
 
 private_extern BRCryptoNetwork
-cryptoNetworkCreateAsETH (const char *uids,
+cryptoNetworkCreateAsBCH (const char *uids,
                           const char *name,
-                          uint32_t chainId,
-                          BREthereumNetwork net) {
+                          BRCryptoBoolean isMainnet) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_BTC;
+    network->u.btc = CRYPTO_TRUE == isMainnet ? BRBCashParams : BRBCashTestNetParams;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForMainnet (const char *uids,
+                                    const char *name) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_ETH;
-    network->u.eth.chainId = chainId;
-    network->u.eth.net = net;
+    network->u.eth = ethereumMainnet;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForTestnet (const char *uids,
+                                    const char *name) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_ETH;
+    network->u.eth = ethereumTestnet;
+
+    return network;
+}
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForRinkeby (const char *uids,
+                                    const char *name) {
+    BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
+    network->type = BLOCK_CHAIN_TYPE_ETH;
+    network->u.eth = ethereumRinkeby;
 
     return network;
 }
@@ -208,8 +221,7 @@ cryptoNetworkCreateAsGEN (const char *uids,
                           uint8_t isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
-    network->u.gen.mainnet = isMainnet;
-    network->u.gen.net = genNetworkCreate(cryptoCurrencyGetCode(currency));
+    network->u.gen = genNetworkCreate(cryptoCurrencyGetCode(currency), isMainnet);
     network->currency = cryptoCurrencyTake(currency);
     return network;
 }
@@ -271,12 +283,12 @@ extern BRCryptoBoolean
 cryptoNetworkIsMainnet (BRCryptoNetwork network) {
     switch (network->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return AS_CRYPTO_BOOLEAN (network->u.btc.params == BRMainNetParams ||
-                                      network->u.btc.params == BRBCashParams);
+            return AS_CRYPTO_BOOLEAN (network->u.btc == BRMainNetParams ||
+                                      network->u.btc == BRBCashParams);
         case BLOCK_CHAIN_TYPE_ETH:
-            return AS_CRYPTO_BOOLEAN (network->u.eth.net == ethereumMainnet);
+            return AS_CRYPTO_BOOLEAN (network->u.eth == ethereumMainnet);
         case BLOCK_CHAIN_TYPE_GEN:
-            return AS_CRYPTO_BOOLEAN (network->u.gen.mainnet);
+            return AS_CRYPTO_BOOLEAN (genNetworkIsMainnet (network->u.gen));
     }
 }
 
@@ -534,15 +546,15 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
                                       const char *string) {
     switch (network->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return (BRChainParamsIsBitcoin (network->u.btc.params)
-                    ? cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string)
-                    : cryptoAddressCreateFromStringAsBCH (network->u.btc.params->addrParams, string));
+            return (BRChainParamsIsBitcoin (network->u.btc)
+                    ? cryptoAddressCreateFromStringAsBTC (network->u.btc->addrParams, string)
+                    : cryptoAddressCreateFromStringAsBCH (network->u.btc->addrParams, string));
 
         case BLOCK_CHAIN_TYPE_ETH:
             return cryptoAddressCreateFromStringAsETH (string);
 
         case BLOCK_CHAIN_TYPE_GEN:
-            return cryptoAddressCreateFromStringAsGEN (network->u.gen.net, string);
+            return cryptoAddressCreateFromStringAsGEN (network->u.gen, string);
     }
 }
 
@@ -550,20 +562,20 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
 private_extern BREthereumNetwork
 cryptoNetworkAsETH (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_ETH == network->type);
-    return network->u.eth.net;
+    return network->u.eth;
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
 private_extern const BRChainParams *
 cryptoNetworkAsBTC (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_BTC == network->type);
-    return network->u.btc.params;
+    return network->u.btc;
 }
 
 private_extern void *
 cryptoNetworkAsGEN (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_GEN == network->type);
-    return network->u.gen.net;
+    return network->u.gen;
 }
 
 private_extern BRCryptoBlockChainType
