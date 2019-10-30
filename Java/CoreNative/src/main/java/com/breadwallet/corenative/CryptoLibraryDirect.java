@@ -204,6 +204,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletGetUnit(Pointer wallet);
     public static native Pointer cryptoWalletGetUnitForFee(Pointer wallet);
     public static native Pointer cryptoWalletGetCurrency(Pointer wallet);
+    public static native Pointer cryptoWalletCreateFeeBasis(Pointer wallet, Pointer pricePerCostFactor, double costFactor);
     public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis);
     public static native Pointer cryptoWalletCreateTransferForWalletSweep(Pointer wallet, Pointer sweeper, Pointer feeBasis);
     public static native void cryptoWalletEstimateFeeBasis(Pointer wallet, Pointer cookie, Pointer target, Pointer amount, Pointer fee);

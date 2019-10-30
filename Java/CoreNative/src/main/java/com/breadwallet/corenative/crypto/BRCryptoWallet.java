@@ -98,6 +98,18 @@ public class BRCryptoWallet extends PointerType {
         return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
+    public Optional<BRCryptoFeeBasis> createTransferFeeBasis(BRCryptoAmount pricePerCostFactor, double costFactor) {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletCreateFeeBasis(
+                        thisPtr,
+                        pricePerCostFactor.getPointer(),
+                        costFactor
+                )
+        ).transform(BRCryptoFeeBasis::new);
+    }
+
     public Optional<BRCryptoTransfer> createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
                                                      BRCryptoFeeBasis estimatedFeeBasis) {
         Pointer thisPtr = this.getPointer();
