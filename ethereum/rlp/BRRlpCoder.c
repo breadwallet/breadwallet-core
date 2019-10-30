@@ -611,6 +611,27 @@ rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
 }
 
 //
+// Double
+//
+extern BRRlpItem
+rlpEncodeDouble(BRRlpCoder coder, double value) {
+    char strDouble[65];
+    snprintf(strDouble, 64, "%lf", value);
+    return rlpEncodeString (coder, strDouble);
+}
+
+extern double
+rlpDecodeDouble(BRRlpCoder coder, BRRlpItem item) {
+    char *strDouble = rlpDecodeString (coder, item);
+
+    double value;
+    sscanf (strDouble, "%lf", &value);
+    free (strDouble);
+
+    return value;
+}
+
+//
 // Bytes
 //
 extern BRRlpItem
