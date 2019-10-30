@@ -795,6 +795,7 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
                 *encodedLen = array_count (encodedArray);
                 encoded = malloc(*encodedLen);
                 memcpy (encoded, encodedArray, *encodedLen);
+                *encodedLen -= 1; // don't include the NULL terminator in the count
 
                 array_free (encodedArray);
             }
