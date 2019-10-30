@@ -398,9 +398,8 @@ cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer) {
     if (cryptoUnitIsIdentical (transfer->unit, transfer->unitForFee))
         return amount;
 
-    BRCryptoFeeBasis feeBasis = (NULL != transfer->feeBasisConfirmed
-                                 ? transfer->feeBasisConfirmed
-                                 : transfer->feeBasisEstimated);
+    BRCryptoFeeBasis feeBasis = cryptoTransferGetConfirmedFeeBasis(transfer);
+    if (NULL == feeBasis) feeBasis = transfer->feeBasisEstimated;
 
     // If there is no fee basis, then there is no fee
     if (NULL == feeBasis)

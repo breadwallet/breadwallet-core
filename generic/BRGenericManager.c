@@ -34,6 +34,14 @@ extern const unsigned int gwmEventTypesCount;
 #endif
 
 static BRRlpItem
+genFeeBasisEncode (BRGenericFeeBasis feeBasis,
+                   BRRlpCoder coder);
+
+static BRGenericFeeBasis
+genFeeBasisDecode (BRRlpItem item,
+                   BRRlpCoder coder);
+
+static BRRlpItem
 genTransferStateEncode (BRGenericTransferState state,
                         BRRlpCoder coder);
 
@@ -125,7 +133,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     char *strTarget = rlpDecodeString  (coder, items[2]);
     UInt256 amount  = rlpDecodeUInt256 (coder, items[3], 0);
     char *currency  = rlpDecodeString  (coder, items[4]);
-    UInt256 fee     = rlpDecodeUInt256 (coder, items[5], 0);
+    BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[5], coder);
     BRGenericTransferState state = genTransferStateDecode (items[6], coder);
 
 
@@ -133,7 +141,11 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     char *strHash   = genericHashAsString (*hash);
 
     char *strAmount = coerceString (amount, 10);
-    char *strFee    = coerceString (fee,    10); (void) strFee;
+
+    int overflow = 0;
+    UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
+    assert (!overflow);
+    char *strFee = coerceString (fee,    10);
 
     uint64_t timestamp = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
                           ? state.u.included.timestamp
@@ -179,7 +191,7 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     BRGenericAddress source = genTransferGetSourceAddress (transfer);
     BRGenericAddress target = genTransferGetTargetAddress (transfer);
     UInt256 amount = genTransferGetAmount (transfer);
-    UInt256 fee    = genTransferGetFee    (transfer);  // feeBasis
+    BRGenericFeeBasis feeBasis = genTransferGetFeeBasis(transfer);
     BRGenericTransferState state = genTransferGetState (transfer);
 
     // Code it Up!
@@ -194,7 +206,7 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     rlpEncodeString (coder, strTarget),
                                     rlpEncodeUInt256 (coder, amount, 0),
                                     rlpEncodeString (coder, transfer->type),
-                                    rlpEncodeUInt256 (coder, fee, 0),
+                                    genFeeBasisEncode (feeBasis, coder),
                                     genTransferStateEncode (state, coder));
 
     BRRlpData data = rlpGetData (coder, item);
@@ -578,7 +590,28 @@ genManagerAnnounceSubmit (BRGenericManager manager,
     // Event
 }
 
-/// MARK: - Transfer State Encode/Decode
+/// MARK: - Transfer State & Transfer Fee Basis Encode/Decode
+
+static BRRlpItem
+genFeeBasisEncode (BRGenericFeeBasis feeBasis,
+                   BRRlpCoder coder) {
+    return rlpEncodeList2 (coder,
+                           rlpEncodeUInt256 (coder, feeBasis.pricePerCostFactor, 0),
+                           rlpEncodeDouble  (coder, feeBasis.costFactor));
+}
+
+static BRGenericFeeBasis
+genFeeBasisDecode (BRRlpItem item,
+                   BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (itemsCount == 2);
+
+    return (BRGenericFeeBasis) {
+        rlpDecodeUInt256 (coder, items[0], 0),
+        rlpDecodeDouble  (coder, items[1])
+    };
+}
 
 static BRRlpItem
 genTransferStateEncode (BRGenericTransferState state,
@@ -590,7 +623,7 @@ genTransferStateEncode (BRGenericTransferState state,
                                   rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
                                   rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
                                   rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
-                                  rlpEncodeUInt256 (coder, state.u.included.fee, 0));
+                                  genFeeBasisEncode (state.u.included.feeBasis, coder));
 
         case GENERIC_TRANSFER_STATE_ERRORED:
             return rlpEncodeList2 (coder,
@@ -625,7 +658,7 @@ genTransferStateDecode (BRRlpItem item,
                     rlpDecodeUInt64  (coder, items[1], 0),
                     rlpDecodeUInt64  (coder, items[2], 0),
                     rlpDecodeUInt64  (coder, items[3], 0),
-                    rlpDecodeUInt256 (coder, items[4], 0),
+                    genFeeBasisDecode (items[4], coder)
                 }}
             };
 
