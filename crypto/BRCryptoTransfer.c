@@ -399,13 +399,17 @@ cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer) {
         return amount;
 
     BRCryptoFeeBasis feeBasis = cryptoTransferGetConfirmedFeeBasis(transfer);
-    if (NULL == feeBasis) feeBasis = transfer->feeBasisEstimated;
+    if (NULL == feeBasis)
+        feeBasis = (NULL == transfer->feeBasisEstimated
+                    ? NULL
+                    : cryptoFeeBasisTake (transfer->feeBasisEstimated));
 
     // If there is no fee basis, then there is no fee
     if (NULL == feeBasis)
         return amount;
 
-    BRCryptoAmount fee       = cryptoFeeBasisGetFee (feeBasis);
+    BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasis);
+    cryptoFeeBasisGive(feeBasis);
 
     // Simply subtract off the fee.
     BRCryptoAmount amountNet = cryptoAmountSub (amount, fee);
