@@ -256,9 +256,6 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis);
     public static native Pointer cryptoWalletCreateTransferForWalletSweep(Pointer wallet, Pointer sweeper, Pointer feeBasis);
     public static native Pointer cryptoWalletCreateTransferForPaymentProtocolRequest(Pointer wallet, Pointer request, Pointer feeBasis);
-    public static native void cryptoWalletEstimateFeeBasis(Pointer wallet, Pointer cookie, Pointer target, Pointer amount, Pointer fee);
-    public static native void cryptoWalletEstimateFeeBasisForWalletSweep(Pointer wallet, Pointer cookie, Pointer sweeper, Pointer fee);
-    public static native void cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(Pointer wallet, Pointer cookie, Pointer request, Pointer fee);
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
 
@@ -292,6 +289,9 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletManagerSubmit(Pointer cwm, Pointer wid, Pointer tid, ByteBuffer paperKey);
     public static native void cryptoWalletManagerSubmitForKey(Pointer cwm, Pointer wid, Pointer tid, Pointer key);
     public static native void cryptoWalletManagerSubmitSigned(Pointer cwm, Pointer wid, Pointer tid);
+    public static native void cryptoWalletManagerEstimateFeeBasis(Pointer cwm, Pointer wid, Pointer cookie, Pointer target, Pointer amount, Pointer fee);
+    public static native void cryptoWalletManagerEstimateFeeBasisForWalletSweep(Pointer cwm, Pointer wid, Pointer cookie, Pointer sweeper, Pointer fee);
+    public static native void cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest(Pointer cwm, Pointer wid, Pointer cookie, Pointer request, Pointer fee);
     public static native Pointer cryptoWalletManagerTake(Pointer cwm);
     public static native void cryptoWalletManagerGive(Pointer cwm);
 

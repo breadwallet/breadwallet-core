@@ -10,6 +10,7 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
+import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -245,6 +246,42 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cryptoWalletManagerSubmitSigned(thisPtr, wallet.getPointer(), transfer.getPointer());
     }
 
+    public void estimateFeeBasis(BRCryptoWallet wallet, Cookie cookie,
+                                 BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletManagerEstimateFeeBasis(
+                thisPtr,
+                wallet.getPointer(),
+                cookie.getPointer(),
+                target.getPointer(),
+                amount.getPointer(),
+                fee.getPointer());
+    }
+
+    public void estimateFeeBasisForWalletSweep(BRCryptoWallet wallet, Cookie cookie,
+                                               BRCryptoWalletSweeper sweeper, BRCryptoNetworkFee fee) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletManagerEstimateFeeBasisForWalletSweep(
+                thisPtr,
+                wallet.getPointer(),
+                cookie.getPointer(),
+                sweeper.getPointer(),
+                fee.getPointer());
+    }
+
+    public void estimateFeeBasisForPaymentProtocolRequest(BRCryptoWallet wallet, Cookie cookie,
+                                                          BRCryptoPaymentProtocolRequest request, BRCryptoNetworkFee fee) {
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest(
+                thisPtr,
+                wallet.getPointer(),
+                cookie.getPointer(),
+                request.getPointer(),
+                fee.getPointer());
+    }
 
     public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
         Pointer thisPtr = this.getPointer();

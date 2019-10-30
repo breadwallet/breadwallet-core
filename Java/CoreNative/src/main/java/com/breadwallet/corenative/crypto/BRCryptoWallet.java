@@ -148,40 +148,6 @@ public class BRCryptoWallet extends PointerType {
         ).transform(BRCryptoTransfer::new);
     }
 
-    public void estimateFeeBasis(Cookie cookie,
-                                 BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasis(
-                thisPtr,
-                cookie.getPointer(),
-                target.getPointer(),
-                amount.getPointer(),
-                fee.getPointer());
-    }
-
-    public void estimateFeeBasisForWalletSweep(Cookie cookie, BRCryptoWalletSweeper sweeper,
-                                               BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForWalletSweep(
-                thisPtr,
-                cookie.getPointer(),
-                sweeper.getPointer(),
-                fee.getPointer());
-    }
-
-    public void estimateFeeBasisForPaymentProtocolRequest(Cookie cookie, BRCryptoPaymentProtocolRequest request,
-                                                          BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(
-                thisPtr,
-                cookie.getPointer(),
-                request.getPointer(),
-                fee.getPointer());
-    }
-
     public BRCryptoWallet take() {
         Pointer thisPtr = this.getPointer();
 
