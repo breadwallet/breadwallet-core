@@ -109,6 +109,8 @@ rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleFeeBasis feeBasis
 extern BRRippleFeeBasis
 rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
 
+extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer transfer);
+
 extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer);
 
 #endif

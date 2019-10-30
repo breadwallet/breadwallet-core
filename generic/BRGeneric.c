@@ -16,12 +16,24 @@
 
 // MARK: - Network
 
-IMPLEMENT_GENERIC_TYPE(Network,network)
+// IMPLEMENT_GENERIC_TYPE(Network,network)
+
+private_extern BRGenericNetwork
+genNetworkAllocAndInit (const char *type,
+                        BRGenericNetworkRef ref,
+                        int isMainnet) {
+    BRGenericNetwork network = calloc (1, sizeof (struct BRGenericNetworkRecord));
+    network->type = type;
+    network->handlers = genHandlerLookup(type)->network;
+    network->ref = ref;
+    network->isMainnet = isMainnet;
+    return network;
+}
 
 extern BRGenericNetwork
-genNetworkCreate (const char *type) {
+genNetworkCreate (const char *type, int isMainnet) {
     // There is no 'gen handler' for network create
-    return genNetworkAllocAndInit (type, NULL);
+    return genNetworkAllocAndInit (type, NULL, isMainnet);
 }
 
 extern void
@@ -36,7 +48,7 @@ genNetworkGetType (BRGenericNetwork network) {
 
 extern int
 genNetworkIsMainnet (BRGenericNetwork network) {
-    return 1;
+    return network->isMainnet;
 }
 
 // MARK: - Account
@@ -280,6 +292,18 @@ genWalletSetDefaultFeeBasis (BRGenericWallet wid,
     wid->defaultFeeBasis = bid;
 }
 
+extern int
+genWalletHasTransfer (BRGenericWallet wallet,
+                      BRGenericTransfer transfer) {
+    return wallet->handlers.hasTransfer (wallet->ref, transfer->ref);
+}
+
+extern void
+genWalletAddTransfer (BRGenericWallet wallet,
+                      BRGenericTransfer transfer) {
+    wallet->handlers.addTransfer (wallet->ref, transfer->ref);
+}
+
 extern BRGenericTransfer
 genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
@@ -298,6 +322,8 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                            : (isSource
                               ? GENERIC_TRANSFER_SENT
                               : GENERIC_TRANSFER_RECEIVED));
+
+    genWalletAddTransfer (wallet, transfer);
 
     return transfer;
 }

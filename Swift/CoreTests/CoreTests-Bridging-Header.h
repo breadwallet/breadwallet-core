@@ -12,7 +12,6 @@
 //
 //  Use this file to import your target's public headers that you would like to expose to Swift.
 //
-#include "ethereum/BREthereum.h"
 #include "crypto/BRCryptoAccount.h"
 #include "crypto/BRCryptoAmount.h"
 #include "crypto/BRCryptoCurrency.h"

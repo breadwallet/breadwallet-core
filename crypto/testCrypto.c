@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "bitcoin/BRChainParams.h"
+#include "bcash/BRBCashParams.h"
+
 #include "BRCryptoAmount.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"

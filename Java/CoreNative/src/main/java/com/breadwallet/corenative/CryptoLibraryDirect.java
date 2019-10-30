@@ -202,8 +202,11 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoNetworkFeeCreate(long timeInternalInMilliseconds, Pointer pricePerCostFactor, Pointer pricePerCostFactorUnit);
 
     // crypto/BRCryptoPrivate.h (BRCryptoNetwork)
-    public static native Pointer cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
-    public static native Pointer cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
+    public static native Pointer cryptoNetworkCreateAsBTC(String uids, String name, int isMainnet);
+    public static native Pointer cryptoNetworkCreateAsBCH(String uids, String name, int isMainnet);
+    public static native Pointer cryptoNetworkCreateAsETHForMainnet(String uids, String name);
+    public static native Pointer cryptoNetworkCreateAsETHForTestnet(String uids, String name);
+    public static native Pointer cryptoNetworkCreateAsETHForRinkeby(String uids, String name);
     public static native Pointer cryptoNetworkCreateAsGEN(String uids, String name, Pointer currency, byte isMainnet);
     public static native void cryptoNetworkSetHeight(Pointer network, long height);
     public static native void cryptoNetworkSetCurrency(Pointer network, Pointer currency);

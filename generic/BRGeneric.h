@@ -25,7 +25,8 @@ extern "C" {
     // MARK: - Network
 
     extern BRGenericNetwork
-    genNetworkCreate (const char * type);
+    genNetworkCreate (const char * type,
+                      int isMainnet);
 
     extern void
     genNetworkRelease (BRGenericNetwork network);
@@ -160,6 +161,14 @@ extern "C" {
     extern void
     genWalletSetDefaultFeeBasis (BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
+
+    extern int
+    genWalletHasTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
+
+    extern void
+    genWalletAddTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
 
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,

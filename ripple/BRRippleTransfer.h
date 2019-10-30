@@ -44,4 +44,7 @@ rippleTransferGetTarget(BRRippleTransfer transfer);
 
 extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfer);
 
+// Internal
+extern int rippleTransferHasSource (BRRippleTransfer transfer,
+                                    BRRippleAddress source);
 #endif
