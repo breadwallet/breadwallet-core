@@ -79,6 +79,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
+    public Optional<TransferFeeBasis> createTransferFeeBasis(com.breadwallet.crypto.Amount pricePerCostFactor, double costFactor) {
+        BRCryptoAmount corePricePerCostFactor = Amount.from(pricePerCostFactor).getCoreBRCryptoAmount();
+        return core.createTransferFeeBasis(corePricePerCostFactor, costFactor).transform(TransferFeeBasis::create);
+    }
+
+    @Override
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
