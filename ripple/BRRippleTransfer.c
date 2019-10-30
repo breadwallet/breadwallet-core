@@ -122,4 +122,7 @@ extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfe
     return transfer->transaction;
 }
 
-
+extern int rippleTransferHasSource (BRRippleTransfer transfer,
+                                    BRRippleAddress source) {
+    return rippleAddressEqual (transfer->sourceAddress, source);
+}

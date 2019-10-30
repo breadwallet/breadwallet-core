@@ -158,6 +158,14 @@ extern "C" {
     genWalletSetDefaultFeeBasis (BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
 
+    extern int
+    genWalletHasTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
+
+    extern void
+    genWalletAddTransfer (BRGenericWallet wallet,
+                          BRGenericTransfer transfer);
+
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,

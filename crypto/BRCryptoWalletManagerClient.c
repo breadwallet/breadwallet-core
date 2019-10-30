@@ -2120,6 +2120,8 @@ cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
         assert (0);
     }
 
+    // TODO: This even occurs even when the balance doesn't change (no new transfers).
+
     // Synchronizing of transfers is complete - calculate the new balance
     BRCryptoAmount balance = cryptoWalletGetBalance(cwm->wallet);
     // ... and announce the balance
