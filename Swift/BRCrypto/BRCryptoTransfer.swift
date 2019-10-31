@@ -313,6 +313,7 @@ public enum TransferState {
     case deleted
 
     internal init (core: BRCryptoTransferState) {
+        defer {  var mutableCore = core; cryptoTransferStateRelease (&mutableCore) }
         switch core.type {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
         case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed

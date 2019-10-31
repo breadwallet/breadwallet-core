@@ -811,7 +811,7 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
     switch (state->type) {
         case CRYPTO_TRANSFER_STATE_INCLUDED: {
             if (NULL != state->u.included.feeBasis) {
-                cryptoFeeBasisTake (state->u.included.feeBasis);
+                cryptoFeeBasisGive (state->u.included.feeBasis);
             }
             break;
         }
