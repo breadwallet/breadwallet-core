@@ -735,6 +735,39 @@ testTransactionId (void /* ... */) {
     free(signedBytes);
 }
 
+void testRippleAddressUnknown() {
+    BRRippleAddress address = rippleAddressCreateFromString("unknown");
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "unknown") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
+void testRippleAddressInvalid() {
+    BRRippleAddress address = rippleAddressCreateFromString(""); // Empty string
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "unknown") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
+void testRippleAddressFee() {
+    BRRippleAddress address = rippleAddressCreateFromString("__fee__"); // Empty string
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "__fee__") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
 void rippleAccountTests()
 {
     testCreateRippleAccountWithPaperKey();
@@ -743,6 +776,9 @@ void rippleAccountTests()
     testCreateRippleAccountWithSerializedAccount();
     testRippleAddressCreate();
     testRippleAddressEqual();
+    testRippleAddressUnknown();
+    testRippleAddressInvalid();
+    testRippleAddressFee();
 }
 
 void rippleTransactionTests()
