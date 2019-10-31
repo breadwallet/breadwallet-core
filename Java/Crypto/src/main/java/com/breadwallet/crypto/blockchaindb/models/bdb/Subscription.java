@@ -18,7 +18,6 @@ public class Subscription {
     public static Optional<Subscription> asSubscription(JSONObject json) {
         try {
             String id = json.getString("subscription_id");
-            String wallet = json.getString("wallet_id");
             String device = json.getString("device_id");
 
             JSONObject jsonEndpoint = json.getJSONObject("endpoint");
@@ -26,7 +25,7 @@ public class Subscription {
             if (!optionalEndpoint.isPresent()) return Optional.absent();
             SubscriptionEndpoint endpoint= optionalEndpoint.get();
 
-            return Optional.of(new Subscription(id, wallet, device, endpoint));
+            return Optional.of(new Subscription(id, device, endpoint));
 
         } catch (JSONException e) {
             return Optional.absent();
@@ -36,30 +35,23 @@ public class Subscription {
     public static JSONObject asJson(Subscription subscription) {
         return new JSONObject(ImmutableMap.of(
                 "id", subscription.id,
-                "wallet_id", subscription.wallet,
                 "device_id", subscription.device,
                 "endpoint", SubscriptionEndpoint.asJson(subscription.endpoint)
         ));
     }
 
     private final String id;
-    private final String wallet;
     private final String device;
     private final SubscriptionEndpoint endpoint;
 
-    public Subscription(String id, String wallet, String device, SubscriptionEndpoint endpoint) {
+    public Subscription(String id, String device, SubscriptionEndpoint endpoint) {
         this.id = id;
-        this.wallet = wallet;
         this.device = device;
         this.endpoint = endpoint;
     }
 
     public String getId() {
         return id;
-    }
-
-    public String getWallet() {
-        return wallet;
     }
 
     public String getDevice() {
