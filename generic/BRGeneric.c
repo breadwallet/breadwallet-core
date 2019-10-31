@@ -153,6 +153,7 @@ genTransferAllocAndInit (const char *type,
                          BRGenericTransferRef ref) {
     BRGenericTransfer transfer = calloc (1, sizeof (struct BRGenericTransferRecord));
     transfer->type = type;
+    transfer->uids = NULL;
     transfer->handlers = genHandlerLookup (type)->transfer;
     transfer->ref = ref;
     transfer->state = genTransferStateCreateOther (GENERIC_TRANSFER_STATE_CREATED);
@@ -163,6 +164,7 @@ genTransferAllocAndInit (const char *type,
 extern void
 genTransferRelease (BRGenericTransfer transfer) {
     transfer->handlers.free (transfer->ref);
+    if (NULL != transfer->uids) free (transfer->uids);
     free (transfer);
 }
 
@@ -209,6 +211,16 @@ extern void
 genTransferSetState (BRGenericTransfer transfer,
                      BRGenericTransferState state) {
     transfer->state = state;
+}
+
+extern int
+genTransferEqual (BRGenericTransfer t1,
+                  BRGenericTransfer t2) {
+    return (t1 == t2 ||
+            (NULL != t1->uids && NULL != t2->uids
+             ? 0 == strcmp (t1->uids, t2->uids)
+             : genericHashEqual (genTransferGetHash (t1),
+                                 genTransferGetHash (t2))));
 }
 
 extern uint8_t *

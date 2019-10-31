@@ -123,6 +123,10 @@ extern "C" {
     genTransferSetState (BRGenericTransfer transfer,
                          BRGenericTransferState state);
 
+    extern int
+    genTransferEqual (BRGenericTransfer t1,
+                      BRGenericTransfer t2);
+
     extern uint8_t *
     genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
@@ -233,6 +237,7 @@ extern "C" {
     genManagerRecoverTransfer (BRGenericManager gwm,
                                BRGenericWallet wallet,
                                const char *hash,
+                               const char *uids,
                                const char *from,
                                const char *to,
                                const char *amount,
