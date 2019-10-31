@@ -283,8 +283,6 @@ class BRBlockChainDBTest: XCTestCase {
 
             // Depending on the 'Bearer Authorization Token' we might have subscriptions.  So
             // don't be so picky on how many 'subs' we have.
-            // XCTAssert (subs.isEmpty)
-
             subscriptionCountObserved = subs.count;
             self.expectation.fulfill();
         }
@@ -317,9 +315,6 @@ class BRBlockChainDBTest: XCTestCase {
             guard case let .success (subs) = res
                 else { XCTAssert (false); return }
 
-            // Depending on the 'Bearer Authorization Token' we might have subscriptions.  So
-            // don't be so picky on how many 'subs' we have.
-            // XCTAssert (subs.isEmpty)
             XCTAssertEqual(subs.count, 1 + subscriptionCountObserved)
             self.expectation.fulfill();
         }
@@ -352,9 +347,6 @@ class BRBlockChainDBTest: XCTestCase {
             guard case let .success (subs) = res
                 else { XCTAssert (false); return }
             
-            // Depending on the 'Bearer Authorization Token' we might have subscriptions.  So
-            // don't be so picky on how many 'subs' we have.
-            // XCTAssert (subs.isEmpty)
             XCTAssertEqual(subs.count, subscriptionCountObserved)
             self.expectation.fulfill();
         }

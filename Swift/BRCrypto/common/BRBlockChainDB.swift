@@ -681,7 +681,7 @@ public class BlockChainDB {
         makeSubscriptionRequest (
             path: "subscriptions",
             data: [
-                // Can use asJSON(Subscription) because that will include the 'id'
+                // We can not use asJSON(Subscription) because that will include the 'id'
                 "device_id"       : subscription.device,
                 "endpoint"        : BlockChainDB.Model.asJSON (subscriptionEndpoint: subscription.endpoint),
                 "currencies"      : subscription.currencies.map { BlockChainDB.Model.asJSON (subscriptionCurrency: $0) }],
