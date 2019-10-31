@@ -157,8 +157,9 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
-                            Optional.fromNullable(state.u.included.fee)
-                                    .transform(Amount::create)
+                            Optional.fromNullable(state.u.included.feeBasis)
+                                    .transform(TransferFeeBasis::create)
+                                    .transform(TransferFeeBasis::getFee)
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");
