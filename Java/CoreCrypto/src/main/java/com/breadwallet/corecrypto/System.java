@@ -589,6 +589,14 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
+    public Optional<byte[]> migrateBRCoreKeyCiphertext(com.breadwallet.crypto.Key key,
+                                                       byte[] nonce12,
+                                                       byte[] authenticatedData,
+                                                       byte[] ciphertext) {
+        return Cipher.migrateBRCoreKeyCiphertext(key, nonce12, authenticatedData, ciphertext);
+    }
+
+    @Override
     public boolean migrateRequired(com.breadwallet.crypto.Network network) {
         String code = network.getCurrency().getCode().toLowerCase(Locale.ROOT);
         return Currency.CODE_AS_BCH.equals(code) || Currency.CODE_AS_BTC.equals(code);

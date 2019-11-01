@@ -362,6 +362,8 @@ public final class CryptoLibraryDirect {
     public static native int cryptoCipherEncrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     public static native SizeT cryptoCipherDecryptLength(Pointer cipher, byte[] src, SizeT srcLen);
     public static native int cryptoCipherDecrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    public static native SizeT cryptoCipherMigrateBRCoreKeyCiphertextLength(Pointer cipher, byte[] src, SizeT srcLen);
+    public static native int cryptoCipherMigrateBRCoreKeyCiphertext(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     public static native void cryptoCipherGive(Pointer cipher);
 
     // crypto/BRCryptoCoder.h
