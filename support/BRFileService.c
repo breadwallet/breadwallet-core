@@ -820,6 +820,19 @@ fileServiceClearAll (BRFileService fs) {
     return success;
 }
 
+extern int
+fileServiceWipe (const char *basePath,
+                 const char *currency,
+                 const char *network) {
+
+    // Locate the SQLITE Database
+     size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
+     char   *sdbPath      = malloc (sdbPathLength);
+     sprintf (sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+
+    return 0 == remove (sdbPath) ? 0 : errno;
+}
+
 extern UInt256
 fileServiceGetIdentifier (BRFileService fs,
                           const char *type,
