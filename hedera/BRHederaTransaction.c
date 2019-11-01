@@ -4,12 +4,10 @@
 #include "BRHederaTransaction.h"
 #include "BRHederaCrypto.h"
 #include "BRHederaSerialize.h"
-#include "proto/Transaction.pb-c.h"
-#include "proto/TransactionBody.pb-c.h"
 #include "vendor/ed25519/ed25519.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <assert.h>
 
 struct BRHederaTransactionRecord {
     BRHederaAddress source;
@@ -67,6 +65,27 @@ extern void hederaTransactionFree (BRHederaTransaction transaction)
     free (transaction);
 }
 
+uint8_t * hederaSerializeNodeAccountId(BRHederaAddress nodeAddress, size_t * sizeOfBuffer)
+{
+    assert(sizeOfBuffer);
+
+    // The Hedera account IDs are made up of 3 int64_t numbers
+    *sizeOfBuffer = sizeof(int64_t) * 3;
+    uint8_t * buffer = calloc(1, *sizeOfBuffer);
+
+    // Get the account id values convert to network order
+    int64_t shard = htonl(hederaAddressGetShard(nodeAddress));
+    int64_t realm = htonl(hederaAddressGetRealm(nodeAddress));
+    int64_t account = htonl(hederaAddressGetAccount(nodeAddress));
+
+    // Copy the values to the buffer
+    memcpy(buffer, &shard, sizeof(int64_t));
+    memcpy(buffer + sizeof(int64_t), &realm, sizeof(int64_t));
+    memcpy(buffer + (2 * sizeof(int64_t)), &account, sizeof(int64_t));
+
+    return buffer;
+}
+
 extern size_t
 hederaTransactionSignTransaction (BRHederaTransaction transaction,
                                   BRKey publicKey,
@@ -109,15 +128,36 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
     ed25519_sign(signature, body, bodySize, publicKey.pubKey, privateKey);
 
     // Serialize the full transaction including signature and public key
-    transaction->serializedBytes = hederaTransactionPack (signature, 64,
-                                                          publicKey.pubKey, 32,
-                                                          body, bodySize,
-                                                          &transaction->serializedSize);
+    uint8_t * serializedBytes = hederaTransactionPack (signature, 64,
+                                                       publicKey.pubKey, 32,
+                                                       body, bodySize,
+                                                       &transaction->serializedSize);
 
     // We are now done with the body - it was copied to the serialized bytes so we
     // must clean up it now.
     free (body);
 
+    // Due to how the Hedera API works the "node account id" of the server we will submit to
+    // is included in the signing data so we MUST get the server to use the correct node.
+    // The BDB server implementation requires that we add in the node account id along with
+    // the serialized bytes.
+    size_t nodeAccountIdSize = 0;
+    uint8_t * nodeAccountId = hederaSerializeNodeAccountId (nodeAddress, &nodeAccountIdSize);
+
+    // The buffer has to hold the nodeAccountId and the serialized bytes
+    transaction->serializedBytes = calloc(1, transaction->serializedSize + nodeAccountIdSize);
+
+    // First copy the nodeAccountId,
+    memcpy(transaction->serializedBytes, nodeAccountId, nodeAccountIdSize);
+
+    // Now copy the serialized transaction bytes after the node account id
+    memcpy(transaction->serializedBytes + nodeAccountIdSize, serializedBytes, transaction->serializedSize);
+
+    // Cleanup temporary buffers
+    free (nodeAccountId);
+    free (serializedBytes);
+
+    transaction->serializedSize += nodeAccountIdSize; // This will be our new size of serialized bytes
     return transaction->serializedSize;
 }
 
