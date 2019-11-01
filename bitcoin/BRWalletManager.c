@@ -1265,12 +1265,7 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr.s);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
+    BRTransaction *transaction = BRWalletCreateTransactionWithFeePerKb (wallet, feePerKb, amount, addr.s);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
     pthread_mutex_unlock (&manager->lock);
 
@@ -1325,12 +1320,7 @@ BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
+    BRTransaction *transaction = BRWalletCreateTxForOutputsWithFeePerKb (wallet, feePerKb, outputs, outputsLen);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
     pthread_mutex_unlock (&manager->lock);
 
@@ -1444,12 +1434,8 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmount (wallet, transferAmount));
+    uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmountWithFeePerKb (wallet, feePerKb, transferAmount));
     uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
-    BRWalletSetFeePerKb (wallet, feePerKBSaved);
     pthread_mutex_unlock (&manager->lock);
 
     bwmSignalWalletEvent(manager,
@@ -1493,11 +1479,7 @@ BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+    BRTransaction *transaction = BRWalletCreateTxForOutputsWithFeePerKb (wallet, feePerKb, outputs, outputsLen);
 
     uint64_t fee = 0;
     if (NULL != transaction) {
