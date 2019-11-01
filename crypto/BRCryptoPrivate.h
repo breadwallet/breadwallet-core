@@ -205,10 +205,6 @@ extern "C" {
                                BRCryptoUnit unitForFee,
                                BRGenericTransfer tid);
 
-    private_extern void
-    cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
-                                        BRCryptoFeeBasis feeBasisConfirmed);
-
     private_extern BRTransaction *
     cryptoTransferAsBTC (BRCryptoTransfer transfer);
 

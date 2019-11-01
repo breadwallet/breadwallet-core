@@ -90,7 +90,7 @@ extern "C" {
     }
 
     static inline int genFeeBasisIsEqual (const BRGenericFeeBasis *fb1,
-                                             const BRGenericFeeBasis *fb2) {
+                                          const BRGenericFeeBasis *fb2) {
         return (eqUInt256 (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
                 fb1->costFactor == fb2->costFactor);
     }
@@ -132,7 +132,7 @@ extern "C" {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
                 uint64_t timestamp;
-                UInt256 fee;
+                BRGenericFeeBasis feeBasis;
             } included;
             BRGenericTransferSubmitError errored;
         } u;
@@ -141,16 +141,15 @@ extern "C" {
 #define GENERIC_TRANSFER_BLOCK_NUMBER_UNKNOWN       (UINT64_MAX)
 #define GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN  (UINT64_MAX)
 #define GENERIC_TRANSFER_TIMESTAMP_UNKNOWN          (UINT64_MAX)
-#define GENERIC_TRANSFER_FEE_UNKNOWN                (UINT256_ZERO)
 
     static inline BRGenericTransferState
     genTransferStateCreateIncluded (uint64_t blockNumber,
                                     uint64_t transactionIndex,
                                     uint64_t timestamp,
-                                    UInt256  fee) {
+                                    BRGenericFeeBasis feeBasis) {
         return (BRGenericTransferState) {
             GENERIC_TRANSFER_STATE_INCLUDED,
-            { .included = { blockNumber, transactionIndex, timestamp, fee }}
+            { .included = { blockNumber, transactionIndex, timestamp, feeBasis }}
         };
     }
 
@@ -176,9 +175,9 @@ extern "C" {
           state1.u.included.blockNumber      == state2.u.included.blockNumber      &&
           state1.u.included.transactionIndex == state2.u.included.transactionIndex &&
           state1.u.included.timestamp        == state2.u.included.timestamp        &&
-          eqUInt256 (state1.u.included.fee, state2.u.included.fee)) ||
-         (GENERIC_TRANSFER_STATE_ERRORED == state1.type &&
-          state1.u.errored == state2.u.errored));
+          genFeeBasisIsEqual (&state1.u.included.feeBasis,
+                              &state2.u.included.feeBasis))                        ||
+         (GENERIC_TRANSFER_STATE_ERRORED == state1.type && state1.u.errored == state2.u.errored));
     }
 
     static inline int

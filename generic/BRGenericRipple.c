@@ -135,12 +135,6 @@ genericRippleTransferGetAmount (BRGenericTransferRef transfer) {
     return createUInt256(drops);
 }
 
-static UInt256
-genericRippleTransferGetFee (BRGenericTransferRef transfer) {
-    BRRippleUnitDrops drops = rippleTransferGetFee ((BRRippleTransfer) transfer);
-    return createUInt256(drops);
-}
-
 static BRGenericFeeBasis
 genericRippleTransferGetFeeBasis (BRGenericTransferRef transfer) {
     BRRippleUnitDrops rippleFee = rippleTransferGetFee ((BRRippleTransfer) transfer);
@@ -300,7 +294,6 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleTransferGetSourceAddress,
         genericRippleTransferGetTargetAddress,
         genericRippleTransferGetAmount,
-        genericRippleTransferGetFee,
         genericRippleTransferGetFeeBasis,
         genericRippleTransferGetHash,
         genericRippleTransferGetSerialization,

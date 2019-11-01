@@ -709,10 +709,7 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
             return cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
                                                     generic.u.included.transactionIndex,
                                                     generic.u.included.timestamp,
-                                                    cryptoAmountCreateInternal (feeUnit,
-                                                                                CRYPTO_FALSE,
-                                                                                generic.u.included.fee,
-                                                                                0));
+                                                    cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis));
         case GENERIC_TRANSFER_STATE_ERRORED:
             return cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown());
         case GENERIC_TRANSFER_STATE_DELETED:

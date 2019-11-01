@@ -121,6 +121,15 @@ extern UInt256
 rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
+// Double
+//
+extern BRRlpItem
+rlpEncodeDouble(BRRlpCoder coder, double value);
+
+extern double
+rlpDecodeDouble(BRRlpCoder coder, BRRlpItem item);
+
+//
 // Bytes
 //
 extern BRRlpItem

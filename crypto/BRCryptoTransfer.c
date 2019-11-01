@@ -68,7 +68,6 @@ struct BRCryptoTransferRecord {
 
     /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
     BRCryptoFeeBasis feeBasisEstimated;
-    BRCryptoFeeBasis feeBasisConfirmed;
 
     BRCryptoRef ref;
 };
@@ -86,7 +85,6 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->unit       = cryptoUnitTake(unit);
     transfer->unitForFee = cryptoUnitTake(unitForFee);
     transfer->feeBasisEstimated = NULL;
-    transfer->feeBasisConfirmed = NULL;
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
@@ -266,7 +264,6 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     cryptoUnitGive (transfer->unitForFee);
     cryptoTransferStateRelease (&transfer->state);
     if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
-    if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
 
     pthread_mutex_destroy (&transfer->lock);
 
@@ -401,15 +398,18 @@ cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer) {
     if (cryptoUnitIsIdentical (transfer->unit, transfer->unitForFee))
         return amount;
 
-    BRCryptoFeeBasis feeBasis = (NULL != transfer->feeBasisConfirmed
-                                 ? transfer->feeBasisConfirmed
-                                 : transfer->feeBasisEstimated);
+    BRCryptoFeeBasis feeBasis = cryptoTransferGetConfirmedFeeBasis(transfer);
+    if (NULL == feeBasis)
+        feeBasis = (NULL == transfer->feeBasisEstimated
+                    ? NULL
+                    : cryptoFeeBasisTake (transfer->feeBasisEstimated));
 
     // If there is no fee basis, then there is no fee
     if (NULL == feeBasis)
         return amount;
 
-    BRCryptoAmount fee       = cryptoFeeBasisGetFee (feeBasis);
+    BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasis);
+    cryptoFeeBasisGive(feeBasis);
 
     // Simply subtract off the fee.
     BRCryptoAmount amountNet = cryptoAmountSub (amount, fee);
@@ -650,23 +650,12 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
 extern BRCryptoFeeBasis
 cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer) {
     pthread_mutex_lock (&transfer->lock);
-    BRCryptoFeeBasis feeBasisConfirmed = (NULL == transfer->feeBasisConfirmed ? NULL : cryptoFeeBasisTake (transfer->feeBasisConfirmed));
+    BRCryptoFeeBasis feeBasisConfirmed = (CRYPTO_TRANSFER_STATE_INCLUDED == transfer->state.type
+                                          ? cryptoFeeBasisTake (transfer->state.u.included.feeBasis)
+                                          : NULL);
     pthread_mutex_unlock (&transfer->lock);
 
     return feeBasisConfirmed;
-}
-
-private_extern void
-cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
-                                    BRCryptoFeeBasis feeBasisConfirmed) {
-    feeBasisConfirmed = (NULL == feeBasisConfirmed ? NULL : cryptoFeeBasisTake(feeBasisConfirmed));
-
-    pthread_mutex_lock (&transfer->lock);
-    BRCryptoFeeBasis oldFeeBasisConfirmed = transfer->feeBasisConfirmed;
-    transfer->feeBasisConfirmed = feeBasisConfirmed;
-    pthread_mutex_unlock (&transfer->lock);
-
-    if (NULL != oldFeeBasisConfirmed) cryptoFeeBasisGive (oldFeeBasisConfirmed);
 }
 
 private_extern BRTransaction *
@@ -780,10 +769,10 @@ extern BRCryptoTransferState
 cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                  uint64_t transactionIndex,
                                  uint64_t timestamp,
-                                 BRCryptoAmount fee) {
+                                 BRCryptoFeeBasis feeBasis) {
     return (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        { .included = { blockNumber, transactionIndex, timestamp, cryptoAmountTake (fee) }}
+        { .included = { blockNumber, transactionIndex, timestamp, cryptoFeeBasisTake(feeBasis) }}
     };
 }
 
@@ -800,8 +789,8 @@ cryptoTransferStateCopy (BRCryptoTransferState *state) {
     BRCryptoTransferState newState = *state;
     switch (state->type) {
         case CRYPTO_TRANSFER_STATE_INCLUDED: {
-            if (NULL != newState.u.included.fee) {
-                cryptoAmountTake (newState.u.included.fee);
+            if (NULL != newState.u.included.feeBasis) {
+                cryptoFeeBasisTake (newState.u.included.feeBasis);
             }
             break;
         }
@@ -821,8 +810,8 @@ extern void
 cryptoTransferStateRelease (BRCryptoTransferState *state) {
     switch (state->type) {
         case CRYPTO_TRANSFER_STATE_INCLUDED: {
-            if (NULL != state->u.included.fee) {
-                cryptoAmountGive (state->u.included.fee);
+            if (NULL != state->u.included.feeBasis) {
+                cryptoFeeBasisGive (state->u.included.feeBasis);
             }
             break;
         }

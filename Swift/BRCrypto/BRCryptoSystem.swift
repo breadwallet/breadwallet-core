@@ -1307,6 +1307,8 @@ extension System {
                     transferEvent = TransferEvent.created
 
                 case CRYPTO_TRANSFER_EVENT_CHANGED:
+                    // The event.u.state.{old,new} references to BRCryptoTransferState are 'passed'
+                    // to the TransferState initializer.
                     transferEvent = TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
                                                            new: TransferState.init (core: event.u.state.new))
 
