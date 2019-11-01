@@ -8,6 +8,9 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "BRCryptoCipher.h"
 #include "BRCryptoKey.h"
 #include "support/BRBase.h"

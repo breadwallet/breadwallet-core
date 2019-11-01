@@ -12,7 +12,6 @@
 #define BRCryptoStatus_h
 
 #include "BRCryptoBase.h"
-#include "ethereum/ewm/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,12 +47,6 @@ extern "C" {
         // Block
         // Listener
     } BRCryptoStatus;
-
-    extern BRCryptoStatus
-        cryptoStatusFromETH (BREthereumStatus status);
-
-    extern BREthereumStatus
-        cryptoStatusAsETH (BRCryptoStatus status);
 
 #ifdef __cplusplus
 }

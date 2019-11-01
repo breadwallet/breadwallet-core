@@ -11,6 +11,7 @@
 
 #include "BRCryptoHash.h"
 #include "support/BRInt.h"
+#include "ethereum/base/BREthereumHash.h"
 #include "ethereum/util/BRUtilHex.h"
 #include "generic/BRGeneric.h"
 
