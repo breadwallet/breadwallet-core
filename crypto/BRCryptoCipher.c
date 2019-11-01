@@ -445,48 +445,6 @@ cryptoCipherDecryptForMigrate (BRCryptoCipher cipher,
     return result;
 }
 
-extern size_t
-cryptoCipherMigrateBRCoreKeyCiphertextLength (BRCryptoCipher cipher,
-                                              const uint8_t *originalCiphertext,
-                                              size_t originalCiphertextLen) {
-    // calculate the length of the plaintext using the modified decryption routine
-    size_t plaintextLen = cryptoCipherDecryptForMigrateLength (cipher,
-                                                               originalCiphertext,
-                                                               originalCiphertextLen);
-    if (0 == plaintextLen) {
-        return 0;
-    }
-
-    // allocate the plaintext buffer
-    uint8_t *plaintext = (uint8_t *) malloc (plaintextLen);
-    if (NULL == plaintext) {
-        return 0;
-    }
-
-    // decrypt the original ciphertext using the modified decryption routine
-    BRCryptoBoolean decryptResult = cryptoCipherDecryptForMigrate (cipher,
-                                                                   plaintext,
-                                                                   plaintextLen,
-                                                                   originalCiphertext,
-                                                                   originalCiphertextLen);
-    if (CRYPTO_TRUE != decryptResult) {
-        memset (plaintext, 0, plaintextLen);
-        free (plaintext);
-        return 0;
-    }
-
-    // calculate the length of the migrated ciphertext using the current encryption routine
-    size_t ciphertextLen = cryptoCipherEncryptLength (cipher,
-                                                      plaintext,
-                                                      plaintextLen);
-
-    // release the cipher and plaintext memory
-    memset (plaintext, 0, plaintextLen);
-    free (plaintext);
-
-    return ciphertextLen;
-}
-
 extern BRCryptoBoolean
 cryptoCipherMigrateBRCoreKeyCiphertext (BRCryptoCipher cipher,
                                         uint8_t *migratedCiphertext,

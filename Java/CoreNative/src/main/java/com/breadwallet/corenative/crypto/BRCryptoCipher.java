@@ -78,8 +78,7 @@ public class BRCryptoCipher extends PointerType {
     public Optional<byte[]> migrateBRCoreKeyCiphertext(byte[] input) {
         Pointer thisPtr = this.getPointer();
 
-        SizeT length = CryptoLibraryDirect.cryptoCipherMigrateBRCoreKeyCiphertextLength(thisPtr, input, new SizeT(input.length));
-        int lengthAsInt = Ints.checkedCast(length.longValue());
+        int lengthAsInt = input.length;
         if (0 == lengthAsInt) return Optional.absent();
 
         byte[] output = new byte[lengthAsInt];

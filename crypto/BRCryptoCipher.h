@@ -64,11 +64,6 @@ extern "C" {
                          const uint8_t *ciphertext,
                          size_t ciphertextLen);
 
-    extern size_t
-    cryptoCipherMigrateBRCoreKeyCiphertextLength (BRCryptoCipher cipher,
-                                                const uint8_t *originalCiphertext,
-                                                size_t originalCiphertextLen);
-
     extern BRCryptoBoolean
     cryptoCipherMigrateBRCoreKeyCiphertext (BRCryptoCipher cipher,
                                             uint8_t *migratedCiphertext,
