@@ -80,7 +80,7 @@ public final class CoreCipher: Cipher {
 
     public func decrypt (data source: Data) -> Data? {
         return source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Data? in
-            let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
+            let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let sourceCount = sourceBytes.count
 
             let targetCount = cryptoCipherDecryptLength(self.core, sourceAddr, sourceCount)
