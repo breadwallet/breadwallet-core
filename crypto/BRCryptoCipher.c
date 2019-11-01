@@ -372,11 +372,11 @@ cryptoCipherDecryptForMigrateLength (BRCryptoCipher cipher,
             BRKey *coreKey  = cryptoKeyGetCore (cipher->u.chacha20.key);
 
             uint8_t pubKeyBytes[65];
-            BRKeyPubKey(coreKey, pubKeyBytes, 65);
+            size_t pubKeyLen = BRKeyPubKey (coreKey, pubKeyBytes, sizeof(pubKeyBytes));
+            if (0 == pubKeyLen || pubKeyLen > sizeof(pubKeyBytes)) break;
 
             UInt256 secret;
-            BRSHA256(&secret, &pubKeyBytes[1], 32);
-
+            BRSHA256 (&secret, &pubKeyBytes[1], pubKeyLen - 1);
             length = BRChacha20Poly1305AEADDecrypt (NULL,
                                                     0,
                                                     &secret,
@@ -419,11 +419,11 @@ cryptoCipherDecryptForMigrate (BRCryptoCipher cipher,
             BRKey *coreKey  = cryptoKeyGetCore (cipher->u.chacha20.key);
 
             uint8_t pubKeyBytes[65];
-            BRKeyPubKey(coreKey, pubKeyBytes, 65);
+            size_t pubKeyLen = BRKeyPubKey (coreKey, pubKeyBytes, sizeof(pubKeyBytes));
+            if (0 == pubKeyLen || pubKeyLen > sizeof(pubKeyBytes)) break;
 
             UInt256 secret;
-            BRSHA256(&secret, &pubKeyBytes[1], 32);
-
+            BRSHA256 (&secret, &pubKeyBytes[1], pubKeyLen - 1);
             result = AS_CRYPTO_BOOLEAN (BRChacha20Poly1305AEADDecrypt (dst,
                                                                        dstLen,
                                                                        &secret,
