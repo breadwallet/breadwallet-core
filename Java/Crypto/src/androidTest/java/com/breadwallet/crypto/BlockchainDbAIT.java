@@ -13,12 +13,18 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Subscription;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionCurrency;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionEndpoint;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionEvent;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -27,8 +33,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import okhttp3.Call;
@@ -40,9 +47,13 @@ import static org.junit.Assert.*;
 
 public class BlockchainDbAIT {
 
-    private static final String BDB_BASE_URL = "https://api.blockset.com";
-    private static final String BRD_AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
+    private static final String BDB_BASE_URL = "https://api.blockset.com";
+    private static final String BRD_AUTH_TOKEN = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9." +
+            "eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1N" +
+            "zI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2" +
+            "xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0." +
+            "460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg";
 
     private BlockchainDb blockchainDb;
 
@@ -67,7 +78,8 @@ public class BlockchainDbAIT {
 
         blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(1000),
                 false, true, true, true, handler);
-        List<Block> blocks = handler.dat().get();
+        List<Block> blocks = handler.dat().orNull();
+        assertNotNull(blocks);
         assertNotEquals(0, blocks.size());
 
         // TODO: Expand these tests
@@ -79,7 +91,7 @@ public class BlockchainDbAIT {
 
         blockchainDb.getBlock("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 false, false, false, false, handler);
-        Block block = handler.dat().get();
+        Block block = handler.dat().orNull();
         assertNotNull(block);
         assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
 
@@ -91,11 +103,13 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<Blockchain>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlockchains(true, handler);
-        List<Blockchain> blockchains = handler.dat().get();
+        List<Blockchain> blockchains = handler.dat().orNull();
+        assertNotNull(blockchains);
         assertNotEquals(0, blockchains.size());
 
         blockchainDb.getBlockchains(handler);
-        blockchains = handler.dat().get();
+        blockchains = handler.dat().orNull();
+        assertNotNull(blockchains);
         assertNotEquals(0, blockchains.size());
 
         // TODO: Expand these tests
@@ -106,7 +120,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<Blockchain> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlockchain("bitcoin-mainnet", handler);
-        Blockchain blockchain = handler.dat().get();
+        Blockchain blockchain = handler.dat().orNull();
         assertNotNull(blockchain);
         assertEquals(blockchain.getId(), "bitcoin-mainnet");
         assertEquals(blockchain.getConfirmationsUntilFinal(), UnsignedInteger.valueOf(6));
@@ -120,11 +134,13 @@ public class BlockchainDbAIT {
         List<Currency> currencies;
 
         blockchainDb.getCurrencies("bitcoin-mainnet", handler);
-        currencies = handler.dat().get();
+        currencies = handler.dat().orNull();
+        assertNotNull(currencies);
         assertNotEquals(0, currencies.size());
 
         blockchainDb.getCurrencies(handler);
-        currencies = handler.dat().get();
+        currencies = handler.dat().orNull();
+        assertNotNull(currencies);
         assertNotEquals(0, currencies.size());
 
         // TODO: Expand these tests
@@ -135,7 +151,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getCurrency("bitcoin-mainnet:__native__", handler);
-        Currency currency = handler.dat().get();
+        Currency currency = handler.dat().orNull();
         assertNotNull(currency);
         assertEquals(currency.getCode(), "btc");
 
@@ -146,8 +162,8 @@ public class BlockchainDbAIT {
     public void testGetTransfers() {
         SynchronousCompletionHandler<List<Transfer>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransfers("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), handler);
-        List<Transfer> transfers = handler.dat().get();
+        blockchainDb.getTransfers("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), handler);
+        List<Transfer> transfers = handler.dat().orNull();
         assertNotNull(transfers);
 
         // TODO: Expand these tests
@@ -159,7 +175,7 @@ public class BlockchainDbAIT {
 
         String transferId = "bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1";
         blockchainDb.getTransfer(transferId, handler);
-        Transfer transfer = handler.dat().get();
+        Transfer transfer = handler.dat().orNull();
         assertNotNull(transfer);
         assertEquals(transferId, transfer.getId());
 
@@ -170,21 +186,117 @@ public class BlockchainDbAIT {
     public void testGetTransactions() {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
+        blockchainDb.getTransactions("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
                 UnsignedLong.ZERO, UnsignedLong.valueOf(500000),
                 true, true, handler);
-        List<Transaction> transactions = handler.dat().get();
+        List<Transaction> transactions = handler.dat().orNull();
+        assertNotNull(transactions);
         assertNotEquals(0, transactions.size());
     }
 
     @Test
-    public void testSubsciptions() {
-        // TODO: Add testing around creating/updating/getting/deleting
-    }
+    public void testSubscriptions() {
+        SynchronousCompletionHandler<Void> delHandler;
+        SynchronousCompletionHandler<Subscription> subHandler;
+        SynchronousCompletionHandler<List<Subscription>> subsHandler;
 
-    @Test
-    public void testGetWallet() {
-        // TODO: Add testing around creating/updating/getting/deleting
+        String deviceId = UUID.randomUUID().toString();
+
+        SubscriptionEndpoint endpoint = new SubscriptionEndpoint(
+                "development",
+                "fcm",
+                "fcm registration token");
+
+        List<SubscriptionCurrency> currencies = Collections.singletonList(
+                new SubscriptionCurrency(
+                        "bitcoin-testnet:__native__",
+                        Arrays.asList(
+                                "2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT",
+                                "mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"),
+                        Collections.singletonList(
+                                new SubscriptionEvent(
+                                        "confirmed",
+                                        Collections.singletonList(UnsignedInteger.ONE)
+                                )
+                        )
+                )
+        );
+
+        // subscription get all
+
+        subsHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.getSubscriptions(subsHandler);
+        List<Subscription> initialGetSubscriptions = subsHandler.dat().orNull();
+        assertNotNull(initialGetSubscriptions);
+
+        // subscription create
+
+        subHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.createSubscription(deviceId, endpoint, currencies, subHandler);
+        Subscription createSubscription = subHandler.dat().orNull();
+        assertNotNull(createSubscription);
+
+        // subscription get
+
+        subHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.getSubscription(createSubscription.getId(), subHandler);
+        Subscription getSubscription = subHandler.dat().orNull();
+        assertNotNull(getSubscription);
+        assertEquals(createSubscription.getId(), getSubscription.getId());
+        assertEquals(createSubscription.getDevice(), getSubscription.getDevice());
+
+        // subscription get all too
+
+        subsHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.getSubscriptions(subsHandler);
+        List<Subscription> updatedGetSubscriptions = subsHandler.dat().orNull();
+        assertNotNull(updatedGetSubscriptions);
+        assertNotEquals(0, updatedGetSubscriptions.size());
+        assertEquals(initialGetSubscriptions.size() + 1, updatedGetSubscriptions.size());
+
+        // subscription update
+
+        List<SubscriptionCurrency> updatedCurrencies = Collections.singletonList(
+                new SubscriptionCurrency(
+                        "bitcoin-testnet:__native__",
+                        Collections.singletonList(
+                                "2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT"),
+                        Collections.singletonList(
+                                new SubscriptionEvent(
+                                        "confirmed",
+                                        Collections.singletonList(UnsignedInteger.ONE)
+                                )
+                        )
+                )
+        );
+
+        Subscription updatedSubscription = new Subscription(
+                createSubscription.getId(),
+                createSubscription.getDevice(),
+                createSubscription.getEndpoint(),
+                updatedCurrencies
+        );
+
+        subHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.updateSubscription(updatedSubscription, subHandler);
+        Subscription updateSubscription = subHandler.dat().orNull();
+        assertNotNull(updateSubscription);
+        assertEquals(updatedSubscription.getCurrencies().size(), updateSubscription.getCurrencies().size());
+
+        // subscription delete
+
+        delHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.deleteSubscription(createSubscription.getId(), delHandler);
+        QueryError error = delHandler.err().orNull();
+        assertNull(error);
+
+        // subscription get all tre
+
+        subsHandler = new SynchronousCompletionHandler<>();
+        blockchainDb.getSubscriptions(subsHandler);
+        List<Subscription> updatedAgainGetSubscriptions = subsHandler.dat().orNull();
+        assertNotNull(updatedAgainGetSubscriptions);
+        assertEquals(initialGetSubscriptions.size(), updatedAgainGetSubscriptions.size());
     }
 
     // BRD
@@ -194,7 +306,8 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBalanceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -204,7 +317,8 @@ public class BlockchainDbAIT {
 
         blockchainDb.getBalanceAsTok("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
                 "0xE41d2489571d322189246Dafa5EBDE1f4699F498", handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -213,7 +327,8 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getGasPriceAsEth("mainnet", handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -228,7 +343,8 @@ public class BlockchainDbAIT {
                 "0x1000000000",
                 "",
                 handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -246,7 +362,8 @@ public class BlockchainDbAIT {
                 "0x04d542459de6765682D21771D1ba23dC30Fb675F",
                 UnsignedLong.ZERO,
                 UnsignedLong.valueOf(7778000), handler);
-        List<EthTransaction> output = handler.dat().get();
+        List<EthTransaction> output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -262,7 +379,8 @@ public class BlockchainDbAIT {
                  UnsignedLong.ZERO,
                  UnsignedLong.valueOf(7778000),
                  handler);
-         List<EthLog> output = handler.dat().get();
+         List<EthLog> output = handler.dat().orNull();
+         assertNotNull(output);
          assertFalse(output.isEmpty());
     }
 
@@ -277,7 +395,8 @@ public class BlockchainDbAIT {
                 UnsignedLong.ZERO,
                 UnsignedLong.valueOf(7778000),
                 handler);
-        List<UnsignedLong> output = handler.dat().get();
+        List<UnsignedLong> output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -286,7 +405,8 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlockNumberAsEth("mainnet", handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -295,7 +415,8 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
-        String output = handler.dat().get();
+        String output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -304,7 +425,8 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<EthToken>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTokensAsEth(handler);
-        List<EthToken> output = handler.dat().get();
+        List<EthToken> output = handler.dat().orNull();
+        assertNotNull(output);
         assertFalse(output.isEmpty());
     }
 
@@ -317,14 +439,14 @@ public class BlockchainDbAIT {
         private T data;
         private QueryError error;
 
-        public Optional<T> dat() {
+        Optional<T> dat() {
             sema.acquireUninterruptibly();
-            return Optional.ofNullable(data);
+            return Optional.fromNullable(data);
         }
 
-        public Optional<QueryError> err() {
+        Optional<QueryError> err() {
             sema.acquireUninterruptibly();
-            return Optional.ofNullable(error);
+            return Optional.fromNullable(error);
         }
 
         @Override

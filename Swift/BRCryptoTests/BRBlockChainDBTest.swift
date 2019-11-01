@@ -103,7 +103,8 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "transfers")
 
         let blockchainId = "bitcoin-testnet"
-        db.getTransfers (blockchainId: blockchainId, addresses: ["mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"]) { (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
+        db.getTransfers (blockchainId: blockchainId, addresses: ["mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"]) {
+            (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
             guard case let .success (transfers) = res
                 else { XCTAssert(false); return }
 
@@ -248,5 +249,107 @@ class BRBlockChainDBTest: XCTestCase {
 
      func testSubscription () {
 
+        let deviceId = UIDevice.current.identifierForVendor!.uuidString
+
+        /// environment : { unknown, production, development }
+        /// kind        : { unknown, apns, fcm, ... }
+        /// value       : For apns/fcm this will be the registration token, apns should be hex-encoded
+        let endpoint =  (environment: "development",
+                         kind: "apns",
+                         value: "apns registration token")
+
+        let currencies: [BlockChainDB.Model.SubscriptionCurrency] = [
+            (addresses: [
+                "2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT",
+                "mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"
+                ],
+             currencyId: "bitcoin-testnet:__native__",
+             events: [
+                (name: "confirmed", confirmations: [1])
+                ])
+        ]
+
+        var subscription: BlockChainDB.Model.Subscription =
+            (id: "ignore",
+             device: deviceId,
+             endpoint: endpoint,
+             currencies: currencies)
+
+        var subscriptionCountObserved: Int  = 0;
+        expectation = XCTestExpectation (description: "subscription get all")
+        db.getSubscriptions { (res: Result<[BlockChainDB.Model.Subscription], BlockChainDB.QueryError>) in
+            guard case let .success (subs) = res
+                else { XCTAssert (false); return }
+
+            // Depending on the 'Bearer Authorization Token' we might have subscriptions.  So
+            // don't be so picky on how many 'subs' we have.
+            subscriptionCountObserved = subs.count;
+            self.expectation.fulfill();
+        }
+        wait (for: [expectation], timeout: 10)
+
+        expectation = XCTestExpectation (description: "subscription create")
+        db.createSubscription(subscription) { (res: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+            guard case let .success (sub) = res
+                else { XCTAssert (false); return }
+
+            self.expectation.fulfill()
+            subscription = sub
+        }
+        wait (for: [expectation], timeout: 10)
+
+        expectation = XCTestExpectation (description: "subscription get")
+        db.getSubscription(id: subscription.id) { (res: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+            guard case let .success (sub) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertEqual(sub.id,  subscription.id)
+            XCTAssertEqual(sub.device, subscription.device)
+            // ...
+            self.expectation.fulfill()
+        }
+        wait (for: [expectation], timeout: 10)
+
+        expectation = XCTestExpectation (description: "subscription get all too")
+        db.getSubscriptions { (res: Result<[BlockChainDB.Model.Subscription], BlockChainDB.QueryError>) in
+            guard case let .success (subs) = res
+                else { XCTAssert (false); return }
+
+            XCTAssertEqual(subs.count, 1 + subscriptionCountObserved)
+            self.expectation.fulfill();
+        }
+        wait (for: [expectation], timeout: 10)
+
+        expectation = XCTestExpectation (description: "subscription update")
+        subscription.currencies = [
+            (addresses: ["2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT"],
+              currencyId: "bitcoin-testnet:__native__",
+              events: [(name: "confirmed", confirmations: [1])])
+        ]
+        db.updateSubscription (subscription) { (res: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+            guard case let .success (sub) = res
+                else { XCTAssert(false); return }
+            XCTAssertTrue(sub.currencies.count == subscription.currencies.count)
+            self.expectation.fulfill()
+        }
+        wait (for: [expectation], timeout: 10)
+
+        expectation = XCTestExpectation (description: "subscription delete")
+        db.deleteSubscription(id: subscription.id) { (res: Result<Void, BlockChainDB.QueryError>) in
+            guard case .success = res
+                else { XCTAssert(false); return }
+            self.expectation.fulfill()
+        }
+        wait (for: [expectation], timeout: 10)
+        
+        expectation = XCTestExpectation (description: "subscription get all tre")
+        db.getSubscriptions { (res: Result<[BlockChainDB.Model.Subscription], BlockChainDB.QueryError>) in
+            guard case let .success (subs) = res
+                else { XCTAssert (false); return }
+            
+            XCTAssertEqual(subs.count, subscriptionCountObserved)
+            self.expectation.fulfill();
+        }
+        wait (for: [expectation], timeout: 10)
     }
 }

@@ -167,15 +167,14 @@ public class BdbApiClient {
     // Delete (crdD)
 
     /* package */
-    <T> void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
-                              ObjectResponseParser<T> parser,
-                              CompletionHandler<T, QueryError> handler) {
+    void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
+                          CompletionHandler<Void, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
                 null,
                 "DELETE",
-                new RootObjectResponseHandler<>(parser, handler));
+                new EmptyResponseHandler(handler));
     }
 
     private <T> void makeAndSendRequest(String url,
