@@ -26,9 +26,21 @@ struct BRRippleAddressRecord {
 };
 
 uint8_t feeAddressBytes[20] = {
-    0x42, 0x52, 0x44, 0x5F, 0x5F, 0x66, 0x65, 0x65,
-    0x5F, 0x5F, 0x42, 0x52, 0x44, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00
+    0x42, 0x52, 0x44, //BRD
+    0x5F, 0x5F, // __
+    'f', 'e', 'e', // fee
+    0x5F, 0x5F, // __
+    0x42, 0x52, 0x44, // BRD
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 // padding
+};
+
+uint8_t unknownAddressBytes[20] = {
+    0x42, 0x52, 0x44, //BRD
+    0x5F, 0x5F, // __
+    'u', 'n', 'k', 'n', 'o', 'w', 'n', // unknown
+    0x5F, 0x5F, // __
+    0x42, 0x52, 0x44, // BRD
+    0x00, 0x00, 0x00 // padding
 };
 
 extern void rippleAddressFree (BRRippleAddress address)
@@ -43,6 +55,35 @@ BRRippleAddress rippleAddressCreateFeeAddress()
     return address;
 }
 
+BRRippleAddress rippleAddressCreateUnknownAddress()
+{
+    BRRippleAddress address = calloc(1, sizeof(struct BRRippleAddressRecord));
+    memcpy(address->bytes, unknownAddressBytes, ADDRESS_BYTES);
+    return address;
+}
+
+extern int
+rippleAddressIsFeeAddress (BRRippleAddress address)
+{
+    assert(address);
+    if (memcmp(address->bytes, feeAddressBytes, sizeof(feeAddressBytes)) == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+extern int
+rippleAddressIsUnknownAddress (BRRippleAddress address)
+{
+    assert(address);
+    if (memcmp(address->bytes, unknownAddressBytes, sizeof(unknownAddressBytes)) == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 extern char * rippleAddressAsString (BRRippleAddress address)
 {
     assert(address);
@@ -50,8 +91,10 @@ extern char * rippleAddressAsString (BRRippleAddress address)
 
     // Check for our special case __fee__ address
     // See the note above with respect to the feeAddressBytes
-    if (memcmp(address->bytes, feeAddressBytes, sizeof(feeAddressBytes)) == 0) {
+    if (rippleAddressIsFeeAddress (address)) {
         strcpy(string, "__fee__");
+    } else if (rippleAddressIsUnknownAddress (address)) {
+        strcpy (string, "unknown");
     } else {
         // The process is this:
         // 1. Prepend the Ripple address indicator (0) to the 20 bytes
@@ -138,9 +181,11 @@ BRRippleAddress rippleAddressStringToAddress(const char* input)
 extern BRRippleAddress
 rippleAddressCreateFromString(const char * rippleAddressString)
 {
-    // 1 special case so far - the __fee__ address.
+    // 2 special case so far - the __fee__ address and "unknown" address
     // See the note in BRRippleAcount.h with respect to the feeAddressBytes
-    if (strcmp(rippleAddressString, "__fee__") == 0) {
+    if (rippleAddressString == NULL || strlen(rippleAddressString) == 0 || strcmp(rippleAddressString, "unknown") == 0) {
+        return rippleAddressCreateUnknownAddress ();
+    } else if (strcmp(rippleAddressString, "__fee__") == 0) {
         return rippleAddressCreateFeeAddress ();
     } else {
         // Work backwards from this ripple address (string) to what is
@@ -152,17 +197,6 @@ rippleAddressCreateFromString(const char * rippleAddressString)
 extern int // 1 if equal
 rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
     return 0 == memcmp (a1->bytes, a2->bytes, 20);
-}
-
-extern int
-rippleAddressIsFeeAddress (BRRippleAddress address)
-{
-    assert(address);
-    if (memcmp(address->bytes, feeAddressBytes, sizeof(feeAddressBytes)) == 0) {
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 extern int
