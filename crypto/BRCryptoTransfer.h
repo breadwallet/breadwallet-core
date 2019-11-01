@@ -16,8 +16,6 @@
 #include "BRCryptoAmount.h"
 #include "BRCryptoFeeBasis.h"
 
-//#include "ethereum/base/BREthereumBase.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

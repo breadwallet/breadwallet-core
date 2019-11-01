@@ -14,7 +14,6 @@
 #include <inttypes.h>
 #include "BRInt.h"
 #include "BRCryptoBase.h"
-#include "../ethereum/ewm/BREthereumAccount.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,7 +93,7 @@ extern "C" {
     cryptoAccountValidateSerialization (BRCryptoAccount account,
                                         const uint8_t *bytes,
                                         size_t bytesCount);
-    
+
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);
 
