@@ -28,6 +28,8 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Subscription;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionCurrency;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionEndpoint;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
@@ -162,15 +164,20 @@ public class BlockchainDb {
         subscriptionApi.getSubscription(id, handler);
     }
 
-    public void createSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.createSubscription(subscription, handler);
+    public void getSubscriptions(CompletionHandler<List<Subscription>, QueryError> handler) {
+        subscriptionApi.getSubscriptions(handler);
+    }
+
+    public void createSubscription(String deviceId, SubscriptionEndpoint endpoint, List<SubscriptionCurrency> currencies,
+                                   CompletionHandler<Subscription, QueryError> handler) {
+        subscriptionApi.createSubscription(deviceId, endpoint, currencies, handler);
     }
 
     public void updateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
         subscriptionApi.updateSubscription(subscription, handler);
     }
 
-    public void deleteSubscription(String id, CompletionHandler<Subscription, QueryError> handler) {
+    public void deleteSubscription(String id, CompletionHandler<Void, QueryError> handler) {
         subscriptionApi.deleteSubscription(id, handler);
     }
 
