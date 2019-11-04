@@ -68,7 +68,7 @@ extern "C" {
     cryptoAccountValidateWordsList (size_t wordsCount);
 
     extern BRCryptoAccount
-    cryptoAccountCreate (const char *paperKey, uint64_t timestamp);
+    cryptoAccountCreate (const char *paperKey, uint64_t timestamp, const char *uids);
 
     /**
      * Recreate an Account from a serialization
@@ -84,7 +84,7 @@ extern "C" {
      * XRP public key.
      */
     extern BRCryptoAccount
-    cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount);
+    cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids);
 
     extern uint8_t *
     cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount);
@@ -98,7 +98,10 @@ extern "C" {
     cryptoAccountGetTimestamp (BRCryptoAccount account);
 
     extern char *
-    cryptoAccountGetFileSystemIdentifier (BRCryptoAccount);
+    cryptoAccountGetFileSystemIdentifier (BRCryptoAccount account);
+
+    extern const char *
+    cryptoAccountGetUids (BRCryptoAccount account);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 

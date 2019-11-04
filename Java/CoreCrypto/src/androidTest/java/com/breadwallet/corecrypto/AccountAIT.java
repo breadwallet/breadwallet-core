@@ -26,6 +26,9 @@ public class AccountAIT {
 
         Account account = Account.createFromPhrase(phrase, timestamp, uids);
         assertEquals(timestamp.getTime(), account.getTimestamp().getTime());
+
+        // check the uids matches the one provided on creation
+        assertEquals(uids, account.getUids());
     }
 
     @Test
@@ -56,6 +59,9 @@ public class AccountAIT {
         // check that validity is transitive
         accountFromPhrase.validate(serializationFromSerialization);
         accountFromSerialization.validate(serializationFromPhrase);
+
+        // check the uids matches the one provided on creation
+        assertEquals(uids, accountFromSerialization.getUids());
     }
 
     @Test

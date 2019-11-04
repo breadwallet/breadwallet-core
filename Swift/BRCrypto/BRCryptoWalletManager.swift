@@ -242,7 +242,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
 
         let network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
 
-        self.account = Account (core: cryptoWalletManagerGetAccount(core), uids: "ignore", take: false)
+        self.account = Account (core: cryptoWalletManagerGetAccount(core), take: false)
         self.network = network
         self.unit    = network.defaultUnitFor (currency: network.currency)!
         self.path    = asUTF8String (cryptoWalletManagerGetPath(core))

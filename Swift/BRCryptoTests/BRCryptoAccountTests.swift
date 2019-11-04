@@ -47,12 +47,14 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertEqual (a1.addressAsETH, address)
         XCTAssertEqual (timestamp, a1.timestamp)
+        XCTAssertEqual (a1.uids, walletId)
         XCTAssertTrue (a1.validate (serialization: a1.serialize))
 
         guard let a2 = Account.createFrom (serialization: a1.serialize, uids: walletId)
             else { XCTAssert(false); return }
 
         XCTAssertEqual (a2.addressAsETH, a1.addressAsETH);
+        XCTAssertEqual (a2.uids, walletId)
 
         guard let (phrase3, timestamp3) = Account.generatePhrase (words: BRCryptoAccountTests.words),
             let a3 = Account.createFrom (phrase: phrase3, timestamp: timestamp3, uids: "ignore")
@@ -60,7 +62,7 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertFalse (a3.validate(serialization: a1.serialize))
 
-        let _ = Account (core: a2.core, uids: a2.uids, take: true)
+        let _ = Account (core: a2.core, take: true)
     }
 
     func testAddressETH () {
