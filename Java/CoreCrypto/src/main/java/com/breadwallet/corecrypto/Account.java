@@ -53,7 +53,7 @@ final class Account implements com.breadwallet.crypto.Account {
      * @param uids The unique identifier of this account
      */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        BRCryptoAccount core = BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp));
+        BRCryptoAccount core = BRCryptoAccount.createFromPhrase(phraseUtf8, Utilities.dateAsUnixTimestamp(timestamp), uids);
         return Account.create(core);
     }
 
@@ -71,7 +71,7 @@ final class Account implements com.breadwallet.crypto.Account {
      *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
      */
     static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
-        Optional<BRCryptoAccount> core = BRCryptoAccount.createFromSerialization(serialization);
+        Optional<BRCryptoAccount> core = BRCryptoAccount.createFromSerialization(serialization, uids);
         return core.transform(Account::create);
     }
 
@@ -103,6 +103,11 @@ final class Account implements com.breadwallet.crypto.Account {
     @Override
     public Date getTimestamp() {
         return core.getTimestamp();
+    }
+
+    @Override
+    public String getUids() {
+        return core.getUids();
     }
 
     @Override

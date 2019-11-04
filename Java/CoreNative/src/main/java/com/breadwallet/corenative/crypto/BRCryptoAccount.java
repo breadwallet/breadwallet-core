@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class BRCryptoAccount extends PointerType {
 
-    public static BRCryptoAccount createFromPhrase(byte[] phraseUtf8, UnsignedLong timestamp) {
+    public static BRCryptoAccount createFromPhrase(byte[] phraseUtf8, UnsignedLong timestamp, String uids) {
         long timestampAsLong = timestamp.longValue();
 
         // ensure string is null terminated
@@ -40,7 +40,13 @@ public class BRCryptoAccount extends PointerType {
                 phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-                return new BRCryptoAccount(CryptoLibraryDirect.cryptoAccountCreate(phraseBuffer, timestampAsLong));
+                return new BRCryptoAccount(
+                        CryptoLibraryDirect.cryptoAccountCreate(
+                                phraseBuffer,
+                                timestampAsLong,
+                                uids
+                        )
+                );
             } finally {
                 phraseMemory.clear();
             }
@@ -50,11 +56,12 @@ public class BRCryptoAccount extends PointerType {
         }
     }
 
-    public static Optional<BRCryptoAccount> createFromSerialization(byte[] serialization) {
+    public static Optional<BRCryptoAccount> createFromSerialization(byte[] serialization, String uids) {
         return Optional.fromNullable(
                 CryptoLibraryDirect.cryptoAccountCreateFromSerialization(
                         serialization,
-                        new SizeT(serialization.length)
+                        new SizeT(serialization.length),
+                        uids
                 )
         ).transform(BRCryptoAccount::new);
     }
@@ -107,6 +114,12 @@ public class BRCryptoAccount extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         return new Date(TimeUnit.SECONDS.toMillis(CryptoLibraryDirect.cryptoAccountGetTimestamp(thisPtr)));
+    }
+
+    public String getUids() {
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoAccountGetUids(thisPtr).getString(0, "UTF-8");
     }
 
     public String getFilesystemIdentifier() {
