@@ -21,7 +21,6 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +29,7 @@ import static org.junit.Assert.*;
 public class CryptoLibraryAIT {
 
     private String paperKey;
+    private String uids;
     private File coreDataDir;
     private int epoch;
 
@@ -39,6 +39,7 @@ public class CryptoLibraryAIT {
 
         // this is a compromised testnet paperkey
         paperKey = "ginger settle marine tissue robot crane night number ramp coast roast critic";
+        uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
         coreDataDir = new File (context.getFilesDir(), "corenative");
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(2017, /* September */ 8, 6);
@@ -55,7 +56,6 @@ public class CryptoLibraryAIT {
 
     @Test
     public void testLoad() {
-        assertNotNull(CryptoLibrary.INSTANCE);
         assertNotNull(TestCryptoLibrary.INSTANCE);
     }
 
@@ -158,7 +158,8 @@ public class CryptoLibraryAIT {
     public void testCryptoWithAccountAndNetworkBtc() {
         BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
                 paperKey.getBytes(StandardCharsets.UTF_8),
-                UnsignedLong.valueOf(epoch)
+                UnsignedLong.valueOf(epoch),
+                uids
         );
 
         try {
@@ -197,7 +198,8 @@ public class CryptoLibraryAIT {
     public void testCryptoWithAccountAndNetworkBch() {
         BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
                 paperKey.getBytes(StandardCharsets.UTF_8),
-                UnsignedLong.valueOf(epoch)
+                UnsignedLong.valueOf(epoch),
+                uids
         );
 
         try {
@@ -235,7 +237,8 @@ public class CryptoLibraryAIT {
     public void testCryptoWithAccountAndNetworkEth() {
         BRCryptoAccount account = BRCryptoAccount.createFromPhrase(
                 paperKey.getBytes(StandardCharsets.UTF_8),
-                UnsignedLong.valueOf(epoch)
+                UnsignedLong.valueOf(epoch),
+                uids
         );
 
         try {

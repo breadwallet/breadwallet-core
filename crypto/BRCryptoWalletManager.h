@@ -20,9 +20,6 @@
 #include "BRCryptoWallet.h"
 #include "BRCryptoWalletManagerClient.h"
 
-#include "ethereum/BREthereum.h"
-#include "bitcoin/BRWalletManager.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -240,6 +237,40 @@ extern "C" {
     cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
                                      BRCryptoWallet wallet,
                                      BRCryptoTransfer transfer);
+
+    /**
+     * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
+     * represented in the wallet's fee currency.
+     *
+     * @param manager the manager
+     * @param wallet the wallet
+     * @param amount the amount to transfer
+     * @param feeBasis the fee basis for the transfer
+     *
+     * @return the fee
+     */
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager manager,
+                                         BRCryptoWallet  wallet,
+                                         BRCryptoCookie cookie,
+                                         BRCryptoAddress target,
+                                         BRCryptoAmount  amount,
+                                         BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasisForWalletSweep (BRCryptoWalletManager manager,
+                                                       BRCryptoWallet wallet,
+                                                       BRCryptoCookie cookie,
+                                                       BRCryptoWalletSweeper sweeper,
+                                                       BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWalletManager manager,
+                                                                  BRCryptoWallet wallet,
+                                                                  BRCryptoCookie cookie,
+                                                                  BRCryptoPaymentProtocolRequest request,
+                                                                  BRCryptoNetworkFee fee);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 

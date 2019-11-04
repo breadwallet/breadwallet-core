@@ -34,34 +34,37 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
-import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
-import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.Lists;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
-public class TransferListActivity extends AppCompatActivity {
+public class TransferListActivity extends AppCompatActivity implements DefaultSystemListener {
 
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
+
+    private static final int TRANSFER_CHUNK_SIZE = 10;
 
     public static void start(Activity callerActivity, Wallet wallet) {
         Intent intent = new Intent(callerActivity, TransferListActivity.class);
@@ -80,56 +83,9 @@ public class TransferListActivity extends AppCompatActivity {
         return null;
     }
 
-    private static WalletManagerMode getNextMode(WalletManager wm) {
-        Network net = wm.getNetwork();
-        System sys = wm.getSystem();
-
-        List<WalletManagerMode> modes = sys.getSupportedWalletManagerModes(net);
-        WalletManagerMode mode = wm.getMode();
-        mode = modes.get((modes.indexOf(mode) + 1) % modes.size());
-        return mode;
-    }
-
     private Wallet wallet;
-
     private Adapter transferAdapter;
-
     private ClipboardManager clipboardManager;
-
-    private final SystemListener walletListener = new DefaultSystemListener() {
-        @Override
-        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-            event.accept(new DefaultTransferEventVisitor<Void>() {
-                @Override
-                public Void visit(TransferCreatedEvent event) {
-                    TransferViewModel vm = TransferViewModel.create(transfer);
-                    runOnUiThread(() -> {
-                        transferAdapter.add(vm);
-                    });
-                    return null;
-                }
-
-                @Override
-                public Void visit(TransferChangedEvent event) {
-                    TransferViewModel vm = TransferViewModel.create(transfer);
-                    runOnUiThread(() -> {
-                        transferAdapter.changed(vm);
-                    });
-                    return null;
-                }
-
-
-                @Override
-                public Void visit(TransferDeletedEvent event) {
-                    TransferViewModel vm = TransferViewModel.create(transfer);
-                    runOnUiThread(() -> {
-                        transferAdapter.remove(vm);
-                    });
-                    return null;
-                }
-            });
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,8 +108,11 @@ public class TransferListActivity extends AppCompatActivity {
         Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
 
+        Button payView = findViewById(R.id.pay_view);
+        payView.setOnClickListener(v -> showPaymentMenu(TransferListActivity.this, wallet));
+
         Button sweepView = findViewById(R.id.sweep_view);
-        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
+        sweepView.setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
 
         RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
@@ -173,15 +132,15 @@ public class TransferListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, walletListener);
-        transferAdapter.set(TransferViewModel.create(wallet.getTransfers()));
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, this);
+        loadTransfers();
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, this);
 
-        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, walletListener);
+        super.onPause();
     }
 
     @Override
@@ -191,61 +150,210 @@ public class TransferListActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        WalletManager wm = wallet.getWalletManager();
-        menu.findItem(R.id.action_toggle_mode).setTitle("Switch to " + getNextMode(wm).name());
-
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_connect:
-                wallet.getWalletManager().connect(null);
-                return true;
-            case R.id.action_sync:
-                new AlertDialog.Builder(this)
-                        .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
-                                -1,
-                                (dialog, which) -> {
-                                    switch (which) {
-                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND); break;
-                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK); break;
-                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION); break;
-                                    }
-                                    dialog.dismiss();
-                                })
-                        .show();
+                connect();
                 return true;
             case R.id.action_disconnect:
-                wallet.getWalletManager().disconnect();
+                disconnect();
+                return true;
+            case R.id.action_sync:
+                showSyncToDepthMenu();
                 return true;
             case R.id.action_toggle_mode:
-                WalletManager wm = wallet.getWalletManager();
-                wm.setMode(getNextMode(wm));
+                showSelectModeMenu();
                 return true;
         }
         return false;
     }
 
+    @Override
+    public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+        event.accept(new DefaultTransferEventVisitor<Void>() {
+            @Override
+            public Void visit(TransferCreatedEvent event) {
+                addTransfer(transfer);
+                return null;
+            }
+
+            @Override
+            public Void visit(TransferChangedEvent event) {
+                updateTransfer(transfer);
+                return null;
+            }
+
+
+            @Override
+            public Void visit(TransferDeletedEvent event) {
+                removeTransfer(transfer);
+                return null;
+            }
+        });
+    }
+
+    private void loadTransfers() {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            List<? extends Transfer> transfers = wallet.getTransfers();
+            List<TransferViewModel> viewModels = TransferViewModel.create(transfers);
+            Collections.sort(viewModels, TransferViewModel::compare);
+
+            runOnUiThread(transferAdapter::clear);
+            for (List<TransferViewModel> viewModelsChunk: Lists.partition(viewModels, TRANSFER_CHUNK_SIZE)) {
+                runOnUiThread(() -> transferAdapter.add(viewModelsChunk));
+            }
+        });
+    }
+
+    private void addTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.add(vm));
+        });
+    }
+
+    private void removeTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.remove(vm));
+        });
+    }
+
+    private void updateTransfer(Transfer transfer) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            TransferViewModel vm = TransferViewModel.create(transfer);
+            runOnUiThread(() -> transferAdapter.update(vm));
+        });
+    }
+
+    private void connect() {
+        ApplicationExecutors.runOnBlockingExecutor(() -> wallet.getWalletManager().connect(null));
+    }
+
+    private void disconnect() {
+        ApplicationExecutors.runOnBlockingExecutor(() -> wallet.getWalletManager().disconnect());
+    }
+
+    private void showSyncToDepthMenu() {
+        new AlertDialog.Builder(this)
+                .setTitle("Sync Depth")
+                .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
+                        -1,
+                        (d, w) -> {
+                            ApplicationExecutors.runOnBlockingExecutor(() -> {
+                                switch (w) {
+                                    case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND); break;
+                                    case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK); break;
+                                    default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION); break;
+                                }
+                            });
+                            d.dismiss();
+                        })
+                .show();
+    }
+
+    private void showSelectModeMenu() {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            WalletManager wm = wallet.getWalletManager();
+            System system = wm.getSystem();
+            Network network = wm.getNetwork();
+            List<WalletManagerMode> modes = system.getSupportedWalletManagerModes(network);
+
+            String[] itemTexts = new String[modes.size()];
+            WalletManagerMode[] itemModes = new WalletManagerMode[modes.size()];
+            for (int i = 0; i < itemTexts.length; i++) {
+                itemModes[i] = modes.get(i);
+                itemTexts[i] = itemModes[i].toString();
+            }
+
+            runOnUiThread(() -> {
+                new AlertDialog.Builder(this)
+                        .setTitle("Sync Mode")
+                        .setSingleChoiceItems(itemTexts,
+                                -1,
+                                (d, w) -> {
+                                    ApplicationExecutors.runOnBlockingExecutor(() -> wm.setMode(itemModes[w]));
+                                    d.dismiss();
+                                })
+                        .show();
+            });
+        });
+    }
+
+    private void showPaymentMenu(Activity context, Wallet wallet) {
+        new AlertDialog.Builder(this)
+                .setTitle("Payment Protocol")
+                .setSingleChoiceItems(new String[]{PaymentProtocolRequestType.BITPAY.name(), PaymentProtocolRequestType.BIP70.name()},
+                        -1,
+                        (d, w) -> {
+                            switch (w) {
+                                case 0: TransferCreatePaymentActivity.start(context, wallet, PaymentProtocolRequestType.BITPAY); break;
+                                case 1: TransferCreatePaymentActivity.start(context, wallet, PaymentProtocolRequestType.BIP70); break;
+                                default: break;
+                            };
+                            d.dismiss();
+                        })
+                .show();
+    }
+
     private void copyReceiveAddress() {
-        String value = wallet.getTarget().toString();
-        clipboardManager.setPrimaryClip(ClipData.newPlainText("ReceiveAddress", value));
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            String value = wallet.getTarget().toString();
+            clipboardManager.setPrimaryClip(ClipData.newPlainText("ReceiveAddress", value));
 
-        String escapedValue = Html.escapeHtml(value);
-        Spanned message = Html.fromHtml(String.format("Copied receive address <b>%s</b> to clipboard", escapedValue));
+            String escapedValue = Html.escapeHtml(value);
+            Spanned message = Html.fromHtml(String.format("Copied receive address <b>%s</b> to clipboard", escapedValue));
 
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show());
+        });
     }
 
     private interface OnItemClickListener<T> {
         void onItemClick(T item);
     }
 
-    private static class TransferViewModel implements Comparable<TransferViewModel> {
+    private static class TransferViewModel {
 
-        private static List<TransferViewModel> create(List<? extends Transfer> transfers) {
+        static final ThreadLocal<DateFormat> DATE_FORMAT = new ThreadLocal<DateFormat>() {
+            @Override protected DateFormat initialValue() {
+                return DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
+            }
+        };
+
+        static int compare(TransferViewModel vm1, TransferViewModel vm2) {
+            if (vm1.transfer.equals(vm2.transfer)) return 0;
+
+            TransferConfirmation vm1Conf = vm1.confirmation().orNull();
+            TransferConfirmation vm2Conf = vm2.confirmation().orNull();
+
+            if (vm1Conf != null && vm2Conf != null) {
+                int blockCompare = vm2Conf.getBlockNumber().compareTo(vm1Conf.getBlockNumber());
+                if (blockCompare != 0) return blockCompare;
+
+                return vm2Conf.getTransactionIndex().compareTo(vm1Conf.getTransactionIndex());
+
+            } else if (vm1Conf != null) {
+                return 1;
+            } else if (vm2Conf != null) {
+                return -1;
+            } else {
+                return vm2.transferHashCode - vm1.transferHashCode;
+            }
+        }
+
+        static boolean areContentsTheSame(TransferViewModel vm1, TransferViewModel vm2) {
+            return vm1.dateText().equals(vm2.dateText()) &&
+                    vm1.addressText().equals(vm2.addressText()) &&
+                    vm1.amountText().equals(vm2.amountText()) &&
+                    vm1.feeText().equals(vm2.feeText()) &&
+                    vm1.stateText().equals(vm2.stateText());
+        }
+
+        static boolean areItemsTheSame(TransferViewModel vm1, TransferViewModel vm2) {
+            return vm1.transfer.equals(vm2.transfer);
+        }
+
+        static List<TransferViewModel> create(List<? extends Transfer> transfers) {
             List<TransferViewModel> vms = new ArrayList<>(transfers.size());
             for (Transfer t: transfers) {
                 vms.add(create(t));
@@ -253,153 +361,126 @@ public class TransferListActivity extends AppCompatActivity {
             return vms;
         }
 
-        private static TransferViewModel create(Transfer transfer) {
+        static TransferViewModel create(Transfer transfer) {
             return new TransferViewModel(transfer);
         }
 
-        private final Transfer transfer;
-        private final TransferConfirmation confirmation;
-        private final TransferHash hash;
-        private final TransferState state;
-        private final Amount amountDirected;
-        private final Amount fee;
+        final Transfer transfer;
+        final int transferHashCode;
 
-        private TransferViewModel(Transfer transfer) {
+        final Supplier<TransferState> state;
+        final Supplier<TransferConfirmation> confirmation;
+
+        final Supplier<String> amountText;
+        final Supplier<String> feeText;
+        final Supplier<String> stateText;
+        final Supplier<String> dateText;
+        final Supplier<String> addressText;
+
+        TransferViewModel(Transfer transfer) {
             this.transfer = transfer;
-            this.confirmation = transfer.getConfirmation().orNull();
-            this.hash = transfer.getHash().orNull();
-            this.state = transfer.getState();
-            this.amountDirected = transfer.getAmountDirected();
-            this.fee = transfer.getFee();
+            this.transferHashCode = transfer.hashCode();
+
+            this.state = Suppliers.memoize(transfer::getState);
+            this.confirmation = Suppliers.memoize(() -> state().getIncludedConfirmation().orNull());
+
+            this.amountText = Suppliers.memoize(() -> transfer.getAmountDirected().toString());
+            this.feeText = Suppliers.memoize(() -> String.format("Fee: %s", transfer.getFee()));
+            this.stateText = Suppliers.memoize(() -> String.format("State: %s", state()));
+            this.dateText = Suppliers.memoize(() -> confirmation()
+                    .transform(TransferConfirmation::getConfirmationTime)
+                    .transform(t -> DATE_FORMAT.get().format(t))
+                    .or("<pending>"));
+            this.addressText = Suppliers.memoize(() -> transfer.getHash()
+                    .transform(h -> String.format("Hash: %s", h))
+                    .or("<pending>"));
         }
 
-        private Optional<TransferConfirmation> getConfirmation() {
-            return Optional.fromNullable(confirmation);
+        TransferState state() {
+            return state.get();
         }
 
-        private Optional<TransferHash> getHash() {
-            return Optional.fromNullable(hash);
+        Optional<TransferConfirmation> confirmation() {
+            return Optional.fromNullable(confirmation.get());
         }
 
-        private Amount getAmountDirected() {
-            return amountDirected;
+        String dateText() {
+            return dateText.get();
         }
 
-        private Amount getFee() {
-            return fee;
+        String addressText() {
+            return addressText.get();
         }
 
-        private TransferState getState() {
-            return state;
+        String amountText() {
+            return amountText.get();
         }
 
-        private Transfer getTransfer() {
-            return transfer;
+        String feeText() {
+            return feeText.get();
         }
 
-        @Override
-        public int compareTo(TransferViewModel vm2) {
-            Transfer t1 = this.getTransfer();
-            Transfer t2 = vm2.getTransfer();
+        String stateText() {
+            return stateText.get();
+        }
+    }
 
-            Optional<TransferConfirmation> oc1 = t1.getConfirmation();
-            Optional<TransferConfirmation> oc2 = t2.getConfirmation();
+    private static class TransferViewModelSortedListAdapterCallback extends SortedListAdapterCallback<TransferViewModel> {
 
-            if (oc1.isPresent() && oc2.isPresent()) {
-                TransferConfirmation c1 = oc1.get();
-                TransferConfirmation c2 = oc2.get();
-
-                int blockCompare = c1.getBlockNumber().compareTo(c2.getBlockNumber());
-                int indexCompare = c1.getTransactionIndex().compareTo(c2.getTransactionIndex());
-                return (blockCompare != 0 ? blockCompare : indexCompare);
-
-            } else if (oc1.isPresent()) {
-                return -1;
-            } else if (oc2.isPresent()) {
-                return 1;
-            } else {
-                return t1.hashCode() - t2.hashCode();
-            }
+        TransferViewModelSortedListAdapterCallback(Adapter adapter) {
+            super(adapter);
         }
 
         @Override
-        public boolean equals(Object object) {
-            if (this == object) {
-                return true;
-            }
-
-            if (!(object instanceof TransferViewModel)) {
-                return false;
-            }
-
-            TransferViewModel that = (TransferViewModel) object;
-            return Objects.equals(confirmation, that.confirmation) &&
-                    Objects.equals(hash, that.hash) &&
-                    state.equals(that.state) &&
-                    amountDirected.equals(that.amountDirected) &&
-                    fee.equals(that.fee);
+        public int compare(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.compare(t1, t2);
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(confirmation, hash, state, amountDirected, fee);
+        public boolean areContentsTheSame(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.areContentsTheSame(t1, t2);
+        }
+
+        @Override
+        public boolean areItemsTheSame(TransferViewModel t1, TransferViewModel t2) {
+            return TransferViewModel.areItemsTheSame(t1, t2);
         }
     }
 
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
-        private final OnItemClickListener<Transfer> listener;
-        private final SortedList<TransferViewModel> viewModels;
+        final OnItemClickListener<Transfer> listener;
+        final SortedList<TransferViewModel> viewModels;
 
         Adapter(OnItemClickListener<Transfer> listener) {
             this.listener = listener;
-            this.viewModels = new SortedList<>(TransferViewModel.class, new SortedListAdapterCallback<TransferViewModel>(this) {
-                @Override
-                public int compare(TransferViewModel t1, TransferViewModel t2) {
-                    return t2.compareTo(t1);
-                }
-
-                @Override
-                public boolean areContentsTheSame(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.equals(t2);
-                }
-
-                @Override
-                public boolean areItemsTheSame(TransferViewModel t1, TransferViewModel t2) {
-                    return t1.getTransfer().equals(t2.getTransfer());
-                }
-            });
+            this.viewModels = new SortedList<>(TransferViewModel.class, new TransferViewModelSortedListAdapterCallback(this));
         }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_transfer_item, viewGroup, false);
-            return new ViewHolder(v);
+            return new ViewHolder(
+                    LayoutInflater.from(
+                            viewGroup.getContext()
+                    ).inflate(
+                            R.layout.layout_transfer_item,
+                            viewGroup,
+                            false
+                    )
+            );
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder vh, int i) {
-            TransferViewModel transfer = viewModels.get(i);
+            TransferViewModel vm = viewModels.get(i);
 
-            String dateText = transfer.getConfirmation()
-                    .transform((c) -> DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG).format(c.getConfirmationTime()))
-                    .or("<pending>");
-
-            String addressText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
-            addressText = String.format("Hash: %s", addressText);
-
-            String amountText = transfer.getAmountDirected().toString();
-            String feeText = String.format("Fee: %s", transfer.getFee());
-
-            String stateText = String.format("State: %s", transfer.getState());
-
-            vh.itemView.setOnClickListener(v -> listener.onItemClick(transfer.getTransfer()));
-            vh.dateView.setText(dateText);
-            vh.amountView.setText(amountText);
-            vh.addressView.setText(addressText);
-            vh.feeView.setText(feeText);
-            vh.stateView.setText(stateText);
+            vh.itemView.setOnClickListener(v -> listener.onItemClick(vm.transfer));
+            vh.dateView.setText(vm.dateText());
+            vh.amountView.setText(vm.amountText());
+            vh.addressView.setText(vm.addressText());
+            vh.feeView.setText(vm.feeText());
+            vh.stateView.setText(vm.stateText());
         }
 
         @Override
@@ -407,35 +488,36 @@ public class TransferListActivity extends AppCompatActivity {
             return viewModels.size();
         }
 
-        private void set(List<TransferViewModel> newTransfers) {
-            viewModels.replaceAll(newTransfers);
+        void clear() {
+            viewModels.clear();
         }
 
-        private void add(TransferViewModel transfer) {
+        void add(List<TransferViewModel> newTransfers) {
+            viewModels.addAll(newTransfers);
+        }
+
+        void add(TransferViewModel transfer) {
             viewModels.add(transfer);
         }
 
-        private void remove(TransferViewModel transfer) {
-            viewModels.remove(transfer);
+        void remove(TransferViewModel transfer) {
+            viewModels.add(transfer); // add it; will display with state of deledted
         }
 
-        private void changed(TransferViewModel transfer) {
-            int index = viewModels.indexOf(transfer);
-            if (index != -1) {
-                viewModels.updateItemAt(index, transfer);
-            }
+        void update(TransferViewModel transfer) {
+            viewModels.add(transfer);
         }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
 
-        private TextView dateView;
-        private TextView amountView;
-        private TextView addressView;
-        private TextView feeView;
-        private TextView stateView;
+        TextView dateView;
+        TextView amountView;
+        TextView addressView;
+        TextView feeView;
+        TextView stateView;
 
-        private ViewHolder(@NonNull View view) {
+        ViewHolder(@NonNull View view) {
             super(view);
 
             dateView = view.findViewById(R.id.item_date);

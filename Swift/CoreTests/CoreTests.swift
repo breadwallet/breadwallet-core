@@ -39,6 +39,8 @@ class CoreTests: XCTestCase {
     }
     var paperKey: String! = nil
 
+    var uids: String = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96"
+
     var isMainnet = true
     var isBTC: Int32! = 1
 
@@ -159,7 +161,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBTC() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -175,7 +177,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBCH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -191,7 +193,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkETH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 8_000_000), (false, 4_500_000),]
@@ -208,8 +210,7 @@ class CoreTests: XCTestCase {
 
     private func createBitcoinNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
         let uids = "bitcoin-" + (isMainnet ? "mainnet" : "testnet")
-        let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
-        let network = cryptoNetworkCreateAsBTC (uids, "bitcoin", chainParams!.pointee.forkId, chainParams)
+        let network = cryptoNetworkCreateAsBTC (uids, "bitcoin", isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
         defer { cryptoNetworkGive (network) }
 
         let currency = cryptoCurrencyCreate ("bitcoin", "bitcoin", "btc", "native", nil)
@@ -242,8 +243,7 @@ class CoreTests: XCTestCase {
 
     private func createBitcoinCashNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
         let uids = "bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet")
-        let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
-        let network = cryptoNetworkCreateAsBTC (uids, "bitcoin-cash", chainParams!.pointee.forkId, chainParams)
+        let network = cryptoNetworkCreateAsBCH (uids, "bitcoin-cash", isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
         defer { cryptoNetworkGive (network) }
 
         let currency = cryptoCurrencyCreate ("bitcoin-cash", "bitcoin cash", "bch", "native", nil)
@@ -276,9 +276,9 @@ class CoreTests: XCTestCase {
 
     private func createEthereumNetwork(isMainnet: Bool, blockHeight: UInt64) -> BRCryptoNetwork {
         let uids = "ethereum-" + (isMainnet ? "mainnet" : "testnet")
-        let ethNetwork = (isMainnet ? ethereumMainnet : ethereumTestnet)
-        let ethChainId = UInt32(networkGetChainId (ethNetwork))
-        let network = cryptoNetworkCreateAsETH (uids, "ethereum", ethChainId, ethNetwork)
+        let network = isMainnet ?
+            cryptoNetworkCreateAsETHForMainnet (uids, "ethereum") :
+            cryptoNetworkCreateAsETHForTestnet (uids, "ethereum")
         defer { cryptoNetworkGive (network) }
 
         let currency = cryptoCurrencyCreate ("ethereum", "ethereum", "eth", "native", nil)

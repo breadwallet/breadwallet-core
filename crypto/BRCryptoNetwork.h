@@ -11,7 +11,6 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
-#include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 
 #include "../support/BRArray.h"
@@ -184,6 +183,9 @@ extern "C" {
     cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                      const char *code);
 
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
+                                     const char *uids);
     /**
      * Returns the number of units for network's `currency`.  This is the index exclusive limit to
      * be used in `cryptoNetworkGetUnitAt()`.
@@ -222,10 +224,6 @@ extern "C" {
     extern BRCryptoNetworkFee *
     cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
                                  size_t *count);
-
-    extern BRCryptoAddress
-    cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
-                                          const char *string);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 

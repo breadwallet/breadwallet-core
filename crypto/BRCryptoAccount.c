@@ -24,7 +24,7 @@ static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
 #include "generic/BRGenericHandlers.h"
 
 static void _accounts_init (void) {
-    genericHandlersInstall (genericRippleHandlers);
+    genHandlersInstall (genericRippleHandlers);
     // ...
 }
 
@@ -34,7 +34,9 @@ checksumFletcher16 (const uint8_t *data, size_t count);
 static void
 randomBytes (void *bytes, size_t bytesCount);
 
-#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
+// Version 1: BTC (w/ BCH), ETH
+// Version 2: BTC (w/ BCH), ETH, XRP
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
 
 static void
 cryptoAccountRelease (BRCryptoAccount account);
@@ -45,6 +47,7 @@ struct BRCryptoAccountRecord {
     BRGenericAccount xrp;
     // ...
 
+    char *uids;
     uint64_t timestamp;
     BRCryptoRef ref;
 };
@@ -90,12 +93,14 @@ static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
                              BREthereumAccount eth,
                              BRGenericAccount xrp,
-                             uint64_t timestamp) {
+                             uint64_t timestamp,
+                             const char * uids) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = btc;
     account->eth = eth;
     account->xrp = xrp;
+    account->uids = strdup (uids);
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -104,18 +109,20 @@ cryptoAccountCreateInternal (BRMasterPubKey btc,
 }
 static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
-                                     uint64_t timestamp) {
+                                     uint64_t timestamp,
+                                     const char *uids) {
     pthread_once (&_accounts_once, _accounts_init);
 
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
                                         createAccountWithBIP32Seed(seed),
-                                        gwmAccountCreate (genericRippleHandlers->type, seed),
-                                        timestamp);
+                                        genAccountCreate (genericRippleHandlers->type, seed),
+                                        timestamp,
+                                        uids);
 }
 
 extern BRCryptoAccount
-cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
-    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp);
+cryptoAccountCreate (const char *phrase, uint64_t timestamp, const char *uids) {
+    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp, uids);
 }
 
 
@@ -132,7 +139,7 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
  * @return An Account, or NULL.
  */
 extern BRCryptoAccount
-cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
+cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids) {
     pthread_once (&_accounts_once, _accounts_init);
 
     uint8_t *bytesPtr = (uint8_t *) bytes;
@@ -204,18 +211,19 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     size_t xrpSize = UInt32GetBE(bytesPtr);
     BYTES_PTR_INCR_AND_CHECK (szSize);
 
-    BRGenericAccount xrp = gwmAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
+    BRGenericAccount xrp = genAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
     assert (NULL != xrp);
 
-    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp);
+    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp, uids);
 #undef BYTES_PTR_INCR_AND_CHECK
 }
 
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);
-    gwmAccountRelease(account->xrp);
+    genAccountRelease(account->xrp);
 
+    memset (account, 0, sizeof(*account));
     free (account);
 }
 
@@ -254,7 +262,7 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
 
     // XRP
     size_t   xrpSize = 0;
-    uint8_t *xrpBytes = gwmAccountGetSerialization (account->xrp, &xrpSize);
+    uint8_t *xrpBytes = genAccountGetSerialization (account->xrp, &xrpSize);
 
     // Overall size - summing all factors.
     *bytesCount = (chkSize + szSize + verSize + tsSize
@@ -369,6 +377,11 @@ cryptoAccountGetFileSystemIdentifier (BRCryptoAccount account) {
     return strndup(u256hex(hash), 32);
 }
 
+extern const char *
+cryptoAccountGetUids (BRCryptoAccount account) {
+    return account->uids;
+}
+
 private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account) {
     return account->eth;
@@ -377,7 +390,7 @@ cryptoAccountAsETH (BRCryptoAccount account) {
 private_extern BRGenericAccount
 cryptoAccountAsGEN (BRCryptoAccount account,
                     const char *type) {
-    if (gwmAccountHasType (account->xrp, type)) return account->xrp;
+    if (genAccountHasType (account->xrp, type)) return account->xrp;
 
     return NULL;
 }

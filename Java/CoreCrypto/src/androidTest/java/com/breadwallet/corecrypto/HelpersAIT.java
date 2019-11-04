@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
+import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -17,6 +18,7 @@ import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.network.NetworkEvent;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
@@ -78,17 +80,42 @@ class HelpersAIT {
         return file.delete();
     }
 
+    // Module
+
+    /* package */
+    static void registerCryptoApiProvider() {
+        try {
+            CryptoApi.initialize(CryptoApiProvider.getInstance());
+        }  catch (IllegalStateException e) {
+            // already initialized, ignore
+        }
+    }
+
     // System
 
     /* package */
-    static System createAndConfigureSystem(File dataDir, SystemListener listener) {
+    static System createAndConfigureSystemWithListener(File dataDir, SystemListener listener) {
         String storagePath = dataDir.getAbsolutePath();
         Account account = HelpersAIT.createDefaultAccount();
-        BlockchainDb query = HelpersAIT.createDefaultBlockchainDb();
+        BlockchainDb query = HelpersAIT.createDefaultBlockchainDbWithToken();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         com.breadwallet.corecrypto.System system = com.breadwallet.corecrypto.System.create(executor, listener, account, false, storagePath, query);
 
         system.configure(Collections.emptyList());
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+
+        return system;
+    }
+
+    /* package */
+    static System createAndConfigureSystemWithBlockchainDbAndCurrencies(File dataDir, BlockchainDb query, List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> currencies) {
+        String storagePath = dataDir.getAbsolutePath();
+        Account account = HelpersAIT.createDefaultAccount();
+        SystemListener listener = new DefaultSystemListener() {};
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        com.breadwallet.corecrypto.System system = com.breadwallet.corecrypto.System.create(executor, listener, account, false, storagePath, query);
+
+        system.configure(currencies);
         Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
 
         return system;
@@ -146,16 +173,23 @@ class HelpersAIT {
 
     // BlockchainDB
 
-    private static final OkHttpClient DEFAULT_HTTP_CLIENT = new OkHttpClient();
+    /* package */
+    static final OkHttpClient DEFAULT_HTTP_CLIENT = new OkHttpClient();
 
-    private static String DEFAULT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9." +
-            "eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ" +
-            "6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0." +
-            "FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
+    private static String DEFAULT_TOKEN = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9." +
+            "eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1N" +
+            "zI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2" +
+            "xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0." +
+            "460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg";
 
     /* package */
-    static BlockchainDb createDefaultBlockchainDb() {
+    static BlockchainDb createDefaultBlockchainDbWithToken() {
         return BlockchainDb.createForTest(DEFAULT_HTTP_CLIENT, DEFAULT_TOKEN);
+    }
+
+    /* package */
+    static BlockchainDb createDefaultBlockchainDbWithoutToken() {
+        return new BlockchainDb(DEFAULT_HTTP_CLIENT);
     }
 
     // Listeners

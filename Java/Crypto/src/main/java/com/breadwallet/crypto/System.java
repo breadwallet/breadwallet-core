@@ -19,6 +19,8 @@ import com.breadwallet.crypto.migration.BlockBlob;
 import com.breadwallet.crypto.migration.PeerBlob;
 import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.util.List;
 import java.util.Set;
@@ -26,8 +28,40 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
+    /**
+     * Create a new system.
+     *
+     * @param executor
+     * @param listener the listener for handling events.
+     * @param account the account, derived from a paper key, that will be used for all networks.
+     * @param isMainnet flag to indicate if the system is for mainnet or for testnet; as blockchains
+     *                  are announced, we'll filter them to be for mainent or testnet.
+     * @param storagePath the path to use for persistent storage of data, such as for blocks, peers, transactions and
+     *                    logs.
+     * @param query the BlockchainDB query engine.
+     */
     static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String storagePath, BlockchainDb query) {
         return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,storagePath, query);
+    }
+
+    /**
+     * Create a BlockChainDB.Model.Currency to be used in the event that the BlockChainDB does
+     * not provide its own currency model.
+     *
+     * @param uids the currency uids (ex: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6")
+     * @param name the currency name (ex: "BRD Token"
+     * @param code the currency code (ex: "code")
+     * @param type the currency type (ex: "erc20" or "native")
+     * @param decimals the number of decimals for the currency's default unit (ex: 18)
+     * @return a currency mode for us with {@link #configure(List)}; {@link Optional#absent()} otherwise
+     */
+    static Optional<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> asBlockChainDBModelCurrency(String uids,
+                                                                                                         String name,
+                                                                                                         String code,
+                                                                                                         String type,
+                                                                                                         UnsignedInteger decimals) {
+        return CryptoApi.getProvider().systemProvider().asBDBCurrency(uids, name, code, type, decimals);
+
     }
 
     /**
@@ -123,7 +157,7 @@ public interface System {
      * Set the network reachable flag for all managers.
      *
      * Setting or clearing this flag will NOT result in a connect/disconnect attempt by a {@link WalletManager}.
-     * Callers must use the {@link WalletManager#connect()}/{@link WalletManager#disconnect()} methods to
+     * Callers must use the {@link WalletManager#connect(NetworkPeer)}/{@link WalletManager#disconnect()} methods to
      * change a WalletManager's connectivity state. Instead, WalletManagers MAY consult this flag when performing
      * network operations to determine viability.
      */
@@ -151,8 +185,8 @@ public interface System {
 
     boolean supportsWalletManagerMode(Network network, WalletManagerMode mode);
 
-    public void migrateStorage (Network network, List<TransactionBlob> transactionBlobs, List<BlockBlob> blockBlobs,
-                                List<PeerBlob> peerBlobs) throws MigrateError;
+    void migrateStorage (Network network, List<TransactionBlob> transactionBlobs, List<BlockBlob> blockBlobs,
+                         List<PeerBlob> peerBlobs) throws MigrateError;
 
     boolean migrateRequired(Network network);
 }

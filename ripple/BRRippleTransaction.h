@@ -12,8 +12,10 @@
 #define BRRipple_transaction_h
 
 #include "BRRippleBase.h"
+#include "BRRippleFeeBasis.h"
 #include "BRKey.h"
 #include "support/BRSet.h"
+#include "BRRippleAddress.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 
@@ -104,8 +106,12 @@ extern BRRippleUnitDrops rippleTransactionGetAmount(BRRippleTransaction transact
 extern BRRippleSequence rippleTransactionGetSequence(BRRippleTransaction transaction);
 extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction);
 extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction);
-extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
-extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
+
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransactionGetSource(BRRippleTransaction transaction);
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransactionGetTarget(BRRippleTransaction transaction);
+
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction);
 
 extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction);

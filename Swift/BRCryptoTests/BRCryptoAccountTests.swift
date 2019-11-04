@@ -47,12 +47,14 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertEqual (a1.addressAsETH, address)
         XCTAssertEqual (timestamp, a1.timestamp)
+        XCTAssertEqual (a1.uids, walletId)
         XCTAssertTrue (a1.validate (serialization: a1.serialize))
 
         guard let a2 = Account.createFrom (serialization: a1.serialize, uids: walletId)
             else { XCTAssert(false); return }
 
         XCTAssertEqual (a2.addressAsETH, a1.addressAsETH);
+        XCTAssertEqual (a2.uids, walletId)
 
         guard let (phrase3, timestamp3) = Account.generatePhrase (words: BRCryptoAccountTests.words),
             let a3 = Account.createFrom (phrase: phrase3, timestamp: timestamp3, uids: "ignore")
@@ -60,7 +62,7 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertFalse (a3.validate(serialization: a1.serialize))
 
-        let _ = Account (core: a2.core, uids: a2.uids, take: true)
+        let _ = Account (core: a2.core, take: true)
     }
 
     func testAddressETH () {
@@ -115,11 +117,11 @@ class BRCryptoAccountTests: XCTestCase {
                                fees: [fee],
                                confirmationsUntilFinal: 6)
 
-        XCTAssertEqual(network.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")?.description,
+        XCTAssertEqual(Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)?.description,
                        "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")
 
-        XCTAssertNil (network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
-        XCTAssertNil (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+        XCTAssertNil (Address.create (string: "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network: network))
+        XCTAssertNil (Address.create (string: "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network: network))
     }
 
     func testAddressBCH () {
@@ -137,14 +139,14 @@ class BRCryptoAccountTests: XCTestCase {
                                fees: [fee],
                                confirmationsUntilFinal: 6)
 
-        XCTAssertEqual (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")?.description,
+        XCTAssertEqual (Address.create (string: "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network: network)?.description,
                         "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")
 
-        XCTAssertEqual (network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")?.description,
+        XCTAssertEqual (Address.create (string: "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network: network)?.description,
                         "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")
 
-        XCTAssertNil (network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"))
-        XCTAssertNil (network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"))
+        XCTAssertNil (Address.create (string: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", network: network))
+        XCTAssertNil (Address.create (string: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2", network: network))
 
         // TODO: Testnet BCH Addresses work as Mainnet BCH Addresses
         //        XCTAssertNil (network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t"))
@@ -166,13 +168,13 @@ class BRCryptoAccountTests: XCTestCase {
                                fees: [fee],
                                confirmationsUntilFinal: 6)
 
-        XCTAssertEqual (network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")?.description,
+        XCTAssertEqual (Address.create (string: "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", network: network)?.description,
                         "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")
 
-        XCTAssertEqual (network.addressFor("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")?.description,
+        XCTAssertEqual (Address.create (string: "pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", network: network)?.description,
                         "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")
 
-        XCTAssertNil (network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"))
+        XCTAssertNil (Address.create (string: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", network: network))
 
         // TODO: Testnet BCH Addresses work as Mainnet BCH Addresses
         //        XCTAssertNil (network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"))
