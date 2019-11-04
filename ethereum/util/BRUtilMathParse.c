@@ -296,6 +296,8 @@ coerceString (UInt256 x, int base) {
             // Reverse and 'strip zeros'
             UInt256 xr = UInt256Reverse(x);  // TODO: LITTLE ENDIAN only
             int xrIndex = 0;
+            // We explicitly handled the '0 == x' case up-front.  Thus xr.u8 *always*
+            // eventually has a non-zero value.
             while (0 == xr.u8[xrIndex]) xrIndex++;
             // Encode
             return encodeHexCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
@@ -343,8 +345,8 @@ coerceStringPrefaced (UInt256 x, int base, const char *preface) {
     if (NULL == preface || 0 == strcmp ("", preface)) return string;
     char *stringToFree = string; // save the pointer to string
 
-    // Strip off leading zeros in `string`
-    while ('\0' != string[0] && '0' == string[0]) string++;
+    // Strip off leading zeros in `string` but be sure to leave at least one digit
+    while ('\0' != string[0] && '0' == string[0] && '\0' != string[1]) string++;
 
     char *result = malloc (strlen(preface) + strlen (string) + 1);
     strcpy (result, preface);
