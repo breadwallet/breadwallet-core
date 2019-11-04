@@ -126,6 +126,12 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t utxosCount);
     
 // fee-per-kb of transaction size to use when creating a transaction
+// the wallet maintains a fee per kb that is associated with it
+// this value can be set by calls to `BRWalletSetFeePerKb` but is also set in response to `feefilter` messages
+// transactions can be created using functions that use the wallet's fee per kb or a passed in value (see
+// BRWalletCreateTransaction and BRWalletCreateTransactionWithFeePerKb for example); the latter is to support
+// cases where a specific feePerKb value is desired, so as to avoid having to get the wallet's feePerKb, set a
+// new value, create a transaction and then restore the wallet's feePerKb (which potentially races against P2P updates)
 uint64_t BRWalletFeePerKb(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
