@@ -8,8 +8,10 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Date;
 import java.util.List;
@@ -26,6 +28,10 @@ public final class CryptoApi {
         boolean validatePhrase(byte[] phraseUtf8, List<String> words);
     }
 
+    public interface AddressProvider {
+        Optional<Address> create(String address, Network network);
+    }
+
     public interface AmountProvider {
         Amount create(long value, Unit unit);
         Amount create(double value, Unit unit);
@@ -34,8 +40,16 @@ public final class CryptoApi {
 
     public interface SystemProvider {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        Optional<Currency> asBDBCurrency(String uids, String name, String code, String type, UnsignedInteger decimals);
         void wipe(System system);
         void wipeAll(String path, List<System> exemptSystems);
+    }
+
+    public interface PaymentProvider {
+        Optional<PaymentProtocolRequest> createRequestForBip70(Wallet wallet, byte[] serialization);
+        Optional<PaymentProtocolRequest> createRequestForBitPay(Wallet wallet, String json);
+        Optional<PaymentProtocolPaymentAck> createAckForBip70(byte[] serialization);
+        Optional<PaymentProtocolPaymentAck> createAckForBitPay(String json);
     }
 
     public interface CoderProvider {
@@ -71,8 +85,10 @@ public final class CryptoApi {
 
     public interface Provider {
         AccountProvider accountProvider();
+        AddressProvider addressProvider();
         AmountProvider amountProvider();
         SystemProvider systemProvider();
+        PaymentProvider paymentProvider();
 
         CoderProvider coderPrivider();
         CipherProvider cipherProvider();

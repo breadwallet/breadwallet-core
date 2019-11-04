@@ -40,7 +40,7 @@ extern "C" {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
                 uint64_t timestamp;
-                BRCryptoAmount fee;
+                BRCryptoFeeBasis feeBasis;
             } included;
 
             struct {
@@ -56,7 +56,7 @@ extern "C" {
     cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                      uint64_t transactionIndex,
                                      uint64_t timestamp,
-                                     BRCryptoAmount fee);
+                                     BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoTransferState
     cryptoTransferStateErroredInit (BRTransferSubmitError error);
@@ -138,6 +138,16 @@ extern "C" {
      */
     extern BRCryptoAmount
     cryptoTransferGetAmountDirected (BRCryptoTransfer transfer);
+
+    /**
+     * Returns the transfers amount after considering the direction and fee
+     *
+     * @param transfer the transfer
+     *
+     * @return the signed, net amoount
+     */
+    extern BRCryptoAmount
+    cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer);
 
     /**
      * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different

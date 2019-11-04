@@ -9,6 +9,8 @@ package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
+import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolError;
+import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolType;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
@@ -18,6 +20,7 @@ import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.breadwallet.crypto.AddressScheme;
+import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
@@ -30,6 +33,12 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceUnavailableError;
+import com.breadwallet.crypto.errors.PaymentProtocolCertificateMissingError;
+import com.breadwallet.crypto.errors.PaymentProtocolCertificateNotTrustedError;
+import com.breadwallet.crypto.errors.PaymentProtocolError;
+import com.breadwallet.crypto.errors.PaymentProtocolRequestExpiredError;
+import com.breadwallet.crypto.errors.PaymentProtocolSignatureTypeUnsupportedError;
+import com.breadwallet.crypto.errors.PaymentProtocolSignatureVerificationFailedError;
 import com.breadwallet.crypto.errors.TransferSubmitPosixError;
 import com.breadwallet.crypto.errors.TransferSubmitUnknownError;
 import com.google.common.base.Optional;
@@ -148,8 +157,9 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
-                            Optional.fromNullable(state.u.included.fee)
-                                    .transform(Amount::create)
+                            Optional.fromNullable(state.u.included.feeBasis)
+                                    .transform(TransferFeeBasis::create)
+                                    .transform(TransferFeeBasis::getFee)
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");
@@ -187,6 +197,28 @@ final class Utilities {
     }
 
     /* package */
+    static Optional<PaymentProtocolError> paymentProtocolErrorFromCrypto(BRCryptoPaymentProtocolError error) {
+        switch (error) {
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE: return Optional.absent();
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING: return Optional.of(new PaymentProtocolCertificateMissingError());
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED: return Optional.of(new PaymentProtocolCertificateNotTrustedError());
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED: return Optional.of(new PaymentProtocolRequestExpiredError());
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED: return Optional.of(new PaymentProtocolSignatureTypeUnsupportedError());
+            case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED: return Optional.of(new PaymentProtocolSignatureVerificationFailedError());
+            default: throw new IllegalArgumentException("Unsupported error");
+        }
+    }
+
+    /* package */
+    static PaymentProtocolRequestType paymentProtocolRequestTypeFromCrypto(BRCryptoPaymentProtocolType type) {
+        switch (type) {
+            case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: return PaymentProtocolRequestType.BIP70;
+            case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY: return PaymentProtocolRequestType.BITPAY;
+            default: throw new IllegalArgumentException("Unsupported type");
+        }
+    }
+
+    /* package */
     static BRSyncDepth syncDepthToCrypto(WalletManagerSyncDepth depth) {
         switch (depth) {
             case FROM_LAST_CONFIRMED_SEND: return BRSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
@@ -196,6 +228,7 @@ final class Utilities {
         }
     }
 
+    /* package */
     static WalletManagerSyncDepth syncDepthFromCrypto(BRSyncDepth depth) {
         switch (depth) {
             case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: return WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND;

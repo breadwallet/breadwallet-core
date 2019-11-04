@@ -64,8 +64,9 @@ public final class System {
         (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+        confirmationsUntilFinal: 1),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
@@ -77,12 +78,23 @@ public final class System {
         (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+         confirmationsUntilFinal: 1),
     ]
 
     private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
         return "\(blockchainID):\(address)"
+    }
+
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
     }
 
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
@@ -103,20 +115,19 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: [(name: "BRD Token INT", code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD Token",     code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
 //         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
+//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
-//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
         // Testnet
         (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
@@ -135,15 +146,14 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
-//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
     ]
 
     ///
@@ -158,7 +168,7 @@ public final class System {
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-//        "ripple-testnet":       [.genDefault]
+        "ripple-testnet":       [.genDefault]
     ]
 
     static let defaultAddressSchemeMap: [String:AddressScheme] = [
@@ -169,7 +179,7 @@ public final class System {
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-//        "ripple-testnet":       .genDefault
+        "ripple-testnet":       .genDefault
     ]
 
     ///
@@ -229,11 +239,11 @@ public final class System {
         "bitcoin-mainnet":      [.api_only, .p2p_only],
         "bitcoincash-mainnet":  [.p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-mainnet":       [],
+        "ripple-mainnet":       [.api_only],
         "bitcoin-testnet":      [.api_only, .p2p_only],
         "bitcoincash-testnet":  [.p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-testnet":       []
+        "ripple-testnet":       [.api_only]
     ]
 
     ///
@@ -243,11 +253,11 @@ public final class System {
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
-//        "ripple-mainnet":       [],
+        "ripple-mainnet":       .api_only,
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
-//        "ripple-testnet":       []
+        "ripple-testnet":       .api_only
     ]
 
 
@@ -611,8 +621,8 @@ public final class System {
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
-            let symb = "\(currency.code.uppercased())I"
-            let name = "\(currency.code.uppercased())_INTEGER"
+            let symb = "\(currency.code)I".lowercased()
+            let name = "\(currency.code) INT".uppercased()
             let uids = "\(currency.uids):\(name)"
             return Unit (currency: currency, uids: uids, name: name, symbol: symb)
         }
@@ -796,10 +806,12 @@ public final class System {
     /// not provide its own currency model.
     ///
     public static func asBlockChainDBModelCurrency (uids: String, name: String, code: String, type: String, decimals: UInt8) -> BlockChainDB.Model.Currency? {
-        guard "ERC20" == type || "NATIVE" == type else { return nil }
+        // convert to lowercase to match up with built-in blockchains
+        let type = type.lowercased()
+        guard "erc20" == type || "native" == type else { return nil }
         return uids.firstIndex(of: ":")
             .map {
-                let code         = code.uppercased()
+                let code         = code.lowercased()
                 let blockchainID = uids.prefix(upTo: $0).description
                 let address      = uids.suffix(from: uids.index (after: $0)).description
 
@@ -810,16 +822,7 @@ public final class System {
                         blockchainID: blockchainID,
                         address: (address != "__native__" ? address : nil),
                         verified: true,
-                        demoninations: [
-                            (name: "\(code)_INTEGER",
-                                code: "\(code)_INTEGER",
-                                decimals: 0,
-                                symbol: "\(code)I"),   // BRDI -> BaseUnit
-
-                            (name: code,
-                             code: code,
-                             decimals: decimals,
-                             symbol: code)])       //  BRD -> DefaultUnit
+                        demoninations: System.makeCurrencyDemominationsERC20 (code, decimals: decimals))
         }
     }
 
@@ -1304,6 +1307,8 @@ extension System {
                     transferEvent = TransferEvent.created
 
                 case CRYPTO_TRANSFER_EVENT_CHANGED:
+                    // The event.u.state.{old,new} references to BRCryptoTransferState are 'passed'
+                    // to the TransferState initializer.
                     transferEvent = TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
                                                            new: TransferState.init (core: event.u.state.new))
 
@@ -1684,6 +1689,34 @@ extension System {
 }
 
 extension System {
+    private static func mergeTransfers (_ transfers: [BlockChainDB.Model.Transfer], with address: String)
+        -> [(transfer: BlockChainDB.Model.Transfer, fee: String?)] {
+            // Only consider transfers w/ `address`
+            let transfers = transfers.filter { address == $0.source || address == $0.target }
+
+            // Find a transfer with a target of "__fee__" if one exists.
+            let transfersWithFee = transfers.filter { "__fee__" == $0.target }
+            precondition (transfersWithFee.count <= 1, "Too many _fee_ transfers")
+
+            // Get the transferWithFee if we have one
+            let transferWithFee = transfersWithFee.isEmpty ? nil : transfersWithFee[0]
+
+            // There sould be one an only one transfer that matches the fee.  We match based on
+            // transactionId and source (address).  Sufficient?
+            return transfers
+                .filter { "__fee__" != $0.target }
+                .map { (transfer) in
+                    return (transfer: transfer,
+                            fee: transferWithFee.flatMap {
+                                return ($0.transactionId == transfer.transactionId && $0.source == transfer.source
+                                    ? $0.amountValue
+                                    : nil)
+                    })
+            }
+    }
+}
+
+extension System {
     internal var clientGEN: BRCryptoCWMClientGEN {
         return BRCryptoCWMClientGEN (
             funcGetBlockNumber: { (context, cwm, sid) in
@@ -1738,8 +1771,47 @@ extension System {
 
                 }},
 
-            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
+            funcGetTransfers: { (context, cwm, sid, address, begBlockNumber, endBlockNumber) in
                 precondition (nil != context  && nil != cwm)
+
+                guard let (system, manager) = System.systemExtract (context, cwm)
+                    else { print ("SYS: GEN: GetTransfers: Missed {cwm}"); return }
+                print ("SYS: GEN: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+                let accountAddress = asUTF8String(address!)
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                               addresses: [accountAddress],
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
+                                               includeRaw: false) {
+                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                                defer { cryptoWalletManagerGive(cwm) }
+                                                res.resolve(
+                                                    success: {
+                                                        $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
+                                                            let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
+                                                            let height    = transaction.blockHeight ?? 0
+
+                                                            System.mergeTransfers (transaction.transfers, with: accountAddress)
+                                                                .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
+                                                                    let (transfer, fee) = arg
+                                                                    cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                                                                  transfer.source,
+                                                                                                  transfer.target,
+                                                                                                  transfer.amountValue,
+                                                                                                  transfer.amountCurrency,
+                                                                                                  fee,
+                                                                                                  timestamp,
+                                                                                                  height)
+                                                            }
+                                                        }
+                                                        cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
+                                                    failure: { (_) in cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_FALSE) })
+                }},
+
+            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
+                // TODO - figure out why this precondition failes - or just remove it since systemExtract
+                // does the exact same precondition: JIRA CORE-649
+                //precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: GEN: SubmitTransaction: Missed {cwm}"); return }

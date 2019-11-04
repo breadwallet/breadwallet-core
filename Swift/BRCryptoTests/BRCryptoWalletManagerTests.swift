@@ -119,7 +119,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerETH () {
         isMainnet = false
-        registerCurrencyCodes = ["BRD"]
+        registerCurrencyCodes = ["brd"]
         currencyCodesToMode = ["eth":WalletManagerMode.api_only]
         prepareAccount()
 
@@ -132,7 +132,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         let walletBRDExpectation = XCTestExpectation (description: "BRD Wallet")
         listener.managerHandlers += [
             { (system: System, manager:WalletManager, event: WalletManagerEvent) in
-                if case let .walletAdded(wallet) = event, "BRD" == wallet.name {
+                if case let .walletAdded(wallet) = event, "brd" == wallet.name {
                     walletBRD = wallet
                     walletBRDExpectation.fulfill()
                 }

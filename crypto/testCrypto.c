@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "bitcoin/BRChainParams.h"
+#include "bcash/BRBCashParams.h"
+
 #include "BRCryptoAmount.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
@@ -302,6 +305,16 @@ _CWMNopGetTransactionsGenCallback (BRCryptoCWMClientContext context,
                                             OwnershipKept const char *address,
                                             uint64_t begBlockNumber,
                                             uint64_t endBlockNumber) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
+_CWMNopGetTransfersGenCallback (BRCryptoCWMClientContext context,
+                                OwnershipGiven BRCryptoWalletManager manager,
+                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                OwnershipKept const char *address,
+                                uint64_t begBlockNumber,
+                                uint64_t endBlockNumber) {
     cryptoWalletManagerGive (manager);
 }
 
@@ -797,6 +810,7 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
     BRCryptoCWMClientGEN genClient = (BRCryptoCWMClientGEN) {
         _CWMNopGetBlockNumberGenCallback,
         _CWMNopGetTransactionsGenCallback,
+        _CWMNopGetTransfersGenCallback,
         _CWMNopSubmitTransactionGenCallback,
     };
 

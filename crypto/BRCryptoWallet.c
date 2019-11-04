@@ -43,10 +43,7 @@ struct BRCryptoWalletRecord {
             BREthereumWallet wid;
         } eth;
 
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericWallet wid;
-        } gen;
+        BRGenericWallet gen;
     } u;
 
     BRCryptoWalletState state;
@@ -125,12 +122,11 @@ cryptoWalletCreateAsETH (BRCryptoUnit unit,
 private_extern BRCryptoWallet
 cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
-                         BRGenericWalletManager gwm,
+                         BRGenericManager gwm,
                          BRGenericWallet wid) {
     BRCryptoWallet wallet = cryptoWalletCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
 
-    wallet->u.gen.gwm = gwm;
-    wallet->u.gen.wid = wid;
+    wallet->u.gen = wid;
 
     return wallet;
 }
@@ -206,13 +202,9 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
             return amount;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            BRGenericWallet wid = wallet->u.gen.wid;
-
-            // TODO: How does the GEN wallet know the balance?  Holds tranactions? (not currently)
-            UInt256 value = gwmWalletGetBalance (gwm, wid);
-            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
-            return amount;
+            return cryptoAmountCreate (wallet->unit,
+                                       CRYPTO_FALSE,
+                                       genWalletGetBalance (cryptoWalletAsGEN(wallet)));
         }
     }
 }
@@ -342,11 +334,10 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
 
         case BLOCK_CHAIN_TYPE_GEN: {
             assert (CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT == addressScheme);
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            BRGenericWallet wid = wallet->u.gen.wid;
+            BRGenericWallet wid = wallet->u.gen;
 
-            BRGenericAddress genAddress = gwmWalletGetAddress (gwm, wid);
-            return cryptoAddressCreateAsGEN (gwm, genAddress);
+            BRGenericAddress genAddress = genWalletGetAddress (wid);
+            return cryptoAddressCreateAsGEN (genAddress);
         }
     }
 }
@@ -376,11 +367,10 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             break;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            BRGenericWallet wid = wallet->u.gen.wid;
+            BRGenericWallet wid = wallet->u.gen;
 
-            BRGenericFeeBasis bid = gwmWalletGetDefaultFeeBasis (gwm, wid);
-            feeBasis =  cryptoFeeBasisCreateAsGEN (feeUnit, gwm, bid);
+            BRGenericFeeBasis bid = genWalletGetDefaultFeeBasis (wid);
+            feeBasis =  cryptoFeeBasisCreateAsGEN (feeUnit, bid);
             break;
         }
     }
@@ -390,24 +380,6 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
     return feeBasis;
 }
 
-static void
-cryptoWalletSetDefaultFeeBasisAsETH (BRCryptoWallet wallet,
-                                     BREthereumFeeBasis ethFeeBasis) {
-    BREthereumEWM ewm = wallet->u.eth.ewm;
-    BREthereumWallet wid =wallet->u.eth.wid;
-
-    // These will generate EWM WALLET_EVENT_DEFAULT_GAS_{LIMIT,PRICE}_UPDATED events
-    ewmWalletSetDefaultGasLimit (ewm, wid, ethFeeBasis.u.gas.limit);
-    ewmWalletSetDefaultGasPrice (ewm, wid, ethFeeBasis.u.gas.price);
-}
-
-static void
-cryptoWalletSetDefaultFeeBasisAsBTC (BRCryptoWallet wallet,
-                                     uint64_t btcFeeBasis) { // SAT-per-KB
-    // This will generate a BTC BITCOIN_WALLET_PER_PER_KB_UPDATED event.
-    BRWalletManagerUpdateFeePerKB (wallet->u.btc.bwm, wallet->u.btc.wid, btcFeeBasis);
-}
-
 extern void
 cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoFeeBasis feeBasis) {
@@ -415,19 +387,28 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            cryptoWalletSetDefaultFeeBasisAsBTC (wallet, cryptoFeeBasisAsBTC(feeBasis));
+            // This will generate a BTC BITCOIN_WALLET_PER_PER_KB_UPDATED event.
+             BRWalletManagerUpdateFeePerKB (wallet->u.btc.bwm,
+                                            wallet->u.btc.wid,
+                                            cryptoFeeBasisAsBTC(feeBasis));
             break;
 
         case BLOCK_CHAIN_TYPE_ETH: {
-            cryptoWalletSetDefaultFeeBasisAsETH (wallet, cryptoFeeBasisAsETH (feeBasis));
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid =wallet->u.eth.wid;
+            BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (feeBasis);
+
+            // These will generate EWM WALLET_EVENT_DEFAULT_GAS_{LIMIT,PRICE}_UPDATED events
+            ewmWalletSetDefaultGasLimit (ewm, wid, ethFeeBasis.u.gas.limit);
+            ewmWalletSetDefaultGasPrice (ewm, wid, ethFeeBasis.u.gas.price);
             break;
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            BRGenericWallet wid = wallet->u.gen.wid;
+            BRGenericWallet wid = wallet->u.gen;
 
-            gwmWalletSetDefaultFeeBasis (gwm, wid, cryptoFeeBasisAsGEN(feeBasis));
+            // This will not generate any GEN events (GEN events don't exist);
+            genWalletSetDefaultFeeBasis (wid, cryptoFeeBasisAsGEN(feeBasis));
             break;
         }
     }
@@ -448,7 +429,7 @@ cryptoWalletAsETH (BRCryptoWallet wallet) {
 private_extern BRGenericWallet
 cryptoWalletAsGEN (BRCryptoWallet wallet) {
     assert (BLOCK_CHAIN_TYPE_GEN == wallet->type);
-    return wallet->u.gen.wid;
+    return wallet->u.gen;
 }
 
 extern BRCryptoTransfer
@@ -519,14 +500,14 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            BRGenericWallet wid = wallet->u.gen.wid;
+            BRGenericWallet wid = wallet->u.gen;
 
             UInt256 genValue  = cryptoAmountGetValue (amount);
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
+            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
-            BRGenericTransfer tid = gwmWalletCreateTransfer (gwm, wid, genAddr, genValue);
-            transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, gwm, tid);
+            BRGenericTransfer tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }
     }
@@ -619,134 +600,6 @@ cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
     return transfer;
 }
 
-extern void
-cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
-                              BRCryptoCookie cookie,
-                              BRCryptoAddress target,
-                              BRCryptoAmount  amount,
-                              BRCryptoNetworkFee fee) {
-    //    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
-    switch (wallet->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            BRWalletManager bwm = wallet->u.btc.bwm;
-            BRWallet *wid = wallet->u.btc.wid;
-
-            BRCryptoBoolean overflow = CRYPTO_FALSE;
-            uint64_t feePerKB        = 1000 * cryptoNetworkFeeAsBTC (fee);
-            uint64_t btcAmount       = cryptoAmountGetIntegerRaw (amount, &overflow);
-            assert(CRYPTO_FALSE == overflow);
-
-            BRWalletManagerEstimateFeeForTransfer (bwm,
-                                                   wid,
-                                                   cookie,
-                                                   btcAmount,
-                                                   feePerKB);
-            break;
-        }
-
-        case BLOCK_CHAIN_TYPE_ETH: {
-            BREthereumEWM ewm = wallet->u.eth.ewm;
-            BREthereumWallet wid = wallet->u.eth.wid;
-
-            BRCryptoAddress source = cryptoWalletGetAddress (wallet, CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT);
-            UInt256 ethValue       = cryptoAmountGetValue (amount);
-
-            BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
-            BREthereumAmount ethAmount = (NULL != ethToken
-                                    ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
-                                    : amountCreateEther (etherCreate (ethValue)));
-
-            ewmWalletEstimateTransferFeeForTransfer (ewm,
-                                                     wid,
-                                                     cookie,
-                                                     cryptoAddressAsETH (source),
-                                                     cryptoAddressAsETH (target),
-                                                     ethAmount,
-                                                     cryptoNetworkFeeAsETH (fee),
-                                                     ewmWalletGetDefaultGasLimit (ewm, wid));
-
-            cryptoAddressGive (source);
-            break;
-        }
-
-        case BLOCK_CHAIN_TYPE_GEN: {
-            //            BRGenericWalletManager gwm = wallet->u.gen.gwm;
-            //            BRGenericWallet wid = wallet->u.gen.wid;
-            //
-            //            UInt256 genValue = cryptoAmountGetValue(amount);
-
-            // TODO: Generic EstimateFee
-            assert (0);
-            //            BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (feeBasis);
-            //
-            //            int overflow = 0;
-            //            UInt256 genFee = gwmWalletEstimateTransferFee (gwm, wid, genValue, genFeeBasis, &overflow);
-            //            assert (!overflow);
-            //
-            //            feeValue = genFee;
-        }
-    }
-}
-
-extern void
-cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet wallet,
-                                            BRCryptoCookie cookie,
-                                            BRCryptoWalletSweeper sweeper,
-                                            BRCryptoNetworkFee fee) {
-    switch (wallet->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            BRWalletManager bwm = wallet->u.btc.bwm;
-            BRWallet *wid = wallet->u.btc.wid;
-            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
-
-            BRWalletManagerEstimateFeeForSweep (bwm,
-                                                wid,
-                                                cookie,
-                                                cryptoWalletSweeperAsBTC(sweeper),
-                                                feePerKB);
-            break;
-        }
-        default:
-            assert (0);
-            break;
-    }
-}
-
-extern void
-cryptoWalletEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWallet wallet,
-                                                       BRCryptoCookie cookie,
-                                                       BRCryptoPaymentProtocolRequest request,
-                                                       BRCryptoNetworkFee fee) {
-    switch (wallet->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            BRWalletManager bwm = wallet->u.btc.bwm;
-            BRWallet *wid = wallet->u.btc.wid;
-            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
-
-            switch (cryptoPaymentProtocolRequestGetType (request)) {
-                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
-                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-                    BRArrayOf(BRTxOutput) outputs = cryptoPaymentProtocolRequestGetOutputsAsBTC (request);
-                    if (NULL != outputs) {
-                        BRWalletManagerEstimateFeeForOutputs (bwm, wid, cookie, outputs, array_count (outputs),
-                                                              feePerKB);
-                        array_free (outputs);
-                    }
-                    break;
-                }
-                default: {
-                    assert (0);
-                    break;
-                }
-            }
-            break;
-        }
-        default:
-            assert (0);
-            break;
-    }
-}
-
 extern BRCryptoFeeBasis
 cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                             BRCryptoAmount pricePerCostFactor,
@@ -782,8 +635,11 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericFeeBasis feeBasis = NULL;
-            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, wallet->u.gen.gwm, feeBasis);
+            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee,
+                                              (BRGenericFeeBasis) {
+                value,
+                costFactor
+            });
         }
     }
 }
@@ -802,8 +658,7 @@ cryptoWalletEqualAsETH (BRCryptoWallet w1, BRCryptoWallet w2) {
 
 static int
 cryptoWalletEqualAsGEN (BRCryptoWallet w1, BRCryptoWallet w2) {
-    return (w1->u.gen.gwm == w2->u.gen.gwm &&
-            w1->u.gen.wid == w2->u.gen.wid);
+    return (w1->u.gen == w2->u.gen);
 }
 
 extern BRCryptoBoolean

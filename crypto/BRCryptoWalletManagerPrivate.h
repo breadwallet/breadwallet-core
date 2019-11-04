@@ -21,7 +21,7 @@
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
-#include "generic/BRGenericWalletManager.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +34,7 @@ struct BRCryptoWalletManagerRecord {
     union {
         BRWalletManager btc;
         BREthereumEWM eth;
-        BRGenericWalletManager gen;
+        BRGenericManager gen;
     } u;
 
     BRCryptoCWMListener listener;

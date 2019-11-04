@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
+import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
@@ -16,6 +17,13 @@ import java.util.Objects;
 
 /* package */
 final class Address implements com.breadwallet.crypto.Address {
+
+    /* package */
+    static Optional<Address> create(String address, com.breadwallet.crypto.Network network) {
+        Network cryptoNetwork = Network.from(network);
+        Optional<BRCryptoAddress> core = BRCryptoAddress.create(address, cryptoNetwork.getCoreBRCryptoNetwork());
+        return core.transform(Address::create);
+    }
 
     /* package */
     static Address create(BRCryptoAddress core) {

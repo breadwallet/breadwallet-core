@@ -8,12 +8,15 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.crypto.CryptoApi;
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.Unit;
+import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 
-import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,6 +51,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
+    private static final CryptoApi.AddressProvider addressProvider = new CryptoApi.AddressProvider() {
+        @Override
+        public Optional<com.breadwallet.crypto.Address> create(String address, Network network) {
+            return Address.create(address, network).transform(a -> a);
+        }
+    };
+
     private static final CryptoApi.AmountProvider amountProvider = new CryptoApi.AmountProvider() {
         @Override
         public com.breadwallet.crypto.Amount create(long value, Unit unit) {
@@ -77,6 +87,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
 
         @Override
+        public Optional<Currency> asBDBCurrency(String uids, String name, String code, String type, UnsignedInteger decimals) {
+            return System.asBDBCurrency(uids, name, code, type, decimals);
+        }
+
+        @Override
         public void wipe(com.breadwallet.crypto.System system) {
             System.wipe(system);
         }
@@ -84,6 +99,29 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         @Override
         public void wipeAll(String path, List<com.breadwallet.crypto.System> exemptSystems) {
             System.wipeAll(path, exemptSystems);
+        }
+    };
+
+    private static final CryptoApi.PaymentProvider paymentProvider = new CryptoApi.PaymentProvider() {
+
+        @Override
+        public Optional<com.breadwallet.crypto.PaymentProtocolRequest> createRequestForBip70(Wallet wallet, byte[] serialization) {
+            return PaymentProtocolRequest.createForBip70(wallet, serialization).transform(r -> r);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.PaymentProtocolRequest> createRequestForBitPay(Wallet wallet, String json) {
+            return PaymentProtocolRequest.createForBitPay(wallet, json).transform(r -> r);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.PaymentProtocolPaymentAck> createAckForBip70(byte[] serialization) {
+            return PaymentProtocolPaymentAck.createForBip70(serialization).transform(t -> t);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.PaymentProtocolPaymentAck> createAckForBitPay(String json) {
+            return PaymentProtocolPaymentAck.createForBitPay(json).transform(t -> t);
         }
     };
 
@@ -187,6 +225,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     }
 
     @Override
+    public CryptoApi.AddressProvider addressProvider() {
+        return addressProvider;
+    }
+
+    @Override
     public CryptoApi.AmountProvider amountProvider() {
         return amountProvider;
     }
@@ -194,6 +237,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     @Override
     public CryptoApi.SystemProvider systemProvider() {
         return systemProvider;
+    }
+
+    @Override
+    public CryptoApi.PaymentProvider paymentProvider() {
+        return paymentProvider;
     }
 
     @Override

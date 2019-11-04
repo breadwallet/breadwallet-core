@@ -48,10 +48,7 @@ struct BRCryptoTransferRecord {
             BREthereumTransfer tid;
             BREthereumAddress accountAddress;
         } eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericTransfer tid;
-        } gen;
+        BRGenericTransfer gen;
     } u;
 
     BRCryptoAddress sourceAddress;
@@ -71,7 +68,6 @@ struct BRCryptoTransferRecord {
 
     /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
     BRCryptoFeeBasis feeBasisEstimated;
-    BRCryptoFeeBasis feeBasisConfirmed;
 
     BRCryptoRef ref;
 };
@@ -89,7 +85,6 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->unit       = cryptoUnitTake(unit);
     transfer->unitForFee = cryptoUnitTake(unitForFee);
     transfer->feeBasisEstimated = NULL;
-    transfer->feeBasisConfirmed = NULL;
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
@@ -248,14 +243,15 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 extern BRCryptoTransfer
 cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
-                           BRGenericWalletManager gwm,
                            BRGenericTransfer tid) {
     BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
-    transfer->u.gen.gwm = gwm;
-    transfer->u.gen.tid = tid;
+    transfer->u.gen = tid;
 
-    BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (gwm, tid); // Will give ownership
-    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, gwmFeeBasis);
+    BRGenericFeeBasis gwmFeeBasis = genTransferGetFeeBasis (tid); // Will give ownership
+    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwmFeeBasis);
+
+    transfer->sourceAddress = cryptoAddressCreateAsGEN (genTransferGetSourceAddress (tid));
+    transfer->targetAddress = cryptoAddressCreateAsGEN (genTransferGetTargetAddress (tid));
 
     return transfer;
 }
@@ -268,7 +264,6 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     cryptoUnitGive (transfer->unitForFee);
     cryptoTransferStateRelease (&transfer->state);
     if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
-    if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
 
     pthread_mutex_destroy (&transfer->lock);
 
@@ -349,12 +344,11 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
+            BRGenericTransfer tid = transfer->u.gen;
 
             amount = cryptoAmountCreate (transfer->unit,
                                          isNegative,
-                                         gwmTransferGetAmount (gwm, tid));
+                                         genTransferGetAmount (tid));
             break;
         }
     }
@@ -394,6 +388,36 @@ cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
     }
 
     return amount;
+}
+
+extern BRCryptoAmount
+cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer) {
+    BRCryptoAmount amount = cryptoTransferGetAmountDirected (transfer);
+
+    // If the transfer->unit and transfer->unitForFee differ then there is no fee
+    if (cryptoUnitIsIdentical (transfer->unit, transfer->unitForFee))
+        return amount;
+
+    BRCryptoFeeBasis feeBasis = cryptoTransferGetConfirmedFeeBasis(transfer);
+    if (NULL == feeBasis)
+        feeBasis = (NULL == transfer->feeBasisEstimated
+                    ? NULL
+                    : cryptoFeeBasisTake (transfer->feeBasisEstimated));
+
+    // If there is no fee basis, then there is no fee
+    if (NULL == feeBasis)
+        return amount;
+
+    BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasis);
+    cryptoFeeBasisGive(feeBasis);
+
+    // Simply subtract off the fee.
+    BRCryptoAmount amountNet = cryptoAmountSub (amount, fee);
+
+    cryptoAmountGive(fee);
+    cryptoAmountGive(amount);
+
+    return amountNet;
 }
 
 extern BRCryptoUnit
@@ -445,7 +469,7 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 
             return cryptoAmountCreate (transfer->currency,
                                        CRYPTO_FALSE,
-                                       gwmTransferGetFee (gwm, tid));
+                                       genTransferGetFee (gwm, tid));
         }
     }
 }
@@ -530,26 +554,12 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             assert(0);
         }
 
-        case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
-
-            BRGenericAddress source = gwmTransferGetSourceAddress (gwm, tid);
-            BRGenericAddress target = gwmTransferGetTargetAddress (gwm, tid);
-
-            BRGenericAddress address = gwmGetAccountAddress (gwm);
-
-            int accountIsSource = gwmAddressEqual (gwm, source, address);
-            int accountIsTarget = gwmAddressEqual (gwm, target, address);
-
-            // TODO: BRGenericAddress - release source, target, address
-
-            if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
-            else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
-            else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
-
-            assert (0);
-        }
+        case BLOCK_CHAIN_TYPE_GEN:
+            switch (genTransferGetDirection (transfer->u.gen)) {
+                case GENERIC_TRANSFER_SENT:      return CRYPTO_TRANSFER_SENT;
+                case GENERIC_TRANSFER_RECEIVED:  return CRYPTO_TRANSFER_RECEIVED;
+                case GENERIC_TRANSFER_RECOVERED: return CRYPTO_TRANSFER_RECOVERED;
+            }
     }
 }
 
@@ -575,10 +585,9 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericWalletManager gwm = transfer->u.gen.gwm;
-            BRGenericTransfer tid = transfer->u.gen.tid;
+            BRGenericTransfer tid = transfer->u.gen;
 
-            BRGenericHash hash = gwmTransferGetHash (gwm, tid);
+            BRGenericHash hash = genTransferGetHash (tid);
             return (genericHashIsEmpty (hash)
                     ? NULL
                     : cryptoHashCreateAsGEN (hash));
@@ -623,7 +632,7 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
             BRGenericWalletManager gwm = transfer->u.gen.gwm;
             BRGenericTransfer tid = transfer->u.gen.tid;
 
-            BRGenericFeeBasis bid = gwmTransferGetFeeBasis (gwm, tid);
+            BRGenericFeeBasis bid = genTransferGetFeeBasis (gwm, tid);
             feeBasis = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, bid);
             break;
         }
@@ -641,23 +650,12 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
 extern BRCryptoFeeBasis
 cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer) {
     pthread_mutex_lock (&transfer->lock);
-    BRCryptoFeeBasis feeBasisConfirmed = (NULL == transfer->feeBasisConfirmed ? NULL : cryptoFeeBasisTake (transfer->feeBasisConfirmed));
+    BRCryptoFeeBasis feeBasisConfirmed = (CRYPTO_TRANSFER_STATE_INCLUDED == transfer->state.type
+                                          ? cryptoFeeBasisTake (transfer->state.u.included.feeBasis)
+                                          : NULL);
     pthread_mutex_unlock (&transfer->lock);
 
     return feeBasisConfirmed;
-}
-
-private_extern void
-cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
-                                    BRCryptoFeeBasis feeBasisConfirmed) {
-    feeBasisConfirmed = (NULL == feeBasisConfirmed ? NULL : cryptoFeeBasisTake(feeBasisConfirmed));
-
-    pthread_mutex_lock (&transfer->lock);
-    BRCryptoFeeBasis oldFeeBasisConfirmed = transfer->feeBasisConfirmed;
-    transfer->feeBasisConfirmed = feeBasisConfirmed;
-    pthread_mutex_unlock (&transfer->lock);
-
-    if (NULL != oldFeeBasisConfirmed) cryptoFeeBasisGive (oldFeeBasisConfirmed);
 }
 
 private_extern BRTransaction *
@@ -675,7 +673,7 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
 private_extern BRGenericTransfer
 cryptoTransferAsGEN (BRCryptoTransfer transfer) {
     assert (BLOCK_CHAIN_TYPE_GEN == transfer->type);
-    return transfer->u.gen.tid;
+    return transfer->u.gen;
 }
 
 private_extern BRCryptoBoolean
@@ -693,7 +691,9 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 private_extern BRCryptoBoolean
 cryptoTransferHasGEN (BRCryptoTransfer transfer,
                       BRGenericTransfer gen) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type && gen == transfer->u.gen.tid);
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == transfer->type &&
+                              genericHashEqual (genTransferGetHash(gen),
+                                                genTransferGetHash(transfer->u.gen)));
 }
 
 static int
@@ -708,8 +708,8 @@ cryptoTransferEqualAsETH (BRCryptoTransfer t1, BRCryptoTransfer t2) {
 
 static int
 cryptoTransferEqualAsGEN (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    return (t1->u.gen.gwm == t2->u.gen.gwm &&
-            t1->u.gen.tid == t2->u.gen.tid);
+    return genericHashEqual (genTransferGetHash(t1->u.gen),
+                             genTransferGetHash(t2->u.gen));
 }
 
 extern BRCryptoBoolean
@@ -769,10 +769,10 @@ extern BRCryptoTransferState
 cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                  uint64_t transactionIndex,
                                  uint64_t timestamp,
-                                 BRCryptoAmount fee) {
+                                 BRCryptoFeeBasis feeBasis) {
     return (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        { .included = { blockNumber, transactionIndex, timestamp, cryptoAmountTake (fee) }}
+        { .included = { blockNumber, transactionIndex, timestamp, cryptoFeeBasisTake(feeBasis) }}
     };
 }
 
@@ -789,8 +789,8 @@ cryptoTransferStateCopy (BRCryptoTransferState *state) {
     BRCryptoTransferState newState = *state;
     switch (state->type) {
         case CRYPTO_TRANSFER_STATE_INCLUDED: {
-            if (NULL != newState.u.included.fee) {
-                cryptoAmountTake (newState.u.included.fee);
+            if (NULL != newState.u.included.feeBasis) {
+                cryptoFeeBasisTake (newState.u.included.feeBasis);
             }
             break;
         }
@@ -810,8 +810,8 @@ extern void
 cryptoTransferStateRelease (BRCryptoTransferState *state) {
     switch (state->type) {
         case CRYPTO_TRANSFER_STATE_INCLUDED: {
-            if (NULL != state->u.included.fee) {
-                cryptoAmountGive (state->u.included.fee);
+            if (NULL != state->u.included.feeBasis) {
+                cryptoFeeBasisGive (state->u.included.feeBasis);
             }
             break;
         }
