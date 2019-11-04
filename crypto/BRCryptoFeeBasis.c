@@ -95,6 +95,8 @@ cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
             // TODO: Release BRGenericFeeBasis
             break;
     }
+
+    memset (feeBasis, 0, sizeof(*feeBasis));
     free (feeBasis);
 }
 

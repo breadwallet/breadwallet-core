@@ -824,6 +824,8 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
             break;
         }
     }
+
+    memset (state, 0, sizeof(*state));
 }
 
 extern const char *

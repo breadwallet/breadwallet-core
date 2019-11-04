@@ -66,6 +66,7 @@ cryptoHashCreateAsGEN (BRGenericHash gen) {
 
 static void
 cryptoHashRelease (BRCryptoHash hash) {
+    memset (hash, 0, sizeof(*hash));
     free (hash);
 }
 

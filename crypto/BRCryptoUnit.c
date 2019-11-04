@@ -81,6 +81,8 @@ cryptoUnitRelease (BRCryptoUnit unit) {
     free (unit->uids);
     free (unit->name);
     free (unit->symbol);
+
+    memset (unit, 0, sizeof(*unit));
     free (unit);
 }
 
