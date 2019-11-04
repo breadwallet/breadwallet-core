@@ -75,6 +75,13 @@ public interface Account {
     Date getTimestamp();
 
     /**
+     * A 'globally unique' ID String for account.
+     *
+     * For BlockchainDB this will be the 'walletId'.
+     */
+    String getUids();
+
+    /**
      * Serialize an account.  The serialization is <b>always</b> in the current, default format.
      */
     byte[] serialize();

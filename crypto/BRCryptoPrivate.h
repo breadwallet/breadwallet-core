@@ -32,6 +32,7 @@
 #include "bitcoin/BRTransaction.h"
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
+#include "ethereum/BREthereum.h"
 #include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
@@ -128,11 +129,11 @@ extern "C" {
 
     private_extern BRCryptoBlockChainType
     cryptoAddressGetType (BRCryptoAddress address);
-    
+
     private_extern BRAddress
     cryptoAddressAsBTC (BRCryptoAddress address,
                         BRCryptoBoolean *isBitcoinAddr);
-    
+
     private_extern BREthereumAddress
     cryptoAddressAsETH (BRCryptoAddress address);
 
@@ -334,6 +335,15 @@ extern "C" {
     private_extern BRArrayOf(BRTxOutput)
     cryptoPaymentProtocolRequestGetOutputsAsBTC (BRCryptoPaymentProtocolRequest request);
 
+    /// MARK: - Status
+
+    private_extern BRCryptoStatus
+    cryptoStatusFromETH (BREthereumStatus status);
+
+    private_extern BREthereumStatus
+    cryptoStatusAsETH (BRCryptoStatus status);
+
+
     /// MARK: - Wallet
 
     private_extern BRCryptoBlockChainType
@@ -389,6 +399,16 @@ extern "C" {
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
 
     /// MARK: - WalletManager
+
+    private_extern BRWalletManagerClient
+    cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cwm);
+
+    private_extern BREthereumClient
+    cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cwm);
+
+    private_extern BRGenericClient
+    cryptoWalletManagerClientCreateGENClient (OwnershipKept BRCryptoWalletManager cwm);
+
 
     private_extern BRCryptoWalletManagerState
     cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type);

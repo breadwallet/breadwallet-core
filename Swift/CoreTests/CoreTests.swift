@@ -39,6 +39,8 @@ class CoreTests: XCTestCase {
     }
     var paperKey: String! = nil
 
+    var uids: String = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96"
+
     var isMainnet = true
     var isBTC: Int32! = 1
 
@@ -159,7 +161,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBTC() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -175,7 +177,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBCH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -191,7 +193,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkETH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 8_000_000), (false, 4_500_000),]

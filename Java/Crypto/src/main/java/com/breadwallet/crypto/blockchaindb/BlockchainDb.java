@@ -17,7 +17,6 @@ import com.breadwallet.crypto.blockchaindb.apis.bdb.BdbApiClient;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.SubscriptionApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.TransactionApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.TransferApi;
-import com.breadwallet.crypto.blockchaindb.apis.bdb.WalletApi;
 import com.breadwallet.crypto.blockchaindb.apis.brd.EthBalanceApi;
 import com.breadwallet.crypto.blockchaindb.apis.brd.BrdApiClient;
 import com.breadwallet.crypto.blockchaindb.apis.brd.EthGasApi;
@@ -29,9 +28,10 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Subscription;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionCurrency;
+import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionEndpoint;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Wallet;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
@@ -61,7 +61,6 @@ public class BlockchainDb {
     private final SubscriptionApi subscriptionApi;
     private final TransferApi transferApi;
     private final TransactionApi transactionApi;
-    private final WalletApi walletApi;
 
     private final EthBalanceApi ethBalanceApi;
     private final EthBlockApi ethBlockApi;
@@ -101,7 +100,6 @@ public class BlockchainDb {
         this.subscriptionApi = new SubscriptionApi(bdbClient);
         this.transferApi = new TransferApi(bdbClient);
         this.transactionApi = new TransactionApi(bdbClient, executorService);
-        this.walletApi = new WalletApi(bdbClient);
 
         this.ethBalanceApi = new EthBalanceApi(brdClient);
         this.ethBlockApi = new EthBlockApi(brdClient);
@@ -166,15 +164,20 @@ public class BlockchainDb {
         subscriptionApi.getSubscription(id, handler);
     }
 
-    public void createSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.createSubscription(subscription, handler);
+    public void getSubscriptions(CompletionHandler<List<Subscription>, QueryError> handler) {
+        subscriptionApi.getSubscriptions(handler);
+    }
+
+    public void createSubscription(String deviceId, SubscriptionEndpoint endpoint, List<SubscriptionCurrency> currencies,
+                                   CompletionHandler<Subscription, QueryError> handler) {
+        subscriptionApi.createSubscription(deviceId, endpoint, currencies, handler);
     }
 
     public void updateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
         subscriptionApi.updateSubscription(subscription, handler);
     }
 
-    public void deleteSubscription(String id, CompletionHandler<Subscription, QueryError> handler) {
+    public void deleteSubscription(String id, CompletionHandler<Void, QueryError> handler) {
         subscriptionApi.deleteSubscription(id, handler);
     }
 
@@ -186,28 +189,6 @@ public class BlockchainDb {
 
     public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
         transferApi.getTransfer(id, handler);
-    }
-
-    // Wallet
-
-    public void getOrCreateWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
-        walletApi.getOrCreateWallet(wallet, handler);
-    }
-
-    public void getWallet(String id, CompletionHandler<Wallet, QueryError> handler) {
-        walletApi.getWallet(id, handler);
-    }
-
-    public void createWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
-        walletApi.createWallet(wallet, handler);
-    }
-
-    public void updateWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
-        walletApi.updateWallet(wallet, handler);
-    }
-
-    public void deleteWallet(String id, CompletionHandler<Wallet, QueryError> handler) {
-        walletApi.deleteWallet(id, handler);
     }
 
     // Transactions

@@ -20,9 +20,6 @@
 #include "BRCryptoWallet.h"
 #include "BRCryptoWalletManagerClient.h"
 
-#include "ethereum/BREthereum.h"
-#include "bitcoin/BRWalletManager.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

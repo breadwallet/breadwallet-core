@@ -53,6 +53,8 @@ cryptoAddressRelease (BRCryptoAddress address) {
             genAddressRelease (address->u.gen);
             break;
     }
+
+    memset (address, 0, sizeof(*address));
     free (address);
 }
 

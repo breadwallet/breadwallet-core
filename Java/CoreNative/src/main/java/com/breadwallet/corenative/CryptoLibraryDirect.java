@@ -37,9 +37,10 @@ public final class CryptoLibraryDirect {
     //
 
     // crypto/BRCryptoAccount.h
-    public static native Pointer cryptoAccountCreate(ByteBuffer phrase, long timestamp);
-    public static native Pointer cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
+    public static native Pointer cryptoAccountCreate(ByteBuffer phrase, long timestamp, String uids);
+    public static native Pointer cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength, String uids);
     public static native long cryptoAccountGetTimestamp(Pointer account);
+    public static native Pointer cryptoAccountGetUids(Pointer account);
     public static native Pointer cryptoAccountGetFileSystemIdentifier(Pointer account);
     public static native Pointer cryptoAccountSerialize(Pointer account, SizeTByReference count);
     public static native int cryptoAccountValidateSerialization(Pointer account, byte[] serialization, SizeT count);

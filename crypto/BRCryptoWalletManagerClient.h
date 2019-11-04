@@ -18,10 +18,6 @@
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
 
-#include "ethereum/BREthereum.h"
-#include "bitcoin/BRWalletManager.h"
-#include "generic/BRGeneric.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,7 +91,7 @@ extern "C" {
                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                             OwnershipKept const char *network,
                                             OwnershipKept const char *address, // disappears immediately
-                                            BREthereumSyncInterestSet interests,
+                                            unsigned int interests,
                                             uint64_t blockNumberStart,
                                             uint64_t blockNumberStop);
 
@@ -203,15 +199,6 @@ extern "C" {
         BRCryptoCWMClientETH eth;
         BRCryptoCWMClientGEN gen;
     } BRCryptoCWMClient;
-
-    extern BRWalletManagerClient
-    cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cwm);
-
-    extern BREthereumClient
-    cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cwm);
-
-    extern BRGenericClient
-    cryptoWalletManagerClientCreateGENClient (BRCryptoWalletManager cwm);
 
     extern void
     cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager cwm,

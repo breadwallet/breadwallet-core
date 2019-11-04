@@ -78,6 +78,7 @@ cryptoPeerRelease (BRCryptoPeer peer) {
     free (peer->address);
     if (NULL != peer->publicKey) free (peer->publicKey);
 
+    memset (peer, 0, sizeof(*peer));
     free (peer);
 }
 

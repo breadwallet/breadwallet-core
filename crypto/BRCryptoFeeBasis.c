@@ -87,6 +87,8 @@ cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
         case BLOCK_CHAIN_TYPE_ETH: break;
         case BLOCK_CHAIN_TYPE_GEN: break;
     }
+
+    memset (feeBasis, 0, sizeof(*feeBasis));
     free (feeBasis);
 }
 
