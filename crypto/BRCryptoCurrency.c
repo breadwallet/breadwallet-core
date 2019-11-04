@@ -53,6 +53,8 @@ cryptoCurrencyRelease (BRCryptoCurrency currency) {
     free (currency->name);
     free (currency->uids);
     if (NULL != currency->issuer) free (currency->issuer);
+
+    memset (currency, 0, sizeof(*currency));
     free (currency);
 }
 

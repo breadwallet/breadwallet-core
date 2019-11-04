@@ -1037,6 +1037,8 @@ cryptoWalletMigratorCreate (BRCryptoNetwork network,
 extern void
 cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator) {
     if (NULL != migrator->fileService) fileServiceRelease(migrator->fileService);
+
+    memset (migrator, 0, sizeof(*migrator));
     free (migrator);
 }
 

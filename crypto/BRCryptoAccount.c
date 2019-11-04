@@ -216,6 +216,7 @@ cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);
     gwmAccountRelease(account->xrp);
 
+    memset (account, 0, sizeof(*account));
     free (account);
 }
 
