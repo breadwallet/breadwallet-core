@@ -20,14 +20,30 @@
 //
 // Parsing
 //
+static BRCoreParseStatus
+parseInIntegerInBase (const char *number, int base) {
+    if (NULL == number || '\0' == *number) return CORE_PARSE_STRANGE_DIGITS;
+    while (*number) {
+        switch (base) {
+            case 2:
+                if ('0' != *number && '1' != *number) return CORE_PARSE_STRANGE_DIGITS;
+                break;
+            case 10:
+                if (!isdigit (*number)) return CORE_PARSE_STRANGE_DIGITS;
+                break;
+
+            case 16:
+                if (!isxdigit(*number)) return CORE_PARSE_STRANGE_DIGITS;
+                break;
+        }
+        number++;
+    }
+    return CORE_PARSE_OK;
+}
 
 extern BRCoreParseStatus
 parseIsInteger(const char *number) {
-    // Number contains only digits and has at least one digit
-    if (NULL == number || '\0' == *number) return CORE_PARSE_STRANGE_DIGITS;
-    while (*number)
-        if (!isdigit (*number++)) return CORE_PARSE_STRANGE_DIGITS;
-    return CORE_PARSE_OK;
+    return parseInIntegerInBase (number, 10);
  }
 
 extern BRCoreParseStatus
@@ -217,8 +233,12 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
         *status = CORE_PARSE_STRANGE_DIGITS;
         return UINT256_ZERO;
     }
-    
-    UInt256 value = UINT256_ZERO;
+
+    // Confirm that we in fact have a integer string.
+    *status = parseInIntegerInBase (string, base);
+    if (CORE_PARSE_OK != *status)
+        return UINT256_ZERO;
+
     int maxDigits = parseMaximumDigitsForUInt256InBase(base);
     long length = strlen (string);
     
@@ -229,7 +249,10 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
     
     // We'll process this many digits in `string`.
     int stringChunks = parseMaximumDigitsForUInt64InBase(base);
-    
+
+    // Fill this in.
+    UInt256 value = UINT256_ZERO;
+
     // For parsing a string like "123.45", the character at index 0 is '1'.  So by parsing chunks
     // with ascending index, we naturally treat `string` as big endian - no matter the base.
     // Eventually, when `parseUInt64()` calls `strtoull` we'll still be using big endian.
