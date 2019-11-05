@@ -355,6 +355,28 @@ runMathParseTests () {
             && r.u64[2] == 0
             && r.u64[3] == 0);
 
+    r = createUInt256Parse("0000", 10, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("0000", 2, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("0x0000", 16, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("0x", 16, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("", 10, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("", 2, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+    r = createUInt256Parse("", 16, &status);
+    assert (CORE_PARSE_OK == status && eqUInt256 (r, UINT256_ZERO));
+
+
     char *s;
     r = createUInt256Parse("425693205796080237694414176550132631862392541400559", 10, &status);
     s = coerceString(r, 10);
