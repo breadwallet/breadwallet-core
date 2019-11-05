@@ -44,7 +44,7 @@ public class TransactionApi {
                                 boolean includeRaw, boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
-        GetTransactionsCoordinator coordinator = new GetTransactionsCoordinator(chunkedAddressesList, handler);
+        GetChunkedCoordinator<String, Transaction> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
         for (int i = 0; i < chunkedAddressesList.size(); i++) {
             List<String> chunkedAddresses = chunkedAddressesList.get(i);
@@ -58,14 +58,15 @@ public class TransactionApi {
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            PagedCompletionHandler<List<Transaction>, QueryError> pagedHandler = coordinator.createPagedResultsHandler(chunkedAddresses);
+            PagedCompletionHandler<List<Transaction>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
             jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions, pagedHandler);
         }
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
                                CompletionHandler<Transaction, QueryError> handler) {
-        Multimap<String, String> params = ImmutableListMultimap.of("include_proof", String.valueOf(includeProof),
+        Multimap<String, String> params = ImmutableListMultimap.of(
+                "include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
         jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
@@ -76,7 +77,30 @@ public class TransactionApi {
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
+
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
+    }
+
+    private PagedCompletionHandler<List<Transaction>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transaction> coordinator,
+                                                                                            List<String> chunkedAddresses) {
+        List<Transaction> allResults = new ArrayList<>();
+        return new PagedCompletionHandler<List<Transaction>, QueryError>() {
+            @Override
+            public void handleData(List<Transaction> results, PageInfo info) {
+                allResults.addAll(results);
+
+                if (info.nextUrl != null) {
+                    submitGetNextTransactions(info.nextUrl, this);
+                } else {
+                    coordinator.handleChunkData(chunkedAddresses, allResults);
+                }
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                coordinator.handleError(error);
+            }
+        };
     }
 
     private void submitGetNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
@@ -84,94 +108,6 @@ public class TransactionApi {
     }
 
     private void getNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
-        jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction::asTransactions,
-                handler);
-    }
-
-    private class GetTransactionsCoordinator {
-
-        private final List<List<String>> chunks;
-        private final List<Transaction> transactions;
-        private final CompletionHandler<List<Transaction>, QueryError> handler;
-
-        private QueryError error;
-
-        private GetTransactionsCoordinator(List<List<String>> chunks, CompletionHandler<List<Transaction>, QueryError> handler) {
-            this.chunks = new ArrayList<>(chunks);
-            this.transactions = new ArrayList<>();
-            this.handler = handler;
-        }
-
-        private PagedCompletionHandler<List<Transaction>, QueryError> createPagedResultsHandler(List<String> chunk) {
-            List<Transaction> allResults = new ArrayList<>();
-            return new PagedCompletionHandler<List<Transaction>, QueryError>() {
-                @Override
-                public void handleData(List<Transaction> results, PageInfo info) {
-                    allResults.addAll(results);
-
-                    if (info.nextUrl == null) {
-                        GetTransactionsCoordinator.this.handleChunkData(chunk, allResults);
-                    } else {
-                        submitGetNextTransactions(info.nextUrl, this);
-                    }
-                }
-
-                @Override
-                public void handleError(QueryError error) {
-                    GetTransactionsCoordinator.this.handleError(error);
-                }
-            };
-        }
-
-        private void handleChunkData(List<String> chunk, List<Transaction> data) {
-            boolean transitionToSuccess = false;
-
-            synchronized (this) {
-                checkState(!isInSuccessState());
-
-                if (!isInErrorState()) {
-                    chunks.remove(chunk);
-                    transactions.addAll(data);
-                    transitionToSuccess = isInSuccessState();
-                }
-            }
-
-            if (transitionToSuccess) {
-                handleSuccess();
-            }
-        }
-
-        private void handleError(QueryError error) {
-            boolean transitionToError = false;
-
-            synchronized (this) {
-                checkState(!isInSuccessState());
-
-                if (!isInErrorState()) {
-                    this.error = error;
-                    transitionToError = isInErrorState();
-                }
-            }
-
-            if (transitionToError) {
-                handleFailure(error);
-            }
-        }
-
-        private boolean isInErrorState() {
-            return error != null;
-        }
-
-        private boolean isInSuccessState() {
-            return chunks.isEmpty();
-        }
-
-        private void handleSuccess() {
-            handler.handleData(transactions);
-        }
-
-        private void handleFailure(QueryError error) {
-            handler.handleError(error);
-        }
+        jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction::asTransactions, handler);
     }
 }
