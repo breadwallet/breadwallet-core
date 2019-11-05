@@ -1809,9 +1809,7 @@ extension System {
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
-                // TODO - figure out why this precondition failes - or just remove it since systemExtract
-                // does the exact same precondition: JIRA CORE-649
-                //precondition (nil != context  && nil != cwm)
+                precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: GEN: SubmitTransaction: Missed {cwm}"); return }
