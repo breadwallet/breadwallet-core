@@ -268,6 +268,12 @@ gwmPeriodicDispatcher (BREventHandler handler,
     // End handling a BRD Sync
 }
 
+extern void
+gwmWipe (const char *type,
+         const char *storagePath) {
+    fileServiceWipe (storagePath, type, "mainnet");
+}
+
 /// MARK: - Announce
 
 // handle transfer
