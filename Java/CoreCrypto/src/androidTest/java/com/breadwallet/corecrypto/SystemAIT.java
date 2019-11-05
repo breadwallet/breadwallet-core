@@ -111,8 +111,6 @@ public class SystemAIT {
 
     @Test
     public void testSystemMigrateBRCoreKeyCiphertext() {
-        System system = HelpersAIT.createAndConfigureSystem(coreDataDir);
-
         // Setup the expected data
 
         Coder coder = Coder.createForAlgorithm(Coder.Algorithm.HEX);
@@ -152,7 +150,7 @@ public class SystemAIT {
 
             // Migrate using the crypto address params key
 
-            Optional<byte[]> maybeMigratedCiphertext = system.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
+            Optional<byte[]> maybeMigratedCiphertext = System.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
             assertTrue(maybeMigratedCiphertext.isPresent());
             byte[] migratedCiphertext = maybeMigratedCiphertext.get();
 
@@ -181,7 +179,7 @@ public class SystemAIT {
 
             // Migrate using the crypto address params key
 
-            Optional<byte[]> maybeMigratedCiphertext = system.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
+            Optional<byte[]> maybeMigratedCiphertext = System.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
             assertTrue(maybeMigratedCiphertext.isPresent());
             cryptoAddressParamsMigratedCiphertext = maybeMigratedCiphertext.get();
 
@@ -210,7 +208,7 @@ public class SystemAIT {
 
             // Migrate using the crypto address params key
 
-            Optional<byte[]> maybeMigratedCiphertext = system.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
+            Optional<byte[]> maybeMigratedCiphertext = System.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
             assertTrue(maybeMigratedCiphertext.isPresent());
             mainnetAddressParamsMigratedCiphertext = maybeMigratedCiphertext.get();
 
@@ -240,7 +238,7 @@ public class SystemAIT {
 
             // Migrate and fail
 
-            Optional<byte[]> maybeMigratedCiphertext = system.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
+            Optional<byte[]> maybeMigratedCiphertext = System.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
             assertFalse(maybeMigratedCiphertext.isPresent());
         }
 
@@ -254,7 +252,7 @@ public class SystemAIT {
 
             // Migrate and fail
 
-            Optional<byte[]> maybeMigratedCiphertext = system.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
+            Optional<byte[]> maybeMigratedCiphertext = System.migrateBRCoreKeyCiphertext(key, nonce12, authenticateData, ciphertext);
             assertFalse(maybeMigratedCiphertext.isPresent());
         }
     }
