@@ -22,6 +22,7 @@
 //
 static BRCoreParseStatus
 parseInIntegerInBase (const char *number, int base) {
+    // This isn't the right way to handle an empty `number` string.
     if (NULL == number || '\0' == *number) return CORE_PARSE_STRANGE_DIGITS;
     while (*number) {
         switch (base) {
@@ -228,6 +229,12 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
 
     // Strip leading '0's
     while ('0' == *string) string++;
+
+    // If the string is now empty, we've a value of '0'
+    if ('\0' == *string) {
+        *status = CORE_PARSE_OK;
+        return UINT256_ZERO;
+    }
 
     if ('\0' != *string && ('-' == *string || '+' == *string)) {
         *status = CORE_PARSE_STRANGE_DIGITS;
