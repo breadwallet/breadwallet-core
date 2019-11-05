@@ -7,9 +7,9 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
-import com.sun.jna.Pointer;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +23,7 @@ final class SystemCallbackCoordinator {
 
     private final ScheduledExecutorService executor;
 
-    private final Map<Pointer, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> handlers;
+    private final Map<Cookie, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> handlers;
 
     /* package */
     SystemCallbackCoordinator(ScheduledExecutorService executor) {
@@ -34,14 +34,14 @@ final class SystemCallbackCoordinator {
     // Operation callbacks
 
     /* package */
-    Pointer registerFeeBasisEstimateHandler(CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
-        Pointer cookie = Pointer.createConstant(HANDLER_IDS.incrementAndGet());
+    Cookie registerFeeBasisEstimateHandler(CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        Cookie cookie = new Cookie(HANDLER_IDS.incrementAndGet());
         handlers.put(cookie, handler);
         return cookie;
     }
 
     /* package */
-    void completeFeeBasisEstimateHandlerWithSuccess(Pointer cookie, TransferFeeBasis feeBasis) {
+    void completeFeeBasisEstimateHandlerWithSuccess(Cookie cookie, TransferFeeBasis feeBasis) {
         CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler = handlers.remove(cookie);
         if (null != handler) {
             executor.submit(() -> handler.handleData(feeBasis));
@@ -49,7 +49,7 @@ final class SystemCallbackCoordinator {
     }
 
     /* package */
-    void completeFeeBasisEstimateHandlerWithError(Pointer cookie, FeeEstimationError error) {
+    void completeFeeBasisEstimateHandlerWithError(Cookie cookie, FeeEstimationError error) {
         CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler = handlers.remove(cookie);
         if (null != handler) {
             executor.submit(() -> handler.handleError(error));

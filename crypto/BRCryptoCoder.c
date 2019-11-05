@@ -8,6 +8,10 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "BRCryptoCoder.h"
 #include "ethereum/util/BRUtilHex.h"
 #include "support/BRBase58.h"

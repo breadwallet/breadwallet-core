@@ -62,7 +62,7 @@ public class CoreCryptoApplication extends Application {
     private Account account;
     private DispatchingSystemListener systemListener;
     private ConnectivityBroadcastReceiver connectivityReceiver;
-    private ScheduledExecutorService executor;
+    private ScheduledExecutorService systemExecutor;
     private boolean isMainnet;
     private BlockchainDb blockchainDb;
     private byte[] paperKey;
@@ -84,6 +84,18 @@ public class CoreCryptoApplication extends Application {
         return instance.system;
     }
 
+    public static byte[] getPaperKey() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.paperKey;
+    }
+
+    public static DispatchingSystemListener getDispatchingSystemListener() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.systemListener;
+    }
+
     public static void resetSystem() {
         checkState(null != instance && instance.runOnce.get());
 
@@ -94,24 +106,6 @@ public class CoreCryptoApplication extends Application {
         checkState(null != instance && instance.runOnce.get());
 
         instance.wipeSystemImpl();
-    }
-
-    public static DispatchingSystemListener getDispatchingSystemListener() {
-        checkState(null != instance && instance.runOnce.get());
-
-        return instance.systemListener;
-    }
-
-    public static byte[] getPaperKey() {
-        checkState(null != instance && instance.runOnce.get());
-
-        return instance.paperKey;
-    }
-
-    public static ScheduledExecutorService getExecutorService() {
-        checkState(null != instance && instance.runOnce.get());
-
-        return instance.executor;
     }
 
     @Override
@@ -131,6 +125,8 @@ public class CoreCryptoApplication extends Application {
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
+            systemExecutor = Executors.newSingleThreadScheduledExecutor();
+
             storageFile = new File(getFilesDir(), "core");
             if (!storageFile.exists()) checkState(storageFile.mkdirs());
 
@@ -145,12 +141,11 @@ public class CoreCryptoApplication extends Application {
             systemListener = new DispatchingSystemListener();
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
-            String uids = UUID.nameUUIDFromBytes(paperKey).toString();
+            String uids = UUID.randomUUID().toString();
             account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
-            executor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
-            system = System.create(executor, systemListener, account,
+            system = System.create(systemExecutor, systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
 
@@ -169,7 +164,7 @@ public class CoreCryptoApplication extends Application {
 
         // Create a new system
         system = System.create(
-                executor,
+                systemExecutor,
                 systemListener,
                 account,
                 isMainnet,
@@ -188,7 +183,7 @@ public class CoreCryptoApplication extends Application {
 
         // Create a new system
         system = System.create(
-                executor,
+                systemExecutor,
                 systemListener,
                 account,
                 isMainnet,

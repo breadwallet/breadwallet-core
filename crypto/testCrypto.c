@@ -22,6 +22,9 @@
 #include "BRCryptoWallet.h"
 #include "BRCryptoTransfer.h"
 
+#include "bitcoin/BRChainParams.h"
+#include "support/BRBIP39Mnemonic.h"
+
 #ifdef __ANDROID__
 #include <android/log.h>
 #define fprintf(...) __android_log_print(ANDROID_LOG_ERROR, "testCrypto", _va_rest(__VA_ARGS__, NULL))
@@ -92,6 +95,208 @@ runCryptoAmountTests (void) {
     cryptoUnitGive(unitDef);
     cryptoUnitGive(unitBase);
     cryptoCurrencyGive(currency);
+}
+
+///
+/// Mark: BRCryptoTransfer Tests
+///
+typedef struct {
+    const char *hash;  // reversed
+    const char *rawChars;
+    const char *input;
+    const char *output;
+    const char *change;
+    uint32_t blockHeight;
+    uint32_t timestamp;
+} BRCryptoTransferTest;
+
+static BRCryptoTransferTest transferTests[] = {
+    {
+        //    fee : UINT64_MAX (=> 0)
+        //    send: 0
+        //    recv: 200000000
+        "0eb359c765e0feee7ffdb8b101f4dd0d4d42270c205fd7d476c49a692fa3745f",
+        "01000000000101c4e3cb5f65d651d4c4c80c5ebdf0d8fa6360e9637f4ac8f624cbf56a1f32b5f10100000017160014bc755823b44e38d765020cd944e668c8992e86feffffffff0200c2eb0b000000001976a9143d533b77b6c288b41c7d94859401e201dcb188b488ac433838220b00000017a91486619a6825cbb20976e75b3563f4795cf2ceff53870247304402203ff43de94394e3ceb7227da8517e98d1364b4711eccda773ba1379faef36ccb00220586c62ef88b7603c74a5a061cb1019523e0b4d1b0fcd65a4cc909bea65ab914a0121023ceb81082ba53a11ab5ab5591f103f43c518fb10770a0876666a4aa569e9254000000000",
+        "2N8P6KqChGTw6Nspx5mcgqz2V8LGSoPmJtr",
+        "mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq",
+        "2N5VmTaJsha4a3mbbq1PDtwMmFbEiEMY4VL",
+        1284270,
+        1519245775
+    },
+
+    {
+        //    fee : UINT64_MAX (=> 0)
+        //    send: 0
+        //    recv: 100000000
+        "eed055d3a9f9de04d9722819846431e115e4ab9234146662d11af748b057026d",
+        "01000000000101b52458f98187f71e5056660ae74a255242d95b08ce305dd66c8ef39e464adc2501000000171600149c89b47eef6454e350a8da516e4b78f0156ed94fffffffff0200e1f505000000001976a9143d533b77b6c288b41c7d94859401e201dcb188b488accc09457b0a00000017a9149e720b9c90893dd69e23957294501e756b47a2d78702483045022100f355621b5203ebe40b80a0f5050fa6f225b5c8c7d5e00cb2530444a40d13da47022041bcb9e865beb6d8b54ac0a2fa0e0334b61eaf43d4dab8fb32670c701dd84d0f012103c2ed9a20ee302c26674211f9dbf775cc17cacbdb1f8625a5f14930cc5c1ee96700000000",
+        "2N2QZZaAU87oBQYL647L8MAbNgWD37NEJPL",
+        "mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq",
+        "2N7h1NbxXsJUDZYT4LXsWKzVChFMgcVMxS7",
+        1284273,
+        1519247461
+    },
+
+    // This test fails, transfer is marked as RECEIVED (send == 0) but the sole input
+    // address is our address.  Should be RECOVERED:
+    {
+        //    fee : 4800
+        //    send: 200000000
+        //    recv: 199395200
+        "16ab9cbef30c836f409fadf960ff15da98a30066d75a7a93fe307650e55481ea",
+        "01000000015f74a32f699ac476d4d75f200c27424d0dddf401b1b8fd7feefee065c759b30e000000006a47304402203eb5187c9e2463faa8bcf55fa461116c18c75cf2556205ba096fc482dde8e55d02203666c48b47abf7a244f40b6eaf0a80d9eb7e52d451234f37cb8c1fc45c7ae60a012102919c3832438df35734c714f76e7dc4a8c1b2f81812c3a08c99ef14cac4c14394ffffffff028087e20b000000001976a91403562150956f194d2dba88a271f2feabecc2102b88acc02709000000000017a914a9974100aeee974a20cda9a2f545704a0ab54fdc8700000000",
+        "mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq",
+        "2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF",
+        "mfpbW4DXp3T7JBAKFWijHX96cktfWPR9z3",
+        1284282,
+        1519252723
+    },
+
+    {
+        "ec54d3c24bcfe886408b8a250c1bf72466beef4efa1deb63f3a09b125055a06b",
+        "01000000026d0257b048f71ad16266143492abe415e1316484192872d904def9a9d355d0ee000000006b4830450221009766181ecbc32fb9b5b08d7fe48f16067d8171695ba8fd15dc4eba310e00f54e02204bef6b60dc9e3c9b4c39a5b5751db6c50c348fd14ac39e97b4aba730314d5ffc012102919c3832438df35734c714f76e7dc4a8c1b2f81812c3a08c99ef14cac4c14394ffffffffea8154e5507630fe937a5ad76600a398da15ff60f9ad9f406f830cf3be9cab16000000006a4730440220765a9e2374b39b92b8da8b3c634622241483e5cece3815c92400d2f4fbfd9c1402200aa22d2435d5ff7e5404f96377100f26d6630e9404fb2c2c8e8ff3bd5c594b9d012102b173d5f2f39cdb935ba149d464e9d659726674df92430d82c56648fed56fce33ffffffff02a878e20b000000001976a914ac6b9e72cd4b52483241d1ca4dc796af619206fb88ac00e1f505000000001976a914a5bbef25bb37f8a87322a915225b7b3b1e6e6bd788ac00000000",
+        "mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", //"mfpbW4DXp3T7JBAKFWijHX96cktfWPR9z3"
+        "mvdGvbpCxedu5sHrFr1n515aQxfRRRy6xo",
+        "mwEdSYVjXMCAkGZG2DRaaha1JedTh3s2u8",
+        1284294,
+        1519259668
+    },
+
+    // b590b72f94cbf22494e8d98dbb80b8b3fde81ca5304d1cbabaab83c7ecf60ecc
+    // 7ea37279c35390218cda27aa1d954aaaaf931bcbc11d12bd26a3349ec111370b
+    // 9c783522236d8ec7a00badedcea44c58b4f70269c4514177de53e35fae61e4ac
+    // 92676f59615abab15d94e81b8c1847306a9eaa705f79984756ae807db3e2dc6e
+#if 0
+    {
+        "78088f86996eefd8356c39240bb8c602855fe78f3340a444f52be24bf2dd2a39",
+        "01000000000101bd35a8ce4fc3dfd23c739648a331d508505b7e056c05bb6d01d226f324c4a7fe0100000000ffffffff025c2b0000000000001976a914d3dfc8fe08d5057530ddcf3b2c9553f4f2d8b69d88accb0e8c000000000016001462c7ab74ba7058ef8b4977fcf815e8b32c7dd8f8024830450221009fd9d8bbb959114636fed6cb6c90ccba6c2f2dc9614e9b543eedc88f5429e954022073a4a5e46e94551fe508844d00ab08434eb9f63ca56266e708e0e480382f9461012103733084959349ecdf8a2439450a175b5384430cd98cc4e7d481f476cda4e1fe7000000000",
+        "tb1qjm3y6vkqxg06xk4mukdm0xuz0zhzwz6mkyrln5",
+        "mzqExPmf6WxCevri1Ahk675R1DutFCDeJY",
+        "tb1qvtr6ka96wpvwlz6fwl70s90gkvk8mk8c42y5e7",
+        1584449,
+        1572444630
+    },
+
+    {
+        "deed607db0f1ed401b74a4d4ea9274ce0dd87f01f93365e991ddd4ac484947c6",
+        "010000000001018ce281d670b64fa8f3d67efb31c7b87d20614ed6980ebc334ab92aca45e01f740100000000ffffffff025c2b0000000000001976a9141963f033c786e862f078edb7e16baa920bf22b0388ac7b5cec0500000000160014afce19fce1d59a0e2ff765b08ae16326192d931602483045022100ed56bc226a22df292c3f6ac4d3a51dc4995262ceff04819c7923ff67f6f4cbb2022053d1323d9b75db6d6cd5a0a5e05ecfb67f93c9f01eb84f495907e8c119b0c11d01210264a76eb46cd4c6d47168ffb208d84e6dcf6508cb8b418e07f82523d259e92f8900000000",
+        "tb1qlme4970h6xjsjw4l7s2k6fyrrs9phq9gdpgatq",
+        "mhqCugcvqBXZs1Xo7zssaBe86oKDNkXSns",
+        "tb1q4l8pnl8p6kdqutlhvkcg4ctrycvjmyckz309r7",
+        1584447,
+        1572443743
+    }
+#endif
+};
+static size_t numberOfTransferTests = sizeof (transferTests) / sizeof (BRCryptoTransferTest);
+
+static BRMasterPubKey
+transferTestsGetMPK (void) {
+    const char *paperKey = "ginger settle marine tissue robot crane night number ramp coast roast critic";
+
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey (seed.u8, paperKey, NULL);
+    return BRBIP32MasterPubKey(&seed, sizeof (seed));
+}
+
+static void
+transferTestsBalance (void) {
+    BRMasterPubKey mpk = transferTestsGetMPK();
+
+    BRTransaction *transactions[numberOfTransferTests];
+    for (size_t index = 0; index < numberOfTransferTests; index++) {
+        BRCryptoTransferTest *test = &transferTests[index];
+
+        size_t   testRawSize;
+        uint8_t *testRawBytes = decodeHexCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
+
+        transactions[index] = BRTransactionParse (testRawBytes, testRawSize);
+        transactions[index]->blockHeight = test->blockHeight;
+        transactions[index]->timestamp   = test->timestamp;
+    }
+
+    // Initialize wallet w/ all transactions
+    BRWallet *wid1 = BRWalletNew (BRTestNetParams->addrParams, transactions, numberOfTransferTests, mpk);
+    uint64_t balance1 = BRWalletBalance(wid1);
+
+    // Initialize wallet w/ each transaction, one by one
+    BRWallet *wid2 = BRWalletNew (BRTestNetParams->addrParams, NULL, 0, mpk);
+    for (size_t index = 0; index < numberOfTransferTests; index++) {
+        BRWalletRegisterTransaction (wid2, BRTransactionCopy (transactions[index]));
+    }
+    uint64_t balance2 = BRWalletBalance(wid2);
+
+    // Initialize wallet w/ each transaction in reverse order
+     BRWallet *wid3 = BRWalletNew (BRTestNetParams->addrParams, NULL, 0, mpk);
+    for (size_t index = 0; index < numberOfTransferTests; index++) {
+        BRWalletRegisterTransaction (wid3, BRTransactionCopy(transactions[numberOfTransferTests - 1 - index]));
+    }
+    uint64_t balance3 = BRWalletBalance(wid3);
+
+    assert (balance1 == balance2);
+    assert (balance1 == balance3);
+
+    BRWalletFree(wid3);
+    BRWalletFree(wid2);
+    BRWalletFree(wid1);
+}
+
+
+static void
+transferTestsAddress (void) {
+    BRCryptoCurrency btc =
+    cryptoCurrencyCreate ("BitcoinUIDS",
+                          "Bitcoin",
+                          "BTC",
+                          "native",
+                          NULL);
+
+    BRCryptoUnit sat =
+    cryptoUnitCreateAsBase (btc,
+                            "SatoshiUIDS",
+                            "Satoshi",
+                            "SAT");
+
+    BRMasterPubKey mpk = transferTestsGetMPK();
+    BRWallet *wid = BRWalletNew (BRTestNetParams->addrParams, NULL, 0, mpk);
+    BRWalletSetCallbacks (wid, NULL, NULL, NULL, NULL, NULL);
+
+    for (size_t index = 0; index < numberOfTransferTests; index++) {
+        BRCryptoTransferTest *test = &transferTests[index];
+
+        size_t   testRawSize;
+        uint8_t *testRawBytes = decodeHexCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
+
+        BRTransaction *tid = BRTransactionParse (testRawBytes, testRawSize);
+        tid->blockHeight = test->blockHeight;
+        tid->timestamp   = test->timestamp;
+        BRWalletRegisterTransaction (wid, tid); // ownership given
+        BRCryptoTransfer transfer = cryptoTransferCreateAsBTC (sat,
+                                                               sat,
+                                                               wid,
+                                                               tid, // ownership kept
+                                                               CRYPTO_TRUE);
+
+        BRCryptoAddress sourceAddress = cryptoTransferGetSourceAddress(transfer);
+        BRCryptoAddress targetAddress = cryptoTransferGetTargetAddress(transfer);
+        char *source = cryptoAddressAsString (sourceAddress);
+        char *target = cryptoAddressAsString (targetAddress);
+
+        assert (0 == strcmp (test->input,  source));
+        assert (0 == strcmp (test->output, target));
+
+        free (testRawBytes);
+        free (source); free (target);
+        cryptoAddressGive(sourceAddress); cryptoAddressGive(targetAddress);
+        cryptoTransferGive(transfer);
+    }
+    BRWalletFree(wid);
+}
+
+static void
+runCryptoTransferTests (void) {
+    transferTestsBalance();
+    transferTestsAddress();
 }
 
 ///
@@ -1544,5 +1749,6 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
 extern void
 runCryptoTests (void) {
     runCryptoAmountTests ();
+    runCryptoTransferTests();
     return;
 }

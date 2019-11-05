@@ -140,6 +140,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         core.syncToDepth(Utilities.syncDepthToCrypto(depth));
     }
 
+    /* package */
+    boolean sign(com.breadwallet.crypto.Transfer transfer, byte[] phraseUtf8) {
+        Transfer cryptoTransfer = Transfer.from(transfer);
+        Wallet cryptoWallet = cryptoTransfer.getWallet();
+        return core.sign(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), phraseUtf8);
+    }
+
     @Override
     public void submit(com.breadwallet.crypto.Transfer transfer, byte[] phraseUtf8) {
         Transfer cryptoTransfer = Transfer.from(transfer);
@@ -152,6 +159,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         Transfer cryptoTransfer = Transfer.from(transfer);
         Wallet cryptoWallet = cryptoTransfer.getWallet();
         core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key.getBRCryptoKey());
+    }
+
+    /* package */
+    void submit(com.breadwallet.crypto.Transfer transfer) {
+        Transfer cryptoTransfer = Transfer.from(transfer);
+        Wallet cryptoWallet = cryptoTransfer.getWallet();
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer());
     }
 
     @Override
@@ -293,15 +307,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     /* package */
-    Optional<Wallet> getWalletOrCreate(BRCryptoWallet wallet) {
-        Optional<Wallet> optional = getWallet(wallet);
-        if (optional.isPresent()) {
-            return optional;
-
-        } else {
-            Log.d(TAG, "Wallet not found, creating wrapping instance");
-            return Optional.of(Wallet.takeAndCreate(wallet, this, callbackCoordinator));
-        }
+    Wallet createWallet(BRCryptoWallet wallet) {
+        return Wallet.takeAndCreate(wallet, this, callbackCoordinator);
     }
 
     /* package */

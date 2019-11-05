@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCoder;
 import com.google.common.base.Optional;
@@ -16,23 +18,33 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /* package */
 final class Coder implements com.breadwallet.crypto.Coder {
 
+    @Nullable
+    private static final Coder CODER_HEX = BRCryptoCoder.createHex().transform(Coder::create).orNull();
+
+    @Nullable
+    private static final Coder CODER_BASE58 = BRCryptoCoder.createBase58().transform(Coder::create).orNull();
+
+    @Nullable
+    private static final Coder CODER_BASE58CHECK = BRCryptoCoder.createBase58Check().transform(Coder::create).orNull();
+
     /* package */
     static Coder createForAlgorithm(Algorithm algorithm) {
-        BRCryptoCoder core = null;
+        Coder coder = null;
+
         switch (algorithm) {
             case HEX:
-                core = BRCryptoCoder.createHex().orNull();
+                coder = CODER_HEX;
                 break;
             case BASE58:
-                core = BRCryptoCoder.createBase58().orNull();
+                coder = CODER_BASE58;
                 break;
             case BASE58CHECK:
-                core = BRCryptoCoder.createBase58Check().orNull();
+                coder = CODER_BASE58CHECK;
                 break;
         }
 
-        checkNotNull(core);
-        return Coder.create(core);
+        checkNotNull(coder);
+        return coder;
     }
 
     private static Coder create(BRCryptoCoder core) {

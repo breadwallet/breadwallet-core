@@ -15,7 +15,6 @@
 #include <stdatomic.h>
 #include "support/BRInt.h"
 #include "support/BRSyncMode.h"
-#include "ethereum/base/BREthereumHash.h"
 // temporary
 #include <stdio.h>
 

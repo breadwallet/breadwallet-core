@@ -77,10 +77,12 @@ final class Amount implements com.breadwallet.crypto.Amount {
         formatterSymbols.setInternationalCurrencySymbol(symbol);
         formatterSymbols.setCurrencySymbol(symbol);
 
-        formatter.setParseBigDecimal(true);
-        formatter.setRoundingMode(RoundingMode.HALF_UP);
+        int decimals = unit.getDecimals().intValue();
+        formatter.setParseBigDecimal(0 != decimals);
+        formatter.setRoundingMode(RoundingMode.HALF_EVEN);
         formatter.setDecimalFormatSymbols(formatterSymbols);
-        formatter.setMaximumFractionDigits(unit.getDecimals().intValue());
+        formatter.setMaximumIntegerDigits(Integer.MAX_VALUE);
+        formatter.setMaximumFractionDigits(decimals);
 
         return formatter;
     }

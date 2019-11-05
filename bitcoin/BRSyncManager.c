@@ -354,6 +354,11 @@ struct BRPeerSyncManagerStruct {
      */
     uint64_t networkBlockHeight;
 
+    /*
+     * The height of the last successfully completed sync with the P2P network.
+     */
+    uint32_t successfulScanBlockHeight;
+
     /**
      * Flag for whether or not we are connected to the P2P network.
      */
@@ -364,7 +369,6 @@ struct BRPeerSyncManagerStruct {
      * caught up to the blockchain and are receiving new blocks.
      */
     uint8_t isFullScan;
-
 };
 
 typedef struct BRPeerSyncManagerStruct * BRPeerSyncManager;
@@ -818,8 +822,9 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutexattr_destroy(&attr);
 
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
-    assert (NULL != earliestCheckPoint);
+    uint32_t checkpointKeyTime = earliestKeyTime > ONE_WEEK_IN_SECONDS ? earliestKeyTime - ONE_WEEK_IN_SECONDS : 0;
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, checkpointKeyTime);
+    uint32_t checkpointBlockHeight = earliestCheckPoint ? earliestCheckPoint->height : 0;
 
     // Initialize this instance's blockHeight.  This might be out-of-sync with a) the P2P block
     // height which will be derived from the persistently restored blocks and then from the sync()
@@ -837,8 +842,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     // which syncs based on its trusted data (aka the blocks). In API mode, we don't have any trusted
     // data so sync on the whole range to be safe.
     manager->confirmationsUntilFinal = confirmationsUntilFinal;
-    manager->initBlockHeight         = MIN (earliestCheckPoint->height, blockHeight);
-    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
+    manager->initBlockHeight         = MIN (checkpointBlockHeight, blockHeight);
+    manager->networkBlockHeight      = MAX (checkpointBlockHeight, blockHeight);
     manager->syncedBlockHeight       = manager->initBlockHeight;
     manager->isConnected             = 0;
     manager->isNetworkReachable      = isNetworkReachable;
@@ -1568,17 +1573,19 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutexattr_destroy(&attr);
 
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
-    assert (NULL != earliestCheckPoint);
+    uint32_t checkpointKeyTime = earliestKeyTime > ONE_WEEK_IN_SECONDS ? earliestKeyTime - ONE_WEEK_IN_SECONDS : 0;
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, checkpointKeyTime);
+    uint32_t checkpointBlockHeight = earliestCheckPoint ? earliestCheckPoint->height : 0;
 
     // The initial sync will be based on the `blocks` provided to the peer manager as the starting
     // point up to the block height advertised on the P2P network, regardless of if we have synced,
     // in API mode for example, to halfway between those two heights. This is due to how the P2P
     // verifies data it receives from the network.
-    manager->confirmationsUntilFinal = confirmationsUntilFinal;
-    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
-    manager->isConnected             = 0;
-    manager->isNetworkReachable      = isNetworkReachable;
+    manager->confirmationsUntilFinal   = confirmationsUntilFinal;
+    manager->networkBlockHeight        = MAX (checkpointBlockHeight, blockHeight);
+    manager->successfulScanBlockHeight = manager->networkBlockHeight;
+    manager->isConnected               = 0;
+    manager->isNetworkReachable        = isNetworkReachable;
 
     manager->peerManager = BRPeerManagerNew (params,
                                              wallet,
@@ -1718,9 +1725,10 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
         uint8_t needDisconnectionEvent = manager->isConnected && BRPeerStatusDisconnected == BRPeerManagerConnectStatus (manager->peerManager);
         uint8_t needSyncStoppedEvent = manager->isFullScan && needDisconnectionEvent;
 
+        uint32_t startHeight = manager->successfulScanBlockHeight;
         uint8_t needSyncProgressEvent = manager->isConnected && manager->isFullScan;
-        BRSyncPercentComplete progressComplete = needSyncProgressEvent ? AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, 0)) : AS_SYNC_TIMESTAMP (0);
-        BRSyncTimestamp progressTimestamp = needSyncProgressEvent ? AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager)) : AS_SYNC_PERCENT_COMPLETE (0);
+        BRSyncPercentComplete progressComplete = needSyncProgressEvent ? AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, startHeight)) : AS_SYNC_PERCENT_COMPLETE (0);
+        BRSyncTimestamp progressTimestamp = needSyncProgressEvent ? AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager)) : AS_SYNC_TIMESTAMP (0);
         needSyncProgressEvent &= progressComplete > 0.0 && progressComplete < 100.0;
 
         manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
@@ -1832,12 +1840,15 @@ _BRPeerSyncManagerSyncStarted (void *info) {
     //   - Always signal the start of a sync
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
+        uint32_t startBlockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
+
         uint8_t needConnectionEvent = !manager->isConnected;
         uint8_t needSyncStartedEvent = 1; // syncStarted callback always indicates a full scan
         uint8_t needSyncStoppedEvent = manager->isFullScan;
 
         manager->isConnected = needConnectionEvent ? 1 : manager->isConnected;
         manager->isFullScan = needSyncStartedEvent ? 1 : manager->isFullScan;
+        manager->successfulScanBlockHeight = MIN (startBlockHeight, manager->successfulScanBlockHeight);
 
         _peer_log ("syncStarted: needConnect:%"PRIu8", needStart:%"PRIu8", needStop:%"PRIu8"\n",
                    needConnectionEvent, needSyncStartedEvent, needSyncStoppedEvent);
@@ -1892,9 +1903,11 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
 
         uint8_t needSyncStoppedEvent = manager->isFullScan;
         uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
+        uint8_t needSuccessfulScanBlockHeightUpdate = manager->isFullScan && isConnected && !reason;
 
         manager->isConnected = needDisconnectionEvent ? 0 : isConnected;
         manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
+        manager->successfulScanBlockHeight =  needSuccessfulScanBlockHeightUpdate ? BRPeerManagerLastBlockHeight (manager->peerManager) : manager->successfulScanBlockHeight;
 
         _peer_log ("syncStopped: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
                    needSyncStoppedEvent, needDisconnectionEvent);

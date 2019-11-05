@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.sun.jna.Native;
@@ -16,12 +16,12 @@ import com.sun.jna.PointerType;
 
 public class BRCryptoWalletSweeper extends PointerType {
 
-    public BRCryptoWalletSweeper(Pointer address) {
-        super(address);
-    }
-
     public BRCryptoWalletSweeper() {
         super();
+    }
+
+    public BRCryptoWalletSweeper(Pointer address) {
+        super(address);
     }
 
     public static BRCryptoWalletSweeperStatus validateSupported(BRCryptoNetwork network,
@@ -29,11 +29,12 @@ public class BRCryptoWalletSweeper extends PointerType {
                                                                 BRCryptoKey key,
                                                                 BRCryptoWallet wallet) {
         return BRCryptoWalletSweeperStatus.fromCore(
-                CryptoLibrary.INSTANCE.cryptoWalletSweeperValidateSupported(
-                        network,
-                        currency,
-                        key,
-                        wallet)
+                CryptoLibraryDirect.cryptoWalletSweeperValidateSupported(
+                        network.getPointer(),
+                        currency.getPointer(),
+                        key.getPointer(),
+                        wallet.getPointer()
+                )
         );
     }
 
@@ -41,20 +42,36 @@ public class BRCryptoWalletSweeper extends PointerType {
                                                     BRCryptoCurrency currency,
                                                     BRCryptoKey key,
                                                     BRCryptoAddressScheme scheme) {
-        return CryptoLibrary.INSTANCE.cryptoWalletSweeperCreateAsBtc(network,
-                currency, key, scheme.toCore());
+        return new BRCryptoWalletSweeper(
+                CryptoLibraryDirect.cryptoWalletSweeperCreateAsBtc(
+                        network.getPointer(),
+                        currency.getPointer(),
+                        key.getPointer(),
+                        scheme.toCore()
+                )
+        );
     }
 
     public BRCryptoKey getKey() {
-        return CryptoLibrary.INSTANCE.cryptoWalletSweeperGetKey(this);
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoKey(CryptoLibraryDirect.cryptoWalletSweeperGetKey(thisPtr));
     }
 
     public Optional<BRCryptoAmount> getBalance() {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletSweeperGetBalance(this));
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletSweeperGetBalance(
+                        thisPtr
+                )
+        ).transform(BRCryptoAmount::new);
     }
 
     public Optional<String> getAddress() {
-        Pointer ptr = CryptoLibrary.INSTANCE.cryptoWalletSweeperGetAddress(this);
+        Pointer thisPtr = this.getPointer();
+
+        Pointer ptr = CryptoLibraryDirect.cryptoWalletSweeperGetAddress(thisPtr);
         try {
             return Optional.fromNullable(ptr).transform(p -> p.getString(0, "UTF-8"));
         } finally {
@@ -63,21 +80,27 @@ public class BRCryptoWalletSweeper extends PointerType {
     }
 
     public BRCryptoWalletSweeperStatus handleTransactionAsBtc(byte[] transaction) {
+        Pointer thisPtr = this.getPointer();
+
         return BRCryptoWalletSweeperStatus.fromCore(
-                CryptoLibrary.INSTANCE.cryptoWalletSweeperHandleTransactionAsBTC(
-                        this,
+                CryptoLibraryDirect.cryptoWalletSweeperHandleTransactionAsBTC(
+                        thisPtr,
                         transaction,
                         new SizeT(transaction.length))
         );
     }
 
     public BRCryptoWalletSweeperStatus validate() {
+        Pointer thisPtr = this.getPointer();
+
         return BRCryptoWalletSweeperStatus.fromCore(
-                CryptoLibrary.INSTANCE.cryptoWalletSweeperValidate(this)
+                CryptoLibraryDirect.cryptoWalletSweeperValidate(thisPtr)
         );
     }
 
     public void give() {
-        CryptoLibrary.INSTANCE.cryptoWalletSweeperRelease(this);
+        Pointer thisPtr = this.getPointer();
+
+        CryptoLibraryDirect.cryptoWalletSweeperRelease(thisPtr);
     }
 }

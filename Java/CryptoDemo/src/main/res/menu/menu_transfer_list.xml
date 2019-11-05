@@ -19,9 +19,8 @@
         tools:ignore="HardcodedText"/>
 
     <item android:id="@+id/action_toggle_mode"
-        android:title=""
+        android:title="Change Mode"
         app:showAsAction="never"
-        tools:title="Switch to BRD/API"
         tools:ignore="HardcodedText" />
 
 </menu>

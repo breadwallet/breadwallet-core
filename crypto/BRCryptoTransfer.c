@@ -19,6 +19,9 @@
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
 
+static BRCryptoTransferDirection
+cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
+
 /**
  *
  */
@@ -120,11 +123,16 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
     transfer->u.btc.recv = BRWalletAmountReceivedFromTx (wid, tid);
     transfer->u.btc.send = BRWalletAmountSentByTx (wid, tid);
 
+    BRCryptoTransferDirection direction = cryptoTransferDirectionFromBTC (transfer->u.btc.send,
+                                                                          transfer->u.btc.recv,
+                                                                          transfer->u.btc.fee);
+
     {
         size_t     inputsCount = tid->inCount;
         BRTxInput *inputs      = tid->inputs;
 
-        int inputsContain = (UINT64_MAX != transfer->u.btc.fee ? 1 : 0);
+        // If we receive the transfer, then we won't be the source address.
+        int inputsContain = (CRYPTO_TRANSFER_RECEIVED != direction);
 
         for (size_t index = 0; index < inputsCount; index++) {
             size_t addressSize = BRTxInputAddress (&inputs[index], NULL, 0, addressParams);
@@ -148,7 +156,8 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         size_t      outputsCount = tid->outCount;
         BRTxOutput *outputs      = tid->outputs;
 
-        int outputsContain = (UINT64_MAX == transfer->u.btc.fee ? 1 : 0);
+        // If we sent the transfer, then we won't be the target address.
+        int outputsContain = (CRYPTO_TRANSFER_SENT != direction);
 
         for (size_t index = 0; index < outputsCount; index++) {
             size_t addressSize = BRTxOutputAddress (&outputs[index], NULL, 0, addressParams);
@@ -489,26 +498,27 @@ cryptoTransferSetState (BRCryptoTransfer transfer,
     cryptoTransferStateRelease (&oldState);
 }
 
+static BRCryptoTransferDirection
+cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee) {
+    if (UINT64_MAX == fee) fee = 0;
+
+    return (0 == send
+            ? CRYPTO_TRANSFER_RECEIVED
+            : ((send - fee) == recv
+               ? CRYPTO_TRANSFER_RECOVERED
+               : ((send - fee) > recv
+                  ? CRYPTO_TRANSFER_SENT
+                  : CRYPTO_TRANSFER_RECEIVED)));
+}
+
 extern BRCryptoTransferDirection
 cryptoTransferGetDirection (BRCryptoTransfer transfer) {
     switch (transfer->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            uint64_t fee = transfer->u.btc.fee;
-            if (UINT64_MAX == fee) fee = 0;
+        case BLOCK_CHAIN_TYPE_BTC:
+            return cryptoTransferDirectionFromBTC (transfer->u.btc.send,
+                                                   transfer->u.btc.recv,
+                                                   transfer->u.btc.fee);
 
-            uint64_t send = transfer->u.btc.send;
-            uint64_t recv = transfer->u.btc.recv;
-
-            if (0 == send) {
-                return CRYPTO_TRANSFER_RECEIVED;
-            } else if ((send - fee) == recv) {
-                return CRYPTO_TRANSFER_RECOVERED;
-            } else if ((send - fee) > recv) {
-                return CRYPTO_TRANSFER_SENT;
-            }
-
-            return CRYPTO_TRANSFER_RECEIVED;
-        }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM      ewm = transfer->u.eth.ewm;
             BREthereumTransfer tid = transfer->u.eth.tid;
@@ -824,6 +834,8 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
             break;
         }
     }
+
+    memset (state, 0, sizeof(*state));
 }
 
 extern const char *
