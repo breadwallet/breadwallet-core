@@ -1328,13 +1328,25 @@ extension System {
 }
 
 extension System {
+    private static func cleanup (_ message: String,
+                                 cwm: BRCryptoWalletManager? = nil,
+                                 wid: BRCryptoWallet? = nil,
+                                 tid: BRCryptoTransfer? = nil) -> Void {
+        print (message)
+        cwm.map { cryptoWalletManagerGive ($0) }
+        wid.map { cryptoWalletGive ($0) }
+        tid.map { cryptoTransferGive ($0) }
+    }
+}
+
+extension System {
     internal var clientBTC: BRCryptoCWMClientBTC {
         return BRCryptoCWMClientBTC (
             funcGetBlockNumber: { (context, cwm, sid) in
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup("SYS: BTC: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetBlockNumber")
 
                 manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
@@ -1348,7 +1360,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: GetTransactions: Missed {cwm}"); return }
+                    else { System.cleanup ("SYS: BTC: GetTransactions: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
                 var cAddresses = addresses!
@@ -1392,7 +1404,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: BTC: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: SubmitTransaction")
 
                 let hash = asUTF8String (hashAsHex!)
@@ -1415,7 +1427,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetEtherBalance: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1433,7 +1445,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTokenBalance: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1452,7 +1464,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetGasPrice: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetGasPrice: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1469,10 +1481,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: EstimateGas: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {cwm}", cwm: cwm); return }
 
                 guard let price = price.map (asUTF8String)
-                    else { print ("SYS: ETH: EstimateGas: Missed {price}"); return }
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {price}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1493,7 +1505,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1511,7 +1523,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTransactions: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1551,7 +1563,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetLogs: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1591,7 +1603,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetBlocks: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetBlocks: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1618,7 +1630,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTokens: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTokens: Missed {cwm}", cwm: cwm); return }
 
                 manager.query.getTokensAsETH () {
                     (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
@@ -1642,7 +1654,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -1666,13 +1678,13 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetNonce: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {cwm}", cwm: cwm); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
                 guard let address = address.map (asUTF8String)
-                    else { print ("SYS: ETH: GetNonce: Missed {address}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {address}", cwm: cwm); return }
 
                  manager.query.getNonceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1691,7 +1703,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: GetBlockNumber")
 
                 manager.query.getBlockchain (blockchainId: manager.network.uids) {
@@ -1706,7 +1718,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: GetTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: GetTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
@@ -1743,7 +1755,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: SubmitTransaction")
 
                 let hash = asUTF8String (hashAsHex!)
