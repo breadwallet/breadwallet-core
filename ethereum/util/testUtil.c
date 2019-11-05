@@ -260,6 +260,40 @@ runMathCoerceTests () {
     assert (0 == strcmp (es, "0f"));  // unexpected
     free ((char *) es);
 
+    // Value: 0, w/ and w/o a prefix
+    UInt256 f = { .u64 = { 0, 0, 0, 0}};
+    const char *fs = coerceString (f, 10);
+    assert (0 == strcmp (fs, "0"));
+    free ((char *) fs);
+
+    fs = coerceStringPrefaced (f, 10, NULL);
+    assert (0 == strcmp (fs, "0"));
+    free ((char *) fs);
+
+    fs = coerceStringPrefaced (f, 10, "");
+    assert (0 == strcmp (fs, "0"));
+    free ((char *) fs);
+
+    fs = coerceStringPrefaced (f, 10, "hex");
+    assert (0 == strcmp (fs, "hex0"));
+    free ((char *) fs);
+
+    fs = coerceStringPrefaced (f, 16, "0x");
+    assert (0 == strcmp (fs, "0x0"));
+    free ((char *) fs);
+
+    UInt256 g = createUInt256(0x0a);
+    const char *gs = coerceString (g, 10);
+    assert (0 == strcmp (gs, "10"));
+    free ((char *) gs);
+
+    gs = coerceStringPrefaced (g, 10, NULL);
+    assert (0 == strcmp (gs, "10"));
+    free ((char *) gs);
+
+    gs = coerceStringPrefaced (g, 16, "0x");
+    assert (0 == strcmp (gs, "0xa"));
+    free ((char *) gs);
 }
 
 static void
@@ -382,6 +416,41 @@ runMathParseTests () {
 
     r = createUInt256ParseDecimal("2.5", 0, &status);
     assert (CORE_PARSE_UNDERFLOW == status);
+
+
+    // Strings for: 0xa
+
+    r = createUInt256Parse("0xa", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0xa", s));
+    free (s);
+
+    r = createUInt256Parse("0x0a", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0xa", s));
+    free (s);
+
+    r = createUInt256Parse("0x00a", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0xa", s));
+    free (s);
+
+    // Strings for 0x0
+
+    r = createUInt256Parse("0x", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0x0", s));
+    free (s);
+
+    r = createUInt256Parse("0x0", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0x0", s));
+    free (s);
+
+    r = createUInt256Parse("0x00", 16, &status);
+    s = coerceStringPrefaced(r, 16, "0x");
+    assert (0 == strcmp ("0x0", s));
+    free (s);
 }
 
 extern void
