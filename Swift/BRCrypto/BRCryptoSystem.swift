@@ -630,6 +630,8 @@ public final class System {
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
         }
 
+        let startTime = CFAbsoluteTimeGetCurrent()
+
         // Query for blockchains on the system.queue - thus system.configure() returns instantly
         // and only System (and other types of) Events allow access to networds, wallets, etc.
         self.queue.async {
@@ -779,6 +781,7 @@ public final class System {
                                 // numerous events as wallets are created.
                                 self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
                             }
+                            print ("SYS: CONFIGURE:     Elapsed (\(blockchainModel.name)): \(CFAbsoluteTimeGetCurrent() - startTime)")
 
                             // Keep a running total of discovered networks
                             discoveredNetworks.append(network)
@@ -791,6 +794,8 @@ public final class System {
 
             // Wait on the group - indicates that all models+currencies have entered and left.
             blockchainsGroup.wait()
+
+            print ("SYS: CONFIGURE: Elapsed (Overall): \(CFAbsoluteTimeGetCurrent() - startTime)")
 
             // Mark the completion.
             self.listenerQueue.async {
