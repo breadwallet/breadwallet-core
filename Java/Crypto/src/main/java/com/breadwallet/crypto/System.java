@@ -65,6 +65,26 @@ public interface System {
     }
 
     /**
+     * Re-encrypt ciphertext blobs that were encrypted using the BRCoreKey::encryptNative routine.
+     *
+     * The ciphertext will be decrypted using the previous decryption routine. The plaintext from that
+     * operation will be encrypted using the current {@link Cipher#encrypt(byte[])} routine with a
+     * {@link Cipher#createForChaCha20Poly1305(Key, byte[], byte[])} cipher. That updated ciphertext
+     * is then returned and should be used to immediately overwrite the old ciphertext blob so that
+     * it can be properly decrypted using the {@link Cipher#decrypt(byte[])} routine going forward.
+     *
+     * @param key The cipher key
+     * @param nonce12 The 12 byte nonce data
+     * @param authenticatedData The authenticated data
+     * @param ciphertext The ciphertext to update the encryption on
+     *
+     * @return The updated ciphertext, if decryption and re-encryption succeeds; absent otherwise.
+     */
+    static Optional<byte[]> migrateBRCoreKeyCiphertext(Key key, byte[] nonce12, byte[] authenticatedData, byte[] ciphertext) {
+        return CryptoApi.getProvider().systemProvider().migrateBRCoreKeyCiphertext(key, nonce12, authenticatedData, ciphertext);
+    }
+
+    /**
      * Cease use of `system` and remove (aka 'wipe') its persistent storage.
      *
      * Caution is highly warranted; none of the System's references, be they Wallet Managers,
@@ -185,8 +205,23 @@ public interface System {
 
     boolean supportsWalletManagerMode(Network network, WalletManagerMode mode);
 
+    /**
+     * If migration is required, return the currency code; otherwise, return nil.
+     *
+     * Note: it is not an error not to migrate.
+     */
+    boolean migrateRequired(Network network);
+
+    /**
+     * Migrate the storage for a network given transaction, block and peer blobs.
+     *
+     * Support for persistent storage migration to allow prior App versions to migrate their SQLite
+     * database representations of BTC/BTC transations, blocks and peers into 'Generic Crypto' - where
+     * these entities are persistently
+     *
+     * The provided blobs must be consistent with `network`.  For exmaple, if `network` represents BTC or BCH
+     * then the blobs must be of type {@link TransactionBlob.Btc}; otherwise a MigrateError is thrown.
+     */
     void migrateStorage (Network network, List<TransactionBlob> transactionBlobs, List<BlockBlob> blockBlobs,
                          List<PeerBlob> peerBlobs) throws MigrateError;
-
-    boolean migrateRequired(Network network);
 }
