@@ -366,6 +366,13 @@ class CoreTests: XCTestCase {
         runHederaTest ()
     }
 
+    ///
+    /// Stellar
+    ///
+    func testStellar () {
+        runStellarTest ()
+    }
+
     /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
     /// start from the saved state of the first sync.
     ///

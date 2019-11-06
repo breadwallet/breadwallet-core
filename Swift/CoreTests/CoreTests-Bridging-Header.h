@@ -62,5 +62,9 @@ runRippleTest (void /* ... */);
 extern void
 runHederaTest (void /* ... */);
 
+// Stellar
+extern void
+runStellarTest (void /* ... */);
+
 #include "test.h"
 
