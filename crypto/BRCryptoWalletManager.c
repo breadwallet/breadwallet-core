@@ -286,6 +286,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 // TODO: A BRGenericTransfer must allow us to determine the Wallet (via a Currency).
                 cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
             }
+            array_free (transfers);
 
             // Having added the transfers, get the wallet balance...
             BRCryptoAmount balance = cryptoWalletGetBalance (cwm->wallet);
@@ -1169,7 +1170,7 @@ cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
 
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
-                                      BRGenericTransfer transferGeneric) {
+                                      OwnershipGiven BRGenericTransfer transferGeneric) {
     // TODO: I don't think any locks are needed here...
     
     // TODO: Determine the currency from `transferGeneric`
@@ -1184,7 +1185,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
         BRCryptoUnit unit = cryptoNetworkGetUnitAsBase (cwm->network, currency);
         BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
 
-        // Create the generic transfer...
+        // Create the generic transfer... `transferGeneric` owned by `transfer`
         transfer = cryptoTransferCreateAsGEN (unit, unitForFee, transferGeneric);
 
         // Set the state
@@ -1236,6 +1237,9 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
         cryptoTransferStateRelease (&newState);
         cryptoUnitGive(unitForFee);
         cryptoUnitGive(unit);
+    }
+    else {
+        genTransferRelease (transferGeneric);
     }
 
     cryptoTransferGive(transfer);

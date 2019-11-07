@@ -509,7 +509,8 @@ genManagerPeriodicDispatcher (BREventHandler handler,
 
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
-        char *address = genAddressAsString (genManagerGetAccountAddress(gwm));
+        BRGenericAddress accountAddress = genManagerGetAccountAddress(gwm);
+        char *address = genAddressAsString (accountAddress);
         
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;
@@ -536,8 +537,9 @@ genManagerPeriodicDispatcher (BREventHandler handler,
                                          gwm->requestId++);
         }
 
-        // TODO: Handle address
-        // free (address);
+
+        free (address);
+        genAddressRelease(accountAddress);
 
         // 3c) Mark as not completed
         gwm->brdSync.completed = 0;
