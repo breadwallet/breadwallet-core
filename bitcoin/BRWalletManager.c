@@ -1155,6 +1155,14 @@ BRWalletManagerSetFixedPeer (BRWalletManager manager,
 }
 
 extern void
+BRWalletManagerWipe (const BRChainParams *params,
+                      const char *baseStoragePath) {
+    const char *networkName  = getNetworkName  (params);
+    const char *currencyName = getCurrencyName (params);
+    fileServiceWipe (baseStoragePath, currencyName, networkName);
+}
+
+extern void
 BRWalletManagerScan (BRWalletManager manager) {
     BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
 }

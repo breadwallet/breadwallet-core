@@ -21,6 +21,7 @@
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "support/BRFileService.h"
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
@@ -117,6 +118,24 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     }
 
     return cwm;
+}
+
+extern void
+cryptoWalletManagerWipe (BRCryptoNetwork network,
+                         const char *path) {
+    switch (cryptoNetworkGetType(network)) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerWipe (cryptoNetworkAsBTC(network), path);
+            break;
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmWipe (cryptoNetworkAsETH(network), path);
+            break;
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            genManagerWipe (cryptoNetworkAsGEN (network), path);
+            break;
+    }
 }
 
 extern BRCryptoWalletManager

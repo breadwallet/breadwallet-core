@@ -546,6 +546,14 @@ genManagerPeriodicDispatcher (BREventHandler handler,
     // End handling a BRD Sync
 }
 
+extern void
+genManagerWipe (BRGenericNetwork network,
+                const char *storagePath) {
+        fileServiceWipe (storagePath,
+                         genNetworkGetType(network),
+                         genNetworkIsMainnet (network) ? "mainnet" : "testnet");
+}
+
 /// MARK: - Announce
 
 // handle transfer

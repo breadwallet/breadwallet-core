@@ -241,6 +241,10 @@ extern "C" {
                                uint64_t timestamp,
                                uint64_t blockHeight);
 
+    extern void
+    genManagerWipe (BRGenericNetwork network,
+                    const char *storagePath);
+
     extern BRArrayOf(BRGenericTransfer)
     genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                                   uint8_t *bytes,

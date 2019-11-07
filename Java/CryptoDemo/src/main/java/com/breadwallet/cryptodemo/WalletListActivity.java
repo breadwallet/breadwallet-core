@@ -8,6 +8,7 @@
 package com.breadwallet.cryptodemo;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -25,9 +26,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Currency;
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
 import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
@@ -35,6 +38,11 @@ import com.breadwallet.crypto.events.wallet.WalletChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
+import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisitor;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncProgressEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStartedEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
@@ -104,9 +112,6 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             case R.id.action_sync:
                 sync();
                 return true;
-            case R.id.action_reset:
-                reset();
-                return true;
             case R.id.action_wipe:
                 wipe();
                 return true;
@@ -119,6 +124,30 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
         }
         return false;
+    }
+
+    @Override
+    public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
+        ApplicationExecutors.runOnUiExecutor(() -> event.accept(new DefaultWalletManagerEventVisitor<Void>() {
+            @Override
+            public Void visit(WalletManagerSyncStartedEvent event) {
+                updateWallets(manager);
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public Void visit(WalletManagerSyncProgressEvent event) {
+                updateWalletsForSync(manager, event.getPercentComplete());
+                return null;
+            }
+
+            @Override
+            public Void visit(WalletManagerSyncStoppedEvent event) {
+                updateWallets(manager);
+                return null;
+            }
+        }));
     }
 
     @Override
@@ -183,6 +212,22 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         });
     }
 
+    private void updateWallets(WalletManager manager) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            List<? extends Wallet> wallets = manager.getWallets();
+            List<WalletViewModel> vms = WalletViewModel.create(wallets);
+            runOnUiThread(() -> walletsAdapter.update(vms));
+        });
+    }
+
+    private void updateWalletsForSync(WalletManager manager, float percentComplete) {
+        ApplicationExecutors.runOnUiExecutor(() -> {
+            List<? extends Wallet> wallets = manager.getWallets();
+            List<WalletViewModel> vms = WalletViewModel.create(wallets, percentComplete);
+            runOnUiThread(() -> walletsAdapter.update(vms));
+        });
+    }
+
     private void connect() {
         ApplicationExecutors.runOnBlockingExecutor(() -> CoreCryptoApplication.getSystem().connectAll());
     }
@@ -201,13 +246,6 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
     private void updateFees() {
         ApplicationExecutors.runOnBlockingExecutor(() -> CoreCryptoApplication.getSystem().updateNetworkFees(null));
-    }
-
-    private void reset() {
-        ApplicationExecutors.runOnBlockingExecutor(() -> {
-            CoreCryptoApplication.resetSystem();
-            runOnUiThread(this::recreate);
-        });
     }
 
     private void wipe() {
@@ -288,8 +326,10 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         }
 
         static boolean areContentsTheSame(WalletViewModel vm1, WalletViewModel vm2) {
-            return vm1.currencyText().equals(vm2.currencyText()) &&
-                    vm1.balanceText().equals(vm2.balanceText());
+            return vm1.isSyncing() == vm2.isSyncing() &&
+                    vm1.currencyText().equals(vm2.currencyText()) &&
+                    vm1.balanceText().equals(vm2.balanceText()) &&
+                    vm1.syncText().equals(vm2.syncText());
         }
 
         static boolean areItemsTheSame(WalletViewModel vm1, WalletViewModel vm2) {
@@ -298,30 +338,53 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
         static List<WalletViewModel> create(List<? extends Wallet> wallets) {
             List<WalletViewModel> vms = new ArrayList<>(wallets.size());
-            for (Wallet t: wallets) {
-                vms.add(create(t));
+            for (Wallet w: wallets) {
+                vms.add(create(w));
+            }
+            return vms;
+        }
+
+        static List<WalletViewModel> create(List<? extends Wallet> wallets, float percentComplete) {
+            List<WalletViewModel> vms = new ArrayList<>(wallets.size());
+            for (Wallet w: wallets) {
+                vms.add(create(w, percentComplete));
             }
             return vms;
         }
 
         static WalletViewModel create(Wallet wallet) {
-            return new WalletViewModel(wallet);
+            return create(wallet, 0);
+        }
+
+        static WalletViewModel create(Wallet wallet, float percentComplete) {
+            return new WalletViewModel(wallet, percentComplete);
         }
 
         final Wallet wallet;
+        private final float percentComplete;
+
         final Supplier<String> walletName;
         final Supplier<String> walletManagerName;
+        final Supplier<WalletManagerState> walletManagerState;
 
         final Supplier<String> currencyText;
         final Supplier<String> balanceText;
+        final Supplier<String> syncText;
 
-        WalletViewModel(Wallet wallet) {
+        WalletViewModel(Wallet wallet, float percentComplete) {
             this.wallet = wallet;
-            this.walletName = Suppliers.memoize(wallet::getName);
-            this.walletManagerName = Suppliers.memoize(() -> wallet.getWalletManager().getName());
+            this.percentComplete = percentComplete;
 
-            this.currencyText = Suppliers.memoize(() -> String.format("%s (%s)", walletName(), walletManagerName()));
+            this.walletName = Suppliers.memoize(wallet::getName);
+
+            Supplier<WalletManager> walletManagerSupplier = Suppliers.memoize(wallet::getWalletManager);
+            Supplier<Network> networkSupplier = Suppliers.memoize(() -> walletManagerSupplier.get().getNetwork());
+            this.walletManagerState = Suppliers.memoize(() -> walletManagerSupplier.get().getState());
+            this.walletManagerName = Suppliers.memoize(() -> networkSupplier.get().getName());
+
             this.balanceText = Suppliers.memoize(() -> wallet.getBalance().toString());
+            this.currencyText = Suppliers.memoize(() -> String.format("%s (%s)", walletName(), walletManagerName()));
+            this.syncText = Suppliers.memoize(() -> String.format("Syncing at %.2f%%", percentComplete()));
         }
 
         String walletName() {
@@ -332,12 +395,24 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             return walletManagerName.get();
         }
 
+        boolean isSyncing() {
+            return 0 != percentComplete && walletManagerState.get().equals(WalletManagerState.SYNCING());
+        }
+
+        float percentComplete() {
+            return percentComplete;
+        }
+
         String currencyText() {
             return currencyText.get();
         }
 
         String balanceText() {
             return balanceText.get();
+        }
+
+        String syncText() {
+            return syncText.get();
         }
     }
 
@@ -387,6 +462,8 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             vh.itemView.setOnClickListener(v -> listener.onItemClick(vm.wallet));
             vh.currencyView.setText(vm.currencyText());
             vh.symbolView.setText(vm.balanceText());
+            vh.syncView.setText(vm.isSyncing() ? vm.syncText() : "");
+            vh.syncView.setVisibility(vm.isSyncing() ? View.VISIBLE : View.GONE);
         }
 
         @Override
@@ -398,8 +475,8 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             viewModels.clear();
         }
 
-        void add(List<WalletViewModel> newWallets) {
-            viewModels.addAll(newWallets);
+        void add(List<WalletViewModel> wallets) {
+            viewModels.addAll(wallets);
         }
 
         void add(WalletViewModel wallet) {
@@ -413,18 +490,24 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         void update(WalletViewModel wallet) {
             viewModels.add(wallet);
         }
+
+        void update(List<WalletViewModel> wallets) {
+            viewModels.addAll(wallets);
+        }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
 
         TextView currencyView;
         TextView symbolView;
+        TextView syncView;
 
         ViewHolder(@NonNull View view) {
             super(view);
 
             currencyView = view.findViewById(R.id.item_currency);
             symbolView = view.findViewById(R.id.item_symbol);
+            syncView = view.findViewById(R.id.item_sync_status);
         }
     }
 }
