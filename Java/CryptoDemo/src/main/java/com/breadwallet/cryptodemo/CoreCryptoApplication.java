@@ -49,9 +49,11 @@ public class CoreCryptoApplication extends Application {
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
     private static final String EXTRA_PAPER_KEY = "PAPER_KEY";
     private static final String EXTRA_MODE = "MODE";
+    private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_IS_MAINNET = "IS_MAINNET";
 
     private static final boolean DEFAULT_IS_MAINNET = true;
+    private static final boolean DEFAULT_WIPE = true;
     private static final long DEFAULT_TIMESTAMP = 0;
     private static final String DEFAULT_PAPER_KEY = "boring head harsh green empty clip fatal typical found crane dinner timber";
     private static final WalletManagerMode DEFAULT_MODE = WalletManagerMode.API_ONLY;
@@ -96,12 +98,6 @@ public class CoreCryptoApplication extends Application {
         return instance.systemListener;
     }
 
-    public static void resetSystem() {
-        checkState(null != instance && instance.runOnce.get());
-
-        instance.resetSystemImpl();
-    }
-
     public static void wipeSystem() {
         checkState(null != instance && instance.runOnce.get());
 
@@ -117,6 +113,8 @@ public class CoreCryptoApplication extends Application {
 
     private void initFromLaunchIntent(Intent intent) {
         if (!runOnce.getAndSet(true)) {
+            CryptoApi.initialize(CryptoApiProvider.getInstance());
+
             String paperKeyString = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY);
             paperKey = paperKeyString.getBytes(StandardCharsets.UTF_8);
 
@@ -124,18 +122,18 @@ public class CoreCryptoApplication extends Application {
 
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
+            boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
 
             systemExecutor = Executors.newSingleThreadScheduledExecutor();
 
             storageFile = new File(getFilesDir(), "core");
+            if (wipe) System.wipeAll(storageFile.getAbsolutePath(), Collections.emptyList());
             if (!storageFile.exists()) checkState(storageFile.mkdirs());
 
             Log.d(TAG, String.format("Account PaperKey:  %s", paperKeyString));
             Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
             Log.d(TAG, String.format("StoragePath:       %s", storageFile.getAbsolutePath()));
             Log.d(TAG, String.format("Mainnet:           %s", isMainnet));
-
-            CryptoApi.initialize(CryptoApiProvider.getInstance());
 
             List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch");
             systemListener = new DispatchingSystemListener();
@@ -154,25 +152,6 @@ public class CoreCryptoApplication extends Application {
             connectivityReceiver = new ConnectivityBroadcastReceiver();
             registerReceiver(connectivityReceiver , new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         }
-    }
-
-    private void resetSystemImpl() {
-        Log.d(TAG, "Resetting");
-
-        // Wipe the current system.
-        System.wipe(system);
-
-        // Create a new system
-        system = System.create(
-                systemExecutor,
-                systemListener,
-                account,
-                isMainnet,
-                storageFile.getAbsolutePath(),
-                blockchainDb);
-
-        // Passing empty list... it is a demo app...
-        system.configure(Collections.emptyList());
     }
 
     private void wipeSystemImpl() {
