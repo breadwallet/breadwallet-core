@@ -435,6 +435,22 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
+    public void wipe(com.breadwallet.crypto.Network network) {
+        boolean found = false;
+        for (WalletManager walletManager: walletManagers) {
+            if (walletManager.getNetwork().equals(network)) {
+                found = true;
+                break;
+            }
+        }
+
+        // Racy - but if there is no wallet manager for `network`... then
+        if (!found) {
+            WalletManager.wipe(Network.from(network), storagePath);
+        }
+    }
+
+    @Override
     public void connectAll() {
         for (WalletManager manager: getWalletManagers()) {
             manager.connect(null);
