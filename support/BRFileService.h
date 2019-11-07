@@ -232,4 +232,18 @@ fileServiceCreateFromTypeSpecfications (const char *basePath,
                                         size_t specificationsCount,
                                         BRFileServiceTypeSpecification *specfications);
 
+///
+/// Deletes file system data
+///
+/// @param basePath
+/// @param currency
+/// @param network
+///
+/// @return 0 on success, errno on failure
+///
+extern int
+fileServiceWipe (const char *basePath,
+                 const char *currency,
+                 const char *network);
+
 #endif /* BRFileService_h */

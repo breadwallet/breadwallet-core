@@ -373,6 +373,22 @@ public final class System {
         return true
     }
 
+    ///
+    /// Remove (aka 'wipe') the persistent storage associated with `network` at `path`.  This should
+    /// be used solely to recover from a failure of `createWalletManager`.  A failure to create
+    /// a wallet manager is most likely due to corruption of the persistently stored data and the
+    /// only way to recover is to wipe that data.
+    ///
+    /// - Parameters:
+    ///   - network: network to wipe data for
+    ///
+    public func wipe (network: Network) {
+        // Racy - but if there is no wallet manager for `network`... then
+        if !managers.contains { network == $0.network } {
+            cryptoWalletManagerWipe (network.core, path);
+        }
+    }
+
     // Wallets - derived as a 'flatMap' of the managers' wallets.
     public var wallets: [Wallet] {
         return managers.flatMap { $0.wallets }

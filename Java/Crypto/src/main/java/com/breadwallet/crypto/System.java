@@ -144,6 +144,17 @@ public interface System {
                                 Set<Currency> currencies);
 
     /**
+     * Remove (aka 'wipe') the persistent storage associated with `network` at `path`.
+     *
+     * This should be used solely to recover from a failure of `createWalletManager`.  A failure
+     * to create a wallet manager is most likely due to corruption of the persistently stored data
+     * and the only way to recover is to wipe that data.
+     *
+     * @param network the network to wipe data for
+     */
+    void wipe(Network network);
+
+    /**
      * Connect all wallet managers.
      *
      * They will be connected w/o an explict NetworkPeer.
