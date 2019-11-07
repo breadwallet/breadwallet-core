@@ -3366,10 +3366,89 @@ void txStatusUpdate(void *info)
     printf("transaction status updated\n");
 }
 
+//
+//
+//
+
+typedef struct {
+    uint8_t kill;
+    BRPeerManager *manager;
+} BRRunCORE629TestThreadState;
+
+static void *
+_testBRWalletManagerConnectThread (void *context) {
+    BRRunCORE629TestThreadState *state = (BRRunCORE629TestThreadState *) context;
+    while (!state->kill) {
+        BRPeerManagerConnect (state->manager);
+        BRPeerManagerDisconnect (state->manager);
+    }
+    return NULL;
+}
+
+static void *
+_testBRWalletManagerDisconnectThread (void *context) {
+    BRRunCORE629TestThreadState *state = (BRRunCORE629TestThreadState *) context;
+    while (!state->kill) {
+        // Actually, dont call BRPeerManagerDisconnect (state->manager). Seems to
+        // reliably trigger without this.
+    }
+    return NULL;
+}
+
+static void *
+_testBRWalletManagerScanThread (void *context) {
+    BRRunCORE629TestThreadState *state = (BRRunCORE629TestThreadState *) context;
+    while (!state->kill) {
+        BRPeerManagerRescan (state->manager);
+    }
+    return NULL;
+}
+
+int BRRunCORE629Test() {
+    UInt512 seed = UINT512_ZERO;
+
+    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+
+    BRWallet *wallet = BRWalletNew(BRMainNetParams->addrParams, NULL, 0, mpk);
+    assert (wallet);
+    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+
+    BRPeerManager *manager = BRPeerManagerNew(BRMainNetParams, wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+    assert (manager);
+    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncStopped, txStatusUpdate, NULL, NULL, NULL, NULL);
+
+    BRRunCORE629TestThreadState threadState = {0, manager};
+    pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL;
+    assert (0 == pthread_create (&connectThread, NULL, _testBRWalletManagerConnectThread, (void*) &threadState) &&
+            0 == pthread_create (&disconnectThread, NULL, _testBRWalletManagerDisconnectThread, (void*) &threadState) &&
+            0 == pthread_create (&scanThread, NULL, _testBRWalletManagerScanThread, (void*) &threadState));
+
+    sleep (5);
+    threadState.kill = 1;
+
+    assert (0 == pthread_join (connectThread, NULL) &&
+            0 == pthread_join (disconnectThread, NULL) &&
+            0 == pthread_join (scanThread, NULL));
+
+    BRPeerManagerDisconnect (manager);
+    BRPeerManagerFree (manager);
+    BRWalletFree (wallet);
+
+    // fail using asserts
+    return 0;
+}
+
+//
+//
+//
+
 int main(int argc, const char *argv[])
 {
-    int r = BRRunTests();
+    int r = BRRunCORE629Test();
 
+//    int r = BRRunTests();
+//
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
@@ -3396,6 +3475,6 @@ int main(int argc, const char *argv[])
 //    BRWalletFree(wallet);
 //    sleep(5);
 
-    return (r) ? 0 : 1;
+    return r;
 }
 #endif
