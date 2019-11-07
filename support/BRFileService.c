@@ -208,6 +208,17 @@ fileServiceCreateReturnError (BRFileService fs,
     return NULL;
 }
 
+static char *
+fileServiceCreateFilePath (const char *basePath,
+                           const char *currency,
+                           const char *network,
+                           const char *filename) {
+    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (filename) + 1;
+    char   *sdbPath      = malloc (sdbPathLength);
+    sprintf (sdbPath, "%s/%s-%s-%s", basePath, currency, network, filename);
+    return sdbPath;
+}
+
 extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
@@ -258,9 +269,7 @@ fileServiceCreate (const char *basePath,
     fs->network  = strdup (network);
 
     // Locate the SQLITE Database
-    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
-    fs->sdbPath = malloc (sdbPathLength);
-    sprintf (fs->sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+    fs->sdbPath = fileServiceCreateFilePath (basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
 
     // Create/Open the SQLITE Database
     sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
@@ -826,11 +835,12 @@ fileServiceWipe (const char *basePath,
                  const char *network) {
 
     // Locate the SQLITE Database
-     size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
-     char   *sdbPath      = malloc (sdbPathLength);
-     sprintf (sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+    char *sdbPath = fileServiceCreateFilePath (basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
 
-    return 0 == remove (sdbPath) ? 0 : errno;
+    // Remove it.
+    int   result  = 0 == remove (sdbPath) ? 0 : errno;
+    free (sdbPath);
+    return result;
 }
 
 extern UInt256
