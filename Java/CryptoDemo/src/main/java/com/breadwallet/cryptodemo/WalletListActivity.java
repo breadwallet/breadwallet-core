@@ -112,9 +112,6 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             case R.id.action_sync:
                 sync();
                 return true;
-            case R.id.action_reset:
-                reset();
-                return true;
             case R.id.action_wipe:
                 wipe();
                 return true;
@@ -249,13 +246,6 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
     private void updateFees() {
         ApplicationExecutors.runOnBlockingExecutor(() -> CoreCryptoApplication.getSystem().updateNetworkFees(null));
-    }
-
-    private void reset() {
-        ApplicationExecutors.runOnBlockingExecutor(() -> {
-            CoreCryptoApplication.resetSystem();
-            runOnUiThread(this::recreate);
-        });
     }
 
     private void wipe() {
