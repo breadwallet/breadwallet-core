@@ -25,6 +25,8 @@ extern int BRRunSupTests (void);
 
 extern int BRRunTests();
 
+extern int BRRunCORE629Test();
+
 extern int BRRunTestsSync (const char *paperKey,
                            int isBTC,
                            int isMainnet);
