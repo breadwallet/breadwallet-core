@@ -39,6 +39,20 @@ rippleWalletCreate (BRRippleAccount account)
     BRRippleWallet wallet = (BRRippleWallet) calloc (1, sizeof(struct BRRippleWalletRecord));
     array_new(wallet->transfers, 0);
     wallet->account = account;
+    wallet->balance = 0;
+    wallet->feeBasis = (BRRippleFeeBasis) {
+        10, 1
+    };
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+
+        pthread_mutex_init(&wallet->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     return wallet;
 }
 
@@ -46,6 +60,7 @@ extern void
 rippleWalletFree (BRRippleWallet wallet)
 {
     if (wallet) {
+        pthread_mutex_destroy (&wallet->lock);
         array_free(wallet->transfers);
         free(wallet);
     }
@@ -131,16 +146,17 @@ static bool rippleTransferEqual(BRRippleTransfer t1, BRRippleTransfer t2) {
 static bool
 walletHasTransfer (BRRippleWallet wallet, BRRippleTransfer transfer) {
     bool r = false;
-    pthread_mutex_lock (&wallet->lock);
     for (size_t index = 0; index < array_count(wallet->transfers) && false == r; index++) {
         r = rippleTransferEqual (transfer, wallet->transfers[index]);
     }
-    pthread_mutex_unlock (&wallet->lock);
     return r;
 }
 
 extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer transfer) {
-    return walletHasTransfer (wallet, transfer);
+    pthread_mutex_lock (&wallet->lock);
+    int result = walletHasTransfer (wallet, transfer);
+    pthread_mutex_unlock (&wallet->lock);
+    return result;
 }
 
 extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer)
