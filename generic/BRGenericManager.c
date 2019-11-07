@@ -312,6 +312,11 @@ genManagerCreate (BRGenericClient client,
 extern void
 genManagerRelease (BRGenericManager gwm) {
     genManagerDisconnect (gwm);
+    genWalletRelease (gwm->wallet);
+
+    fileServiceRelease (gwm->fileService);
+    eventHandlerDestroy (gwm->handler);
+    free (gwm->storagePath);
     free (gwm);
 }
 
