@@ -1399,7 +1399,7 @@ BRRunTestWalletManagerFileService (const char *storagePath) {
     BRTransactionFree(tx);
     BRTransactionFree(tx2);
     BRSetFree (transactionSet);
-    
+
     ///
     /// Peer
     ///
@@ -1425,7 +1425,7 @@ BRRunTestWalletManagerFileService (const char *storagePath) {
 
     free(p2);
     BRSetFree(peerSet);
-    
+
     fileServiceClose(fs);
     fileServiceRelease(fs);
 
