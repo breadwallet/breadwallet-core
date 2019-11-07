@@ -218,7 +218,7 @@ extern "C" {
     genManagerGetAccountAddress (BRGenericManager gwm);
 
     extern BRGenericWallet
-    genManagerCreatePrimaryWallet (BRGenericManager gwm);
+    genManagerGetPrimaryWallet (BRGenericManager gwm);
 
     extern BRGenericAccount
     genManagerGetAccount (BRGenericManager gwm);

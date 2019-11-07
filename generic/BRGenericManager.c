@@ -59,6 +59,9 @@ struct BRGenericManagerRecord {
     BRGenericClient client;
     char *storagePath;
 
+    /** The primary wallet */
+    BRGenericWallet wallet;
+
     /** The file service */
     BRFileService fileService;
 
@@ -156,7 +159,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                             : GENERIC_TRANSFER_BLOCK_NUMBER_UNKNOWN);
 
     // Derive `wallet` from currency
-    BRGenericWallet  wallet = genManagerCreatePrimaryWallet (gwm);
+    BRGenericWallet  wallet = genManagerGetPrimaryWallet (gwm);
 
     BRGenericTransfer transfer = genManagerRecoverTransfer (gwm, wallet, strHash,
                                           strSource,
@@ -254,6 +257,7 @@ genManagerCreate (BRGenericClient client,
     gwm->network = network;
     gwm->account = account;
     gwm->client  = client;
+    gwm->wallet  = genWalletCreate (account);
     gwm->storagePath = strdup (storagePath);
     gwm->blockHeight = (uint32_t) blockHeight;
     gwm->requestId = 0;
@@ -341,6 +345,11 @@ genManagerGetClient (BRGenericManager gwm) {
     return gwm->client;
 }
 
+extern BRGenericWallet
+genManagerGetPrimaryWallet (BRGenericManager gwm) {
+   return gwm->wallet;
+}
+
 extern void
 genManagerConnect (BRGenericManager gwm) {
     eventHandlerStart (gwm->handler);
@@ -361,11 +370,6 @@ genManagerSync (BRGenericManager gwm) {
 extern BRGenericAddress
 genManagerGetAccountAddress (BRGenericManager gwm) {
     return genAccountGetAddress (gwm->account);
-}
-
-extern BRGenericWallet
-genManagerCreatePrimaryWallet (BRGenericManager gwm) {
-    return genWalletCreate(gwm->account);
 }
 
 extern int

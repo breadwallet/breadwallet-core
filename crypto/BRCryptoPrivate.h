@@ -378,7 +378,7 @@ extern "C" {
     cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
                              BRGenericManager gwm,
-                             BRGenericWallet wid);
+                             OwnershipKept BRGenericWallet wid);
 
     private_extern BRCryptoTransfer
     cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
