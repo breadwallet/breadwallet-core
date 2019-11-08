@@ -7,6 +7,12 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    externalNativeBuild {
+        cmake {
+            path project(':CoreNative').androidCMakeListsFile
+        }
+    }
+
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 28
@@ -14,6 +20,13 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            // Specifies the ABI configurations of your native
+            // libraries Gradle should build and package with your APK.
+            abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            //, 'armeabi' (not supported by NDK 17.0.4754217)
+        }
     }
 
     buildTypes {
@@ -26,6 +39,11 @@ android {
             debuggable true
             jniDebuggable true
             minifyEnabled false
+            externalNativeBuild {
+                cmake {
+                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
+                }
+            }
         }
     }
 
@@ -36,14 +54,18 @@ android {
         ignoreWarnings false
         checkReleaseBuilds false
     }
+
+    sourceSets {
+        main {
+            java.srcDirs = project(':CoreNative').javaMainSrcDirs
+        }
+    }
 }
 
 dependencies {
-    api project(':Crypto')
+    api 'net.java.dev.jna:jna:5.4.0@aar'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.guava:guava:25.1-android'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation project(':CoreNative-Android')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

@@ -1,1 +1,1 @@
-include ':Crypto', ':CryptoDemo', ':CoreNative', ':CoreCrypto'
+include ':Crypto', ':CryptoDemo', ':CoreNative', ':CoreNative-Android', ':CoreCrypto'
