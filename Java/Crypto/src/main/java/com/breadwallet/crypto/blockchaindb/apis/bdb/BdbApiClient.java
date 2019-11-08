@@ -8,7 +8,6 @@
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
@@ -35,6 +34,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -46,12 +47,11 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 public class BdbApiClient {
 
-    private static final String TAG = BdbApiClient.class.getName();
+    private static final Logger Log = Logger.getLogger(BdbApiClient.class.getName());
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -182,7 +182,7 @@ public class BdbApiClient {
                                         ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         HttpUrl httpUrl = urlBuilder.build();
-        Log.d(TAG, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
+        Log.log(Level.FINE, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
@@ -210,7 +210,7 @@ public class BdbApiClient {
         }
 
         HttpUrl httpUrl = urlBuilder.build();
-        Log.d(TAG, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
+        Log.log(Level.FINE, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
@@ -228,7 +228,7 @@ public class BdbApiClient {
                 if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
-                            Log.e(TAG, "response failed with null body");
+                            Log.log(Level.SEVERE, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
                             T data = null;
@@ -236,7 +236,7 @@ public class BdbApiClient {
                             try {
                                 data = handler.parseResponse(responseBody.string());
                             } catch (JSONException e) {
-                                Log.e(TAG, "response failed parsing json", e);
+                                Log.log(Level.SEVERE, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
 
@@ -244,14 +244,14 @@ public class BdbApiClient {
                         }
                     }
                 } else {
-                    Log.e(TAG, "response failed with status " + responseCode);
+                    Log.log(Level.SEVERE, "response failed with status " + responseCode);
                     handler.handleError(new QueryResponseError(responseCode));
                 }
             }
 
             @Override
             public void onFailure(Call call, IOException e) {
-                Log.e(TAG, "send request failed", e);
+                Log.log(Level.SEVERE, "send request failed", e);
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });
@@ -315,7 +315,7 @@ public class BdbApiClient {
 
             } else {
                 QueryError e = new QueryModelError("Transform error");
-                Log.e(TAG, "parsing error", e);
+                Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
             }
         }
@@ -358,7 +358,7 @@ public class BdbApiClient {
 
             } else {
                 QueryError e = new QueryModelError("Transform error");
-                Log.e(TAG, "parsing error", e);
+                Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
             }
         }
@@ -400,7 +400,7 @@ public class BdbApiClient {
 
             } else {
                 QueryError e = new QueryModelError("Transform error");
-                Log.e(TAG, "parsing error", e);
+                Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
             }
         }

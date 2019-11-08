@@ -1,53 +1,13 @@
-apply plugin: 'com.android.library'
+apply plugin: 'java-library'
 
-android {
-    compileSdkVersion 28
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
-            buildConfigField 'String', 'API_BASE_URL', '"https://api.breadwallet.com"'
-        }
-
-        debug {
-            debuggable true
-            jniDebuggable true
-            minifyEnabled false
-            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
-            buildConfigField 'String', 'API_BASE_URL', '"https://stage2.breadwallet.com"'
-        }
-    }
-
-    lintOptions {
-        quiet false
-        explainIssues true
-        abortOnError true
-        ignoreWarnings false
-        checkReleaseBuilds false
-    }
-}
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 dependencies {
     api 'com.google.guava:guava:25.1-android'
     api 'com.squareup.okhttp3:okhttp:4.2.0'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'org.json:json:20190722'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

@@ -9,7 +9,6 @@ package com.breadwallet.crypto.blockchaindb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.BuildConfig;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.BlockApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.BlockchainApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.CurrencyApi;
@@ -49,8 +48,8 @@ import okhttp3.Request;
 
 public class BlockchainDb {
 
-    private static final String DEFAULT_BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
-    private static final String DEFAULT_API_BASE_URL = BuildConfig.API_BASE_URL;
+    private static final String DEFAULT_BDB_BASE_URL = "https://api.blockset.com";
+    private static final String DEFAULT_API_BASE_URL = "https://api.breadwallet.com";
     private static final DataTask DEFAULT_DATA_TASK = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
 
     private final AtomicInteger ridGenerator;

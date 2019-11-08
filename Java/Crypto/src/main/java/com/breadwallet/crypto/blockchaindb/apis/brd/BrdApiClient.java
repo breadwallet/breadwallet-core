@@ -8,11 +8,11 @@
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
+import com.breadwallet.crypto.blockchaindb.apis.bdb.BdbApiClient;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
@@ -34,6 +34,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -47,7 +49,7 @@ import okhttp3.ResponseBody;
 
 public class BrdApiClient {
 
-    private static final String TAG = BrdApiClient.class.getName();
+    private static final Logger Log = Logger.getLogger(BdbApiClient.class.getName());
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -108,7 +110,7 @@ public class BrdApiClient {
         }
 
         HttpUrl httpUrl = urlBuilder.build();
-        Log.d(TAG, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
+        Log.log(Level.FINE, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
@@ -126,7 +128,7 @@ public class BrdApiClient {
                 if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
-                            Log.e(TAG, "response failed with null body");
+                            Log.log(Level.SEVERE, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
                             T data = null;
@@ -134,7 +136,7 @@ public class BrdApiClient {
                             try {
                                 data = handler.parseResponse(responseBody.string());
                             } catch (JSONException e) {
-                                Log.e(TAG, "response failed parsing json", e);
+                                Log.log(Level.SEVERE, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
 
@@ -142,14 +144,14 @@ public class BrdApiClient {
                         }
                     }
                 } else {
-                    Log.e(TAG, "response failed with status " + responseCode);
+                    Log.log(Level.SEVERE, "response failed with status " + responseCode);
                     handler.handleError(new QueryResponseError(responseCode));
                 }
             }
 
             @Override
             public void onFailure(Call call, IOException e) {
-                Log.e(TAG, "send request failed", e);
+                Log.log(Level.SEVERE, "send request failed", e);
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });
@@ -179,7 +181,7 @@ public class BrdApiClient {
             String result = responseData.optString("result", null);
             if (result == null) {
                 QueryError e = new QueryModelError("'result' expected");
-                Log.e(TAG, "missing 'result' in response", e);
+                Log.log(Level.SEVERE, "missing 'result' in response", e);
                 handler.handleError(e);
 
             } else {
@@ -216,17 +218,17 @@ public class BrdApiClient {
 
             if (status == null) {
                 QueryError e = new QueryModelError("'status' expected");
-                Log.e(TAG, "missing 'status' in response", e);
+                Log.log(Level.SEVERE, "missing 'status' in response", e);
                 handler.handleError(e);
 
             } else if (message == null) {
                 QueryError e = new QueryModelError("'message' expected");
-                Log.e(TAG, "missing 'message' in response", e);
+                Log.log(Level.SEVERE, "missing 'message' in response", e);
                 handler.handleError(e);
 
             } else if (result == null) {
                 QueryError e = new QueryModelError("'result' expected");
-                Log.e(TAG, "missing 'result' in response", e);
+                Log.log(Level.SEVERE, "missing 'result' in response", e);
                 handler.handleError(e);
 
             } else {
@@ -235,7 +237,7 @@ public class BrdApiClient {
                     handler.handleData(data.get());
                 } else {
                     QueryError e = new QueryModelError("Transform error");
-                    Log.e(TAG, "parsing error", e);
+                    Log.log(Level.SEVERE, "parsing error", e);
                     handler.handleError(e);
                 }
             }
@@ -270,7 +272,7 @@ public class BrdApiClient {
 
             } else {
                 QueryError e = new QueryModelError("Transform error");
-                Log.e(TAG, "parsing error", e);
+                Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
             }
         }

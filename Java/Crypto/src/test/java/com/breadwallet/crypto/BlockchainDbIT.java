@@ -45,8 +45,7 @@ import okhttp3.Response;
 
 import static org.junit.Assert.*;
 
-// TODO(fix): Expand the tests defined below
-public class BlockchainDbAIT {
+public class BlockchainDbIT {
 
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
     private static final String BDB_BASE_URL = "https://api.blockset.com";
