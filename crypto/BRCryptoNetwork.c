@@ -72,6 +72,7 @@ cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
     cryptoAmountGive (networkFee->pricePerCostFactor);
     cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
 
+    memset (networkFee, 0, sizeof(*networkFee));
     free (networkFee);
 }
 
@@ -245,6 +246,8 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     free (network->uids);
     if (NULL != network->currency) cryptoCurrencyGive (network->currency);
     pthread_mutex_destroy (&network->lock);
+
+    memset (network, 0, sizeof(*network));
     free (network);
 }
 

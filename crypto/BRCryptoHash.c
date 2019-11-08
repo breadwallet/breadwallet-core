@@ -11,6 +11,7 @@
 
 #include "BRCryptoHash.h"
 #include "support/BRInt.h"
+#include "ethereum/base/BREthereumHash.h"
 #include "ethereum/util/BRUtilHex.h"
 #include "generic/BRGeneric.h"
 
@@ -65,6 +66,7 @@ cryptoHashCreateAsGEN (BRGenericHash gen) {
 
 static void
 cryptoHashRelease (BRCryptoHash hash) {
+    memset (hash, 0, sizeof(*hash));
     free (hash);
 }
 

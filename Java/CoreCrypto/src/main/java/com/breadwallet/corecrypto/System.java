@@ -254,6 +254,14 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     /* package */
+    static Optional<byte[]> migrateBRCoreKeyCiphertext(com.breadwallet.crypto.Key key,
+                                                       byte[] nonce12,
+                                                       byte[] authenticatedData,
+                                                       byte[] ciphertext) {
+        return Cipher.migrateBRCoreKeyCiphertext(key, nonce12, authenticatedData, ciphertext);
+    }
+
+    /* package */
     static void wipe(com.breadwallet.crypto.System system) {
         // Safe the path to the persistent storage
         String storagePath = system.getPath();
@@ -425,6 +433,22 @@ final class System implements com.breadwallet.crypto.System {
         addWalletManager(walletManager);
         announceSystemEvent(new SystemManagerAddedEvent(walletManager));
         return true;
+    }
+
+    @Override
+    public void wipe(com.breadwallet.crypto.Network network) {
+        boolean found = false;
+        for (WalletManager walletManager: walletManagers) {
+            if (walletManager.getNetwork().equals(network)) {
+                found = true;
+                break;
+            }
+        }
+
+        // Racy - but if there is no wallet manager for `network`... then
+        if (!found) {
+            WalletManager.wipe(Network.from(network), storagePath);
+        }
     }
 
     @Override

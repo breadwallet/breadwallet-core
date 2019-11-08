@@ -20,9 +20,6 @@
 #include "BRCryptoWallet.h"
 #include "BRCryptoWalletManagerClient.h"
 
-#include "ethereum/BREthereum.h"
-#include "bitcoin/BRWalletManager.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -240,6 +237,10 @@ extern "C" {
     cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
                                      BRCryptoWallet wallet,
                                      BRCryptoTransfer transfer);
+
+    extern void
+    cryptoWalletManagerWipe (BRCryptoNetwork network,
+                             const char *path);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 

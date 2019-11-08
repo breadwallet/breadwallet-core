@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilMath.h"
@@ -112,6 +113,8 @@ cryptoAmountCreateString (const char *value,
 static void
 cryptoAmountRelease (BRCryptoAmount amount) {
     cryptoUnitGive (amount->unit);
+
+    memset (amount, 0, sizeof(*amount));
     free (amount);
 }
 
