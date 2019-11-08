@@ -1,1 +1,1 @@
-include ':CoreDemo', ':Core', ':Crypto', ':CryptoDemo', ':CoreNative', ':CoreCrypto'
+include ':Crypto', ':CryptoDemo', ':CoreNative', ':CoreCrypto'
