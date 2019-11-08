@@ -40,10 +40,31 @@ extern "C" {
 
 #define BIP32_HARD                  0x80000000
 
-#define SEQUENCE_GAP_LIMIT_EXTERNAL 10
-#define SEQUENCE_GAP_LIMIT_INTERNAL 5
-#define SEQUENCE_EXTERNAL_CHAIN     0
-#define SEQUENCE_INTERNAL_CHAIN     1
+// Each chain has a standard gap limit, as well as an extended one. The extended
+// gap limit is used when constructing the P2P bloom filter, rather than the
+// standard one, as this construction is an "expensive" operation (requiring
+// a pause in syncing). Thus, to minimize this cost, a larger than standard
+// chain length is used to construct addresses for the filter's construction.
+//
+// A consequence of this (as found in CORE-724) is that the wallet's chains
+// need to be initialized with the extended length values. This is to avoid
+// the case where a wallet is being restored (i.e. synced from its key date,
+// with no blocks/transactions available initially) and a pending transaction
+// is reported from the mempool (based on the larger bloom filter address
+// chains). If the wallet were to be reconstructed with only that pending
+// transaction loaded from the persistent store, the logic in `BRWalletNew`
+// would not recognize the transaction as belonging to the wallet, assuming
+// that the addresses involved were beyond the standard gap limit, and the
+// function would return NULL.
+
+#define SEQUENCE_EXTERNAL_CHAIN              0
+#define SEQUENCE_INTERNAL_CHAIN              1
+
+#define SEQUENCE_GAP_LIMIT_EXTERNAL          10
+#define SEQUENCE_GAP_LIMIT_EXTERNAL_EXTENDED (SEQUENCE_GAP_LIMIT_EXTERNAL + 100)
+
+#define SEQUENCE_GAP_LIMIT_INTERNAL          5
+#define SEQUENCE_GAP_LIMIT_INTERNAL_EXTENDED (SEQUENCE_GAP_LIMIT_INTERNAL + 100)
 
 typedef struct {
     uint32_t fingerPrint;

@@ -1436,12 +1436,12 @@ BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
     assert (scanState->endBlockNumber > scanState->begBlockNumber);
 
     // generate addresses
-    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, SEQUENCE_INTERNAL_CHAIN);
 
     // save the last known external and internal addresses
-    BRWalletUnusedAddrs(wallet, &scanState->lastExternalAddress, 1, 0);
-    BRWalletUnusedAddrs(wallet, &scanState->lastInternalAddress, 1, 1);
+    BRWalletUnusedAddrs(wallet, &scanState->lastExternalAddress, 1, SEQUENCE_EXTERNAL_CHAIN);
+    BRWalletUnusedAddrs(wallet, &scanState->lastInternalAddress, 1, SEQUENCE_INTERNAL_CHAIN);
 
     // save the current requestId
     scanState->requestId = rid;
@@ -1517,14 +1517,14 @@ BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanSt
     BRArrayOf(char *) newAddresses = NULL;
 
     // generate addresses
-    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, SEQUENCE_INTERNAL_CHAIN);
 
     // get the first unused address
     BRAddress externalAddress = BR_ADDRESS_NONE;
     BRAddress internalAddress = BR_ADDRESS_NONE;
-    BRWalletUnusedAddrs (wallet, &externalAddress, 1, 0);
-    BRWalletUnusedAddrs (wallet, &internalAddress, 1, 1);
+    BRWalletUnusedAddrs (wallet, &externalAddress, 1, SEQUENCE_EXTERNAL_CHAIN);
+    BRWalletUnusedAddrs (wallet, &internalAddress, 1, SEQUENCE_INTERNAL_CHAIN);
 
     // check if the first unused addresses have changed since last completion
     if (!BRAddressEq (&externalAddress, &scanState->lastExternalAddress) ||
