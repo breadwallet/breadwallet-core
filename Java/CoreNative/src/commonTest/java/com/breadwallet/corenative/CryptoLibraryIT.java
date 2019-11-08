@@ -1,18 +1,18 @@
 package com.breadwallet.corenative;
 
-import android.content.Context;
-import android.support.test.InstrumentationRegistry;
-
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
+import com.google.common.io.Files;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.NativeLibrary;
+import com.sun.jna.Platform;
 
 import org.junit.After;
 import org.junit.Before;
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
-public class CryptoLibraryAIT {
+public class CryptoLibraryIT {
 
     private String paperKey;
     private String uids;
@@ -35,12 +35,10 @@ public class CryptoLibraryAIT {
 
     @Before
     public void setup() {
-        Context context = InstrumentationRegistry.getInstrumentation().getContext();
-
         // this is a compromised testnet paperkey
         paperKey = "ginger settle marine tissue robot crane night number ramp coast roast critic";
         uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
-        coreDataDir = new File (context.getFilesDir(), "corenative");
+        coreDataDir = Files.createTempDir();
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(2017, /* September */ 8, 6);
         epoch = (int) TimeUnit.MILLISECONDS.toSeconds(calendar.getTimeInMillis());
@@ -508,7 +506,8 @@ public class CryptoLibraryAIT {
     }
 
     public interface TestCryptoLibrary extends Library {
-        TestCryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, TestCryptoLibrary.class);
+        String JNA_LIBRARY_NAME = Platform.isAndroid() ? "crypto" : "cryptoWithTests";
+        TestCryptoLibrary INSTANCE = Native.load(JNA_LIBRARY_NAME, TestCryptoLibrary.class);
 
         int BRRunTests();
         int BRRunSupTests();

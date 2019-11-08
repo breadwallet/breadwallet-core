@@ -6,14 +6,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 # now build app's shared lib
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_STL=gnustl_static -DANDROID_TOOLCHAIN=clang")
-
-# -Wimplicit-function-declaration
-# -Wno-missing-prototypes -Werror=return-type -Wdocumentation -Wunreachable-code-aggressive -Wno-missing-braces
-# -Wparentheses -Wswitch -Wno-unused-function -Wunused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body
-# -Wconditional-uninitialized -Wno-unknown-pragmas -pedantic -Wshadow -Wfour-char-constants -Wno-conversion -Wconstant-conversion
-# -Wint-conversion -Wbool-conversion -Wenum-conversion -Wassign-enum -Wno-shorten-64-to-32 -Wpointer-sign -Wnewline-eof
-# -Wdeprecated-declarations -Wno-sign-conversion
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 #
 # sqlite3 build
@@ -365,6 +358,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
                     src/main/cpp/core/crypto/testCrypto.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
+# Setup all the include paths
 target_include_directories (crypto
                             PUBLIC
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core
@@ -375,9 +369,32 @@ target_include_directories (crypto
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/secp256k1
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/crypto)
 
-find_library (log-lib
-              log)
+# Set the DEBUG define when building DEBUG builds
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_compile_definitions(crypto
+                               PUBLIC
+                               "DEBUG"
+                               "BITCOIN_DEBUG")
+endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
+
+# Link in the static sqlite3 library
 target_link_libraries (crypto
-                       ${log-lib}
                        sqlite3)
+
+# On Android, link in the log library
+if (ANDROID)
+    find_library (log-lib
+                  log)
+    target_link_libraries (crypto
+                           ${log-lib})
+endif(ANDROID)
+
+# On Apple (iOS/macOS), link in the resolv library and Security framework
+if (APPLE)
+    find_library (log-lib
+                  log)
+    target_link_libraries (crypto
+                           "resolv"
+                           "-framework Security")
+endif(APPLE)

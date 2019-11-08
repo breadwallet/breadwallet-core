@@ -7,11 +7,13 @@
  */
 package com.breadwallet.corenative.cleaner;
 
-import android.util.Log;
-
 import java.lang.ref.ReferenceQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class ReferenceCleaner {
+
+    private static final Logger Log = Logger.getLogger(ReferenceCleaner.class.getName());
 
     /**
      * Register a runnable to be executed once all references to `referent`
@@ -24,7 +26,6 @@ public final class ReferenceCleaner {
         INSTANCE.registerRunnable(referent, runnable);
     }
 
-    private static final String TAG = ReferenceCleaner.class.getName();
     private static final ReferenceCleaner INSTANCE = new ReferenceCleaner();
 
     private final ReferenceQueue<Object> queue;
@@ -58,14 +59,14 @@ public final class ReferenceCleaner {
                 try {
                     ref = (Reference) queue.remove();
                 } catch (ClassCastException | InterruptedException e) {
-                    Log.e(TAG, "Error pumping queue", e);
+                    Log.log(Level.SEVERE, "Error pumping queue", e);
                     continue;
                 }
 
                 try {
                     ref.run();
                 } catch (Throwable t) {
-                    Log.e(TAG, "Error cleaning up", t);
+                    Log.log(Level.SEVERE, "Error cleaning up", t);
                 }
             }
         }

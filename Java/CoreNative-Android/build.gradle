@@ -9,7 +9,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path project(':CoreNative').androidCMakeListsFile
+            path project(':CoreNative').cmakeCMakeListsFile
         }
     }
 
@@ -20,6 +20,12 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=none", "-DANDROID_TOOLCHAIN=clang"
+            }
+        }
 
         ndk {
             // Specifies the ABI configurations of your native
@@ -39,11 +45,6 @@ android {
             debuggable true
             jniDebuggable true
             minifyEnabled false
-            externalNativeBuild {
-                cmake {
-                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
-                }
-            }
         }
     }
 
@@ -57,7 +58,15 @@ android {
 
     sourceSets {
         main {
-            java.srcDirs = project(':CoreNative').javaMainSrcDirs
+            java {
+                srcDirs = [project(':CoreNative').javaMainSrcDir]
+            }
+
+        }
+        androidTest {
+            java {
+                srcDirs = [project(':CoreNative').javaTestSrcDir]
+            }
         }
     }
 }
