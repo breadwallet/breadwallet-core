@@ -730,6 +730,81 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
+extern BRCryptoComparison
+cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2) {
+    // early bail when comparing the same transfer
+    if (CRYPTO_TRUE == cryptoTransferEqual (transfer1, transfer2)) {
+        return CRYPTO_COMPARE_EQ;
+    }
+
+    // The algorithm below is captured in the cryptoTransferCompare declaration
+    // comments; any changes to this routine must be reflected in that comment
+    // and vice versa).
+    //
+    // The algorithm includes timestamp as a differentiator despite the fact that
+    // timestamp is likely derived from the block. Thus, an occurrence where timestamp
+    // is different while block value is the same is unlikely. Regardless, this check
+    // is included to handle cases where that assumption does not hold.
+    //
+    // Another reason to include timestamp is if this function were used to order
+    // transfers across different wallets. While not anticipated to be a common use
+    // case, there is not enough information available in the transfer object to
+    // preclude it from happening. Checking on the `type` field is insufficient
+    // given that GEN will handle multiple cases. While block number and transaction
+    // index are meaningless comparables between wallets, ordering by timestamp
+    // does provide some value.
+
+    BRCryptoComparison compareValue;
+    BRCryptoTransferState state1 = cryptoTransferGetState (transfer1);
+    BRCryptoTransferState state2 = cryptoTransferGetState (transfer2);
+
+    // neither transfer is included
+    if (state1.type != CRYPTO_TRANSFER_STATE_INCLUDED &&
+        state2.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // we don't have anything to sort on other than identity
+        compareValue = (uintptr_t) transfer1 > (uintptr_t) transfer2 ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // transfer1 is NOT included (and transfer2 is)
+    } else if (state1.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // return "greater than" for transfer1
+        compareValue = CRYPTO_COMPARE_GT;
+
+    // transfer2 is NOT included (and transfer1 is)
+    } else if (state2.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // return "lesser than" for transfer1
+        compareValue = CRYPTO_COMPARE_LT;
+
+    // both are included, check if the timestamp differs
+    } else if (state1.u.included.timestamp != state2.u.included.timestamp) {
+        // return based on the greater timestamp
+        compareValue = state1.u.included.timestamp > state2.u.included.timestamp ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp, check if the block differs
+    } else if (state1.u.included.blockNumber != state2.u.included.blockNumber) {
+        // return based on the greater block number
+        compareValue = state1.u.included.blockNumber > state2.u.included.blockNumber ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp and block, check if the index differs
+    } else if (state1.u.included.transactionIndex != state2.u.included.transactionIndex) {
+        // return based on the greater index
+        compareValue = state1.u.included.transactionIndex > state2.u.included.transactionIndex ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp, block and index
+    } else {
+        // we are out of differentiators, return "equal"
+        compareValue = CRYPTO_COMPARE_EQ;
+    }
+
+    // clean up on the way out
+    cryptoTransferStateRelease (&state1);
+    cryptoTransferStateRelease (&state2);
+    return compareValue;
+}
+
 private_extern void
 cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
                                 uint8_t **bytes,
