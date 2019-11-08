@@ -64,6 +64,8 @@ getNetworkName (const BRChainParams *params) {
         params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "testnet";
 
+    // this should never happen!
+    assert (0);
     return NULL;
 }
 
@@ -77,6 +79,8 @@ getCurrencyName (const BRChainParams *params) {
         params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "bch";
 
+    // this should never happen!
+    assert (0);
     return NULL;
 }
 
@@ -894,11 +898,38 @@ static_on_release size_t fileServiceSpecificationsCount = (sizeof (fileServiceSp
 
 static BRWalletManager
 bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
-    if (NULL != bwm) free (bwm);
-    if (fileService)
+    if (fileService) {
         _peer_log ("bread: on bwmCreate: FileService Error: %s", reason);
-    else
+    } else {
         _peer_log ("bread: on bwmCreate: Error: %s", reason);
+    }
+
+    if (NULL != bwm) {
+        if (NULL != bwm->handler) {
+            eventHandlerDestroy (bwm->handler);
+        }
+
+        if (NULL != bwm->fileService) {
+            fileServiceRelease (bwm->fileService);
+        }
+
+        if (NULL != bwm->syncManager) {
+            BRSyncManagerFree (bwm->syncManager);
+        }
+
+        if (NULL != bwm->transactions) {
+            BRWalletManagerFreeTransactions (bwm);
+        }
+
+        if (NULL != bwm->wallet) {
+            BRWalletFree (bwm->wallet);
+        }
+
+        pthread_mutex_destroy (&bwm->lock);
+
+        memset (bwm, 0, sizeof(*bwm));
+        free (bwm);
+    }
 
     return NULL;
 }
@@ -915,16 +946,15 @@ BRWalletManagerNew (BRWalletManagerClient client,
     assert (mode == SYNC_MODE_BRD_ONLY || SYNC_MODE_P2P_ONLY);
 
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
-    if (NULL == bwm) return bwmCreateErrorHandler (NULL, 0, "allocate");
+    if (NULL == bwm) {
+        return bwmCreateErrorHandler (NULL, 0, "allocate");
+    }
 
     bwm->mode = mode;
     bwm->client = client;
     bwm->chainParams = params;
     bwm->earliestKeyTime = earliestKeyTime;
     bwm->sleepWakeupsForSyncTickTock = 0;
-
-    const char *networkName  = getNetworkName  (params);
-    const char *currencyName = getCurrencyName (params);
 
     {
         pthread_mutexattr_t attr;
@@ -954,12 +984,16 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
+    const char *networkName  = getNetworkName  (params);
+    const char *currencyName = getCurrencyName (params);
     bwm->fileService = fileServiceCreateFromTypeSpecfications (baseStoragePath, currencyName, networkName,
                                                                bwm,
                                                                bwmFileServiceErrorHandler,
                                                                fileServiceSpecificationsCount,
                                                                fileServiceSpecifications);
-    if (NULL == bwm->fileService) return bwmCreateErrorHandler (bwm, 1, "create");
+    if (NULL == bwm->fileService) {
+        return bwmCreateErrorHandler (bwm, 1, "create");
+    }
 
     /// Load transactions for the wallet manager.
     BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(bwm);
@@ -985,6 +1019,12 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     // Create the Wallet being managed and populate with the loaded transactions
     bwm->wallet = BRWalletNew (params->addrParams, transactions, array_count(transactions), mpk);
+    if (NULL == bwm->wallet) {
+        array_free(transactions); array_free(blocks); array_free(peers);
+        return bwmCreateErrorHandler (bwm, 0, "wallet");
+    }
+
+    // Set the callbacks if the wallet has been created successfully
     BRWalletSetCallbacks (bwm->wallet, bwm,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,
