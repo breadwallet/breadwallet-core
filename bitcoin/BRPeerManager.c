@@ -1132,18 +1132,55 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
     return r;
 }
 
+static void _peerRelayedBlockFailed (BRMerkleBlock *blockToFree, BRPeer *peer, const char *message) {
+    if (NULL != blockToFree) BRMerkleBlockFree (blockToFree);
+    if (NULL != peer) peer_log (peer, "peerRelayedBlock: %s", message);
+    else _peer_log ("peerRelayedBlock: %s", message);
+
+    // In debug builds, assert
+    assert (0);
+}
+
 static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
+    if (NULL == info || NULL == block) {
+        _peerRelayedBlockFailed (block, NULL, "missed 'info' or 'block'");
+        return;
+    }
+
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
-    UInt256 _txHashes[128], *txHashes = (txCount <= 128) ? _txHashes : malloc(txCount*sizeof(UInt256));
     size_t i, j, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;
-    
+
+    if (NULL == peer || NULL == manager) {
+        _peerRelayedBlockFailed (block, peer, "missed 'peer' or 'manager'");
+        return;
+    }
+
+    // Check manager - ensure anything dereferenced subsequently is valid
+    if (NULL == manager->blocks ||
+        NULL == manager->wallet ||
+        NULL == manager->lastBlock ||
+        NULL == manager->downloadPeer) {
+        _peerRelayedBlockFailed (block, peer, "missed 'manager' fields");
+        return;
+    }
+
+    // Check block - ensure anything dereferenced subsequently is valid.  The only pointers in
+    // block are: txHashes and flags, both of which can be NULL.
+    if ((NULL == block->hashes && 0 != block->hashesCount) ||
+        (NULL == block->flags  && 0 != block->flagsLen)) {
+        _peerRelayedBlockFailed (block, peer, "missed 'block' fields");
+        return;
+    }
+
+    size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
+    UInt256 _txHashes[128], *txHashes = (txCount <= 128) ? _txHashes : malloc(txCount*sizeof(UInt256));
     assert(txHashes != NULL);
     txCount = BRMerkleBlockTxHashes(block, txHashes, txCount);
+
     pthread_mutex_lock(&manager->lock);
     prev = BRSetGet(manager->blocks, &block->prevBlock);
 
@@ -1255,7 +1292,11 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         b = manager->lastBlock;
         while (b && b->height > block->height) b = BRSetGet(manager->blocks, &b->prevBlock); // is block in main chain?
 
-        assert (NULL != b);
+        if (NULL == b) {
+            _peerRelayedBlockFailed (block, peer, "In 'already have a block' missed 'b'");
+            return;
+        }
+
         if (BRMerkleBlockEq(b, block)) { // if it's not on a fork, set block heights for its transactions
             if (txCount > 0) BRWalletUpdateTransactions(manager->wallet, txHashes, txCount, block->height, txTime);
             if (block->height == manager->lastBlock->height) manager->lastBlock = block;
@@ -1284,6 +1325,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     else { // new block is on a fork
         peer_log(peer, "chain fork reached height %"PRIu32, block->height);
         BRSetAdd(manager->blocks, block);
+        // The `block` has been added to `manager->blocks`; do not free.
 
         // TODO: calculate chain work and use that instead of block height to determine longest chain
         if (block->height > manager->lastBlock->height) { // check if fork is now longer than main chain
@@ -1295,8 +1337,10 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 if (b && b->height < b2->height) b2 = BRSetGet(manager->blocks, &b2->prevBlock);
             }
 
-            assert (NULL != b);
-            assert (NULL != block);
+            if (NULL == b) {
+                _peerRelayedBlockFailed (NULL, peer, "In 'on a fork' missed 'b'");
+                return;
+            }
             peer_log(peer, "reorganizing chain from height %"PRIu32", new height is %"PRIu32, b->height, block->height);
         
             BRWalletSetTxUnconfirmedAfter(manager->wallet, b->height); // mark tx after the join point as unconfirmed
@@ -1310,7 +1354,10 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 if (count > txCount) {
                     txHashes = (txHashes != _txHashes) ? realloc(txHashes, count*sizeof(*txHashes)) :
                                malloc(count*sizeof(*txHashes));
-                    assert(txHashes != NULL);
+                    if (NULL == txHashes) {
+                        _peerRelayedBlockFailed (NULL, peer, "In 'on a fork' missed 'txHashes'");
+                        return;
+                    }
                     txCount = count;
                 }
                 
@@ -1342,7 +1389,10 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRMerkleBlock *saveBlocks[saveCount];
     
     for (i = 0, b = block; b && i < saveCount; i++) {
-        assert(b->height != BLOCK_UNKNOWN_HEIGHT); // verify all blocks to be saved are in the chain
+        if (b->height == BLOCK_UNKNOWN_HEIGHT) {
+            _peerRelayedBlockFailed (NULL, peer, "In 'save' missed 'height'");
+            return;
+        }
         saveBlocks[i] = b;
         b = BRSetGet(manager->blocks, &b->prevBlock);
     }
@@ -1350,7 +1400,10 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     // make sure the set of blocks to be saved starts at a difficulty interval
     j = (i > 0) ? saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL : 0;
     if (j > 0) i -= (i > BLOCK_DIFFICULTY_INTERVAL - j) ? BLOCK_DIFFICULTY_INTERVAL - j : i;
-    assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
+    if (i != 0 && (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) != 0) {
+        _peerRelayedBlockFailed (NULL, peer, "In 'save' missed 'difficulty'");
+        return;
+    }
     if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, (i > 1 ? 1 : 0), saveBlocks, i);
     pthread_mutex_unlock(&manager->lock);
     
