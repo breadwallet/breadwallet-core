@@ -1011,12 +1011,12 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
 
             // Reset the height that we've synced to (don't go behind and the initBlockHeight
             // and don't go past the current sync height so that we don't we miss transactions)
+            uint32_t calcHeight = _calculateSyncDepthHeight (depth,
+                                                             manager->chainParams,
+                                                             manager->networkBlockHeight,
+                                                             lastConfirmedSendTx);
             manager->syncedBlockHeight = MAX (manager->initBlockHeight,
-                                              MIN (_calculateSyncDepthHeight (depth,
-                                                                              manager->chainParams,
-                                                                              manager->networkBlockHeight,
-                                                                              lastConfirmedSendTx),
-                                                   manager->syncedBlockHeight));
+                                              MIN (calcHeight, manager->syncedBlockHeight));
         }
 
         // Send event while holding the state lock so that event
@@ -1583,15 +1583,15 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     // verifies data it receives from the network.
     manager->confirmationsUntilFinal   = confirmationsUntilFinal;
     manager->networkBlockHeight        = MAX (checkpointBlockHeight, blockHeight);
-    manager->successfulScanBlockHeight = manager->networkBlockHeight;
+    manager->successfulScanBlockHeight = (uint32_t) MIN (manager->networkBlockHeight, UINT32_MAX);
     manager->isConnected               = 0;
     manager->isNetworkReachable        = isNetworkReachable;
 
     manager->peerManager = BRPeerManagerNew (params,
                                              wallet,
                                              earliestKeyTime,
-                                             blocks, array_count(blocks),
-                                             peers,  array_count(peers));
+                                             blocks, blocksCount,
+                                             peers,  peersCount);
 
     BRPeerManagerSetCallbacks (manager->peerManager,
                                manager,
@@ -1675,11 +1675,13 @@ static void
 BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
                              BRSyncDepth depth,
                              OwnershipKept BRTransaction *lastConfirmedSendTx) {
-    uint32_t scanHeight = MIN (_calculateSyncDepthHeight (depth,
-                                                          manager->chainParams,
-                                                          BRPeerSyncManagerGetBlockHeight (manager),
-                                                          lastConfirmedSendTx),
-                               BRPeerManagerLastBlockHeight (manager->peerManager));
+    uint32_t calcHeight = _calculateSyncDepthHeight (depth,
+                                                     manager->chainParams,
+                                                     BRPeerSyncManagerGetBlockHeight (manager),
+                                                     lastConfirmedSendTx);
+    uint32_t lastHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
+    uint32_t scanHeight = MIN (calcHeight, lastHeight);
+
     if (0 != scanHeight) {
         BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
     } else {
