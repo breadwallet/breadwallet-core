@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/CoreCrypto/CoreCrypto.iml" filepath="$PROJECT_DIR$/CoreCrypto/CoreCrypto.iml" />
+      <module fileurl="file://$PROJECT_DIR$/CoreCrypto-Android/CoreCrypto-Android.iml" filepath="$PROJECT_DIR$/CoreCrypto-Android/CoreCrypto-Android.iml" />
       <module fileurl="file://$PROJECT_DIR$/CoreNative/CoreNative.iml" filepath="$PROJECT_DIR$/CoreNative/CoreNative.iml" />
       <module fileurl="file://$PROJECT_DIR$/CoreNative-Android/CoreNative-Android.iml" filepath="$PROJECT_DIR$/CoreNative-Android/CoreNative-Android.iml" />
       <module fileurl="file://$PROJECT_DIR$/CoreNative-JRE/CoreNative-JRE.iml" filepath="$PROJECT_DIR$/CoreNative-JRE/CoreNative-JRE.iml" />
