@@ -4,10 +4,11 @@ sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 dependencies {
-    api 'com.google.guava:guava:25.1-android'
-    api 'com.squareup.okhttp3:okhttp:4.2.0'
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'org.json:json:20190722'
-    testImplementation 'junit:junit:4.12'
+    api deps.guavaAndroid
+    api deps.okhttp
+
+    implementation deps.androidAppCompatV7
+    implementation deps.orgJson
+
+    testImplementation deps.junit
 }

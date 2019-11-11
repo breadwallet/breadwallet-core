@@ -1,19 +1,23 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion androidConfig.compileSdkVersion
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
     defaultConfig {
-        applicationId "com.breadwallet.cryptodemo"
-        minSdkVersion 23
-        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
+
+        minSdkVersion androidConfig.minSdkVersion
+        targetSdkVersion androidConfig.targetSdkVersion
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        applicationId "com.breadwallet.cryptodemo"
     }
 
     buildTypes {
@@ -43,13 +47,14 @@ android {
 
 dependencies {
     implementation project(':CoreCrypto-Android')
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support:recyclerview-v7:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-    implementation 'com.google.guava:guava:25.1-android'
-    implementation 'com.squareup.okhttp3:okhttp:4.2.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation deps.androidAppCompatV7
+    implementation deps.androidRecyclerView
+    implementation deps.androidConstraintLayout
+    implementation deps.guavaAndroid
+    implementation deps.okhttp
+
+    testImplementation deps.junit
+
+    androidTestImplementation deps.androidTestRunner
+    androidTestImplementation deps.androidTestEspresso
 }

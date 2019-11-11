@@ -1,38 +1,24 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion androidConfig.compileSdkVersion
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    externalNativeBuild {
-        cmake {
-            path project(':CoreNative').cmakeCMakeListsFile
-        }
-    }
-
     defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
 
+        minSdkVersion androidConfig.minSdkVersion
+        targetSdkVersion androidConfig.targetSdkVersion
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-        externalNativeBuild {
-            cmake {
-                arguments "-DANDROID_STL=none", "-DANDROID_TOOLCHAIN=clang"
-            }
-        }
-
-        ndk {
-            // Specifies the ABI configurations of your native
-            // libraries Gradle should build and package with your APK.
-            abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-            //, 'armeabi' (not supported by NDK 17.0.4754217)
-        }
+        externalNativeBuild.cmake.arguments "-DANDROID_STL=none", "-DANDROID_TOOLCHAIN=clang"
+        ndk.abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
     }
 
     buildTypes {
@@ -69,13 +55,17 @@ android {
             }
         }
     }
+
+    externalNativeBuild.cmake.path project(':CoreNative').cmakeCMakeListsFile
 }
 
 dependencies {
-    api 'net.java.dev.jna:jna:5.4.0@aar'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.google.guava:guava:25.1-android'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    api deps.jnaAndroid
+
+    implementation deps.guavaAndroid
+
+    testImplementation deps.junit
+
+    androidTestImplementation deps.androidTestRunner
+    androidTestImplementation deps.androidTestEspresso
 }

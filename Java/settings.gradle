@@ -1,1 +1,7 @@
-include ':Crypto', ':CryptoDemo', ':CoreNative', ':CoreNative-Android', ':CoreNative-JRE', ':CoreCrypto', ':CoreCrypto-Android'
+include ':Crypto'
+include ':CryptoDemo'
+include ':CoreNative'
+include ':CoreNative-Android'
+include ':CoreNative-JRE'
+include ':CoreCrypto'
+include ':CoreCrypto-Android'

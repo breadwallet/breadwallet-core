@@ -1,17 +1,19 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion androidConfig.compileSdkVersion
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
     defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
+
+        minSdkVersion androidConfig.minSdkVersion
+        targetSdkVersion androidConfig.targetSdkVersion
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
@@ -46,11 +48,13 @@ android {
 
 dependencies {
     api project(':Crypto')
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.google.guava:guava:25.1-android'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+
     implementation project(':CoreNative-Android')
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation deps.guavaAndroid
+    implementation deps.androidAppCompatV7
+
+    testImplementation deps.junit
+
+    androidTestImplementation deps.androidTestRunner
+    androidTestImplementation deps.androidTestEspresso
 }
