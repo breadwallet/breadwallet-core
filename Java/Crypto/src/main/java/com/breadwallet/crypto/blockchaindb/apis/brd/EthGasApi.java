@@ -12,7 +12,7 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.json.JSONObject;
+import java.util.Map;
 
 public class EthGasApi {
 
@@ -23,12 +23,12 @@ public class EthGasApi {
     }
 
     public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_gasPrice",
                 "params", ImmutableList.of(),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, handler);
     }
@@ -41,12 +41,12 @@ public class EthGasApi {
         if (!amount.equals("0x")) paramsBuilder.put("value", amount);
         if (!data.equals("0x")) paramsBuilder.put("data", data);
 
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_estimateGas",
                 "params", ImmutableList.of(paramsBuilder.build()),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, handler);
     }

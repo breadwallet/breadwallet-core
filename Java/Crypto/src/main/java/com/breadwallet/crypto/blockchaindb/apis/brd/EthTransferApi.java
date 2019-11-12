@@ -22,10 +22,9 @@ import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.google.common.primitives.UnsignedLongs;
 
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -41,22 +40,22 @@ public class EthTransferApi {
 
     public void submitTransactionAsEth(String networkName, String transaction, int rid,
                                        CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_sendRawTransaction",
                 "params", ImmutableList.of(transaction),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
                                      int rid, CompletionHandler<List<EthTransaction>, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "id", rid,
                 "account", address
-        ));
+        );
 
         ImmutableMultimap<String, String> params = ImmutableListMultimap.of(
                 "module", "account",
@@ -66,17 +65,17 @@ public class EthTransferApi {
                 "endBlock", String.valueOf(endBlockNumber)
         );
 
-        client.sendQueryForArrayRequest(networkName, params, json, EthTransaction::asTransactions, handler);
+        client.sendQueryForArrayRequest(networkName, params, json, EthTransaction[].class, handler);
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
                               CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getTransactionCount",
                 "params", ImmutableList.of(address, "latest"),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, handler);
     }
@@ -84,9 +83,9 @@ public class EthTransferApi {
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
                              UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid,
                              CompletionHandler<List<EthLog>, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "id", rid
-        ));
+        );
 
         ImmutableListMultimap.Builder<String, String> paramsBuilders = ImmutableListMultimap.builder();
         paramsBuilders.put("module", "logs");
@@ -102,7 +101,7 @@ public class EthTransferApi {
             paramsBuilders.put("address", contract);
         }
 
-        client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog::asLogs, handler);
+        client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog[].class, handler);
     }
 
     public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
@@ -222,7 +221,7 @@ public class EthTransferApi {
 
             for (EthTransaction transaction : transactions) {
 
-                boolean include = (0 != (interestsAsInt & (1 << 0)) && address.equalsIgnoreCase(transaction.getSourceAddr())) ||
+                boolean include = (0 != (interestsAsInt & (1)) && address.equalsIgnoreCase(transaction.getSourceAddr())) ||
                         (0 != (interestsAsInt & (1 << 1)) && address.equalsIgnoreCase(transaction.getTargetAddr()));
                 if (include) {
                     try {

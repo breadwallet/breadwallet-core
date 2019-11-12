@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
-import org.json.JSONObject;
+import java.util.Map;
 
 public class EthBalanceApi {
 
@@ -26,21 +26,21 @@ public class EthBalanceApi {
 
     public void getBalanceAsEth(String networkName, String address, int rid,
                                 CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getBalance",
                 "params", ImmutableList.of(address, "latest"),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
                                 CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "id", rid
-        ));
+        );
 
         ImmutableMultimap<String, String> params = ImmutableListMultimap.of(
                 "module", "account",

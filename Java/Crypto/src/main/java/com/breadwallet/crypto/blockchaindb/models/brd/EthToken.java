@@ -11,88 +11,53 @@ import android.support.annotation.Nullable;
 
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
+import com.google.gson.annotations.SerializedName;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class EthToken {
 
-    public static Optional<EthToken> asToken(JSONObject json) {
-        try {
-            String name = json.getString("name");
-            String symbol = json.getString("code");
-            String address = json.getString("contract_address");
-            UnsignedInteger decimals = UnsignedInteger.valueOf(json.getLong("scale"));
-            String description = String.format("Token for %s", symbol);
+    @SerializedName("contract_address")
+    private String address;
 
-            return Optional.of(new EthToken(address, symbol, name, description, decimals, null, null));
-        } catch (JSONException e) {
-            return Optional.absent();
-        }
-    }
+    @SerializedName("code")
+    private String symbol;
 
-    public static Optional<List<EthToken>> asTokens(JSONArray json) {
-        List<EthToken> objs = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject obj = json.optJSONObject(i);
-            if (obj == null) {
-                return Optional.absent();
-            }
+    private String name;
 
-            Optional<EthToken> opt = EthToken.asToken(obj);
-            if (!opt.isPresent()) {
-                return Optional.absent();
-            }
+    @SerializedName("scale")
+    private Long decimals;
 
-            objs.add(opt.get());
-        }
-        return Optional.of(objs);
-    }
-
-    private final String address;
-    private final String symbol;
-    private final String name;
-    private final String description;
-    private final UnsignedInteger decimals;
+    // TODO(fix): defaultGasLimit and defaultGasPrice are not present in the JSON response
 
     @Nullable
-    private final String defaultGasLimit;
-    @Nullable
-    private final String defaultGasPrice;
+    private String defaultGasLimit;
 
-    private EthToken(String address, String symbol, String name, String description, UnsignedInteger decimals,
-                     String defaultGasLimit, @Nullable String defaultGasPrice) {
-        this.address = address;
-        this.symbol = symbol;
-        this.name = name;
-        this.description = description;
-        this.decimals = decimals;
-        this.defaultGasLimit = defaultGasLimit;
-        this.defaultGasPrice = defaultGasPrice;
-    }
+    @Nullable
+    private String defaultGasPrice;
 
     public String getAddress() {
+        checkNotNull(address);
         return address;
     }
 
     public String getSymbol() {
+        checkNotNull(symbol);
         return symbol;
     }
 
     public String getName() {
+        checkNotNull(name);
         return name;
     }
 
     public String getDescription() {
-        return description;
+        return String.format("Token for %s", getSymbol());
     }
 
     public UnsignedInteger getDecimals() {
-        return decimals;
+        checkNotNull(decimals);
+        return UnsignedInteger.valueOf(decimals);
     }
 
     public Optional<String> getDefaultGasLimit() {

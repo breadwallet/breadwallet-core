@@ -36,7 +36,6 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
-import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
@@ -2043,7 +2042,7 @@ final class System implements com.breadwallet.crypto.System {
                                                     tx.getBlockNumber(),
                                                     tx.getBlockHash(),
                                                     tx.getBlockConfirmations(),
-                                                    tx.getBlockTransacionIndex(),
+                                                    tx.getBlockTransactionIndex(),
                                                     tx.getBlockTimestamp(),
                                                     tx.getIsError());
                                         }

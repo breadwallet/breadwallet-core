@@ -13,7 +13,7 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.json.JSONObject;
+import java.util.Map;
 
 public class EthBlockApi {
 
@@ -24,12 +24,12 @@ public class EthBlockApi {
     }
 
     public void getBlockNumberAsEth(String networkName, int rid, CompletionHandler<String, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_blockNumber",
                 "params", ImmutableList.of(),
                 "id", rid
-        ));
+        );
 
         client.sendJsonRequest(networkName, json, new CompletionHandler<String, QueryError>() {
             @Override

@@ -8,6 +8,7 @@ dependencies {
     api deps.okhttp
 
     implementation deps.androidAppCompatV7
+    implementation deps.gson
     implementation deps.orgJson
 
     testImplementation deps.junit

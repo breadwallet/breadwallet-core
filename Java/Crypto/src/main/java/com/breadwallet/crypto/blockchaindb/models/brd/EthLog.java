@@ -8,56 +8,13 @@
 package com.breadwallet.crypto.blockchaindb.models.brd;
 
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
-import com.google.common.base.Optional;
+import com.google.gson.annotations.SerializedName;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class EthLog {
-
-    public static Optional<EthLog> asLog(JSONObject json) {
-        try {
-            String hash = json.getString("transactionHash");
-            String contract = json.getString("address");
-            List<String> topics = trimLast(Utilities.getStringList(json, "topics"));
-            String data = json.getString("data");
-            String gasPrice = json.getString("gasPrice");
-            String gasUsed = json.getString("gasUsed");
-            String logIndex = json.getString("logIndex");
-            String blockNumber = json.getString("blockNumber");
-            String blockTransactionIndex = json.getString("transactionIndex");
-            String blockTimestamp = json.getString("timeStamp");
-
-            return Optional.of(new EthLog(
-                    hash, contract, topics, data, gasPrice, gasUsed, logIndex, blockNumber,
-                    blockTransactionIndex, blockTimestamp
-            ));
-        } catch (JSONException e) {
-            return Optional.absent();
-        }
-    }
-
-    public static Optional<List<EthLog>> asLogs(JSONArray json) {
-        List<EthLog> objs = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject obj = json.optJSONObject(i);
-            if (obj == null) {
-                return Optional.absent();
-            }
-
-            Optional<EthLog> opt = EthLog.asLog(obj);
-            if (!opt.isPresent()) {
-                return Optional.absent();
-            }
-
-            objs.add(opt.get());
-        }
-        return Optional.of(objs);
-    }
 
     private static List<String> trimLast(List<String> strings) {
         if (!strings.isEmpty()) {
@@ -69,68 +26,77 @@ public class EthLog {
         return strings;
     }
 
-    private final String hash;
-    private final String contract;
-    private final List<String> topics;
-    private final String data;
-    private final String gasPrice;
-    private final String gasUsed;
-    private final String logIndex;
-    private final String blockNumber;
-    private final String blockTransactionIndex;
-    private final String blockTimestamp;
+    @SerializedName("transactionHash")
+    private String hash;
 
-    private EthLog(String hash, String contract, List<String> topics, String data, String gasPrice, String gasUsed,
-                  String logIndex, String blockNumber, String blockTransactionIndex, String blockTimestamp) {
-        this.hash = hash;
-        this.contract = contract;
-        this.topics = topics;
-        this.data = data;
-        this.gasPrice = gasPrice;
-        this.gasUsed = gasUsed;
-        this.logIndex = logIndex;
-        this.blockNumber = blockNumber;
-        this.blockTransactionIndex = blockTransactionIndex;
-        this.blockTimestamp = blockTimestamp;
-    }
+    @SerializedName("address")
+    private String contract;
+
+    private List<String> topics;
+
+    private String data;
+
+    private String gasPrice;
+
+    private String gasUsed;
+
+    private String logIndex;
+
+    private String blockNumber;
+
+    @SerializedName("transactionIndex")
+    private String blockTransactionIndex;
+
+    @SerializedName("timeStamp")
+    private String blockTimestamp;
 
     public String getHash() {
+        checkNotNull(hash);
         return hash;
     }
 
     public String getContract() {
+        checkNotNull(contract);
         return contract;
     }
 
     public List<String> getTopics() {
-        return topics;
+        checkNotNull(topics);
+        return trimLast(topics);
     }
 
     public String getData() {
+        checkNotNull(data);
         return data;
     }
 
     public String getGasPrice() {
+        checkNotNull(gasPrice);
         return gasPrice;
     }
 
     public String getGasUsed() {
+        checkNotNull(gasUsed);
         return gasUsed;
     }
 
     public String getLogIndex() {
+        checkNotNull(logIndex);
         return logIndex;
     }
 
     public String getBlockNumber() {
+        checkNotNull(blockNumber);
         return blockNumber;
     }
 
     public String getBlockTransactionIndex() {
+        checkNotNull(blockTransactionIndex);
         return blockTransactionIndex;
     }
 
     public String getBlockTimestamp() {
+        checkNotNull(blockTimestamp);
         return blockTimestamp;
     }
 }
