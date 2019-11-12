@@ -43,15 +43,15 @@ public final class Utilities {
     }
 
     public static Optional<Date> getOptional8601DateFromString(JSONObject json, String name) {
+        String value = json.optString(name, null);
+        if (null == value) {
+            return Optional.absent();
+        }
         try {
-            return Optional.fromNullable(ISO_8601_FORMAT.get().parse(json.optString(name, null)));
+            return Optional.fromNullable(ISO_8601_FORMAT.get().parse(value));
         } catch (ParseException e) {
             return Optional.absent();
         }
-    }
-
-    public  static String get8601StringFromDate(Date date) {
-        return ISO_8601_FORMAT.get().format(date);
     }
 
     public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
@@ -66,50 +66,30 @@ public final class Utilities {
         }
     }
 
-    public static long getLongFromString(JSONObject json, String name) throws JSONException {
-        try {
-            return Long.decode(json.getString(name));
-        } catch (NumberFormatException e) {
-            throw new JSONException("Invalid long value for " + name);
-        }
-    }
-
-    public static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
-        try {
-            return Optional.of(Long.decode(json.optString(name, null)));
-        } catch (NumberFormatException e) {
-            return Optional.absent();
-        }
-    }
-
     public static UnsignedInteger getUnsignedIntFromString(JSONObject json, String name) throws JSONException {
         try {
-            return UnsignedInteger.fromIntBits(UnsignedInts.decode(json.getString(name)));
+            return UnsignedInteger.valueOf(json.getInt(name));
         } catch (NumberFormatException e) {
             throw new JSONException("Invalid unsigned long value for " + name);
         }
     }
 
-    public static Optional<UnsignedInteger> getOptionalUnsignedIntFromString(JSONObject json, String name) {
-        try {
-            return Optional.of(UnsignedInteger.fromIntBits(UnsignedInts.decode(json.optString(name, null))));
-        } catch (NumberFormatException e) {
-            return Optional.absent();
-        }
-    }
-
     public static UnsignedLong getUnsignedLongFromString(JSONObject json, String name) throws JSONException {
         try {
-            return UnsignedLong.fromLongBits(UnsignedLongs.decode(json.getString(name)));
+            return UnsignedLong.valueOf(json.getLong(name));
         } catch (NumberFormatException e) {
             throw new JSONException("Invalid unsigned long value for " + name);
         }
     }
 
     public static Optional<UnsignedLong> getOptionalUnsignedLongFromString(JSONObject json, String name) {
+        Object value = json.opt(name);
+        if (null == value) {
+            return Optional.absent();
+        }
         try {
-            return Optional.of(UnsignedLong.fromLongBits(UnsignedLongs.decode(json.optString(name, null))));
-        } catch (NumberFormatException e) {
+            return Optional.of(UnsignedLong.valueOf(json.getLong(name)));
+        } catch (NumberFormatException | JSONException e) {
             return Optional.absent();
         }
     }
@@ -123,22 +103,5 @@ public final class Utilities {
             items.add(object);
         }
         return items;
-    }
-
-    public static Optional<List<String>> getOptionalStringList(JSONObject json, String name) {
-        JSONArray jsonArray = json.optJSONArray(name);
-        if (jsonArray == null) {
-            return Optional.absent();
-        }
-
-        List<String> items = new ArrayList<>();
-        for (int i = 0; i < jsonArray.length(); i++) {
-            String object = jsonArray.optString(i, null);
-            if (object == null) {
-                return Optional.absent();
-            }
-            items.add(object);
-        }
-        return Optional.of(items);
     }
 }
