@@ -15,8 +15,6 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
-import android.text.Spanned;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 
@@ -39,7 +37,8 @@ import com.google.common.base.Optional;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -51,7 +50,7 @@ import okhttp3.ResponseBody;
 
 public class TransferCreatePaymentActivity extends AppCompatActivity {
 
-    private static final String TAG = TransferCreatePaymentActivity.class.getName();
+    private static final Logger Log = Logger.getLogger(TransferCreatePaymentActivity.class.getName());
 
     private static final String MIME_TYPE_PAYMENT_REQUEST_BIP70     = "application/bitcoin-paymentrequest";
     private static final String MIME_TYPE_PAYMENT_REQUEST_BITPAY_V1 = "application/payment-request";
@@ -473,24 +472,24 @@ public class TransferCreatePaymentActivity extends AppCompatActivity {
         boolean isSecure = request.isSecure();
         PaymentProtocolError error = request.validate().orNull();
 
-        Log.d(TAG, "Secure:       " + isSecure);
-        Log.d(TAG, "Common Name:  " + commonName);
-        Log.d(TAG, "Memo:         " + memo);
-        Log.d(TAG, "Payment URL:  " + paymentUrl);
-        Log.d(TAG, "Fee Required: " + (networkFee != null));
-        Log.d(TAG, "Address:      " + address);
-        Log.d(TAG, "Amount:       " + amount);
-        Log.d(TAG, "Error:        " + error);
+        Log.log(Level.FINE, "Secure:       " + isSecure);
+        Log.log(Level.FINE, "Common Name:  " + commonName);
+        Log.log(Level.FINE, "Memo:         " + memo);
+        Log.log(Level.FINE, "Payment URL:  " + paymentUrl);
+        Log.log(Level.FINE, "Fee Required: " + (networkFee != null));
+        Log.log(Level.FINE, "Address:      " + address);
+        Log.log(Level.FINE, "Amount:       " + amount);
+        Log.log(Level.FINE, "Error:        " + error);
     }
 
     private void logProtocolAck(PaymentProtocolPaymentAck ack) {
         String memo = ack.getMemo().orNull();
 
-        Log.d(TAG, "Memo (ACK):   " + memo);
+        Log.log(Level.FINE, "Memo (ACK):   " + memo);
     }
 
     private void logFeeEstimate(TransferFeeBasis feeBasis) {
-        Log.d(TAG, "Fee:          " + feeBasis.getFee().toString());
+        Log.log(Level.FINE, "Fee:          " + feeBasis.getFee().toString());
     }
 
     private void showError(String message) {

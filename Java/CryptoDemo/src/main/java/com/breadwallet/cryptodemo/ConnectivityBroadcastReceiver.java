@@ -11,11 +11,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
-import android.util.Log;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ConnectivityBroadcastReceiver extends BroadcastReceiver {
 
-    private static final String TAG = ConnectivityBroadcastReceiver.class.getName();
+    private static final Logger Log = Logger.getLogger(ConnectivityBroadcastReceiver.class.getName());
 
     /* package */
     ConnectivityBroadcastReceiver() {
@@ -27,7 +29,7 @@ public class ConnectivityBroadcastReceiver extends BroadcastReceiver {
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())) {
             boolean isNetworkReachable = Utilities.isNetworkReachable(context);
 
-            Log.d(TAG, "isNetworkReachable: " + isNetworkReachable);
+            Log.log(Level.FINE, "isNetworkReachable: " + isNetworkReachable);
             CoreCryptoApplication.getSystem().setNetworkReachable(isNetworkReachable);
         }
     }

@@ -8,12 +8,10 @@
 package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
-import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.crypto.AddressScheme;

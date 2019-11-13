@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.util.Log;
-
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;

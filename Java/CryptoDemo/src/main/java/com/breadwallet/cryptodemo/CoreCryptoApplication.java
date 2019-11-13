@@ -14,7 +14,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.StrictMode;
-import android.util.Log;
 
 import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
@@ -44,7 +43,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class CoreCryptoApplication extends Application {
 
-    private static final String TAG = CoreCryptoApplication.class.getName();
+    private static final Logger Log = Logger.getLogger(CoreCryptoApplication.class.getName());
 
     private static final String BDB_AUTH_TOKEN = BuildConfig.BDB_AUTH_TOKEN;
 
@@ -134,10 +133,10 @@ public class CoreCryptoApplication extends Application {
             if (wipe) System.wipeAll(storageFile.getAbsolutePath(), Collections.emptyList());
             if (!storageFile.exists()) checkState(storageFile.mkdirs());
 
-            Log.d(TAG, String.format("Account PaperKey:  %s", paperKeyString));
-            Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
-            Log.d(TAG, String.format("StoragePath:       %s", storageFile.getAbsolutePath()));
-            Log.d(TAG, String.format("Mainnet:           %s", isMainnet));
+            Log.log(Level.FINE, String.format("Account PaperKey:  %s", paperKeyString));
+            Log.log(Level.FINE, String.format("Account Timestamp: %s", timestamp));
+            Log.log(Level.FINE, String.format("StoragePath:       %s", storageFile.getAbsolutePath()));
+            Log.log(Level.FINE, String.format("Mainnet:           %s", isMainnet));
 
             List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch");
             systemListener = new DispatchingSystemListener();
@@ -159,7 +158,7 @@ public class CoreCryptoApplication extends Application {
     }
 
     private void wipeSystemImpl() {
-        Log.d(TAG, "Wiping");
+        Log.log(Level.FINE, "Wiping");
 
         // Wipe the current system.
         System.wipe(system);

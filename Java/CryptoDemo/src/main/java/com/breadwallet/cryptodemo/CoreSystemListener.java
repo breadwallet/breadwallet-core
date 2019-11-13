@@ -8,7 +8,6 @@
 package com.breadwallet.cryptodemo;
 
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.Currency;
@@ -35,12 +34,14 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class CoreSystemListener implements SystemListener {
 
-    private static final String TAG = CoreSystemListener.class.getName();
+    private static final Logger Log = Logger.getLogger(CoreSystemListener.class.getName());
 
     private final WalletManagerMode preferredMode;
     private final boolean isMainnet;
@@ -58,7 +59,7 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleSystemEvent(System system, SystemEvent event) {
         ApplicationExecutors.runOnBlockingExecutor(() -> {
-            Log.d(TAG, String.format("System: %s", event));
+            Log.log(Level.FINE, String.format("System: %s", event));
 
             event.accept(new DefaultSystemEventVisitor<Void>() {
                 @Nullable
@@ -88,21 +89,21 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleNetworkEvent(System system, Network network, NetworkEvent event) {
         ApplicationExecutors.runOnBlockingExecutor(() -> {
-            Log.d(TAG, String.format("Network: %s", event));
+            Log.log(Level.FINE, String.format("Network: %s", event));
         });
     }
 
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
         ApplicationExecutors.runOnBlockingExecutor(() -> {
-                Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
+            Log.log(Level.FINE, String.format("Manager (%s): %s", manager.getName(), event));
         });
     }
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
         ApplicationExecutors.runOnBlockingExecutor(() -> {
-            Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
+            Log.log(Level.FINE, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
 
             event.accept(new DefaultWalletEventVisitor<Void>() {
                 @Nullable
@@ -118,7 +119,7 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         ApplicationExecutors.runOnBlockingExecutor(() -> {
-            Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
+            Log.log(Level.FINE, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
         });
     }
 
@@ -139,7 +140,7 @@ public class CoreSystemListener implements SystemListener {
                     preferredMode : system.getDefaultWalletManagerMode(network);
 
             AddressScheme addressScheme = system.getDefaultAddressScheme(network);
-            Log.d(TAG, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
+            Log.log(Level.FINE, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
             boolean success = system.createWalletManager(network, mode, addressScheme, Collections.emptySet());
             if (!success) {
                 system.wipe(network);
@@ -153,13 +154,13 @@ public class CoreSystemListener implements SystemListener {
     }
 
     private void logWalletAddresses(Wallet wallet) {
-        Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
+        Log.log(Level.FINE, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
     }
 
     private void logDiscoveredCurrencies(List<Network> networks) {
         for (Network network: networks) {
             for (Currency currency: network.getCurrencies()) {
-                Log.d(TAG, String.format("Discovered: %s for %s", currency.getCode(), network.getName()));
+                Log.log(Level.FINE, String.format("Discovered: %s for %s", currency.getCode(), network.getName()));
             }
         };
     }

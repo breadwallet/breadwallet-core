@@ -46,8 +46,7 @@ import okhttp3.ResponseBody;
 
 public class BrdApiClient {
 
-
-    private static final Logger Log = Logger.getLogger(BdbApiClient.class.getName());
+    private static final Logger Log = Logger.getLogger(BrdApiClient.class.getName());
 
     private static final Gson GSON = new Gson();
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");

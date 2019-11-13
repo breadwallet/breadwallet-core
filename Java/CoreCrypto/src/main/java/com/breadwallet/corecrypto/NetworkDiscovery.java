@@ -7,9 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.util.Log;
-
-import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -18,8 +15,6 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -32,11 +27,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /* package */
 final class NetworkDiscovery {
 
-    private static final String TAG = NetworkDiscovery.class.getName();
+    private static final Logger Log = Logger.getLogger(NetworkDiscovery.class.getName());
 
     /* package */
     interface Callback {
@@ -121,7 +118,7 @@ final class NetworkDiscovery {
 
                     Optional<Currency> maybeDefaultCurrency = findCurrency(associations, blockchainModel);
                     if (!maybeDefaultCurrency.isPresent()) {
-                        Log.d(TAG, String.format("Missed Currency %s: defaultUnit", blockchainModel.getCurrency()));
+                        Log.log(Level.FINE, String.format("Missed Currency %s: defaultUnit", blockchainModel.getCurrency()));
                         return null;
                     }
 
@@ -129,7 +126,7 @@ final class NetworkDiscovery {
 
                     NetworkAssociation maybeAssociation = associations.get(defaultCurrency);
                     if (null == maybeAssociation) {
-                        Log.d(TAG, String.format("Missed Currency Association %s: defaultUnit", blockchainModel.getCurrency()));
+                        Log.log(Level.FINE, String.format("Missed Currency Association %s: defaultUnit", blockchainModel.getCurrency()));
                         return null;
                     }
 
@@ -144,7 +141,7 @@ final class NetworkDiscovery {
                     }
 
                     if (fees.isEmpty()) {
-                        Log.d(TAG, String.format("Missed Fees %s", blockchainModel.getName()));
+                        Log.log(Level.FINE, String.format("Missed Fees %s", blockchainModel.getName()));
                         return null;
                     }
 
