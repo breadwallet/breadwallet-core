@@ -713,15 +713,69 @@ public class BlockChainDB {
 
     // Transfers
 
-    public func getTransfers (blockchainId: String, addresses: [String], completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
-        let queryKeys = ["blockchain_id"] + Array (repeating: "address", count: addresses.count)
-        let queryVals = [blockchainId]    + addresses
+    public func getTransfers (blockchainId: String,
+                              addresses: [String],
+                              begBlockNumber: UInt64,
+                              endBlockNumber: UInt64,
+                              maxPageSize: Int? = nil,
+                              completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
+        self.queue.async {
+            var error: QueryError? = nil
+            var results = [Model.Transfer]()
 
-        bdbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
-            (more: URL?, res: Result<[JSON], QueryError>) in
-            completion (res.flatMap {
-                BlockChainDB.getManyExpected (data: $0, transform: Model.asTransfer)
-            })
+            for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
+                if nil != error { break }
+                var queryKeys = ["blockchain_id", "start_height", "end_height"] + Array (repeating: "address", count: addresses.count)
+
+                var queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description] + addresses
+
+                if let maxPageSize = maxPageSize {
+                    queryKeys += ["max_page_size"]
+                    queryVals += [String(maxPageSize)]
+                }
+
+                let semaphore = DispatchSemaphore (value: 0)
+
+                var nextURL: URL? = nil
+
+                self.bdbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
+                    (more: URL?, res: Result<[JSON], QueryError>) in
+
+                    // Append `blocks` with the resulting blocks.
+                    results += try! res
+                        .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransfer) }
+                        .recover { error = $0; return [] }.get()
+
+                    nextURL = more
+
+                    semaphore.signal()
+                }
+
+                // Wait for the first request
+                semaphore.wait()
+
+                // Loop until all 'nextURL' values are queried
+                while let url = nextURL, nil == error {
+                    self.bdbMakeRequest (url: url, embedded: true, embeddedPath: "transfers") {
+                        (more: URL?, res: Result<[JSON], QueryError>) in
+
+                        // Append `transactions` with the resulting transactions.
+                        results += try! res
+                            .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransfer) }
+                            .recover { error = $0; return [] }.get()
+
+                        nextURL = more
+
+                        semaphore.signal()
+                    }
+
+                    semaphore.wait()
+                }
+            }
+
+            completion (nil == error
+                ? Result.success (results)
+                : Result.failure (error!))
         }
     }
 
@@ -745,6 +799,7 @@ public class BlockChainDB {
                                  endBlockNumber: UInt64,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
+                                 maxPageSize: Int? = nil,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
         // This query could overrun the endpoint's page size (typically 5,000).  If so, we'll need
         // to repeat the request for the next batch.
@@ -754,11 +809,16 @@ public class BlockChainDB {
 
             for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
                 if nil != error { break }
-                let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
+                var queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
                     + Array (repeating: "address", count: addresses.count)
 
                 var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
                     + addresses
+
+                if let maxPageSize = maxPageSize {
+                    queryKeys += ["max_page_size"]
+                    queryVals += [String(maxPageSize)]
+                }
 
                 let semaphore = DispatchSemaphore (value: 0)
 
@@ -852,52 +912,65 @@ public class BlockChainDB {
                            includeTx: Bool = false,
                            includeTxRaw: Bool = false,
                            includeTxProof: Bool = false,
+                           maxPageSize: Int? = nil,
                            completion: @escaping (Result<[Model.Block], QueryError>) -> Void) {
         self.queue.async {
-            let semaphore = DispatchSemaphore (value: 0)
-
-           var moreResults = false
-            var begBlockNumber = begBlockNumber
-
             var error: QueryError? = nil
             var results = [Model.Block]()
 
-            repeat {
-                let queryKeys = ["blockchain_id", "start_height", "end_height",  "include_raw",
-                                 "include_tx", "include_tx_raw", "include_tx_proof"]
+            var queryKeys = ["blockchain_id", "start_height", "end_height",  "include_raw",
+                             "include_tx", "include_tx_raw", "include_tx_proof"]
 
-                let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
-                                 includeTx.description, includeTxRaw.description, includeTxProof.description]
+            var queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
+                             includeTx.description, includeTxRaw.description, includeTxProof.description]
 
-                self.bdbMakeRequest (path: "blocks", query: zip (queryKeys, queryVals)) {
+            if let maxPageSize = maxPageSize {
+                queryKeys += ["max_page_size"]
+                queryVals += [String(maxPageSize)]
+            }
+
+            let semaphore = DispatchSemaphore (value: 0)
+
+            var nextURL: URL? = nil
+
+            self.bdbMakeRequest (path: "blocks", query: zip (queryKeys, queryVals)) {
+                (more: URL?, res: Result<[JSON], QueryError>) in
+
+                // Append `blocks` with the resulting blocks.
+                results += try! res
+                    .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asBlock) }
+                    .recover { error = $0; return [] }.get()
+
+                nextURL = more
+
+                semaphore.signal()
+            }
+
+            // Wait for the first request
+            semaphore.wait()
+
+            // Loop until all 'nextURL' values are queried
+            while let url = nextURL, nil == error {
+                self.bdbMakeRequest (url: url, embedded: true, embeddedPath: "blocks") {
                     (more: URL?, res: Result<[JSON], QueryError>) in
 
-                    // Flag if `more`
-//                    moreResults = more
-
-                    // Append `transactions` with the resulting transactions.  Be sure
+                    // Append `transactions` with the resulting transactions.
                     results += try! res
                         .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asBlock) }
                         .recover { error = $0; return [] }.get()
 
-                    if let _ = more, nil == error {
-                        moreResults = true
-                        begBlockNumber = results.reduce(0) {
-                            max ($0, $1.height)
-                        }
-                    }
+                    nextURL = more
 
                     semaphore.signal()
                 }
 
                 semaphore.wait()
-            } while moreResults
+            }
 
             completion (nil == error
                 ? Result.success (results)
                 : Result.failure (error!))
         }
-
     }
 
     public func getBlock (blockId: String,
