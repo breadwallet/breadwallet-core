@@ -7,113 +7,73 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import android.support.annotation.Nullable;
-
-import com.breadwallet.crypto.blockchaindb.models.Utilities;
-import com.google.common.base.Optional;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.UnsignedLong;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class Block {
 
-    public static Optional<Block> asBlock(JSONObject json) {
-        // optional
-        String header = json.optString("header", null);
-        String prevHash = json.optString("prevHash", null);
-        String nextHash = json.optString("nexthash", null);
-        byte[] raw = Utilities.getOptionalBase64Bytes(json, "raw").orNull();
+    // fields
 
-        JSONArray transactionsJson = json.optJSONArray("transactions");
-        List<Transaction> transactions = transactionsJson == null ? null : Transaction.asTransactions(transactionsJson).orNull();
+    @JsonProperty("block_id")
+    private String blockId;
 
-        //required
-        try {
-            String id = json.getString("block_id");
-            String bid = json.getString("blockchain_id");
-            String hash = json.getString("hash");
-            UnsignedLong height = Utilities.getUnsignedLongFromString(json, "height");
-            UnsignedLong size = Utilities.getUnsignedLongFromString(json, "size");
-            UnsignedLong acks = Utilities.getUnsignedLongFromString(json, "acknowledgements");
-            Date mined = Utilities.get8601DateFromString(json,"mined");
+    private String hash;
 
-            return Optional.of(new Block(id, bid, hash, height, header, raw, mined, size, prevHash, nextHash,
-                    transactions, acks));
-        } catch (JSONException | NumberFormatException e) {
-            return Optional.absent();
-        }
-    }
+    @JsonProperty("blockchain_id")
+    private String blockchainId;
 
-    public static Optional<List<Block>> asBlocks(JSONArray json) {
-        List<Block> blocks = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject blockObject = json.optJSONObject(i);
-            if (blockObject == null) {
-                return Optional.absent();
-            }
+    @JsonProperty("prev_hash")
+    private String prevHash;
 
-            Optional<Block> optionalBlock = Block.asBlock(blockObject);
-            if (!optionalBlock.isPresent()) {
-                return Optional.absent();
-            }
+    @JsonProperty("next_hash")
+    private String nextHash;
 
-            blocks.add(optionalBlock.get());
-        }
-        return Optional.of(blocks);
-    }
+    private UnsignedLong height;
 
-    private final String id;
-    private final String blockchainId;
-    private final String hash;
-    private final UnsignedLong height;
-    private final Date mined;
-    private final UnsignedLong size;
-    private final UnsignedLong ackknowledgements;
+    private Date mined;
 
-    @Nullable
-    private final String header;
-    @Nullable
-    private final byte[] raw;
-    @Nullable
-    private final String prevHash;
-    @Nullable
-    private final String nextHash;
-    @Nullable
-    private final List<Transaction> transactions;
+    private TransactionList transactionList;
 
-    public Block(String id, String blockchainId, String hash, UnsignedLong height, @Nullable String header,
-                 @Nullable byte[] raw, Date mined, UnsignedLong size, @Nullable String prevHash, @Nullable String nextHash,
-                 @Nullable List<Transaction> transactions, UnsignedLong ackknowledgements) {
-        this.id = id;
-        this.blockchainId = blockchainId;
-        this.hash = hash;
-        this.height = height;
-        this.header = header;
-        this.raw = raw;
-        this.mined = mined;
-        this.size = size;
-        this.prevHash = prevHash;
-        this.nextHash = nextHash;
-        this.transactions = transactions;
-        this.ackknowledgements = ackknowledgements;
-    }
+    @JsonProperty("transaction_ids")
+    private List<String> transactionIds;
+
+    private UnsignedLong size;
+
+    @JsonProperty("total_fees")
+    private Amount totalFees;
+
+    private String header;
+
+    private String raw;
+
+    private UnsignedLong acknowledgements;
+
+    @JsonProperty("is_active_chain")
+    private boolean isActiveChain;
+
+    // getters
 
     public String getId() {
-        return id;
+        return blockId;
+    }
+
+    public String getHash() {
+        return hash;
     }
 
     public String getBlockchainId() {
         return blockchainId;
     }
 
-    public String getHash() {
-        return hash;
+    public String getPrevHash() {
+        return prevHash;
+    }
+
+    public String getNextHash() {
+        return nextHash;
     }
 
     public UnsignedLong getHeight() {
@@ -124,31 +84,35 @@ public class Block {
         return mined;
     }
 
+    public TransactionList getTransactionList() {
+        return transactionList;
+    }
+
+    public List<String> getTransactionIds() {
+        return transactionIds;
+    }
+
     public UnsignedLong getSize() {
         return size;
     }
 
-    public UnsignedLong getAckknowledgements() {
-        return ackknowledgements;
+    public Amount getTotalFees() {
+        return totalFees;
     }
 
-    public Optional<String> getHeader() {
-        return Optional.fromNullable(header);
+    public String getHeader() {
+        return header;
     }
 
-    public Optional<byte[]> getRaw() {
-        return Optional.fromNullable(raw);
+    public String getRaw() {
+        return raw;
     }
 
-    public Optional<String> getPrevHash() {
-        return Optional.fromNullable(prevHash);
+    public UnsignedLong getAcknowledgements() {
+        return acknowledgements;
     }
 
-    public Optional<String> getNextHash() {
-        return Optional.fromNullable(nextHash);
-    }
-
-    public Optional<List<Transaction>> getTransactions() {
-        return Optional.fromNullable(transactions);
+    public boolean isActiveChain() {
+        return isActiveChain;
     }
 }

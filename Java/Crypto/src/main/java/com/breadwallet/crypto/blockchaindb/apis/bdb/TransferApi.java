@@ -9,16 +9,13 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
@@ -56,12 +53,12 @@ public class TransferApi {
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             PagedCompletionHandler<List<Transfer>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
-            jsonClient.sendGetForArrayWithPaging("transfers", params, Transfer::asTransfers, pagedHandler);
+            jsonClient.sendGetForArrayWithPaging("transfers", params, Transfer.class, pagedHandler);
         }
     }
 
     public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
-        jsonClient.sendGetWithId("transfers", id, ImmutableMultimap.of(), Transfer::asTransfer, handler);
+        jsonClient.sendGetWithId("transfers", id, ImmutableMultimap.of(), Transfer.class, handler);
     }
 
     private void submitGetNextTransfers(String nextUrl, PagedCompletionHandler<List<Transfer>, QueryError> handler) {
@@ -69,7 +66,7 @@ public class TransferApi {
     }
 
     private void getNextTransfers(String nextUrl, PagedCompletionHandler<List<Transfer>, QueryError> handler) {
-        jsonClient.sendGetForArrayWithPaging("transfers", nextUrl, Transfer::asTransfers, handler);
+        jsonClient.sendGetForArrayWithPaging("transfers", nextUrl, Transfer.class, handler);
     }
 
     private PagedCompletionHandler<List<Transfer>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transfer> coordinator,
@@ -77,11 +74,12 @@ public class TransferApi {
         List<Transfer> allResults = new ArrayList<>();
         return new PagedCompletionHandler<List<Transfer>, QueryError>() {
             @Override
-            public void handleData(List<Transfer> results, PageInfo info) {
+            public void handleData(List<Transfer> results, String prevUrl, String nextUrl) {
                 allResults.addAll(results);
 
-                if (info.nextUrl != null) {
-                    submitGetNextTransfers(info.nextUrl, this);
+                if (nextUrl != null) {
+                    submitGetNextTransfers(nextUrl, this);
+
                 } else {
                     coordinator.handleChunkData(chunkedAddresses, allResults);
                 }

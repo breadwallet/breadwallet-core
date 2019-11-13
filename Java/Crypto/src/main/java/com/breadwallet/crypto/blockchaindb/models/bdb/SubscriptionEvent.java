@@ -7,90 +7,32 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import android.support.annotation.Nullable;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.UnsignedInteger;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class SubscriptionEvent {
 
-    public static Optional<SubscriptionEvent> asSubscriptionEvent(JSONObject json) {
-        try {
-            String name = json.getString("name");
+    // creators
 
-            return Optional.of(new SubscriptionEvent(name, Collections.emptyList()));
-
-        } catch (JSONException e) {
-            return Optional.absent();
-        }
+    public static SubscriptionEvent create(String name, List<UnsignedInteger> confirmations) {
+        SubscriptionEvent event = new SubscriptionEvent();
+        event.name = name;
+        event.confirmations = confirmations;
+        return event;
     }
 
-    public static Optional<List<SubscriptionEvent>> asSubscriptionEvents(JSONArray json){
-        List<SubscriptionEvent> subscriptionEvents = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject subscriptionEventObject = json.optJSONObject(i);
-            if (subscriptionEventObject == null) {
-                return Optional.absent();
-            }
+    // fields
 
-            Optional<SubscriptionEvent> optionalSubscriptionEvent = SubscriptionEvent.asSubscriptionEvent(subscriptionEventObject);
-            if (!optionalSubscriptionEvent.isPresent()) {
-                return Optional.absent();
-            }
+    private String name;
+    private List<UnsignedInteger> confirmations;
 
-            subscriptionEvents.add(optionalSubscriptionEvent.get());
-        }
-        return Optional.of(subscriptionEvents);
-    }
-
-    public static JSONObject asJson(SubscriptionEvent event) {
-        switch (event.name) {
-            case "submitted":
-                return new JSONObject(ImmutableMap.of(
-                        "name", event.name
-                ));
-            case "confirmed":
-                List<Long> confirmations = new ArrayList<>(event.confirmations.size());
-                for (UnsignedInteger confirmation: event.confirmations) confirmations.add(confirmation.longValue());
-
-                return new JSONObject(ImmutableMap.of(
-                        "name", event.name,
-                        "confirmations", confirmations
-                ));
-            default: throw new IllegalStateException("Invalid name");
-        }
-    }
-
-    public static JSONArray asJson(List<SubscriptionEvent> events) {
-        JSONArray array = new JSONArray();
-        for (SubscriptionEvent event: events) {
-            array.put(asJson(event));
-        }
-        return array;
-    }
-
-    private final String name;
-    private final List<UnsignedInteger> confirmations;
-
-    public SubscriptionEvent(String name, @Nullable List<UnsignedInteger> confirmations) {
-        this.name = name;
-        this.confirmations = confirmations;
-    }
+    // getters
 
     public String getName() {
         return name;
     }
 
-    public Optional<List<UnsignedInteger>> getConfirmations() {
-        return Optional.fromNullable(confirmations);
+    public List<UnsignedInteger> getConfirmations() {
+        return confirmations;
     }
 }

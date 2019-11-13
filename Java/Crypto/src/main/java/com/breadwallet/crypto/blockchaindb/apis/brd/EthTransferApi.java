@@ -65,7 +65,7 @@ public class EthTransferApi {
                 "endBlock", String.valueOf(endBlockNumber)
         );
 
-        client.sendQueryForArrayRequest(networkName, params, json, EthTransaction[].class, handler);
+        client.sendQueryForArrayRequest(networkName, params, json, EthTransaction.class, handler);
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
@@ -101,7 +101,7 @@ public class EthTransferApi {
             paramsBuilders.put("address", contract);
         }
 
-        client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog[].class, handler);
+        client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog.class, handler);
     }
 
     public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,

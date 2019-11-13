@@ -10,10 +10,7 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
-import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
-import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
-import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
@@ -21,15 +18,17 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.breadwallet.crypto.utility.CompletionHandler;
-import com.google.common.base.Optional;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.Multimap;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -67,107 +66,132 @@ public class BdbApiClient {
 
     // Create (Crud)
 
-    void sendPost(String resource, Multimap<String, String> params, JSONObject json,
+    void sendPost(String resource,
+                  Multimap<String, String> params,
+                  Object body,
                   CompletionHandler<Void, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
-                json,
+                body,
                 "POST",
                 new EmptyResponseHandler(handler));
     }
 
-    <T> void sendPost(String resource, Multimap<String, String> params, JSONObject json, ObjectResponseParser<T> parser,
+    <T> void sendPost(String resource,
+                      Multimap<String, String> params,
+                      Object body,
+                      Class<T> clazz,
                       CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
-                json,
+                body,
                 "POST",
-                new RootObjectResponseHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(clazz, handler));
     }
 
     // Read (cRud)
 
     /* package */
-    <T> void sendGet(String resource, Multimap<String, String> params, ObjectResponseParser<T> parser,
+    <T> void sendGet(String resource,
+                     Multimap<String, String> params,
+                     Class<T> clazz,
                      CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(clazz, handler));
     }
 
     /* package */
-    <T> void sendGetForArray(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
-                             CompletionHandler<T, QueryError> handler) {
+    <T> void sendGetForArray(String resource,
+                             Multimap<String, String> params,
+                             Class<T> clazz,
+                             CompletionHandler<List<T>, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
                 null,
                 "GET",
-                new EmbeddedArrayResponseHandler<>(resource, parser, handler));
+                new EmbeddedArrayResponseHandler<>(resource, clazz, handler));
     }
 
     /* package */
-    <T> void sendGetForArrayWithPaging(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
-                                       PagedCompletionHandler<T, QueryError> handler) {
+    <T> void sendGetForArrayWithPaging(String resource,
+                                       Multimap<String, String> params,
+                                       Class<T> clazz,
+                                       PagedCompletionHandler<List<T>, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
                 null,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, clazz, handler));
     }
 
     /* package */
-    <T> void sendGetForArrayWithPaging(String resource, String url, ArrayResponseParser<T> parser,
-                                       PagedCompletionHandler<T, QueryError> handler) {
+    <T> void sendGetForArrayWithPaging(String resource,
+                                       String url,
+                                       Class<T> clazz,
+                                       PagedCompletionHandler<List<T>, QueryError> handler) {
         makeAndSendRequest(
                 url,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, clazz, handler));
     }
 
     /* package */
-    <T> void sendGetWithId(String resource, String id, Multimap<String, String> params, ObjectResponseParser<T> parser,
+    <T> void sendGetWithId(String resource,
+                           String id,
+                           Multimap<String, String> params,
+                           Class<T> clazz,
                            CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(clazz, handler));
     }
 
     // Update (crUd)
 
-    <T> void sendPut(String resource, Multimap<String, String> params, JSONObject json,
-                     ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+    <T> void sendPut(String resource,
+                     Multimap<String, String> params,
+                     Object body,
+                     Class<T> clazz,
+                     CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
-                json,
+                body,
                 "PUT",
-                new RootObjectResponseHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(clazz, handler));
     }
 
-    <T> void sendPutWithId(String resource, String id, Multimap<String, String> params, JSONObject json,
-                           ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+    <T> void sendPutWithId(String resource,
+                           String id,
+                           Multimap<String, String> params,
+                           Object json,
+                           Class<T> clazz,
+                           CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
                 json,
                 "PUT",
-                new RootObjectResponseHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(clazz, handler));
     }
 
     // Delete (crdD)
 
     /* package */
-    void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
+    void sendDeleteWithId(String resource,
+                          String id,
+                          Multimap<String, String> params,
                           CompletionHandler<Void, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
@@ -177,10 +201,16 @@ public class BdbApiClient {
                 new EmptyResponseHandler(handler));
     }
 
-    private <T> void makeAndSendRequest(String url,
+    private <T> void makeAndSendRequest(String fullUrl,
                                         String httpMethod,
-                                        ResponseHandler<T> handler) {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+                                        ResponseHandler handler) {
+        HttpUrl url = HttpUrl.parse(fullUrl);
+        if (null == url) {
+            handler.handleError(new QueryUrlError("Invalid base URL " + fullUrl));
+            return;
+        }
+
+        HttpUrl.Builder urlBuilder = url.newBuilder();
         HttpUrl httpUrl = urlBuilder.build();
         Log.log(Level.FINE, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
 
@@ -194,11 +224,28 @@ public class BdbApiClient {
 
     private <T> void makeAndSendRequest(List<String> pathSegments,
                                         Multimap<String, String> params,
-                                        @Nullable JSONObject json,
+                                        @Nullable Object json,
                                         String httpMethod,
-                                        ResponseHandler<T> handler) {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
+                                        ResponseHandler handler) {
+        RequestBody httpBody;
+        if (json == null) {
+            httpBody = null;
 
+        } else try {
+            httpBody = RequestBody.create(serializeObject(json), MEDIA_TYPE_JSON);
+
+        } catch (JsonProcessingException e) {
+            handler.handleError(new QuerySubmissionError(e.getMessage()));
+            return;
+        }
+
+        HttpUrl url = HttpUrl.parse(baseUrl);
+        if (null == url) {
+            handler.handleError(new QueryUrlError("Invalid base URL " + baseUrl));
+            return;
+        }
+
+        HttpUrl.Builder urlBuilder = url.newBuilder();
         for (String segment : pathSegments) {
             urlBuilder.addPathSegment(segment);
         }
@@ -215,12 +262,12 @@ public class BdbApiClient {
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
         requestBuilder.header("Accept", "application/json");
-        requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
+        requestBuilder.method(httpMethod, httpBody);
 
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler<T> handler) {
+    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -231,16 +278,12 @@ public class BdbApiClient {
                             Log.log(Level.SEVERE, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
-                            T data = null;
-
                             try {
-                                data = handler.parseResponse(responseBody.string());
-                            } catch (JSONException e) {
+                                handler.handleResponse(responseBody.string());
+                            } catch (JsonProcessingException e) {
                                 Log.log(Level.SEVERE, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
-
-                            handler.handleResponse(data);
                         }
                     }
                 } else {
@@ -257,13 +300,12 @@ public class BdbApiClient {
         });
     }
 
-    private interface ResponseHandler<R> {
-        R parseResponse(String responseRaw) throws JSONException;
-        void handleResponse(R responseData);
+    private interface ResponseHandler {
+        void handleResponse(String response) throws JsonProcessingException;
         void handleError(QueryError error);
     }
 
-    private static class EmptyResponseHandler implements ResponseHandler<Void> {
+    private static class EmptyResponseHandler implements ResponseHandler {
 
         private final CompletionHandler<Void, QueryError> handler;
 
@@ -272,13 +314,7 @@ public class BdbApiClient {
         }
 
         @Override
-        public Void parseResponse(String responseRaw) {
-            checkState(responseRaw == null || responseRaw.length() == 0);
-            return null;
-        }
-
-        @Override
-        public void handleResponse(Void response) {
+        public void handleResponse(String response) {
             handler.handleData(null);
         }
 
@@ -288,35 +324,27 @@ public class BdbApiClient {
         }
     }
 
-    private static class RootObjectResponseHandler<T> implements ResponseHandler<JSONObject> {
+    private static class RootObjectResponseHandler<T> implements ResponseHandler {
 
-        private final ObjectResponseParser<T> parser;
+        private final Class<T> clazz;
         private final CompletionHandler<T, QueryError> handler;
 
-        RootObjectResponseHandler(ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
-            this.parser = parser;
+        RootObjectResponseHandler(Class<T> clazz, CompletionHandler<T, QueryError> handler) {
+            this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public JSONObject parseResponse(String responseRaw) throws JSONException {
-            return new JSONObject(responseRaw);
-        }
+        public void handleResponse(String responseData) throws JsonProcessingException{
+            T resp = deserializeObject(clazz, responseData);
 
-        @Override
-        public void handleResponse(JSONObject responseData) {
-            PageInfo pageInfo = getPageInfo(responseData);
-            checkState(pageInfo.nextUrl == null);
-            checkState(pageInfo.prevUrl== null);
-
-            Optional<T> data = parser.parse(responseData);
-            if (data.isPresent()) {
-                handler.handleData(data.get());
-
-            } else {
+            if (resp == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
+
+            } else {
+                handler.handleData(resp);
             }
         }
 
@@ -326,41 +354,32 @@ public class BdbApiClient {
         }
     }
 
-    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
+    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler {
 
         private final String path;
-        private final ArrayResponseParser<T> parser;
-        private final CompletionHandler<T, QueryError> handler;
+        private final Class<T> clazz;
+        private final CompletionHandler<List<T>, QueryError> handler;
 
-        EmbeddedArrayResponseHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+        EmbeddedArrayResponseHandler(String path, Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
             this.path = path;
-            this.parser = parser;
+            this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public JSONObject parseResponse(String responseRaw) throws JSONException {
-            return new JSONObject(responseRaw);
-        }
-
-        @Override
-        public void handleResponse(JSONObject responseData) {
-            PageInfo pageInfo = getPageInfo(responseData);
-            checkState(pageInfo.nextUrl == null);
-            checkState(pageInfo.prevUrl== null);
-
-            JSONObject jsonEmbedded = responseData.optJSONObject("_embedded");
-            JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
-
-            Optional<T> data = parser.parse(jsonEmbeddedData);
-            if (data.isPresent()) {
-                handler.handleData(data.get());
-
-            } else {
+        public void handleResponse(String responseData) throws JsonProcessingException{
+            BdbEmbeddedResponse resp = deserializeObject(BdbEmbeddedResponse.class, responseData);
+            List<T> data = (resp == null || resp.embedded == null || !resp.embedded.containsKey(path)) ?
+                    Collections.emptyList() :
+                    deserializeList(clazz, resp.embedded.get(path));
+            if (data == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
+                return;
             }
+
+            handler.handleData(data);
         }
 
         @Override
@@ -369,40 +388,40 @@ public class BdbApiClient {
         }
     }
 
-    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
+    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler {
 
         private final String path;
-        private final ArrayResponseParser<T> parser;
-        private final PagedCompletionHandler<T, QueryError> handler;
+        private final Class<T> clazz;
+        private final PagedCompletionHandler<List<T>, QueryError> handler;
 
 
-        EmbeddedPagedArrayResponseHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
+        EmbeddedPagedArrayResponseHandler(String path, Class<T> clazz, PagedCompletionHandler<List<T>, QueryError> handler) {
             this.path = path;
-            this.parser = parser;
+            this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public JSONObject parseResponse(String responseRaw) throws JSONException {
-            return new JSONObject(responseRaw);
-        }
-
-        @Override
-        public void handleResponse(JSONObject json) {
-            PageInfo pageInfo = getPageInfo(json);
-
-            JSONObject jsonEmbedded = json.optJSONObject("_embedded");
-            JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
-
-            Optional<T> data = parser.parse(jsonEmbeddedData);
-            if (data.isPresent()) {
-                handler.handleData(data.get(), pageInfo);
-
-            } else {
+        public void handleResponse(String responseData) throws JsonProcessingException{
+            BdbEmbeddedResponse resp = deserializeObject(BdbEmbeddedResponse.class, responseData);
+            List<T> data = (resp == null || resp.embedded == null || !resp.embedded.containsKey(path)) ?
+                    Collections.emptyList() :
+                    deserializeList(clazz, resp.embedded.get(path));
+            if (data == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
+                return;
             }
+
+            checkState(resp != null);
+            checkState(resp.links != null);
+
+            handler.handleData(
+                    data,
+                    resp.links.prev != null ? resp.links.prev.href : null,
+                    resp.links.next != null ? resp.links.next.href : null
+            );
         }
 
         @Override
@@ -411,31 +430,22 @@ public class BdbApiClient {
         }
     }
 
-    private static PageInfo getPageInfo(JSONObject json) {
-        String nextUrl = null;
-        String prevUrl = null;
-        String selfUrl = null;
+    // JSON methods
 
-        JSONObject links = json.optJSONObject("_links");
-        if (null != links) {
+    private static final ObjectMapper MAPPER_JSON = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-            JSONObject next = links.optJSONObject("next");
-            if (next!= null) {
-                nextUrl = next.optString("href");
-            }
+    private static String serializeObject(Object obj) throws JsonProcessingException {
+        return MAPPER_JSON.writeValueAsString(obj);
+    }
 
-            JSONObject prev = links.optJSONObject("prev");
-            if (prev!= null) {
-                prevUrl = prev.optString("href");
-            }
+    private static <X> X deserializeObject(Class<X> clazz, String json) throws JsonProcessingException {
+        return MAPPER_JSON.readValue(json, clazz);
+    }
 
-            JSONObject self = links.optJSONObject("self");
-            if (self!= null) {
-                selfUrl = self.optString("href");
-            }
-
-        }
-
-        return new PageInfo(nextUrl, prevUrl, selfUrl);
+    private static <X> List<X> deserializeList(Class<X> clazz, Object obj) throws IllegalArgumentException {
+        TypeFactory typeFactory = MAPPER_JSON.getTypeFactory();
+        JavaType type = typeFactory.constructCollectionLikeType(ArrayList.class, clazz);
+        return MAPPER_JSON.convertValue(obj, type);
     }
 }

@@ -7,47 +7,62 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.brd;
 
-import android.support.annotation.Nullable;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
-import com.google.gson.annotations.SerializedName;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@JsonIgnoreProperties(value = {
+        "is_supported",
+        "sale_address",
+        "contract_info",
+        "colors",
+        "type",
+        "currency_id",
+        "alternate_names"
+})
 public class EthToken {
 
-    @SerializedName("contract_address")
-    private String address;
+    @JsonCreator
+    public static EthToken create(@JsonProperty("contract_address") String address,
+                                  @JsonProperty("code") String symbol,
+                                  @JsonProperty("name") String name,
+                                  @JsonProperty("scale") UnsignedInteger decimals) {
+        return new EthToken(
+                checkNotNull(address),
+                checkNotNull(symbol),
+                checkNotNull(name),
+                checkNotNull(decimals)
+        );
+    }
 
-    @SerializedName("code")
-    private String symbol;
+    private final String address;
+    private final String symbol;
+    private final String name;
+    private final UnsignedInteger decimals;
 
-    private String name;
-
-    @SerializedName("scale")
-    private Long decimals;
-
-    // TODO(fix): defaultGasLimit and defaultGasPrice are not present in the JSON response
-
-    @Nullable
-    private String defaultGasLimit;
-
-    @Nullable
-    private String defaultGasPrice;
+    private EthToken(String address,
+                     String symbol,
+                     String name,
+                     UnsignedInteger decimals) {
+        this.address = address;
+        this.symbol = symbol;
+        this.name = name;
+        this.decimals = decimals;
+    }
 
     public String getAddress() {
-        checkNotNull(address);
         return address;
     }
 
     public String getSymbol() {
-        checkNotNull(symbol);
         return symbol;
     }
 
     public String getName() {
-        checkNotNull(name);
         return name;
     }
 
@@ -56,15 +71,16 @@ public class EthToken {
     }
 
     public UnsignedInteger getDecimals() {
-        checkNotNull(decimals);
-        return UnsignedInteger.valueOf(decimals);
+        return decimals;
     }
 
+    // TODO(fix): defaultGasLimit and defaultGasPrice are not present in the JSON response
+
     public Optional<String> getDefaultGasLimit() {
-        return Optional.fromNullable(defaultGasLimit);
+        return Optional.absent();
     }
 
     public Optional<String> getDefaultGasPrice() {
-        return Optional.fromNullable(defaultGasPrice);
+        return Optional.absent();
     }
 }

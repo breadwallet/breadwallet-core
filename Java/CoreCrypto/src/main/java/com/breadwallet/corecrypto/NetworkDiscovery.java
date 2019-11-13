@@ -202,7 +202,7 @@ final class NetworkDiscovery {
                 // Keep all the `remote` data as valid BUT ensure there is a blockHeight
                 if (!b.getBlockHeight().isPresent()) {
                     // The builtin blockchain as a blockHeight; the remote does not -> update it.
-                    b = new Blockchain(
+                    b = Blockchain.create(
                             b.getId(),
                             b.getName(),
                             b.getNetwork(),

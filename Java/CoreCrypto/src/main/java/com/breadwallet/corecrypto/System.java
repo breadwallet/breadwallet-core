@@ -240,7 +240,7 @@ final class System implements com.breadwallet.crypto.System {
         String address = uids.substring(index);
 
         return Optional.of(
-                new com.breadwallet.crypto.blockchaindb.models.bdb.Currency(
+                com.breadwallet.crypto.blockchaindb.models.bdb.Currency.create(
                         uids,
                         name,
                         code,

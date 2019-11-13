@@ -32,7 +32,7 @@ final class Blockchains {
     /// specification includes `blockHeight` (which can never be correct).
     ///
 
-    private static CurrencyDenomination SATOSHI = new CurrencyDenomination(
+    private static CurrencyDenomination SATOSHI = CurrencyDenomination.create(
             "Satoshi",
             "sat",
             UnsignedInteger.valueOf(0),
@@ -40,14 +40,14 @@ final class Blockchains {
     );
 
 
-    private static CurrencyDenomination BTC_BITCOIN = new CurrencyDenomination(
+    private static CurrencyDenomination BTC_BITCOIN = CurrencyDenomination.create(
             "Bitcoin",
             "btc",
             UnsignedInteger.valueOf(8),
             "₿"
     );
 
-    private static CurrencyDenomination BTC_BITCOIN_TESTNET = new CurrencyDenomination(
+    private static CurrencyDenomination BTC_BITCOIN_TESTNET = CurrencyDenomination.create(
             "Bitcoin Testnet",
             "btc",
             UnsignedInteger.valueOf(8),
@@ -55,14 +55,14 @@ final class Blockchains {
     );
 
 
-    private static CurrencyDenomination BCH_BITCOIN = new CurrencyDenomination(
+    private static CurrencyDenomination BCH_BITCOIN = CurrencyDenomination.create(
             "Bitcoin Cash",
             "bch",
             UnsignedInteger.valueOf(8),
             "bch"
     );
 
-    private static CurrencyDenomination BCH_BITCOIN_TESTNET = new CurrencyDenomination(
+    private static CurrencyDenomination BCH_BITCOIN_TESTNET = CurrencyDenomination.create(
             "Bitcoin Cash Testnet",
             "bch",
             UnsignedInteger.valueOf(8),
@@ -70,21 +70,21 @@ final class Blockchains {
     );
 
 
-    private static CurrencyDenomination ETH_WEI = new CurrencyDenomination(
+    private static CurrencyDenomination ETH_WEI = CurrencyDenomination.create(
             "Wei",
             "wei",
             UnsignedInteger.valueOf(0),
             "wei"
     );
 
-    private static CurrencyDenomination ETH_GWEI = new CurrencyDenomination(
+    private static CurrencyDenomination ETH_GWEI = CurrencyDenomination.create(
             "Gwei",
             "gwei",
             UnsignedInteger.valueOf(9),
             "gwei"
     );
 
-    private static CurrencyDenomination ETH_ETHER = new CurrencyDenomination(
+    private static CurrencyDenomination ETH_ETHER = CurrencyDenomination.create(
             "Ether",
             "eth",
             UnsignedInteger.valueOf(18),
@@ -106,7 +106,7 @@ final class Blockchains {
     /* package */
     static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
 
-    private static Currency CURRENCY_BTC_MAINNET = new Currency(
+    private static Currency CURRENCY_BTC_MAINNET = Currency.create(
             "bitcoin-mainnet:__native__",
             "Bitcoin",
             "btc",
@@ -120,7 +120,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_BCH_MAINNET = new Currency(
+    private static Currency CURRENCY_BCH_MAINNET = Currency.create(
             "bitcoincash-mainnet:__native__",
             "Bitcoin Cash",
             "bch",
@@ -134,7 +134,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_ETH_MAINNET = new Currency(
+    private static Currency CURRENCY_ETH_MAINNET = Currency.create(
             "ethereum-mainnet:__native__",
             "Ethereum",
             "eth",
@@ -149,7 +149,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_BRD_MAINNET = new Currency(
+    private static Currency CURRENCY_BRD_MAINNET = Currency.create(
             makeCurrencyIdentifierErc20("ethereum-mainnet:", ADDRESS_BRD_MAINNET),
             "BRD Token",
             "brd",
@@ -162,7 +162,7 @@ final class Blockchains {
 
     // Testnet
 
-    private static Currency CURRENCY_BTC_TESTNET = new Currency(
+    private static Currency CURRENCY_BTC_TESTNET = Currency.create(
             "bitcoin-testnet:__native__",
             "Bitcoin Test",
             "btc",
@@ -176,7 +176,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_BCH_TESTNET = new Currency(
+    private static Currency CURRENCY_BCH_TESTNET = Currency.create(
             "bitcoincash-testnet:__native__",
             "Bitcoin Cash Testnet",
             "bch",
@@ -190,7 +190,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_ETH_ROPSTEN = new Currency(
+    private static Currency CURRENCY_ETH_ROPSTEN = Currency.create(
             "ethereum-ropsten:__native__",
             "Ethereum Testnet",
             "eth",
@@ -205,7 +205,7 @@ final class Blockchains {
             )
     );
 
-    private static Currency CURRENCY_BRD_ROPSTEN = new Currency(
+    private static Currency CURRENCY_BRD_ROPSTEN = Currency.create(
             makeCurrencyIdentifierErc20("ethereum-ropsten:", ADDRESS_BRD_TESTNET),
             "BRD Token Testnet",
             "brd",
@@ -226,13 +226,13 @@ final class Blockchains {
         code = code.toLowerCase(Locale.ROOT);
 
         return ImmutableList.of(
-                new CurrencyDenomination(
+                CurrencyDenomination.create(
                         String.format(Locale.ROOT, "%s Token INT", name),
                         String.format(Locale.ROOT, "%si", code),
                         UnsignedInteger.ZERO,
                         String.format(Locale.ROOT, "%si", code)
                 ),
-                new CurrencyDenomination(
+                CurrencyDenomination.create(
                         String.format(Locale.ROOT, "%s Token", name),
                         code,
                         decimals,
@@ -250,7 +250,7 @@ final class Blockchains {
 
     // Mainnet
 
-    private static Blockchain BLOCKCHAIN_BTC_MAINNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_BTC_MAINNET = Blockchain.create(
             "bitcoin-mainnet",
             "Bitcoin",
             "mainnet",
@@ -258,7 +258,7 @@ final class Blockchains {
             "bitcoin-mainnet:__native__",
             UnsignedLong.valueOf(595000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "30",
                             "10m",
                             UnsignedLong.valueOf(10 * 60 * 1000)
@@ -267,7 +267,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_BCH_MAINNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_BCH_MAINNET = Blockchain.create(
             "bitcoincash-mainnet",
             "Bitcoin Cash",
             "mainnet",
@@ -275,7 +275,7 @@ final class Blockchains {
             "bitcoincash-mainnet:__native__",
             UnsignedLong.valueOf(600000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "30",
                             "10m",
                             UnsignedLong.valueOf(10 * 60 * 1000)
@@ -284,7 +284,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_ETH_MAINNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_ETH_MAINNET = Blockchain.create(
             "ethereum-mainnet",
             "Ethereum",
             "mainnet",
@@ -292,7 +292,7 @@ final class Blockchains {
             "ethereum-mainnet:__native__",
             UnsignedLong.valueOf(8570000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "2000000000",
                             "1m",
                             UnsignedLong.valueOf(60 * 1000)
@@ -303,7 +303,7 @@ final class Blockchains {
 
     // Testnet
 
-    private static Blockchain BLOCKCHAIN_BTC_TESTNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_BTC_TESTNET = Blockchain.create(
             "bitcoin-testnet",
             "Bitcoin Testnet",
             "testnet",
@@ -311,7 +311,7 @@ final class Blockchains {
             "bitcoin-testnet:__native__",
             UnsignedLong.valueOf(1575000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "30",
                             "10m",
                             UnsignedLong.valueOf(10 * 60 * 1000)
@@ -320,7 +320,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_BCH_TESTNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_BCH_TESTNET = Blockchain.create(
             "bitcoincash-testnet",
             "Bitcoin Cash Testnet",
             "testnet",
@@ -328,7 +328,7 @@ final class Blockchains {
             "bitcoincash-testnet:__native__",
             UnsignedLong.valueOf(1325000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "30",
                             "10m",
                             UnsignedLong.valueOf(10 * 60 * 1000)
@@ -337,7 +337,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_ETH_ROPSTEN = new Blockchain(
+    private static Blockchain BLOCKCHAIN_ETH_ROPSTEN = Blockchain.create(
             "ethereum-ropsten",
             "Ethereum Ropsten",
             "testnet",
@@ -345,7 +345,7 @@ final class Blockchains {
             "ethereum-ropsten:__native__",
             UnsignedLong.valueOf(6415000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "2000000000",
                             "1m",
                             UnsignedLong.valueOf(60 * 1000)

@@ -11,21 +11,25 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
-import com.breadwallet.crypto.blockchaindb.apis.bdb.BdbApiClient;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
+import com.breadwallet.crypto.blockchaindb.models.brd.BrdResponse;
+import com.breadwallet.crypto.blockchaindb.models.brd.BrdResponseWithStatus;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +52,6 @@ public class BrdApiClient {
 
     private static final Logger Log = Logger.getLogger(BrdApiClient.class.getName());
 
-    private static final Gson GSON = new Gson();
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient client;
@@ -68,7 +71,7 @@ public class BrdApiClient {
                          Map json,
                          CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "proxy"), ImmutableMultimap.of(), json, "POST",
-                new EmbeddedStringResponseHandler(handler));
+                new BrdResponseHandler<>(String.class, handler));
     }
 
     /* package */
@@ -77,24 +80,24 @@ public class BrdApiClient {
                           Map json,
                           CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new EmbeddedStringResponseHandler(handler));
+                new BrdResponseHandler<>(String.class, handler));
     }
 
     /* package */
     <T> void sendQueryForArrayRequest(String networkName,
                                       Multimap<String, String> params,
                                       Map json,
-                                      Class<T[]> clazz,
+                                      Class<T> clazz,
                                       CompletionHandler<List<T>, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new EmbeddedArrayResponseHandler<T>(clazz, handler));
+                new BrdResponseWithStatusHandler<>(clazz, handler));
     }
 
     /* package */
-    <T> void sendTokenRequest(Class<T[]> clazz,
+    <T> void sendTokenRequest(Class<T> clazz,
                               CompletionHandler<List<T>, QueryError> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
-                new RootArrayResponseHandler<T>(clazz, handler));
+                new ListResponseHandler<>(clazz, handler));
     }
 
     private String getNetworkName(String networkName) {
@@ -107,8 +110,25 @@ public class BrdApiClient {
                                         @Nullable Map json,
                                         String httpMethod,
                                         ResponseHandler handler) {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
+        RequestBody httpBody;
+        if (json == null) {
+            httpBody = null;
 
+        } else try {
+            httpBody = RequestBody.create(serializeMap(json), MEDIA_TYPE_JSON);
+
+        } catch (JsonProcessingException e) {
+            handler.handleError(new QuerySubmissionError(e.getMessage()));
+            return;
+        }
+
+        HttpUrl url = HttpUrl.parse(baseUrl);
+        if (null == url) {
+            handler.handleError(new QueryUrlError("Invalid base URL " + baseUrl));
+            return;
+        }
+
+        HttpUrl.Builder urlBuilder = url.newBuilder();
         for (String segment : pathSegments) {
             urlBuilder.addPathSegment(segment);
         }
@@ -125,7 +145,7 @@ public class BrdApiClient {
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
         requestBuilder.header("Accept", "application/json");
-        requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, GSON.toJson(json)));
+        requestBuilder.method(httpMethod, httpBody);
 
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
@@ -143,7 +163,7 @@ public class BrdApiClient {
                         } else {
                             try {
                                 handler.handleResponse(responseBody.string());
-                            } catch (JsonSyntaxException e) {
+                            } catch (JsonProcessingException e) {
                                 Log.log(Level.SEVERE, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
@@ -164,109 +184,31 @@ public class BrdApiClient {
     }
 
     private interface ResponseHandler {
-        void handleResponse(String responseData);
+        void handleResponse(String responseData) throws JsonProcessingException;
         void handleError(QueryError error);
     }
 
-    private static class EmbeddedStringResponseHandler implements ResponseHandler {
+    private static class BrdResponseHandler<T> implements ResponseHandler {
 
-        private final CompletionHandler<String, QueryError> handler;
+        final Class<T> clazz;
+        final CompletionHandler<T, QueryError> handler;
 
-        EmbeddedStringResponseHandler(CompletionHandler<String, QueryError> handler) {
-            this.handler = handler;
-        }
-
-        @Override
-        public void handleResponse(String responseData) {
-            EmbeddedStringResponse resp = GSON.fromJson(responseData, EmbeddedStringResponse.class);
-
-            if (resp.result == null) {
-                QueryError e = new QueryModelError("'result' expected");
-                Log.log(Level.SEVERE, "missing 'result' in response", e);
-                handler.handleError(e);
-
-            } else {
-                handler.handleData(resp.result);
-            }
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
-        }
-    }
-
-    public static class EmbeddedStringResponse {
-        public String result;
-    }
-
-    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler {
-
-        private final Class<T[]> clazz;
-        private final CompletionHandler<List<T>, QueryError> handler;
-
-        EmbeddedArrayResponseHandler(Class<T[]> clazz, CompletionHandler<List<T>, QueryError> handler) {
+        BrdResponseHandler(Class<T> clazz, CompletionHandler<T, QueryError> handler) {
             this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) {
-            EmbeddedArrayResponse resp = GSON.fromJson(responseData, EmbeddedArrayResponse.class);
+        public void handleResponse(String responseData) throws JsonProcessingException {
+            BrdResponse<T> resp = deserializeBrdResponse(clazz, responseData);
 
-            if (resp.status == null) {
-                QueryError e = new QueryModelError("'status' expected");
-                Log.log(Level.SEVERE, "missing 'status' in response", e);
-                handler.handleError(e);
-
-            } else if (resp.message == null) {
-                QueryError e = new QueryModelError("'message' expected");
-                Log.log(Level.SEVERE, "missing 'message' in response", e);
-                handler.handleError(e);
-
-            } else if (resp.result == null) {
-                QueryError e = new QueryModelError("'result' expected");
-                Log.log(Level.SEVERE, "missing 'result' in response", e);
-                handler.handleError(e);
-
-            } else {
-                T[] data = GSON.fromJson(resp.result, clazz);
-                if (null != data) {
-                    handler.handleData(Arrays.asList(data));
-                } else {
-                    QueryError e = new QueryModelError("Transform error");
-                    Log.log(Level.SEVERE, "parsing error", e);
-                    handler.handleError(e);
-                }
-            }
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
-        }
-    }
-
-    private static class RootArrayResponseHandler<T> implements ResponseHandler {
-
-        private final Class<T[]> clazz;
-        private final CompletionHandler<List<T>, QueryError> handler;
-
-        RootArrayResponseHandler(Class<T[]> clazz, CompletionHandler<List<T>, QueryError> handler) {
-            this.clazz = clazz;
-            this.handler = handler;
-        }
-
-        @Override
-        public void handleResponse(String responseData) {
-            T[] data = GSON.fromJson(responseData, clazz);
-            if (null != data) {
-                handler.handleData(Arrays.asList(data));
-
-            } else {
+            if (resp == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
                 handler.handleError(e);
+
+            } else {
+                handler.handleData(resp.getResult());
             }
         }
 
@@ -276,9 +218,90 @@ public class BrdApiClient {
         }
     }
 
-    public static class EmbeddedArrayResponse {
-        public String status;
-        public String message;
-        public JsonElement result;
+    private static class BrdResponseWithStatusHandler<T> implements ResponseHandler {
+
+        final Class<T> clazz;
+        final CompletionHandler<List<T>, QueryError> handler;
+
+        BrdResponseWithStatusHandler(Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
+            this.clazz = clazz;
+            this.handler = handler;
+        }
+
+        @Override
+        public void handleResponse(String responseData) throws JsonProcessingException {
+            BrdResponseWithStatus<List<T>> resp = deserializeBrdResponseWithStatus(clazz, responseData);
+
+            if (resp == null) {
+                QueryError e = new QueryModelError("Transform error");
+                Log.log(Level.SEVERE, "parsing error", e);
+                handler.handleError(e);
+
+            } else {
+                handler.handleData(resp.getResult());
+            }
+        }
+
+        @Override
+        public void handleError(QueryError error) {
+            handler.handleError(error);
+        }
+    }
+
+    private static class ListResponseHandler<T> implements ResponseHandler {
+
+        final Class<T> clazz;
+        final CompletionHandler<List<T>, QueryError> handler;
+
+        ListResponseHandler(Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
+            this.clazz = clazz;
+            this.handler = handler;
+        }
+
+        @Override
+        public void handleResponse(String responseData) throws JsonProcessingException {
+            List<T> data = deserializeList(clazz, responseData);
+
+            if (null == data) {
+                QueryError e = new QueryModelError("Transform error");
+                Log.log(Level.SEVERE, "parsing error", e);
+                handler.handleError(e);
+
+            } else {
+                handler.handleData(data);
+            }
+        }
+
+        @Override
+        public void handleError(QueryError error) {
+            handler.handleError(error);
+        }
+    }
+
+    // JSON methods
+
+    private static final ObjectMapper MAPPER_JSON = new ObjectMapper();
+
+    private static String serializeMap(Map map) throws JsonProcessingException {
+        return MAPPER_JSON.writeValueAsString(map);
+    }
+
+    private static <X> BrdResponse<X> deserializeBrdResponse(Class<X> clazz, String json) throws JsonProcessingException {
+        TypeFactory typeFactory = MAPPER_JSON.getTypeFactory();
+        JavaType type = typeFactory.constructParametricType(BrdResponse.class, clazz);
+        return MAPPER_JSON.readValue(json, type);
+    }
+
+    private static <X> BrdResponseWithStatus<List<X>> deserializeBrdResponseWithStatus(Class<X> clazz, String json) throws JsonProcessingException {
+        TypeFactory typeFactory = MAPPER_JSON.getTypeFactory();
+        JavaType inner = typeFactory.constructCollectionLikeType(ArrayList.class, clazz);
+        JavaType type = typeFactory.constructParametricType(BrdResponseWithStatus.class, inner);
+        return MAPPER_JSON.readValue(json, type);
+    }
+
+    private static <X> List<X> deserializeList(Class<X> clazz, String json) throws JsonProcessingException {
+        TypeFactory typeFactory = MAPPER_JSON.getTypeFactory();
+        JavaType type = typeFactory.constructCollectionLikeType(ArrayList.class, clazz);
+        return MAPPER_JSON.readValue(json, type);
     }
 }

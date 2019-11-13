@@ -7,130 +7,164 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.brd;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@JsonIgnoreProperties(value = "cumulativeGasUsed")
 public class EthTransaction {
 
-    public String hash;
+    @JsonCreator
+    public static EthTransaction create(@JsonProperty("hash") String hash,
+                                        @JsonProperty("from") String sourceAddr,
+                                        @JsonProperty("to") String targetAddr,
+                                        @JsonProperty("contractAddress") String contractAddr,
+                                        @JsonProperty("value") String amount,
+                                        @JsonProperty("gas") String gasLimit,
+                                        @JsonProperty("gasPrice") String gasPrice,
+                                        @JsonProperty("input") String data,
+                                        @JsonProperty("nonce") String nonce,
+                                        @JsonProperty("gasUsed") String gasUsed,
+                                        @JsonProperty("blockNumber") String blockNumber,
+                                        @JsonProperty("blockHash") String blockHash,
+                                        @JsonProperty("confirmations") String blockConfirmations,
+                                        @JsonProperty("transactionIndex") String blockTransactionIndex,
+                                        @JsonProperty("timeStamp") String blockTimestamp,
+                                        @JsonProperty("isError") String isError) {
+        return new EthTransaction(
+                checkNotNull(hash),
+                checkNotNull(sourceAddr),
+                checkNotNull(targetAddr),
+                checkNotNull(contractAddr),
+                checkNotNull(amount),
+                checkNotNull(gasLimit),
+                checkNotNull(gasPrice),
+                checkNotNull(data),
+                checkNotNull(nonce),
+                checkNotNull(gasUsed),
+                checkNotNull(blockNumber),
+                checkNotNull(blockHash),
+                checkNotNull(blockConfirmations),
+                checkNotNull(blockTransactionIndex),
+                checkNotNull(blockTimestamp),
+                checkNotNull(isError)
+        );
+    }
 
-    @SerializedName("from")
-    private String sourceAddr;
+    private final String hash;
+    private final String sourceAddr;
+    private final String targetAddr;
+    private final String contractAddr;
+    private final String amount;
+    private final String gasLimit;
+    private final String gasPrice;
+    private final String data;
+    private final String nonce;
+    private final String gasUsed;
+    private final String blockNumber;
+    private final String blockHash;
+    private final String blockConfirmations;
+    private final String blockTransactionIndex;
+    private final String blockTimestamp;
+    private final String isError;
 
-    @SerializedName("to")
-    private String targetAddr;
-
-    @SerializedName("contractAddress")
-    private String contractAddr;
-
-    @SerializedName("value")
-    private String amount;
-
-    @SerializedName("gas")
-    private String gasLimit;
-
-    private String gasPrice;
-
-    @SerializedName("input")
-    private String data;
-
-    private String nonce;
-
-    private String gasUsed;
-
-    private String blockNumber;
-
-    private String blockHash;
-
-    @SerializedName("confirmations")
-    private String blockConfirmations;
-
-    @SerializedName("transactionIndex")
-    private String blockTransactionIndex;
-
-    @SerializedName("timeStamp")
-    private String blockTimestamp;
-
-    private String isError;
+    private EthTransaction(String hash,
+                           String sourceAddr,
+                           String targetAddr,
+                           String contractAddr,
+                           String amount,
+                           String gasLimit,
+                           String gasPrice,
+                           String data,
+                           String nonce,
+                           String gasUsed,
+                           String blockNumber,
+                           String blockHash,
+                           String blockConfirmations,
+                           String blockTransactionIndex,
+                           String blockTimestamp,
+                           String isError) {
+        this.hash = hash;
+        this.sourceAddr = sourceAddr;
+        this.targetAddr = targetAddr;
+        this.contractAddr = contractAddr;
+        this.amount = amount;
+        this.gasLimit = gasLimit;
+        this.gasPrice = gasPrice;
+        this.data = data;
+        this.nonce = data;
+        this.gasUsed = gasUsed;
+        this.blockNumber = blockNumber;
+        this.blockHash = blockHash;
+        this.blockConfirmations = blockConfirmations;
+        this.blockTransactionIndex = blockTransactionIndex;
+        this.blockTimestamp = blockTimestamp;
+        this.isError = isError;
+    }
 
     public String getHash() {
-        checkNotNull(hash);
         return hash;
     }
 
     public String getSourceAddr() {
-        checkNotNull(sourceAddr);
         return sourceAddr;
     }
 
     public String getTargetAddr() {
-        checkNotNull(targetAddr);
         return targetAddr;
     }
 
     public String getContractAddr() {
-        checkNotNull(contractAddr);
         return contractAddr;
     }
 
     public String getAmount() {
-        checkNotNull(amount);
         return amount;
     }
 
     public String getGasLimit() {
-        checkNotNull(gasLimit);
         return gasLimit;
     }
 
     public String getGasPrice() {
-        checkNotNull(gasPrice);
         return gasPrice;
     }
 
     public String getData() {
-        checkNotNull(data);
         return data;
     }
 
     public String getNonce() {
-        checkNotNull(nonce);
         return nonce;
     }
 
     public String getGasUsed() {
-        checkNotNull(gasUsed);
         return gasUsed;
     }
 
     public String getBlockNumber() {
-        checkNotNull(blockNumber);
         return blockNumber;
     }
 
     public String getBlockHash() {
-        checkNotNull(blockHash);
         return blockHash;
     }
 
     public String getBlockConfirmations() {
-        checkNotNull(blockConfirmations);
         return blockConfirmations;
     }
 
     public String getBlockTransactionIndex() {
-        checkNotNull(blockTransactionIndex);
         return blockTransactionIndex;
     }
 
     public String getBlockTimestamp() {
-        checkNotNull(blockTimestamp);
         return blockTimestamp;
     }
 
     public String getIsError() {
-        checkNotNull(isError);
         return isError;
     }
 }

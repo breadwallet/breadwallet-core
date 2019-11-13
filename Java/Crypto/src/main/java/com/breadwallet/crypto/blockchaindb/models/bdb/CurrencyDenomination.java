@@ -7,79 +7,60 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import com.google.common.base.Optional;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.UnsignedInteger;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class CurrencyDenomination {
+
+    // creators
+
+    public static CurrencyDenomination create(String name, String shortName, UnsignedInteger decimals, String symbol) {
+        CurrencyDenomination denomination = new CurrencyDenomination();
+        denomination.name = name;
+        denomination.shortName = shortName;
+        denomination.decimals = decimals;
+        denomination.symbol = symbol;
+        return denomination;
+    }
+
+    // helpers
 
     private static final Map<String, String> CURRENCY_SYMBOLS = ImmutableMap.of(
             "btc", "₿",
             "eth", "Ξ"
     );
 
-    public static Optional<CurrencyDenomination> asDenomination(JSONObject json) {
-        try {
-            String name = json.getString("name");
-            String code = json.getString("short_name");
-            UnsignedInteger decimals = UnsignedInteger.valueOf(json.getLong("decimals"));
-            String symbol = lookupSymbol(code);
-            return Optional.of(new CurrencyDenomination(name, code, decimals, symbol));
-
-        } catch (JSONException e) {
-            return Optional.absent();
-        }
-    }
-
-    public static Optional<List<CurrencyDenomination>> asDenominations(JSONArray json){
-        List<CurrencyDenomination> denominations = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject denominationsObject = json.optJSONObject(i);
-            if (denominationsObject == null) {
-                return Optional.absent();
-            }
-
-            Optional<CurrencyDenomination> optionalDenomination = CurrencyDenomination.asDenomination(denominationsObject);
-            if (!optionalDenomination.isPresent()) {
-                return Optional.absent();
-            }
-
-            denominations.add(optionalDenomination.get());
-        }
-        return Optional.of(denominations);
-    }
-
     private static String lookupSymbol(String code) {
         String symbol = CURRENCY_SYMBOLS.get(code);
         return symbol != null ? symbol : code;
     }
 
-    private final String name;
-    private final String code;
-    private final UnsignedInteger decimals;
-    private final String symbol;
+    // fields
 
-    public CurrencyDenomination(String name, String code, UnsignedInteger decimals, String symbol) {
-        this.name = name;
-        this.code = code;
-        this.decimals = decimals;
-        this.symbol = symbol;
-    }
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("short_name")
+    private String shortName;
+
+    @JsonProperty("decimals")
+    private UnsignedInteger decimals;
+
+    @JsonIgnore
+    private String symbol;
+
+    // getters
 
     public String getName() {
         return name;
     }
 
     public String getCode() {
-        return code;
+        return shortName;
     }
 
     public UnsignedInteger getDecimals() {
@@ -87,6 +68,6 @@ public class CurrencyDenomination {
     }
 
     public String getSymbol() {
-        return symbol;
+        return symbol == null ? lookupSymbol(shortName) : symbol;
     }
 }

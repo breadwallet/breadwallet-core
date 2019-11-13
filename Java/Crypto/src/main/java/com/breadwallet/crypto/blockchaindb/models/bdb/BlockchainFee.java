@@ -7,71 +7,44 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import com.breadwallet.crypto.blockchaindb.models.Utilities;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.UnsignedLong;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class BlockchainFee {
 
-    public static Optional<BlockchainFee> asBlockchainFee(JSONObject json) {
-        try {
-            json.getJSONObject("fee").getString("currency_id");
-            String amount = json.getJSONObject("fee").getString("amount");
-            String tier = json.getString("tier");
-            UnsignedLong confirmationTime = Utilities.getUnsignedLongFromString(json, "estimated_confirmation_in");
+    // creators
 
-            return Optional.of(new BlockchainFee(amount, tier, confirmationTime));
-
-        } catch (JSONException e) {
-            return Optional.absent();
-        }
+    public static BlockchainFee create(String amount, String tier, UnsignedLong confirmationTimeInMilliseconds) {
+        BlockchainFee fee = new BlockchainFee();
+        fee.fee = Amount.create(amount);
+        fee.estimatedConfirmationIn = confirmationTimeInMilliseconds;
+        return fee;
     }
 
-    public static Optional<List<BlockchainFee>> asBlockchainFees(JSONArray json) {
-        List<BlockchainFee> blockchainFees = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject blockchainFeeObject = json.optJSONObject(i);
-            if (blockchainFeeObject == null) {
-                return Optional.absent();
-            }
+    // fields
 
-            Optional<BlockchainFee> optionalBlockchainFee = BlockchainFee.asBlockchainFee(blockchainFeeObject);
-            if (!optionalBlockchainFee.isPresent()) {
-                return Optional.absent();
-            }
+    private Amount fee;
 
-            blockchainFees.add(optionalBlockchainFee.get());
-        }
-        return Optional.of(blockchainFees);
-    }
+    private String tier;
 
-    private final String amount;
-    private final String tier;
-    private final UnsignedLong comfirmationTimeInMilliseconds;
+    @JsonProperty("estimated_confirmation_in")
+    private UnsignedLong estimatedConfirmationIn;
 
-    public BlockchainFee(String amount, String tier, UnsignedLong confirmationTimeInMilliseconds) {
-        this.amount = amount;
-        this.tier = tier;
-        this.comfirmationTimeInMilliseconds = confirmationTimeInMilliseconds;
-    }
+    // getters
 
-    public String getAmount() {
-        return amount;
+    public Amount getFee() {
+        return fee;
     }
 
     public String getTier() {
         return tier;
     }
 
+    public String getAmount() {
+        return fee.getAmount();
+    }
+
     public UnsignedLong getConfirmationTimeInMilliseconds() {
-        return comfirmationTimeInMilliseconds;
+        return estimatedConfirmationIn;
     }
 }

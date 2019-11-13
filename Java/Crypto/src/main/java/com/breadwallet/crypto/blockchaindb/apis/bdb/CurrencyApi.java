@@ -33,11 +33,11 @@ public class CurrencyApi {
     public void getCurrencies(@Nullable String id, CompletionHandler<List<Currency>, QueryError> handler) {
         Multimap<String, String> params = id == null ? ImmutableMultimap.of() : ImmutableListMultimap.of(
                 "blockchain_id", id);
-        jsonClient.sendGetForArray("currencies", params, Currency::asCurrencies, handler);
+        jsonClient.sendGetForArray("currencies", params, Currency.class, handler);
     }
 
     public void getCurrency(String id, CompletionHandler<Currency, QueryError> handler) {
-        jsonClient.sendGetWithId("currencies", id, ImmutableMultimap.of(), Currency::asCurrency, handler);
+        jsonClient.sendGetWithId("currencies", id, ImmutableMultimap.of(), Currency.class, handler);
     }
 
 }

@@ -31,8 +31,6 @@ import java.util.Objects;
 /* package */
 final class Wallet implements com.breadwallet.crypto.Wallet {
 
-    private static final String TAG = Wallet.class.getName();
-
     /* package */
     static Wallet takeAndCreate(BRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         return Wallet.create(core.take(), walletManager, callbackCoordinator);

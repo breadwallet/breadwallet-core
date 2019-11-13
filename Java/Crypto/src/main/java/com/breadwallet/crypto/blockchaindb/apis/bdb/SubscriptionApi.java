@@ -40,21 +40,21 @@ public class SubscriptionApi {
 
     public void createSubscription(String deviceId, SubscriptionEndpoint endpoint, List<SubscriptionCurrency> currencies,
                                    CompletionHandler<Subscription, QueryError> handler) {
-        jsonClient.sendPost("subscriptions", ImmutableMultimap.of(), Subscription.asJson(deviceId, endpoint, currencies),
-                Subscription::asSubscription, handler);
+        jsonClient.sendPost("subscriptions", ImmutableMultimap.of(), Subscription.create(deviceId, endpoint, currencies),
+                Subscription.class, handler);
     }
 
     public void getSubscription(String id, CompletionHandler<Subscription, QueryError> handler) {
-        jsonClient.sendGetWithId("subscriptions", id, ImmutableMultimap.of(), Subscription::asSubscription, handler);
+        jsonClient.sendGetWithId("subscriptions", id, ImmutableMultimap.of(), Subscription.class, handler);
     }
 
     public void getSubscriptions(CompletionHandler<List<Subscription>, QueryError> handler) {
-        jsonClient.sendGetForArray("subscriptions", ImmutableMultimap.of(), Subscription::asSubscriptions, handler);
+        jsonClient.sendGetForArray("subscriptions", ImmutableMultimap.of(), Subscription.class, handler);
     }
 
     public void updateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
         jsonClient.sendPutWithId("subscriptions", subscription.getId(), ImmutableMultimap.of(),
-                Subscription.asJson(subscription), Subscription::asSubscription, handler);
+                subscription, Subscription.class, handler);
     }
 
     public void deleteSubscription(String id, CompletionHandler<Void, QueryError> handler) {

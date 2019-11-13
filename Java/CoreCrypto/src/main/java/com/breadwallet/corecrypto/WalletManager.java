@@ -33,8 +33,6 @@ import static com.google.common.base.Preconditions.checkState;
 /* package */
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
-    private static final String TAG = WalletManager.class.getName();
-
     /* package */
     static void wipe(Network network, String storagePath) {
         BRCryptoWalletManager.wipe(network.getCoreBRCryptoNetwork(), storagePath);

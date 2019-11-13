@@ -9,7 +9,6 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
@@ -22,10 +21,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
 
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -67,7 +65,7 @@ public class TransactionApi {
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             PagedCompletionHandler<List<Transaction>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
-            jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions, pagedHandler);
+            jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction.class, pagedHandler);
         }
     }
 
@@ -77,14 +75,14 @@ public class TransactionApi {
                 "include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
-        jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
+        jsonClient.sendGetWithId("transactions", id, params, Transaction.class, handler);
     }
 
     public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void, QueryError> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of(
+        Map json = ImmutableMap.of(
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
-                "data", BaseEncoding.base64().encode(tx)));
+                "data", BaseEncoding.base64().encode(tx));
 
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
@@ -94,11 +92,12 @@ public class TransactionApi {
         List<Transaction> allResults = new ArrayList<>();
         return new PagedCompletionHandler<List<Transaction>, QueryError>() {
             @Override
-            public void handleData(List<Transaction> results, PageInfo info) {
+            public void handleData(List<Transaction> results, String prevUrl, String nextUrl) {
                 allResults.addAll(results);
 
-                if (info.nextUrl != null) {
-                    submitGetNextTransactions(info.nextUrl, this);
+                if (nextUrl != null) {
+                    submitGetNextTransactions(nextUrl, this);
+
                 } else {
                     coordinator.handleChunkData(chunkedAddresses, allResults);
                 }
@@ -116,6 +115,6 @@ public class TransactionApi {
     }
 
     private void getNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
-        jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction::asTransactions, handler);
+        jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction.class, handler);
     }
 }

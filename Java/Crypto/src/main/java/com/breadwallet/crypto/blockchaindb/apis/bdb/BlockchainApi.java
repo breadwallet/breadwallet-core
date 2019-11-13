@@ -26,10 +26,10 @@ public class BlockchainApi {
 
     public void getBlockchains(boolean isMainnet, CompletionHandler<List<Blockchain>, QueryError> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of("testnet", Boolean.valueOf(!isMainnet).toString());
-        jsonClient.sendGetForArray("blockchains", params, Blockchain::asBlockchains, handler);
+        jsonClient.sendGetForArray("blockchains", params, Blockchain.class, handler);
     }
 
     public void getBlockchain(String id, CompletionHandler<Blockchain, QueryError> handler) {
-        jsonClient.sendGetWithId("blockchains", id, ImmutableMultimap.of(), Blockchain::asBlockchain, handler);
+        jsonClient.sendGetWithId("blockchains", id, ImmutableMultimap.of(), Blockchain.class, handler);
     }
 }

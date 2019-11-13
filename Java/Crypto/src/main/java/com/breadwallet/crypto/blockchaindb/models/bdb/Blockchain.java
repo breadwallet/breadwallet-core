@@ -7,134 +7,84 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import android.support.annotation.Nullable;
-
-import com.breadwallet.crypto.blockchaindb.models.Utilities;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 import java.util.List;
 
 public class Blockchain {
 
-    private static long BLOCK_HEIGHT_INTERNAL = -1;
+    private static final long BLOCK_HEIGHT_UNSPECIFIED = -1;
 
-    public static Optional<Blockchain> asBlockchain(JSONObject json) {
-        try {
-            String id = json.getString("id");
-            String name = json.getString("name");
-            String network = json.getString("network");
-            boolean isMainnet = json.getBoolean("is_mainnet");
-            String currency = json.getString("native_currency_id");
-            UnsignedInteger confirmationsUntilFinal = Utilities.getUnsignedIntFromString(json, "confirmations_until_final");
+    // creators
 
-            long blockHeightLong = json.getLong("block_height");
-            UnsignedLong blockHeight = BLOCK_HEIGHT_INTERNAL == blockHeightLong ?
-                    null : UnsignedLong.valueOf(blockHeightLong);
-
-            JSONArray feeEstimatesJson = json.getJSONArray("fee_estimates");
-            Optional<List<BlockchainFee>> feeEstimatesOption = BlockchainFee.asBlockchainFees(feeEstimatesJson);
-            if (!feeEstimatesOption.isPresent()) return Optional.absent();
-            List<BlockchainFee> feeEstimates = feeEstimatesOption.get();
-
-            return Optional.of(
-                    new Blockchain(
-                            id,
-                            name,
-                            network,
-                            isMainnet,
-                            currency,
-                            blockHeight,
-                            feeEstimates,
-                            confirmationsUntilFinal
-                    )
-            );
-
-        } catch (JSONException | NumberFormatException e) {
-            return Optional.absent();
-        }
+    public static Blockchain create(String id,
+                                    String name,
+                                    String network,
+                                    boolean isMainNet,
+                                    String currencyId,
+                                    UnsignedLong blockHeight,
+                                    List<BlockchainFee> feeEstimates,
+                                    UnsignedInteger confirmationsUntilFinal) {
+        Blockchain blockchain = new Blockchain();
+        blockchain.id = id;
+        blockchain.name = name;
+        blockchain.network = network;
+        blockchain.isMainNet = isMainNet;
+        blockchain.currencyId = currencyId;
+        blockchain.blockHeight = blockHeight;
+        blockchain.feeEstimates = feeEstimates;
+        blockchain.confirmationsUntilFinal = confirmationsUntilFinal;
+        return blockchain;
     }
 
+    // fields
 
-    public static Optional<List<Blockchain>> asBlockchains(JSONArray json) {
-        List<Blockchain> blockchains = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-            JSONObject blockchainsObject = json.optJSONObject(i);
-            if (blockchainsObject == null) {
-                return Optional.absent();
-            }
+    public String name;
+    @JsonProperty("id")
+    public String id;
+    @JsonProperty("native_currency_id")
+    public String currencyId;
+    @JsonProperty("fee_estimates")
+    public List<BlockchainFee> feeEstimates;
+    @JsonProperty("is_mainnet")
+    public Boolean isMainNet;
+    public String network;
+    @JsonProperty("block_height")
+    public UnsignedLong blockHeight;
+    @JsonProperty("confirmations_until_final")
+    public UnsignedInteger confirmationsUntilFinal;
 
-            Optional<Blockchain> optionalBlockchains = Blockchain.asBlockchain(blockchainsObject);
-            if (!optionalBlockchains.isPresent()) {
-                return Optional.absent();
-            }
+    // getters
 
-            blockchains.add(optionalBlockchains.get());
-        }
-        return Optional.of(blockchains);
-    }
-
-    private final String id;
-    private final String name;
-    private final String network;
-    private final boolean isMainnet;
-    private final String currency;
-    private final List<BlockchainFee> feeEstimates;
-    private final UnsignedInteger confirmationsUntilFinal;
-
-    @Nullable
-    private final UnsignedLong blockHeight;
-
-    public Blockchain(String id,
-                      String name,
-                      String network,
-                      boolean isMainnet,
-                      String currency,
-                      @Nullable UnsignedLong blockHeight,
-                      List<BlockchainFee> feeEstimates,
-                      UnsignedInteger confirmationsUntilFinal) {
-        this.id = id;
-        this.name = name;
-        this.network = network;
-        this.isMainnet = isMainnet;
-        this.currency = currency;
-        this.blockHeight = blockHeight;
-        this.feeEstimates = feeEstimates;
-        this.confirmationsUntilFinal = confirmationsUntilFinal;
+    public String getName() {
+        return name;
     }
 
     public String getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getCurrency() {
+        return currencyId;
+    }
+
+    public List<BlockchainFee> getFeeEstimates() {
+        return feeEstimates;
+    }
+
+    public boolean isMainnet() {
+        return isMainNet;
     }
 
     public String getNetwork() {
         return network;
     }
 
-    public boolean isMainnet() {
-        return isMainnet;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
     public Optional<UnsignedLong> getBlockHeight() {
-        return Optional.fromNullable(blockHeight);
-    }
-
-    public List<BlockchainFee> getFeeEstimates() {
-        return feeEstimates;
+        return blockHeight.longValue() == BLOCK_HEIGHT_UNSPECIFIED ? Optional.absent() : Optional.fromNullable(blockHeight);
     }
 
     public UnsignedInteger getConfirmationsUntilFinal() {

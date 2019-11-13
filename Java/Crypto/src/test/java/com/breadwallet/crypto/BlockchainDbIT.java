@@ -24,7 +24,6 @@ import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -96,7 +95,7 @@ public class BlockchainDbIT {
         SynchronousCompletionHandler<Block> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlock("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                false, false, false, false, handler);
+                true, true, true, true, handler);
         Block block = handler.dat().orNull();
         assertNotNull(block);
         assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
@@ -108,6 +107,11 @@ public class BlockchainDbIT {
 
         blockchainDb.getBlockchains(true, handler);
         List<Blockchain> blockchains = handler.dat().orNull();
+        assertNotNull(blockchains);
+        assertNotEquals(0, blockchains.size());
+
+        blockchainDb.getBlockchains(false, handler);
+        blockchains = handler.dat().orNull();
         assertNotNull(blockchains);
         assertNotEquals(0, blockchains.size());
 
@@ -224,19 +228,19 @@ public class BlockchainDbIT {
 
         String deviceId = UUID.randomUUID().toString();
 
-        SubscriptionEndpoint endpoint = new SubscriptionEndpoint(
-                "development",
+        SubscriptionEndpoint endpoint = SubscriptionEndpoint.create(
                 "fcm",
+                "development",
                 "fcm registration token");
 
         List<SubscriptionCurrency> currencies = Collections.singletonList(
-                new SubscriptionCurrency(
+                SubscriptionCurrency.create(
                         "bitcoin-testnet:__native__",
                         Arrays.asList(
                                 "2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT",
                                 "mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"),
                         Collections.singletonList(
-                                new SubscriptionEvent(
+                                SubscriptionEvent.create(
                                         "confirmed",
                                         Collections.singletonList(UnsignedInteger.ONE)
                                 )
@@ -279,12 +283,12 @@ public class BlockchainDbIT {
         // subscription update
 
         List<SubscriptionCurrency> updatedCurrencies = Collections.singletonList(
-                new SubscriptionCurrency(
+                SubscriptionCurrency.create(
                         "bitcoin-testnet:__native__",
                         Collections.singletonList(
                                 "2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT"),
                         Collections.singletonList(
-                                new SubscriptionEvent(
+                                SubscriptionEvent.create(
                                         "confirmed",
                                         Collections.singletonList(UnsignedInteger.ONE)
                                 )
@@ -292,7 +296,7 @@ public class BlockchainDbIT {
                 )
         );
 
-        Subscription updatedSubscription = new Subscription(
+        Subscription updatedSubscription = Subscription.create(
                 createSubscription.getId(),
                 createSubscription.getDevice(),
                 createSubscription.getEndpoint(),

@@ -9,7 +9,6 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
@@ -54,7 +53,7 @@ public class BlockApi {
         ImmutableMultimap<String, String> params = paramsBuilder.build();
 
         PagedCompletionHandler<List<Block>, QueryError> pagedHandler = createPagedResultsHandler(handler);
-        jsonClient.sendGetForArrayWithPaging("blocks", params, Block::asBlocks, pagedHandler);
+        jsonClient.sendGetForArrayWithPaging("blocks", params, Block.class, pagedHandler);
     }
 
     public void getBlock(String id, boolean includeRaw,
@@ -66,7 +65,7 @@ public class BlockApi {
                 "include_tx_raw", String.valueOf(includeTxRaw),
                 "include_tx_proof", String.valueOf(includeTxProof));
 
-        jsonClient.sendGetWithId("blocks", id, params, Block::asBlock, handler);
+        jsonClient.sendGetWithId("blocks", id, params, Block.class, handler);
     }
 
     private void submitGetNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
@@ -74,20 +73,21 @@ public class BlockApi {
     }
 
     private void getNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
-        jsonClient.sendGetForArrayWithPaging("blocks", nextUrl, Block::asBlocks, handler);
+        jsonClient.sendGetForArrayWithPaging("blocks", nextUrl, Block.class, handler);
     }
 
     private PagedCompletionHandler<List<Block>, QueryError> createPagedResultsHandler(CompletionHandler<List<Block>, QueryError> handler) {
         List<Block> allResults = new ArrayList<>();
         return new PagedCompletionHandler<List<Block>, QueryError>() {
             @Override
-            public void handleData(List<Block> results, PageInfo info) {
+            public void handleData(List<Block> results, String prevUrl, String nextUrl) {
                 allResults.addAll(results);
 
-                if (info.nextUrl == null) {
-                    handler.handleData(allResults);
+                if (nextUrl != null) {
+                    submitGetNextBlocks(nextUrl, this);
+
                 } else {
-                    submitGetNextBlocks(info.nextUrl, this);
+                    handler.handleData(allResults);
                 }
             }
 

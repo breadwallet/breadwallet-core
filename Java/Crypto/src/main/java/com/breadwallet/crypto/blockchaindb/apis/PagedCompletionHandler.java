@@ -9,6 +9,6 @@ package com.breadwallet.crypto.blockchaindb.apis;
 
 public interface PagedCompletionHandler<T, E> {
 
-    void handleData(T data, PageInfo info);
+    void handleData(T data, String prevUrl, String nextUrl);
     void handleError(E error);
 }
