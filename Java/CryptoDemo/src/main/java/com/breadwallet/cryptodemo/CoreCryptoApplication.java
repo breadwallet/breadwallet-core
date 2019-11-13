@@ -35,6 +35,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import okhttp3.OkHttpClient;
 
@@ -113,6 +115,8 @@ public class CoreCryptoApplication extends Application {
 
     private void initFromLaunchIntent(Intent intent) {
         if (!runOnce.getAndSet(true)) {
+            Logging.initialize(Level.FINE);
+
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
             String paperKeyString = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY);
