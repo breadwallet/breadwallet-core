@@ -717,6 +717,7 @@ public class BlockChainDB {
                               addresses: [String],
                               begBlockNumber: UInt64,
                               endBlockNumber: UInt64,
+                              maxPageSize: Int? = nil,
                               completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
         self.queue.async {
             var error: QueryError? = nil
@@ -724,9 +725,14 @@ public class BlockChainDB {
 
             for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
                 if nil != error { break }
-                let queryKeys = ["blockchain_id", "start_height", "end_height"] + Array (repeating: "address", count: addresses.count)
+                var queryKeys = ["blockchain_id", "start_height", "end_height"] + Array (repeating: "address", count: addresses.count)
 
-                let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description] + addresses
+                var queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description] + addresses
+
+                if let maxPageSize = maxPageSize {
+                    queryKeys += ["max_page_size"]
+                    queryVals += [String(maxPageSize)]
+                }
 
                 let semaphore = DispatchSemaphore (value: 0)
 
@@ -793,6 +799,7 @@ public class BlockChainDB {
                                  endBlockNumber: UInt64,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
+                                 maxPageSize: Int? = nil,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
         // This query could overrun the endpoint's page size (typically 5,000).  If so, we'll need
         // to repeat the request for the next batch.
@@ -802,11 +809,16 @@ public class BlockChainDB {
 
             for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
                 if nil != error { break }
-                let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
+                var queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
                     + Array (repeating: "address", count: addresses.count)
 
                 var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
                     + addresses
+
+                if let maxPageSize = maxPageSize {
+                    queryKeys += ["max_page_size"]
+                    queryVals += [String(maxPageSize)]
+                }
 
                 let semaphore = DispatchSemaphore (value: 0)
 
@@ -900,16 +912,22 @@ public class BlockChainDB {
                            includeTx: Bool = false,
                            includeTxRaw: Bool = false,
                            includeTxProof: Bool = false,
+                           maxPageSize: Int? = nil,
                            completion: @escaping (Result<[Model.Block], QueryError>) -> Void) {
         self.queue.async {
             var error: QueryError? = nil
             var results = [Model.Block]()
 
-            let queryKeys = ["blockchain_id", "start_height", "end_height",  "include_raw",
+            var queryKeys = ["blockchain_id", "start_height", "end_height",  "include_raw",
                              "include_tx", "include_tx_raw", "include_tx_proof"]
 
-            let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
+            var queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
                              includeTx.description, includeTxRaw.description, includeTxProof.description]
+
+            if let maxPageSize = maxPageSize {
+                queryKeys += ["max_page_size"]
+                queryVals += [String(maxPageSize)]
+            }
 
             let semaphore = DispatchSemaphore (value: 0)
 

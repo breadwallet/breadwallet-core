@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -38,7 +40,7 @@ public class TransferApi {
     }
 
     public void getTransfers(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
-                             CompletionHandler<List<Transfer>, QueryError> handler) {
+                             @Nullable Integer maxPageSize, CompletionHandler<List<Transfer>, QueryError> handler) {
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transfer> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
@@ -49,6 +51,7 @@ public class TransferApi {
             paramsBuilder.put("blockchain_id", id);
             paramsBuilder.put("start_height", beginBlockNumber.toString());
             paramsBuilder.put("end_height", endBlockNumber.toString());
+            if (null != maxPageSize) paramsBuilder.put("max_page_size", maxPageSize.toString());
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 

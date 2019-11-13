@@ -187,7 +187,15 @@ public class BlockchainDb {
                              UnsignedLong beginBlockNumber,
                              UnsignedLong endBlockNumber,
                              CompletionHandler<List<Transfer>, QueryError> handler) {
-        transferApi.getTransfers(id, addresses, beginBlockNumber, endBlockNumber, handler);
+        getTransfers(id, addresses, beginBlockNumber, endBlockNumber, null, handler);
+    }
+
+    public void getTransfers(String id, List<String> addresses,
+                             UnsignedLong beginBlockNumber,
+                             UnsignedLong endBlockNumber,
+                             @Nullable Integer maxPageSize,
+                             CompletionHandler<List<Transfer>, QueryError> handler) {
+        transferApi.getTransfers(id, addresses, beginBlockNumber, endBlockNumber, maxPageSize, handler);
     }
 
     public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
@@ -202,8 +210,19 @@ public class BlockchainDb {
                                 boolean includeRaw,
                                 boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
+        getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
+                null, handler);
+    }
+
+    public void getTransactions(String id, List<String> addresses,
+                                UnsignedLong beginBlockNumber,
+                                UnsignedLong endBlockNumber,
+                                boolean includeRaw,
+                                boolean includeProof,
+                                @Nullable Integer maxPageSize,
+                                CompletionHandler<List<Transaction>, QueryError> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
-                handler);
+                maxPageSize, handler);
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
@@ -220,8 +239,15 @@ public class BlockchainDb {
     public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           CompletionHandler<List<Block>, QueryError> handler) {
+        getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
+                null, handler);
+    }
+
+    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
+                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof, @Nullable Integer maxPageSize,
+                          CompletionHandler<List<Block>, QueryError> handler) {
         blockApi.getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
-                handler);
+                maxPageSize, handler);
     }
 
     public void getBlock(String id, boolean includeRaw,
