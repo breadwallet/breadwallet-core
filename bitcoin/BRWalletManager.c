@@ -1747,11 +1747,10 @@ _BRWalletManagerSyncEvent(void * context,
     switch (event.type) {
         case SYNC_MANAGER_SET_BLOCKS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceClear(bwm->fileService, fileServiceTypeBlocks);
-
-            // !!!!!!!!!
-            // no break;
-            // !!!!!!!!!
+            fileServiceReplace (bwm->fileService, fileServiceTypeBlocks,
+                                (const void **) event.u.blocks.blocks,
+                                event.u.blocks.count);
+            break;
         }
         case SYNC_MANAGER_ADD_BLOCKS: {
             // filesystem changes are NOT queued; they are acted upon immediately
@@ -1759,14 +1758,12 @@ _BRWalletManagerSyncEvent(void * context,
                 fileServiceSave (bwm->fileService, fileServiceTypeBlocks, event.u.blocks.blocks[index]);
             break;
         }
-
         case SYNC_MANAGER_SET_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceClear(bwm->fileService, fileServiceTypePeers);
-
-            // !!!!!!!!!
-            // no break;
-            // !!!!!!!!!
+            fileServiceReplace (bwm->fileService, fileServiceTypePeers,
+                                (const void **) event.u.peers.peers,
+                                event.u.peers.count);
+            break;
         }
         case SYNC_MANAGER_ADD_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
@@ -1774,7 +1771,6 @@ _BRWalletManagerSyncEvent(void * context,
                 fileServiceSave (bwm->fileService, fileServiceTypePeers, &event.u.peers.peers[index]);
             break;
         }
-
         case SYNC_MANAGER_CONNECTED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {

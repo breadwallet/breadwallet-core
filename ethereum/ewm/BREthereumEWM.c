@@ -1988,10 +1988,10 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
     size_t count = array_count(blocks);
 
     eth_log("EWM", "Save Blocks (Storage): %zu", count);
-    fileServiceClear(ewm->fs, ewmFileServiceTypeBlocks);
+    fileServiceReplace (ewm->fs, ewmFileServiceTypeBlocks,
+                        (const void **) blocks,
+                        count);
 
-    for (size_t index = 0; index < count; index++)
-        fileServiceSave (ewm->fs, ewmFileServiceTypeBlocks, blocks[index]);
     array_free (blocks);
 }
 
@@ -2001,10 +2001,9 @@ ewmHandleSaveNodes (BREthereumEWM ewm,
     size_t count = array_count(nodes);
 
     eth_log("EWM", "Save Nodes (Storage): %zu", count);
-    fileServiceClear(ewm->fs, ewmFileServiceTypeNodes);
-
-    for (size_t index = 0; index < count; index++)
-        fileServiceSave(ewm->fs, ewmFileServiceTypeNodes, nodes[index]);
+    fileServiceReplace (ewm->fs, ewmFileServiceTypeNodes,
+                        (const void **) nodes,
+                        count);
 
     array_free (nodes);
 }
