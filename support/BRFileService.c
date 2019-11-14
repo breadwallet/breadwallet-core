@@ -616,6 +616,7 @@ _fileServiceSave (BRFileService fs,
         return fileServiceFailedSDB (fs, needLock, status);
     }
 
+    // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbInsertStmt);
 
     if (needLock)
@@ -652,6 +653,7 @@ fileServiceLoad (BRFileService fs,
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbSelectAllStmt);
+    sqlite3_clear_bindings (fs->sdbSelectAllStmt);
 
     status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -742,6 +744,7 @@ fileServiceLoad (BRFileService fs,
             _fileServiceSave (fs, type, entity, 0);
     }
 
+    // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbSelectAllStmt);
 
     pthread_mutex_unlock (&fs->lock);
@@ -771,6 +774,7 @@ fileServiceRemove (BRFileService fs,
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteStmt);
+    sqlite3_clear_bindings (fs->sdbDeleteStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -784,6 +788,7 @@ fileServiceRemove (BRFileService fs,
     if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
+    // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbDeleteStmt);
 
     pthread_mutex_unlock (&fs->lock);
@@ -804,6 +809,7 @@ fileServiceClearForType (BRFileService fs,
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
+    sqlite3_clear_bindings (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -813,6 +819,7 @@ fileServiceClearForType (BRFileService fs,
     if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
+    // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
 
     if (needLock) pthread_mutex_unlock (&fs->lock);
