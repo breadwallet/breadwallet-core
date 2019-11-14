@@ -81,11 +81,11 @@ cryptoHashEqual (BRCryptoHash h1, BRCryptoHash h2) {
 }
 
 static char *
-_cryptoHashAddPrefix (char *hash) {
-    char *result = malloc (strlen (hash) + 3);
+_cryptoHashAddPrefix (char *hash, int freeHash) {
+    char *result = malloc (2 + strlen (hash) + 1);
     strcpy (result, "0x");
     strcat (result, hash);
-    free (hash);
+    if (freeHash) free (hash);
     return result;
 }
 
@@ -94,13 +94,13 @@ cryptoHashString (BRCryptoHash hash) {
     switch (hash->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             UInt256 reversedHash = UInt256Reverse (hash->u.btc);
-            return _cryptoHashAddPrefix (encodeHexCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)));
+            return _cryptoHashAddPrefix (encodeHexCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)), 1);
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             return hashAsString (hash->u.eth);
         }
         case BLOCK_CHAIN_TYPE_GEN: {
-            return _cryptoHashAddPrefix (genericHashAsString(hash->u.gen));
+            return _cryptoHashAddPrefix (genericHashAsString(hash->u.gen), 1);
         }
     }
 }
