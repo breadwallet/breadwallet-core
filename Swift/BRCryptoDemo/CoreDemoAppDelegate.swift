@@ -32,9 +32,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var system: System!
     var mainnet = true
 
+    var storagePath: String!
+
     var accountSpecification: AccountSpecification!
     var account: Account!
-    var storagePath: String!
+    var accountSerialization: Data!
+    var accountUids: String!
 
     var query: BlockChainDB!
 
@@ -67,7 +70,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         guard let accountSpecification = accountSpecifications.first (where: { $0.identifier == accountIdentifier })
             ?? (accountSpecifications.count > 0 ? accountSpecifications[0] : nil)
             else {
-                precondition (false, "No AccountSpecification: \(accountIdentifier)");
+                precondition (false, "APP: No AccountSpecification: \(accountIdentifier)");
                 return false
         }
         self.accountSpecification = accountSpecification
@@ -76,16 +79,17 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
 
-        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        accountUids = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")!.uuidString
 
         account = Account.createFrom (phrase: accountSpecification.paperKey,
                                       timestamp: accountSpecification.timestamp,
-                                      uids: walletId)
+                                      uids: accountUids)
         guard nil != account
             else {
-            precondition(false, "No account")
+            precondition(false, "APP: No account")
             return false
         }
+        accountSerialization = account.serialize
 
         mainnet = (accountSpecification.network == "mainnet")
 
@@ -108,12 +112,13 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                                      attributes: nil)
         }
         catch let error as NSError {
-            print("Error: \(error.localizedDescription)")
+            print("APP: Error: \(error.localizedDescription)")
         }
 
         
         print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
+        print ("APP: Account UIDS      : \(account.uids)")
         print ("APP: StoragePath       : \(storagePath?.description ?? "<none>")");
         print ("APP: Mainnet           : \(mainnet)")
 
@@ -239,7 +244,11 @@ extension UIApplication {
         // in the UI *might* be created if an event occurs before the subsequent wipe completes.
         app.summaryController.reset()
 
-        // Destroy the current system.
+        // Destroy the current system.  This is an internal interface, hence the above:
+        // `@testable import BRCrypto`.  We don't want to wipe the file system.
+        // System.destroy(system: app.system)
+
+        // Or maybe we do want to wip the file system.
         System.wipe(system: app.system);
 
         // Again
@@ -248,9 +257,19 @@ extension UIApplication {
         // Remove the reference to the old system
         app.system = nil;
 
+        guard let account = Account.createFrom(serialization: app.accountSerialization,
+                                               uids: app.accountUids)
+            else { precondition(false, "APP: No Account on Reset"); return }
+
+        print ("APP: Account PaperKey  : \(app.accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+        print ("APP: Account Timestamp : \(account.timestamp)")
+        print ("APP: Account UIDS      : \(account.uids)")
+        print ("APP: StoragePath       : \(app.storagePath?.description ?? "<none>")");
+        print ("APP: Mainnet           : \(app.mainnet)")
+
         // Create a new system
         app.system = System.create (listener: app.listener!,
-                                    account: app.account,
+                                    account: account,
                                     onMainnet: app.listener.isMainnet,  // Wipe might change.
                                     path: app.storagePath,
                                     query: app.query)
