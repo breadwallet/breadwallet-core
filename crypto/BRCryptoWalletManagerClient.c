@@ -545,6 +545,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     switch (event.type) {
 
         case BITCOIN_TRANSACTION_CREATED: {
+            // See the comments on the BRTransactionEventType type definition for details
+            // on when this occurs.
+
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             assert (NULL == transfer);
 
@@ -587,6 +590,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
         }
 
         case BITCOIN_TRANSACTION_SIGNED: {
+            // See the comments on the BRTransactionEventType type definition for details
+            // on when this occurs.
+
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             assert (NULL != transfer);
 
@@ -614,6 +620,10 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // or if the transaction arrived during a sync. If it came from a sync, this is
             // the first we will have seen it. If this is a user-generated transfer, we already
             // have a crypto transfer for it.
+            //
+            // See the comments on the BRTransactionEventType type definition for more details
+            // on when this occurs.
+
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             if (NULL == transfer) {
                 BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
@@ -650,39 +660,11 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
                 cryptoUnitGive (unitForFee);
                 cryptoUnitGive (unit);
-           }
-
-            // ... update state to reflect included if the timestamp and block height are already set
-            if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
-
-                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-                assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
-
-                // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
-                // the feeBasisConfirmed is identical to feeBasisEstimated
-                BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
-                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
-                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
-
-                BRCryptoTransferState newState = cryptoTransferStateIncludedInit (btcTransaction->blockHeight,
-                                                                                  0,
-                                                                                  btcTransaction->timestamp,
-                                                                                  fee);
-
-                cryptoAmountGive (fee);
-                cryptoFeeBasisGive (feeBasisConfirmed);
-
-                cryptoTransferSetState (transfer, newState);
-
-                cwm->listener.transferEventCallback (cwm->listener.context,
-                                                     cryptoWalletManagerTake (cwm),
-                                                     cryptoWalletTake (wallet),
-                                                     cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
-                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
-                                                         { .state = { oldState, newState }}
-                                                     });
             }
+
+            // We do NOT announce a state change here because the BTC logic will send a
+            // BITCOIN_TRANSACTION_UPDATED event to announce the transaction's height and
+            // timestamp
 
             cryptoTransferGive (transfer);
             break;
@@ -692,15 +674,23 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // This event occurs when the timestamp and/or blockHeight have been changed
             // due to the transaction being confirmed or unconfirmed (in the case of a blockchain
             // reorg).
+            //
+            // See the comments on the BRTransactionEventType type definition for more details
+            // on when this occurs.
 
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             assert (NULL != transfer);
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
 
-            if (CRYPTO_TRANSFER_STATE_INCLUDED == oldState.type &&
+            // We will update the state in two cases:
+            //     - If we are NOT in the SUBMITTED state and receive an event indicating that the
+            //       transaction is UNCONFIRMED; then set the state to SUBMITTED
+            //     - If we are NOT in the INCLDUED state and receive an event indicated that the
+            //       transaction is CONFIRMED; then set the state to INCLUDED
+            //     - Otherwise, ignore
+            if (CRYPTO_TRANSFER_STATE_SUBMITTED != oldState.type &&
                 (0 == event.u.updated.timestamp || TX_UNCONFIRMED == event.u.updated.blockHeight)) {
-                // The transfer is not included so set it to the submitted state at this point
                 BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
 
                 cryptoTransferSetState (transfer, newState);
@@ -741,7 +731,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                          { .state = { oldState, newState }}
                                                      });
             } else {
-                // no change to the state was required; just release the old state and carry on
+                // no change; just release the old state and carry on
                 cryptoTransferStateRelease (&oldState);
             }
 
@@ -751,6 +741,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
         case BITCOIN_TRANSACTION_DELETED: {
             // This event occurs when a transaction has been deleted from a wallet.
+            //
+            // See the comments on the BRTransactionEventType type definition for more details
+            // on when this occurs.
 
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             assert (NULL != transfer);
