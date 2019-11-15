@@ -116,6 +116,13 @@ extern "C" {
     extern BRGenericHash
     genTransferGetHash (BRGenericTransfer transfer);
 
+    extern const char *
+    genTransferGetUIDS (BRGenericTransfer transfer);
+
+    extern void
+    genTransferSetUIDS (BRGenericTransfer transfer,
+                        const char *uids);
+
     extern BRGenericTransferState
     genTransferGetState (BRGenericTransfer transfer);
 

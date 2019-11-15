@@ -202,6 +202,19 @@ genTransferGetHash (BRGenericTransfer transfer) {
     return transfer->handlers.hash (transfer->ref);
 }
 
+
+extern const char *
+genTransferGetUIDS (BRGenericTransfer transfer) {
+    return transfer->uids;
+}
+
+extern void
+genTransferSetUIDS (BRGenericTransfer transfer,
+                    const char *uids) {
+    if (NULL != transfer->uids) free (transfer->uids);
+    transfer->uids = (NULL == uids ? NULL : strdup (uids));
+}
+
 extern BRGenericTransferState
 genTransferGetState (BRGenericTransfer transfer) {
     return transfer->state;

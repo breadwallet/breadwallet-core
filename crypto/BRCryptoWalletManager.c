@@ -1151,30 +1151,50 @@ cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                       BRGenericTransfer transferGeneric) {
-    // TODO: I don't think any locks are needed here...
-    
+    int transferWasCreated = 0;
+
     // TODO: Determine the currency from `transferGeneric`
-    BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-    BRCryptoWallet   wallet   = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
+    BRCryptoCurrency currency   = cryptoNetworkGetCurrency   (cwm->network);
+    BRCryptoUnit     unit       = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+    BRCryptoUnit     unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+    BRCryptoWallet   wallet     = cryptoWalletManagerGetWalletForCurrency (cwm, currency);
+
+    // TODO: I don't think any overall locks are needed here...
 
     // Look for a known transfer
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsGEN (wallet, transferGeneric);
 
     // If we don't know about `transferGeneric`, create a crypto transfer
     if (NULL == transfer) {
-        BRCryptoUnit unit = cryptoNetworkGetUnitAsBase (cwm->network, currency);
-        BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
-
         // Create the generic transfer...
         transfer = cryptoTransferCreateAsGEN (unit, unitForFee, transferGeneric);
+        transferWasCreated = 1;
+    }
 
-        // Set the state
-        BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-        BRCryptoTransferState newState = cryptoTransferStateCreateGEN (genTransferGetState(transferGeneric),
-                                                                       cryptoTransferGetUnitForFee(transfer));
-        cryptoTransferSetState (transfer, newState);
+    // We know 'transfer'; ensure it is up to date.  This is important for the case where
+    // we created the transfer and then submitted it.  In that case `transfer` is what we
+    // created and `transferGeneric` is what we recovered.  The recovered transfer will have
+    // additional information - notably the UIDS.
+    else {
+        BRGenericTransfer transferGenericOrig = cryptoTransferAsGEN (transfer);
 
-        // .. and announce the newly created transfer.
+        // Update the UIDS
+        if (NULL == genTransferGetUIDS(transferGenericOrig))
+            genTransferSetUIDS (transferGenericOrig,
+                                genTransferGetUIDS (transferGeneric));
+    }
+
+    // Set the state from `transferGeneric`.  This is where we move from 'submitted' to 'included'
+    BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+    BRCryptoTransferState newState = cryptoTransferStateCreateGEN (genTransferGetState(transferGeneric), unitForFee);
+    cryptoTransferSetState (transfer, newState);
+
+    // Save the transfer as it is now fully updated.
+    genManagerSaveTransfer (cwm->u.gen, cryptoTransferAsGEN(transfer));
+
+    // If we created the transfer...
+    if (transferWasCreated) {
+        // ... announce the newly created transfer.
         cwm->listener.transferEventCallback (cwm->listener.context,
                                              cryptoWalletManagerTake (cwm),
                                              cryptoWalletTake (wallet),
@@ -1183,12 +1203,11 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
             CRYPTO_TRANSFER_EVENT_CREATED
         });
 
-        // Add the restored transfer to its wallet...
+        // ... add the transfer to its wallet...
         cryptoWalletAddTransfer (wallet, transfer);
-        genManagerSaveTransfer (cwm->u.gen, transferGeneric);
 
         // ... tell 'generic wallet' about it.
-        genWalletAddTransfer (cryptoWalletAsGEN(wallet), transferGeneric);
+        genWalletAddTransfer (cryptoWalletAsGEN(wallet), cryptoTransferAsGEN(transfer));
 
         // ... and announce the wallet's newly added transfer
         cwm->listener.walletEventCallback (cwm->listener.context,
@@ -1198,27 +1217,26 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
             CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
             { .transfer = { cryptoTransferTake (transfer) }}
         });
-
-        // If the state is not created, announce a transfer state change.
-        if (CRYPTO_TRANSFER_STATE_CREATED != newState.type) {
-            cwm->listener.transferEventCallback (cwm->listener.context,
-                                                 cryptoWalletManagerTake (cwm),
-                                                 cryptoWalletTake (wallet),
-                                                 cryptoTransferTake(transfer),
-                                                 (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = {
-                    cryptoTransferStateCopy (&oldState),
-                    cryptoTransferStateCopy (&newState) }}
-            });
-        }
-
-        cryptoTransferStateRelease (&oldState);
-        cryptoTransferStateRelease (&newState);
-        cryptoUnitGive(unitForFee);
-        cryptoUnitGive(unit);
     }
 
+    // If the state is not created and changed, announce a transfer state change.
+    if (CRYPTO_TRANSFER_STATE_CREATED != newState.type && oldState.type != newState.type) {
+        cwm->listener.transferEventCallback (cwm->listener.context,
+                                             cryptoWalletManagerTake (cwm),
+                                             cryptoWalletTake (wallet),
+                                             cryptoTransferTake(transfer),
+                                             (BRCryptoTransferEvent) {
+            CRYPTO_TRANSFER_EVENT_CHANGED,
+            { .state = {
+                cryptoTransferStateCopy (&oldState),
+                cryptoTransferStateCopy (&newState) }}
+        });
+    }
+
+    cryptoTransferStateRelease (&oldState);
+    cryptoTransferStateRelease (&newState);
+    cryptoUnitGive(unitForFee);
+    cryptoUnitGive(unit);
     cryptoTransferGive(transfer);
     cryptoWalletGive (wallet);
     cryptoCurrencyGive(currency);
