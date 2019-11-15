@@ -22,7 +22,9 @@ public class EthGasApi {
         this.client = client;
     }
 
-    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String, QueryError> handler) {
+    public void getGasPriceAsEth(String networkName,
+                                 int rid,
+                                 CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_gasPrice",
@@ -33,7 +35,12 @@ public class EthGasApi {
         client.sendJsonRequest(networkName, json, handler);
     }
 
-    public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
+    public void getGasEstimateAsEth(String networkName,
+                                    String from,
+                                    String to,
+                                    String amount,
+                                    String data,
+                                    int rid,
                                     CompletionHandler<String, QueryError> handler) {
         ImmutableMap.Builder<String, String> paramsBuilder = new ImmutableMap.Builder<>();
         paramsBuilder.put("from", from);

@@ -86,8 +86,9 @@ public class BlockchainDb {
         bdbDataTask = bdbDataTask == null ? DEFAULT_DATA_TASK : bdbDataTask;
         apiDataTask = apiDataTask == null ? DEFAULT_DATA_TASK : apiDataTask;
 
-        BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask);
-        BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask);
+        ObjectCoder coder = ObjectCoder.createObjectCoderWithFailOnUnknownProperties();
+        BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask, coder);
+        BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask, coder);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -128,196 +129,442 @@ public class BlockchainDb {
     // Blockchain
 
     public void getBlockchains(CompletionHandler<List<Blockchain>, QueryError> handler) {
-        blockchainApi.getBlockchains(true, handler);
+        blockchainApi.getBlockchains(
+                true,
+                handler
+        );
     }
 
-    public void getBlockchains(boolean isMainnet, CompletionHandler<List<Blockchain>, QueryError> handler) {
-        blockchainApi.getBlockchains(isMainnet, handler);
+    public void getBlockchains(boolean isMainnet,
+                               CompletionHandler<List<Blockchain>, QueryError> handler) {
+        blockchainApi.getBlockchains(
+                isMainnet,
+                handler
+        );
     }
 
-    public void getBlockchain(String id, CompletionHandler<Blockchain, QueryError> handler) {
-        blockchainApi.getBlockchain(id, handler);
+    public void getBlockchain(String id,
+                              CompletionHandler<Blockchain, QueryError> handler) {
+        blockchainApi.getBlockchain(
+                id,
+                handler
+        );
     }
 
     // Currency
 
     public void getCurrencies(CompletionHandler<List<Currency>, QueryError> handler) {
-        currencyApi.getCurrencies(handler);
+        currencyApi.getCurrencies(
+                handler
+        );
     }
 
-    public void getCurrencies(@Nullable String id, CompletionHandler<List<Currency>, QueryError> handler) {
-        currencyApi.getCurrencies(id, handler);
+    public void getCurrencies(@Nullable String id,
+                              CompletionHandler<List<Currency>, QueryError> handler) {
+        currencyApi.getCurrencies(
+                id,
+                handler
+        );
     }
 
-    public void getCurrency(String id, CompletionHandler<Currency, QueryError> handler) {
-        currencyApi.getCurrency(id, handler);
+    public void getCurrency(String id,
+                            CompletionHandler<Currency, QueryError> handler) {
+        currencyApi.getCurrency(
+                id,
+                handler
+        );
     }
 
     // Subscription
 
-    public void getOrCreateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.getOrCreateSubscription(subscription, handler);
+    public void getOrCreateSubscription(Subscription subscription,
+                                        CompletionHandler<Subscription, QueryError> handler) {
+        subscriptionApi.getOrCreateSubscription(
+                subscription,
+                handler
+        );
     }
 
-    public void getSubscription(String id, CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.getSubscription(id, handler);
+    public void getSubscription(String id,
+                                CompletionHandler<Subscription, QueryError> handler) {
+        subscriptionApi.getSubscription(
+                id,
+                handler
+        );
     }
 
     public void getSubscriptions(CompletionHandler<List<Subscription>, QueryError> handler) {
-        subscriptionApi.getSubscriptions(handler);
+        subscriptionApi.getSubscriptions(
+                handler
+        );
     }
 
-    public void createSubscription(String deviceId, SubscriptionEndpoint endpoint, List<SubscriptionCurrency> currencies,
+    public void createSubscription(String deviceId,
+                                   SubscriptionEndpoint endpoint,
+                                   List<SubscriptionCurrency> currencies,
                                    CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.createSubscription(deviceId, endpoint, currencies, handler);
+        subscriptionApi.createSubscription(
+                deviceId,
+                endpoint,
+                currencies,
+                handler
+        );
     }
 
-    public void updateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
-        subscriptionApi.updateSubscription(subscription, handler);
+    public void updateSubscription(Subscription subscription,
+                                   CompletionHandler<Subscription, QueryError> handler) {
+        subscriptionApi.updateSubscription(
+                subscription,
+                handler
+        );
     }
 
-    public void deleteSubscription(String id, CompletionHandler<Void, QueryError> handler) {
-        subscriptionApi.deleteSubscription(id, handler);
+    public void deleteSubscription(String id,
+                                   CompletionHandler<Void, QueryError> handler) {
+        subscriptionApi.deleteSubscription(
+                id,
+                handler
+        );
     }
 
     // Transfer
 
-    public void getTransfers(String id, List<String> addresses,
+    public void getTransfers(String id,
+                             List<String> addresses,
                              UnsignedLong beginBlockNumber,
                              UnsignedLong endBlockNumber,
                              CompletionHandler<List<Transfer>, QueryError> handler) {
-        getTransfers(id, addresses, beginBlockNumber, endBlockNumber, null, handler);
+        getTransfers(
+                id,
+                addresses,
+                beginBlockNumber,
+                endBlockNumber,
+                null,
+                handler
+        );
     }
 
-    public void getTransfers(String id, List<String> addresses,
+    public void getTransfers(String id,
+                             List<String> addresses,
                              UnsignedLong beginBlockNumber,
                              UnsignedLong endBlockNumber,
                              @Nullable Integer maxPageSize,
                              CompletionHandler<List<Transfer>, QueryError> handler) {
-        transferApi.getTransfers(id, addresses, beginBlockNumber, endBlockNumber, maxPageSize, handler);
+        transferApi.getTransfers(
+                id,
+                addresses,
+                beginBlockNumber,
+                endBlockNumber,
+                maxPageSize,
+                handler
+        );
     }
 
-    public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
-        transferApi.getTransfer(id, handler);
+    public void getTransfer(String id,
+                            CompletionHandler<Transfer, QueryError> handler) {
+        transferApi.getTransfer(
+                id,
+                handler
+        );
     }
 
     // Transactions
 
-    public void getTransactions(String id, List<String> addresses,
+    public void getTransactions(String id,
+                                List<String> addresses,
                                 @Nullable UnsignedLong beginBlockNumber,
                                 @Nullable UnsignedLong endBlockNumber,
                                 boolean includeRaw,
                                 boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
-        getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
-                null, handler);
+        getTransactions(
+                id,
+                addresses,
+                beginBlockNumber,
+                endBlockNumber,
+                includeRaw,
+                includeProof,
+                null,
+                handler
+        );
     }
 
-    public void getTransactions(String id, List<String> addresses,
+    public void getTransactions(String id,
+                                List<String> addresses,
                                 @Nullable UnsignedLong beginBlockNumber,
                                 @Nullable UnsignedLong endBlockNumber,
                                 boolean includeRaw,
                                 boolean includeProof,
                                 @Nullable Integer maxPageSize,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
-        transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
-                maxPageSize, handler);
+        transactionApi.getTransactions(
+                id,
+                addresses,
+                beginBlockNumber,
+                endBlockNumber,
+                includeRaw,
+                includeProof,
+                maxPageSize,
+                handler
+        );
     }
 
-    public void getTransaction(String id, boolean includeRaw, boolean includeProof,
+    public void getTransaction(String id,
+                               boolean includeRaw,
+                               boolean includeProof,
                                CompletionHandler<Transaction, QueryError> handler) {
-        transactionApi.getTransaction(id, includeRaw, includeProof, handler);
+        transactionApi.getTransaction(
+                id,
+                includeRaw,
+                includeProof,
+                handler
+        );
     }
 
-    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void, QueryError> handler) {
-        transactionApi.createTransaction(id, hashAsHex, tx, handler);
+    public void createTransaction(String id,
+                                  String hashAsHex,
+                                  byte[] tx,
+                                  CompletionHandler<Void, QueryError> handler) {
+        transactionApi.createTransaction(
+                id,
+                hashAsHex,
+                tx,
+                handler
+        );
     }
 
     // Blocks
 
-    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
-                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
+    public void getBlocks(String id,
+                          UnsignedLong beginBlockNumber,
+                          UnsignedLong endBlockNumber,
+                          boolean includeTx,
+                          boolean includeTxRaw,
+                          boolean includeTxProof,
                           CompletionHandler<List<Block>, QueryError> handler) {
-        getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
-                null, handler);
+        getBlocks(
+                id,
+                beginBlockNumber,
+                endBlockNumber,
+                includeTx,
+                includeTxRaw,
+                includeTxProof,
+                null,
+                handler)
+        ;
     }
 
-    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
-                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof, @Nullable Integer maxPageSize,
+    public void getBlocks(String id,
+                          UnsignedLong beginBlockNumber,
+                          UnsignedLong endBlockNumber,
+                          boolean includeTx,
+                          boolean includeTxRaw,
+                          boolean includeTxProof,
+                          @Nullable Integer maxPageSize,
                           CompletionHandler<List<Block>, QueryError> handler) {
-        blockApi.getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
-                maxPageSize, handler);
+        blockApi.getBlocks(
+                id,
+                beginBlockNumber,
+                endBlockNumber,
+                false,
+                includeTx,
+                includeTxRaw,
+                includeTxProof,
+                maxPageSize,
+                handler);
     }
 
-    public void getBlock(String id, boolean includeRaw,
-                         boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
+    public void getBlocksWithRaw(String id,
+                                 UnsignedLong beginBlockNumber,
+                                 UnsignedLong endBlockNumber,
+                                 @Nullable Integer maxPageSize,
+                                 CompletionHandler<List<Block>, QueryError> handler) {
+        blockApi.getBlocks(
+                id,
+                beginBlockNumber,
+                endBlockNumber,
+                true,
+                false,
+                false,
+                false,
+                maxPageSize,
+                handler
+        );
+    }
+
+    public void getBlock(String id,
+                         boolean includeTx,
+                         boolean includeTxRaw,
+                         boolean includeTxProof,
                          CompletionHandler<Block, QueryError> handler) {
-        blockApi.getBlock(id, includeRaw, includeTx, includeTxRaw, includeTxProof, handler);
+        blockApi.getBlock(
+                id,
+                false,
+                includeTx,
+                includeTxRaw,
+                includeTxProof,
+                handler
+        );
+    }
+
+    public void getBlockWithRaw(String id,
+                                CompletionHandler<Block, QueryError> handler) {
+        blockApi.getBlock(
+                id,
+                true,
+                false,
+                false,
+                false,
+                handler
+        );
     }
 
     // ETH Balance
 
-    public void getBalanceAsEth(String networkName, String address, CompletionHandler<String, QueryError> handler) {
-        ethBalanceApi.getBalanceAsEth(networkName, address, ridGenerator.getAndIncrement(), handler);
+    public void getBalanceAsEth(String networkName,
+                                String address,
+                                CompletionHandler<String, QueryError> handler) {
+        ethBalanceApi.getBalanceAsEth(
+                networkName,
+                address,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getBalanceAsTok(String networkName, String address, String tokenAddress,
+    public void getBalanceAsTok(String networkName,
+                                String address,
+                                String tokenAddress,
                                 CompletionHandler<String, QueryError> handler) {
-        ethBalanceApi.getBalanceAsTok(networkName, address, tokenAddress, ridGenerator.getAndIncrement(), handler);
+        ethBalanceApi.getBalanceAsTok(
+                networkName,
+                address,
+                tokenAddress,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
     // ETH Gas
 
-    public void getGasPriceAsEth(String networkName, CompletionHandler<String, QueryError> handler) {
-        ethGasApi.getGasPriceAsEth(networkName, ridGenerator.getAndIncrement(), handler);
+    public void getGasPriceAsEth(String networkName,
+                                 CompletionHandler<String, QueryError> handler) {
+        ethGasApi.getGasPriceAsEth(
+                networkName,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data,
+    public void getGasEstimateAsEth(String networkName,
+                                    String from,
+                                    String to,
+                                    String amount,
+                                    String data,
                                     CompletionHandler<String, QueryError> handler) {
-        ethGasApi.getGasEstimateAsEth(networkName, from, to, amount, data, ridGenerator.getAndIncrement(), handler);
+        ethGasApi.getGasEstimateAsEth(
+                networkName,
+                from,
+                to,
+                amount,
+                data,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
     // ETH Token
 
     public void getTokensAsEth(CompletionHandler<List<EthToken>, QueryError> handler) {
-        ethTokenApi.getTokensAsEth(ridGenerator.getAndIncrement(), handler);
+        ethTokenApi.getTokensAsEth(
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
     // ETH Block
 
-    public void getBlockNumberAsEth(String networkName, CompletionHandler<String, QueryError> handler) {
-        ethBlockApi.getBlockNumberAsEth(networkName, ridGenerator.getAndIncrement(), handler);
+    public void getBlockNumberAsEth(String networkName,
+                                    CompletionHandler<String, QueryError> handler) {
+        ethBlockApi.getBlockNumberAsEth(
+                networkName,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
     // ETH Transfer
 
-    public void submitTransactionAsEth(String networkName, String transaction,
+    public void submitTransactionAsEth(String networkName,
+                                       String transaction,
                                        CompletionHandler<String, QueryError> handler) {
-        ethTransferApi.submitTransactionAsEth(networkName, transaction, ridGenerator.getAndIncrement(), handler);
+        ethTransferApi.submitTransactionAsEth(
+                networkName,
+                transaction,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getTransactionsAsEth(String networkName, String address,
-                                     UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
+    public void getTransactionsAsEth(String networkName,
+                                     String address,
+                                     UnsignedLong begBlockNumber,
+                                     UnsignedLong endBlockNumber,
                                      CompletionHandler<List<EthTransaction>, QueryError> handler) {
-        ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber,
-                ridGenerator.getAndIncrement(), handler);
+        ethTransferApi.getTransactionsAsEth(
+                networkName,
+                address,
+                begBlockNumber,
+                endBlockNumber,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getNonceAsEth(String networkName, String address, CompletionHandler<String, QueryError> handler) {
-        ethTransferApi.getNonceAsEth(networkName, address, ridGenerator.getAndIncrement(), handler);
+    public void getNonceAsEth(String networkName,
+                              String address,
+                              CompletionHandler<String, QueryError> handler) {
+        ethTransferApi.getNonceAsEth(
+                networkName,
+                address,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
+    public void getLogsAsEth(String networkName,
+                             @Nullable String contract,
+                             String address,
+                             String event,
+                             UnsignedLong begBlockNumber,
+                             UnsignedLong endBlockNumber,
                              CompletionHandler<List<EthLog>, QueryError> handler) {
-        ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber,
-                ridGenerator.getAndIncrement(), handler);
+        ethTransferApi.getLogsAsEth(
+                networkName,
+                contract,
+                address,
+                event,
+                begBlockNumber,
+                endBlockNumber,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 
-    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests,
-                               UnsignedLong blockStart, UnsignedLong blockEnd,
+    public void getBlocksAsEth(String networkName,
+                               String address,
+                               UnsignedInteger interests,
+                               UnsignedLong blockStart,
+                               UnsignedLong blockEnd,
                                CompletionHandler<List<UnsignedLong>, QueryError> handler) {
-        ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd,
-                ridGenerator.getAndIncrement(), handler);
+        ethTransferApi.getBlocksAsEth(
+                networkName,
+                address,
+                interests,
+                blockStart,
+                blockEnd,
+                ridGenerator.getAndIncrement(),
+                handler
+        );
     }
 }

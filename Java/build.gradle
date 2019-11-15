@@ -29,6 +29,7 @@ buildscript {
         'jacksonCore':              "com.fasterxml.jackson.core:jackson-core:${versions.jackson}",
         'jacksonAnnotations':       "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}",
         'jacksonDatabind':          "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}",
+        'jacksonDatabindGuava':     "com.fasterxml.jackson.datatype:jackson-datatype-guava:${versions.jackson}",
         'jnaAndroid':               "net.java.dev.jna:jna:${versions.jna}@aar",
         'jnaJre':                   "net.java.dev.jna:jna:${versions.jna}",
         'junit':                    "junit:junit:${versions.junit}",

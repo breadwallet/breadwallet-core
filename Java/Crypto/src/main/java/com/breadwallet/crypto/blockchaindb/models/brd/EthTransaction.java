@@ -13,8 +13,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@JsonIgnoreProperties(value = "cumulativeGasUsed")
 public class EthTransaction {
+
+    // creators
 
     @JsonCreator
     public static EthTransaction create(@JsonProperty("hash") String hash,
@@ -52,6 +53,8 @@ public class EthTransaction {
                 checkNotNull(isError)
         );
     }
+
+    // fields
 
     private final String hash;
     private final String sourceAddr;
@@ -94,7 +97,7 @@ public class EthTransaction {
         this.gasLimit = gasLimit;
         this.gasPrice = gasPrice;
         this.data = data;
-        this.nonce = data;
+        this.nonce = nonce;
         this.gasUsed = gasUsed;
         this.blockNumber = blockNumber;
         this.blockHash = blockHash;
@@ -104,66 +107,84 @@ public class EthTransaction {
         this.isError = isError;
     }
 
+    // getters
+
+    @JsonProperty("hash")
     public String getHash() {
         return hash;
     }
 
+    @JsonProperty("from")
     public String getSourceAddr() {
         return sourceAddr;
     }
 
+    @JsonProperty("to")
     public String getTargetAddr() {
         return targetAddr;
     }
 
+    @JsonProperty("contractAddress")
     public String getContractAddr() {
         return contractAddr;
     }
 
+    @JsonProperty("value")
     public String getAmount() {
         return amount;
     }
 
+    @JsonProperty("gas")
     public String getGasLimit() {
         return gasLimit;
     }
 
+    @JsonProperty("gasPrice")
     public String getGasPrice() {
         return gasPrice;
     }
 
+    @JsonProperty("input")
     public String getData() {
         return data;
     }
 
+    @JsonProperty("nonce")
     public String getNonce() {
         return nonce;
     }
 
+    @JsonProperty("gasUsed")
     public String getGasUsed() {
         return gasUsed;
     }
 
+    @JsonProperty("blockNumber")
     public String getBlockNumber() {
         return blockNumber;
     }
 
+    @JsonProperty("blockHash")
     public String getBlockHash() {
         return blockHash;
     }
 
+    @JsonProperty("confirmations")
     public String getBlockConfirmations() {
         return blockConfirmations;
     }
 
+    @JsonProperty("transactionIndex")
     public String getBlockTransactionIndex() {
         return blockTransactionIndex;
     }
 
+    @JsonProperty("timeStamp")
     public String getBlockTimestamp() {
         return blockTimestamp;
     }
 
+    @JsonProperty("isError")
     public String getIsError() {
         return isError;
     }

@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.models.bdb.NewSubscription;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Subscription;
 import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionCurrency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.SubscriptionEndpoint;
@@ -24,7 +25,8 @@ public class SubscriptionApi {
         this.jsonClient = jsonClient;
     }
 
-    public void getOrCreateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
+    public void getOrCreateSubscription(Subscription subscription,
+                                        CompletionHandler<Subscription, QueryError> handler) {
         getSubscription(subscription.getId(), new CompletionHandler<Subscription, QueryError>() {
             @Override
             public void handleData(Subscription data) {
@@ -38,13 +40,16 @@ public class SubscriptionApi {
         });
     }
 
-    public void createSubscription(String deviceId, SubscriptionEndpoint endpoint, List<SubscriptionCurrency> currencies,
+    public void createSubscription(String deviceId,
+                                   SubscriptionEndpoint endpoint,
+                                   List<SubscriptionCurrency> currencies,
                                    CompletionHandler<Subscription, QueryError> handler) {
-        jsonClient.sendPost("subscriptions", ImmutableMultimap.of(), Subscription.create(deviceId, endpoint, currencies),
+        jsonClient.sendPost("subscriptions", ImmutableMultimap.of(), NewSubscription.create(deviceId, endpoint, currencies),
                 Subscription.class, handler);
     }
 
-    public void getSubscription(String id, CompletionHandler<Subscription, QueryError> handler) {
+    public void getSubscription(String id,
+                                CompletionHandler<Subscription, QueryError> handler) {
         jsonClient.sendGetWithId("subscriptions", id, ImmutableMultimap.of(), Subscription.class, handler);
     }
 
@@ -52,12 +57,14 @@ public class SubscriptionApi {
         jsonClient.sendGetForArray("subscriptions", ImmutableMultimap.of(), Subscription.class, handler);
     }
 
-    public void updateSubscription(Subscription subscription, CompletionHandler<Subscription, QueryError> handler) {
+    public void updateSubscription(Subscription subscription,
+                                   CompletionHandler<Subscription, QueryError> handler) {
         jsonClient.sendPutWithId("subscriptions", subscription.getId(), ImmutableMultimap.of(),
                 subscription, Subscription.class, handler);
     }
 
-    public void deleteSubscription(String id, CompletionHandler<Void, QueryError> handler) {
+    public void deleteSubscription(String id,
+                                   CompletionHandler<Void, QueryError> handler) {
         jsonClient.sendDeleteWithId("subscriptions", id, ImmutableMultimap.of(), handler);
     }
 }

@@ -35,7 +35,8 @@ public class TransactionApi {
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public TransactionApi(BdbApiClient jsonClient, ExecutorService executorService) {
+    public TransactionApi(BdbApiClient jsonClient,
+                          ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
@@ -69,7 +70,9 @@ public class TransactionApi {
         }
     }
 
-    public void getTransaction(String id, boolean includeRaw, boolean includeProof,
+    public void getTransaction(String id,
+                               boolean includeRaw,
+                               boolean includeProof,
                                CompletionHandler<Transaction, QueryError> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of(
                 "include_proof", String.valueOf(includeProof),
@@ -78,7 +81,10 @@ public class TransactionApi {
         jsonClient.sendGetWithId("transactions", id, params, Transaction.class, handler);
     }
 
-    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void, QueryError> handler) {
+    public void createTransaction(String id,
+                                  String hashAsHex,
+                                  byte[] tx,
+                                  CompletionHandler<Void, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
@@ -110,11 +116,13 @@ public class TransactionApi {
         };
     }
 
-    private void submitGetNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+    private void submitGetNextTransactions(String nextUrl,
+                                           PagedCompletionHandler<List<Transaction>, QueryError> handler) {
         executorService.submit(() -> getNextTransactions(nextUrl, handler));
     }
 
-    private void getNextTransactions(String nextUrl, PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+    private void getNextTransactions(String nextUrl,
+                                     PagedCompletionHandler<List<Transaction>, QueryError> handler) {
         jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction.class, handler);
     }
 }

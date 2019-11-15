@@ -31,13 +31,18 @@ public class TransferApi {
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public TransferApi(BdbApiClient jsonClient, ExecutorService executorService) {
+    public TransferApi(BdbApiClient jsonClient,
+                       ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
 
-    public void getTransfers(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
-                             @Nullable Integer maxPageSize, CompletionHandler<List<Transfer>, QueryError> handler) {
+    public void getTransfers(String id,
+                             List<String> addresses,
+                             UnsignedLong beginBlockNumber,
+                             UnsignedLong endBlockNumber,
+                             @Nullable Integer maxPageSize,
+                             CompletionHandler<List<Transfer>, QueryError> handler) {
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transfer> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
@@ -57,15 +62,18 @@ public class TransferApi {
         }
     }
 
-    public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
+    public void getTransfer(String id,
+                            CompletionHandler<Transfer, QueryError> handler) {
         jsonClient.sendGetWithId("transfers", id, ImmutableMultimap.of(), Transfer.class, handler);
     }
 
-    private void submitGetNextTransfers(String nextUrl, PagedCompletionHandler<List<Transfer>, QueryError> handler) {
+    private void submitGetNextTransfers(String nextUrl,
+                                        PagedCompletionHandler<List<Transfer>, QueryError> handler) {
         executorService.submit(() -> getNextTransfers(nextUrl, handler));
     }
 
-    private void getNextTransfers(String nextUrl, PagedCompletionHandler<List<Transfer>, QueryError> handler) {
+    private void getNextTransfers(String nextUrl,
+                                  PagedCompletionHandler<List<Transfer>, QueryError> handler) {
         jsonClient.sendGetForArrayWithPaging("transfers", nextUrl, Transfer.class, handler);
     }
 

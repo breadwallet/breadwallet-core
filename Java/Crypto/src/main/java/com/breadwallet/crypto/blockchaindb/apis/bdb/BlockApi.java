@@ -27,7 +27,8 @@ public class BlockApi {
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public BlockApi(BdbApiClient jsonClient, ExecutorService executorService) {
+    public BlockApi(BdbApiClient jsonClient,
+                    ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
@@ -56,8 +57,11 @@ public class BlockApi {
         jsonClient.sendGetForArrayWithPaging("blocks", params, Block.class, pagedHandler);
     }
 
-    public void getBlock(String id, boolean includeRaw,
-                         boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
+    public void getBlock(String id,
+                         boolean includeRaw,
+                         boolean includeTx,
+                         boolean includeTxRaw,
+                         boolean includeTxProof,
                          CompletionHandler<Block, QueryError> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of(
                 "include_raw", String.valueOf(includeRaw),

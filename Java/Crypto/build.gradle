@@ -11,6 +11,7 @@ dependencies {
     implementation deps.jacksonAnnotations
     implementation deps.jacksonCore
     implementation deps.jacksonDatabind
+    implementation deps.jacksonDatabindGuava
 
     testImplementation deps.junit
 }

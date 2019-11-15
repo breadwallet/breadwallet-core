@@ -7,44 +7,71 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.UnsignedLong;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class BlockchainFee {
 
     // creators
 
-    public static BlockchainFee create(String amount, String tier, UnsignedLong confirmationTimeInMilliseconds) {
-        BlockchainFee fee = new BlockchainFee();
-        fee.fee = Amount.create(amount);
-        fee.estimatedConfirmationIn = confirmationTimeInMilliseconds;
-        return fee;
+    public static BlockchainFee create(String amount,
+                                       String tier,
+                                       UnsignedLong confirmationTimeInMilliseconds) {
+        return create(
+                Amount.create(amount),
+                tier,
+                confirmationTimeInMilliseconds
+        );
+    }
+
+    @JsonCreator
+    public static BlockchainFee create(@JsonProperty("fee") Amount fee,
+                                       @JsonProperty("tier") String tier,
+                                       @JsonProperty("estimated_confirmation_in") UnsignedLong confirmationTimeInMilliseconds) {
+        return new BlockchainFee(
+                checkNotNull(fee),
+                checkNotNull(tier),
+                checkNotNull(confirmationTimeInMilliseconds)
+        );
     }
 
     // fields
 
-    private Amount fee;
+    private final Amount fee;
+    private final String tier;
+    private final UnsignedLong confirmationTimeInMilliseconds;
 
-    private String tier;
-
-    @JsonProperty("estimated_confirmation_in")
-    private UnsignedLong estimatedConfirmationIn;
+    private BlockchainFee(Amount fee,
+                         String tier,
+                         UnsignedLong confirmationTimeInMilliseconds) {
+        this.fee = fee;
+        this.tier = tier;
+        this.confirmationTimeInMilliseconds = confirmationTimeInMilliseconds;
+    }
 
     // getters
 
+    @JsonProperty("fee")
     public Amount getFee() {
         return fee;
     }
 
+    @JsonProperty("tier")
     public String getTier() {
         return tier;
     }
 
-    public String getAmount() {
-        return fee.getAmount();
+    @JsonProperty("estimated_confirmation_in")
+    public UnsignedLong getConfirmationTimeInMilliseconds() {
+        return confirmationTimeInMilliseconds;
     }
 
-    public UnsignedLong getConfirmationTimeInMilliseconds() {
-        return estimatedConfirmationIn;
+    @JsonIgnore
+    public String getAmount() {
+        return fee.getAmount();
     }
 }

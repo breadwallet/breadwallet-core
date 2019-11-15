@@ -8,14 +8,16 @@
 package com.breadwallet.crypto.blockchaindb.models.brd;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class EthLog {
+
+    // creators
 
     @JsonCreator
     public static EthLog create(@JsonProperty("transactionHash") String hash,
@@ -42,15 +44,7 @@ public class EthLog {
         );
     }
 
-    private static List<String> trimLast(List<String> strings) {
-        if (!strings.isEmpty()) {
-            int index = strings.size() - 1;
-            if (strings.get(index).isEmpty()) {
-                strings.remove(index);
-            }
-        }
-        return strings;
-    }
+    // fields
 
     private final String hash;
     private final String contract;
@@ -85,43 +79,72 @@ public class EthLog {
         this.blockTimestamp = blockTimestamp;
     }
 
+    // getters
+
+    @JsonProperty("transactionHash")
     public String getHash() {
         return hash;
     }
 
+    @JsonProperty("address")
     public String getContract() {
         return contract;
     }
 
+    @JsonProperty("topics")
+    public List<String> getTopicsValue() {
+        return topics;
+    }
+
+    @JsonIgnore
     public List<String> getTopics() {
         return trimLast(topics);
     }
 
+    @JsonProperty("data")
     public String getData() {
         return data;
     }
 
+    @JsonProperty("gasPrice")
     public String getGasPrice() {
         return gasPrice;
     }
 
+    @JsonProperty("gasUsed")
     public String getGasUsed() {
         return gasUsed;
     }
 
+    @JsonProperty("logIndex")
     public String getLogIndex() {
         return logIndex;
     }
 
+    @JsonProperty("blockNumber")
     public String getBlockNumber() {
         return blockNumber;
     }
 
+    @JsonProperty("transactionIndex")
     public String getBlockTransactionIndex() {
         return blockTransactionIndex;
     }
 
+    @JsonProperty("timeStamp")
     public String getBlockTimestamp() {
         return blockTimestamp;
+    }
+
+    // internals
+
+    private static List<String> trimLast(List<String> strings) {
+        if (!strings.isEmpty()) {
+            int index = strings.size() - 1;
+            if (strings.get(index).isEmpty()) {
+                strings.remove(index);
+            }
+        }
+        return strings;
     }
 }

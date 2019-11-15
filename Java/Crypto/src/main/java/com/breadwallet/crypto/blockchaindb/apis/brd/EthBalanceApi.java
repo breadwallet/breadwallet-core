@@ -24,7 +24,9 @@ public class EthBalanceApi {
         this.client = client;
     }
 
-    public void getBalanceAsEth(String networkName, String address, int rid,
+    public void getBalanceAsEth(String networkName,
+                                String address,
+                                int rid,
                                 CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
@@ -36,7 +38,10 @@ public class EthBalanceApi {
         client.sendJsonRequest(networkName, json, handler);
     }
 
-    public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
+    public void getBalanceAsTok(String networkName,
+                                String address,
+                                String tokenAddress,
+                                int rid,
                                 CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "id", rid

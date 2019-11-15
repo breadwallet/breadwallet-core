@@ -7,34 +7,53 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class SubscriptionEndpoint {
 
     // creators
 
-    public static SubscriptionEndpoint create(String kind, String environment, String value) {
-        SubscriptionEndpoint endpoint = new SubscriptionEndpoint();
-        endpoint.kind = kind;
-        endpoint.environment = environment;
-        endpoint.value = value;
-        return endpoint;
+    @JsonCreator
+    public static SubscriptionEndpoint create(@JsonProperty("kind") String kind,
+                                              @JsonProperty("environment") String environment,
+                                              @JsonProperty("value") String value) {
+        return new SubscriptionEndpoint(
+                checkNotNull(kind),
+                checkNotNull(environment),
+                checkNotNull(value)
+        );
     }
 
     // fields
 
-    private String kind;
-    private String environment;
-    private String value;
+    private final String kind;
+    private final String environment;
+    private final String value;
+
+    private SubscriptionEndpoint(String kind,
+                                 String environment,
+                                 String value) {
+        this.kind = kind;
+        this.environment = environment;
+        this.value = value;
+    }
 
     // getters
 
+    @JsonProperty("kind")
     public String getKind() {
         return kind;
     }
 
+    @JsonProperty("environment")
     public String getEnvironment() {
         return environment;
     }
 
+    @JsonProperty("value")
     public String getValue() {
         return value;
     }

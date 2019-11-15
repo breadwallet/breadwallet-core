@@ -23,7 +23,9 @@ public class EthBlockApi {
         this.client = client;
     }
 
-    public void getBlockNumberAsEth(String networkName, int rid, CompletionHandler<String, QueryError> handler) {
+    public void getBlockNumberAsEth(String networkName,
+                                    int rid,
+                                    CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_blockNumber",

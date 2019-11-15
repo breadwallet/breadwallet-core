@@ -9,10 +9,14 @@ package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import android.support.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Currency {
 
@@ -26,91 +30,137 @@ public class Currency {
                                   String type,
                                   String blockchainId,
                                   @Nullable String address,
-                                  boolean verified,
+                                  Boolean verified,
                                   List<CurrencyDenomination> denominations) {
-        Currency currency = new Currency();
-        currency.currencyId = currencyId;
-        currency.name = name;
-        currency.code = code;
-        currency.type = type;
-        currency.blockchainId = blockchainId;
-        currency.address = address;
-        currency.verified = verified;
-        currency.denominations = denominations;
-        return currency;
+        // TODO(fix): What should the supply values be here?
+        return create(
+                currencyId,
+                name,
+                code,
+                "0",
+                "0",
+                type,
+                blockchainId,
+                address == null ? ADDRESS_INTERNAL : address,
+                verified,
+                denominations
+        );
+    }
+
+    @JsonCreator
+    public static Currency create(@JsonProperty("currency_id") String currencyId,
+                                  @JsonProperty("name") String name,
+                                  @JsonProperty("code") String code,
+                                  @JsonProperty("initial_supply") String initialSupply,
+                                  @JsonProperty("total_supply") String totalSupply,
+                                  @JsonProperty("type") String type,
+                                  @JsonProperty("blockchain_id") String blockchainId,
+                                  @JsonProperty("address") String address,
+                                  @JsonProperty("verified") Boolean verified,
+                                  @JsonProperty("denominations") List<CurrencyDenomination> denominations) {
+        return new Currency(
+                checkNotNull(currencyId),
+                checkNotNull(name),
+                checkNotNull(code),
+                checkNotNull(initialSupply),
+                checkNotNull(totalSupply),
+                checkNotNull(type),
+                checkNotNull(blockchainId),
+                checkNotNull(address),
+                checkNotNull(verified),
+                checkNotNull(denominations)
+        );
     }
 
     // fields
 
-    @JsonProperty("currency_id")
-    private String currencyId;
+    private final String currencyId;
+    private final String name;
+    private final String code;
+    private final String initialSupply;
+    private final String totalSupply;
+    private final String blockchainId;
+    private final String address;
+    private final String type;
+    private final List<CurrencyDenomination> denominations;
+    private final Boolean verified;
 
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("code")
-    private String code;
-
-    @JsonProperty("initial_supply")
-    private String initialSupply;
-
-    @JsonProperty("total_supply")
-    private String totalSupply;
-
-    @JsonProperty("blockchain_id")
-    private String blockchainId;
-
-    @JsonProperty("address")
-    private String address;
-
-    @JsonProperty("type")
-    private String type;
-
-    @JsonProperty("denominations")
-    private List<CurrencyDenomination> denominations;
-
-    @JsonProperty("verified")
-    private Boolean verified;
+    private Currency(String currencyId,
+                     String name,
+                     String code,
+                     String initialSupply,
+                     String totalSupply,
+                     String type,
+                     String blockchainId,
+                     String address,
+                     Boolean verified,
+                     List<CurrencyDenomination> denominations) {
+        this.currencyId = currencyId;
+        this.name = name;
+        this.code = code;
+        this.initialSupply = initialSupply;
+        this.totalSupply = totalSupply;
+        this.type = type;
+        this.blockchainId = blockchainId;
+        this.address = address;
+        this.verified = verified;
+        this.denominations = denominations;
+    }
 
     // getters
 
+    @JsonProperty("currency_id")
     public String getId() {
         return currencyId;
     }
 
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
 
+    @JsonProperty("code")
     public String getCode() {
         return code;
     }
 
+    @JsonProperty("initial_supply")
     public String getInitialSupply() {
         return initialSupply;
     }
 
+    @JsonProperty("total_supply")
     public String getTotalSupply() {
         return totalSupply;
     }
 
+    @JsonProperty("blockchain_id")
     public String getBlockchainId() {
         return blockchainId;
     }
 
-    public Optional<String> getAddress() {
-        return ADDRESS_INTERNAL.equals(address) ? Optional.absent() : Optional.fromNullable(address);
-    }
-
+    @JsonProperty("type")
     public String getType() {
         return type;
     }
 
+    @JsonProperty("denominations")
     public List<CurrencyDenomination> getDenominations() {
         return denominations;
     }
 
-    public Boolean getVerified() {
+    @JsonProperty("verified")
+    public boolean getVerified() {
         return verified;
+    }
+
+    @JsonProperty("address")
+    public String getAddressValue() {
+        return address;
+    }
+
+    @JsonIgnore
+    public Optional<String> getAddress() {
+        return ADDRESS_INTERNAL.equals(address) ? Optional.absent() : Optional.fromNullable(address);
     }
 }

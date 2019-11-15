@@ -7,32 +7,51 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Amount {
 
     // creators
 
+    // TODO(fix): require the currency id
     public static Amount create(String amountValue) {
-        Amount amount = new Amount();
-        amount.currencyId = null;
-        amount.amount = amountValue;
-        return amount;
+        return new Amount(
+                null,
+                amountValue
+        );
+    }
+
+    @JsonCreator
+    public static Amount create(@JsonProperty("currency_id") String currencyId,
+                                @JsonProperty("amount") String amount) {
+        return new Amount(
+                checkNotNull(currencyId),
+                checkNotNull(amount)
+        );
     }
 
     // fields
 
-    @JsonProperty("currency_id")
-    private String currencyId;
+    private final String currencyId;
+    private final String amount;
 
-    private String amount;
+    private Amount(String currencyId,
+                   String amount) {
+        this.currencyId = currencyId;
+        this.amount= amount;
+    }
 
     // getters
 
+    @JsonProperty("currency_id")
     public String getCurrencyId() {
         return currencyId;
     }
 
+    @JsonProperty("amount")
     public String getAmount() {
         return amount;
     }

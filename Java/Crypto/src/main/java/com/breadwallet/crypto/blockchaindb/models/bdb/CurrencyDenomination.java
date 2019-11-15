@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
@@ -14,20 +15,76 @@ import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class CurrencyDenomination {
 
     // creators
 
-    public static CurrencyDenomination create(String name, String shortName, UnsignedInteger decimals, String symbol) {
-        CurrencyDenomination denomination = new CurrencyDenomination();
-        denomination.name = name;
-        denomination.shortName = shortName;
-        denomination.decimals = decimals;
-        denomination.symbol = symbol;
-        return denomination;
+    public static CurrencyDenomination create(String name,
+                                              String shortName,
+                                              UnsignedInteger decimals,
+                                              String symbol) {
+        return new CurrencyDenomination(
+                checkNotNull(name),
+                checkNotNull(shortName),
+                checkNotNull(decimals),
+                checkNotNull(symbol)
+        );
     }
 
-    // helpers
+    @JsonCreator
+    public static CurrencyDenomination create(@JsonProperty("name") String name,
+                                              @JsonProperty("short_name") String shortName,
+                                              @JsonProperty("decimals") UnsignedInteger decimals) {
+        return create(
+                name,
+                shortName,
+                decimals,
+                lookupSymbol(shortName)
+        );
+    }
+
+    // fields
+
+    private final String name;
+    private final String shortName;
+    private final UnsignedInteger decimals;
+    private final String symbol;
+
+    private CurrencyDenomination(String name,
+                                 String shortName,
+                                 UnsignedInteger decimals,
+                                 String symbol) {
+        this.name = name;
+        this.shortName = shortName;
+        this.decimals = decimals;
+        this.symbol = symbol;
+    }
+
+    // getters
+
+    @JsonProperty("name")
+    public String getName() {
+        return name;
+    }
+
+    @JsonProperty("short_name")
+    public String getCode() {
+        return shortName;
+    }
+
+    @JsonProperty("decimals")
+    public UnsignedInteger getDecimals() {
+        return decimals;
+    }
+
+    @JsonIgnore
+    public String getSymbol() {
+        return symbol == null ? lookupSymbol(shortName) : symbol;
+    }
+
+    // internals
 
     private static final Map<String, String> CURRENCY_SYMBOLS = ImmutableMap.of(
             "btc", "₿",
@@ -37,37 +94,5 @@ public class CurrencyDenomination {
     private static String lookupSymbol(String code) {
         String symbol = CURRENCY_SYMBOLS.get(code);
         return symbol != null ? symbol : code;
-    }
-
-    // fields
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("short_name")
-    private String shortName;
-
-    @JsonProperty("decimals")
-    private UnsignedInteger decimals;
-
-    @JsonIgnore
-    private String symbol;
-
-    // getters
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCode() {
-        return shortName;
-    }
-
-    public UnsignedInteger getDecimals() {
-        return decimals;
-    }
-
-    public String getSymbol() {
-        return symbol == null ? lookupSymbol(shortName) : symbol;
     }
 }

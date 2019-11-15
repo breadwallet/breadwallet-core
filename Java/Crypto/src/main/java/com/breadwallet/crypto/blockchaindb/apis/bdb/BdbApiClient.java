@@ -10,6 +10,8 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
+import com.breadwallet.crypto.blockchaindb.ObjectCoder;
+import com.breadwallet.crypto.blockchaindb.ObjectCoder.ObjectCoderException;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -21,14 +23,9 @@ import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.Multimap;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -46,8 +43,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-import static com.google.common.base.Preconditions.checkState;
-
 public class BdbApiClient {
 
     private static final Logger Log = Logger.getLogger(BdbApiClient.class.getName());
@@ -57,11 +52,13 @@ public class BdbApiClient {
     private final OkHttpClient client;
     private final String baseUrl;
     private final DataTask dataTask;
+    private final ObjectCoder coder;
 
-    public BdbApiClient(OkHttpClient client, String baseUrl, DataTask dataTask) {
+    public BdbApiClient(OkHttpClient client, String baseUrl, DataTask dataTask, ObjectCoder coder) {
         this.client = client;
         this.baseUrl = baseUrl;
         this.dataTask = dataTask;
+        this.coder = coder;
     }
 
     // Create (Crud)
@@ -88,7 +85,7 @@ public class BdbApiClient {
                 params,
                 body,
                 "POST",
-                new RootObjectResponseHandler<>(clazz, handler));
+                new RootObjectResponseHandler<>(coder, clazz, handler));
     }
 
     // Read (cRud)
@@ -103,7 +100,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(clazz, handler));
+                new RootObjectResponseHandler<>(coder, clazz, handler));
     }
 
     /* package */
@@ -116,7 +113,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new EmbeddedArrayResponseHandler<>(resource, clazz, handler));
+                new EmbeddedArrayResponseHandler<>(resource, coder, clazz, handler));
     }
 
     /* package */
@@ -129,7 +126,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, clazz, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz, handler));
     }
 
     /* package */
@@ -140,7 +137,7 @@ public class BdbApiClient {
         makeAndSendRequest(
                 url,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, clazz, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz, handler));
     }
 
     /* package */
@@ -154,7 +151,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(clazz, handler));
+                new RootObjectResponseHandler<>(coder, clazz, handler));
     }
 
     // Update (crUd)
@@ -169,7 +166,7 @@ public class BdbApiClient {
                 params,
                 body,
                 "PUT",
-                new RootObjectResponseHandler<>(clazz, handler));
+                new RootObjectResponseHandler<>(coder, clazz, handler));
     }
 
     <T> void sendPutWithId(String resource,
@@ -183,7 +180,7 @@ public class BdbApiClient {
                 params,
                 json,
                 "PUT",
-                new RootObjectResponseHandler<>(clazz, handler));
+                new RootObjectResponseHandler<>(coder, clazz, handler));
     }
 
     // Delete (crdD)
@@ -232,9 +229,9 @@ public class BdbApiClient {
             httpBody = null;
 
         } else try {
-            httpBody = RequestBody.create(serializeObject(json), MEDIA_TYPE_JSON);
+            httpBody = RequestBody.create(coder.serializeObject(json), MEDIA_TYPE_JSON);
 
-        } catch (JsonProcessingException e) {
+        } catch (ObjectCoderException e) {
             handler.handleError(new QuerySubmissionError(e.getMessage()));
             return;
         }
@@ -280,7 +277,7 @@ public class BdbApiClient {
                         } else {
                             try {
                                 handler.handleResponse(responseBody.string());
-                            } catch (JsonProcessingException e) {
+                            } catch (ObjectCoderException e) {
                                 Log.log(Level.SEVERE, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
@@ -301,7 +298,7 @@ public class BdbApiClient {
     }
 
     private interface ResponseHandler {
-        void handleResponse(String response) throws JsonProcessingException;
+        void handleResponse(String response) throws ObjectCoderException;
         void handleError(QueryError error);
     }
 
@@ -326,17 +323,21 @@ public class BdbApiClient {
 
     private static class RootObjectResponseHandler<T> implements ResponseHandler {
 
+        private final ObjectCoder coder;
         private final Class<T> clazz;
         private final CompletionHandler<T, QueryError> handler;
 
-        RootObjectResponseHandler(Class<T> clazz, CompletionHandler<T, QueryError> handler) {
+        RootObjectResponseHandler(ObjectCoder coder,
+                                  Class<T> clazz,
+                                  CompletionHandler<T, QueryError> handler) {
+            this.coder = coder;
             this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws JsonProcessingException{
-            T resp = deserializeObject(clazz, responseData);
+        public void handleResponse(String responseData) throws ObjectCoderException {
+            T resp = coder.deserializeJson(clazz, responseData);
 
             if (resp == null) {
                 QueryError e = new QueryModelError("Transform error");
@@ -357,21 +358,26 @@ public class BdbApiClient {
     private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler {
 
         private final String path;
+        private final ObjectCoder coder;
         private final Class<T> clazz;
         private final CompletionHandler<List<T>, QueryError> handler;
 
-        EmbeddedArrayResponseHandler(String path, Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
+        EmbeddedArrayResponseHandler(String path,
+                                     ObjectCoder coder,
+                                     Class<T> clazz,
+                                     CompletionHandler<List<T>, QueryError> handler) {
             this.path = path;
+            this.coder = coder;
             this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws JsonProcessingException{
-            BdbEmbeddedResponse resp = deserializeObject(BdbEmbeddedResponse.class, responseData);
-            List<T> data = (resp == null || resp.embedded == null || !resp.embedded.containsKey(path)) ?
+        public void handleResponse(String responseData) throws ObjectCoderException {
+            BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
+            List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
                     Collections.emptyList() :
-                    deserializeList(clazz, resp.embedded.get(path));
+                    coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
             if (data == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
@@ -391,22 +397,27 @@ public class BdbApiClient {
     private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler {
 
         private final String path;
+        private final ObjectCoder coder;
         private final Class<T> clazz;
         private final PagedCompletionHandler<List<T>, QueryError> handler;
 
 
-        EmbeddedPagedArrayResponseHandler(String path, Class<T> clazz, PagedCompletionHandler<List<T>, QueryError> handler) {
+        EmbeddedPagedArrayResponseHandler(String path,
+                                          ObjectCoder coder,
+                                          Class<T> clazz,
+                                          PagedCompletionHandler<List<T>, QueryError> handler) {
             this.path = path;
+            this.coder = coder;
             this.clazz = clazz;
             this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws JsonProcessingException{
-            BdbEmbeddedResponse resp = deserializeObject(BdbEmbeddedResponse.class, responseData);
-            List<T> data = (resp == null || resp.embedded == null || !resp.embedded.containsKey(path)) ?
+        public void handleResponse(String responseData) throws ObjectCoderException {
+            BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
+            List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
                     Collections.emptyList() :
-                    deserializeList(clazz, resp.embedded.get(path));
+                    coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
             if (data == null) {
                 QueryError e = new QueryModelError("Transform error");
                 Log.log(Level.SEVERE, "parsing error", e);
@@ -414,15 +425,12 @@ public class BdbApiClient {
                 return;
             }
 
-            checkState(resp != null);
-            checkState(resp.links != null);
-
-            handler.handleData(
-                    data,
-                    resp.links.prev != null ? resp.links.prev.href : null,
-                    resp.links.next != null ? resp.links.next.href : null
-            );
+            String prevUrl = resp == null ? null : resp.getPreviousUrl().orNull();
+            String nextUrl = resp == null ? null : resp.getNextUrl().orNull();
+            handler.handleData(data, prevUrl, nextUrl);
         }
+
+
 
         @Override
         public void handleError(QueryError error) {
@@ -431,21 +439,4 @@ public class BdbApiClient {
     }
 
     // JSON methods
-
-    private static final ObjectMapper MAPPER_JSON = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    private static String serializeObject(Object obj) throws JsonProcessingException {
-        return MAPPER_JSON.writeValueAsString(obj);
-    }
-
-    private static <X> X deserializeObject(Class<X> clazz, String json) throws JsonProcessingException {
-        return MAPPER_JSON.readValue(json, clazz);
-    }
-
-    private static <X> List<X> deserializeList(Class<X> clazz, Object obj) throws IllegalArgumentException {
-        TypeFactory typeFactory = MAPPER_JSON.getTypeFactory();
-        JavaType type = typeFactory.constructCollectionLikeType(ArrayList.class, clazz);
-        return MAPPER_JSON.convertValue(obj, type);
-    }
 }

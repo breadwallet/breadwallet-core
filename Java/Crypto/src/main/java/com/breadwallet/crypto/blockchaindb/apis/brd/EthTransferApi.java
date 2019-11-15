@@ -38,7 +38,9 @@ public class EthTransferApi {
         this.client = client;
     }
 
-    public void submitTransactionAsEth(String networkName, String transaction, int rid,
+    public void submitTransactionAsEth(String networkName,
+                                       String transaction,
+                                       int rid,
                                        CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
@@ -50,8 +52,12 @@ public class EthTransferApi {
         client.sendJsonRequest(networkName, json, handler);
     }
 
-    public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
-                                     int rid, CompletionHandler<List<EthTransaction>, QueryError> handler) {
+    public void getTransactionsAsEth(String networkName,
+                                     String address,
+                                     UnsignedLong begBlockNumber,
+                                     UnsignedLong endBlockNumber,
+                                     int rid,
+                                     CompletionHandler<List<EthTransaction>, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "id", rid,
                 "account", address
@@ -68,7 +74,9 @@ public class EthTransferApi {
         client.sendQueryForArrayRequest(networkName, params, json, EthTransaction.class, handler);
     }
 
-    public void getNonceAsEth(String networkName, String address, int rid,
+    public void getNonceAsEth(String networkName,
+                              String address,
+                              int rid,
                               CompletionHandler<String, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "jsonrpc", "2.0",
@@ -80,8 +88,13 @@ public class EthTransferApi {
         client.sendJsonRequest(networkName, json, handler);
     }
 
-    public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid,
+    public void getLogsAsEth(String networkName,
+                             @Nullable String contract,
+                             String address,
+                             String event,
+                             UnsignedLong begBlockNumber,
+                             UnsignedLong endBlockNumber,
+                             int rid,
                              CompletionHandler<List<EthLog>, QueryError> handler) {
         Map json = ImmutableMap.of(
                 "id", rid
@@ -104,8 +117,13 @@ public class EthTransferApi {
         client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog.class, handler);
     }
 
-    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
-                               int rid, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
+    public void getBlocksAsEth(String networkName,
+                               String address,
+                               UnsignedInteger interests,
+                               UnsignedLong blockStart,
+                               UnsignedLong blockEnd,
+                               int rid,
+                               CompletionHandler<List<UnsignedLong>, QueryError> handler) {
         GetBlocksCoordinator coordinator = new GetBlocksCoordinator(address, interests, handler);
 
         getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, coordinator.createTxnHandler());

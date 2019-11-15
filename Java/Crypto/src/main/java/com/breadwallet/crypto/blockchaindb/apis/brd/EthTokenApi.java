@@ -21,7 +21,8 @@ public class EthTokenApi {
         this.client = client;
     }
 
-    public void getTokensAsEth(int rid, CompletionHandler<List<EthToken>, QueryError> handler) {
+    public void getTokensAsEth(int rid,
+                               CompletionHandler<List<EthToken>, QueryError> handler) {
         client.sendTokenRequest(EthToken.class, handler);
     }
 }

@@ -7,42 +7,55 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
-import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SubscriptionCurrency {
 
     // creators
 
-    public static SubscriptionCurrency create(String currencyId, List<String> addresses, List<SubscriptionEvent> events) {
-        SubscriptionCurrency currency = new SubscriptionCurrency();
-        currency.currencyId = currencyId;
-        currency.addresses = addresses;
-        currency.events = events;
-        return currency;
+    @JsonCreator
+    public static SubscriptionCurrency create(@JsonProperty("currency_id") String currencyId,
+                                              @JsonProperty("addresses") List<String> addresses,
+                                              @JsonProperty("events") List<SubscriptionEvent> events) {
+        return new SubscriptionCurrency(
+                checkNotNull(currencyId),
+                checkNotNull(addresses),
+                checkNotNull(events)
+        );
     }
 
     // fields
 
-    @JsonProperty("currency_id")
-    private String currencyId;
+    private final String currencyId;
+    private final List<String> addresses;
+    private final List<SubscriptionEvent> events;
 
-    private List<String> addresses;
-
-    private List<SubscriptionEvent> events;
+    private SubscriptionCurrency(String currencyId,
+                                 List<String> addresses,
+                                 List<SubscriptionEvent> events) {
+        this.currencyId = currencyId;
+        this.addresses = addresses;
+        this.events = events;
+    }
 
     // getters
 
+    @JsonProperty("currency_id")
     public String getCurrencyId() {
         return currencyId;
     }
 
+    @JsonProperty("addresses")
     public List<String> getAddresses() {
         return addresses;
     }
 
+    @JsonProperty("events")
     public List<SubscriptionEvent> getEvents() {
         return events;
     }

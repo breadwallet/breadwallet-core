@@ -7,31 +7,45 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.UnsignedInteger;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SubscriptionEvent {
 
     // creators
 
-    public static SubscriptionEvent create(String name, List<UnsignedInteger> confirmations) {
-        SubscriptionEvent event = new SubscriptionEvent();
-        event.name = name;
-        event.confirmations = confirmations;
-        return event;
+    @JsonCreator
+    public static SubscriptionEvent create(@JsonProperty("name") String name,
+                                           @JsonProperty("confirmations") List<UnsignedInteger> confirmations) {
+        return new SubscriptionEvent(
+                checkNotNull(name),
+                checkNotNull(confirmations)
+        );
     }
 
     // fields
 
-    private String name;
-    private List<UnsignedInteger> confirmations;
+    private final String name;
+    private final List<UnsignedInteger> confirmations;
+
+    private SubscriptionEvent(String name,
+                              List<UnsignedInteger> confirmations) {
+        this.name = name;
+        this.confirmations = confirmations;
+    }
 
     // getters
 
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
 
+    @JsonProperty("confirmations")
     public List<UnsignedInteger> getConfirmations() {
         return confirmations;
     }

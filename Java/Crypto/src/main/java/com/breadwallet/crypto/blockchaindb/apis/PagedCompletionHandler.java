@@ -7,8 +7,10 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis;
 
+import android.support.annotation.Nullable;
+
 public interface PagedCompletionHandler<T, E> {
 
-    void handleData(T data, String prevUrl, String nextUrl);
+    void handleData(T data, @Nullable String prevUrl, @Nullable String nextUrl);
     void handleError(E error);
 }

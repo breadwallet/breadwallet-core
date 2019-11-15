@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.blockchaindb.models.brd;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
@@ -15,16 +16,9 @@ import com.google.common.primitives.UnsignedInteger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@JsonIgnoreProperties(value = {
-        "is_supported",
-        "sale_address",
-        "contract_info",
-        "colors",
-        "type",
-        "currency_id",
-        "alternate_names"
-})
 public class EthToken {
+
+    // creators
 
     @JsonCreator
     public static EthToken create(@JsonProperty("contract_address") String address,
@@ -38,6 +32,8 @@ public class EthToken {
                 checkNotNull(decimals)
         );
     }
+
+    // fields
 
     private final String address;
     private final String symbol;
@@ -54,32 +50,41 @@ public class EthToken {
         this.decimals = decimals;
     }
 
+    // getters
+
+    @JsonProperty("contract_address")
     public String getAddress() {
         return address;
     }
 
+    @JsonProperty("code")
     public String getSymbol() {
         return symbol;
     }
 
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
 
-    public String getDescription() {
-        return String.format("Token for %s", getSymbol());
-    }
-
+    @JsonProperty("scale")
     public UnsignedInteger getDecimals() {
         return decimals;
     }
 
+    @JsonIgnore
+    public String getDescription() {
+        return String.format("Token for %s", getSymbol());
+    }
+
     // TODO(fix): defaultGasLimit and defaultGasPrice are not present in the JSON response
 
+    @JsonIgnore
     public Optional<String> getDefaultGasLimit() {
         return Optional.absent();
     }
 
+    @JsonIgnore
     public Optional<String> getDefaultGasPrice() {
         return Optional.absent();
     }

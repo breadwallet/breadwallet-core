@@ -75,14 +75,26 @@ public class BlockchainDbIT {
     public void testGetBlocks() {
         SynchronousCompletionHandler<List<Block>> handler = new SynchronousCompletionHandler<>();
 
+        blockchainDb.getBlocksWithRaw("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
+                null, handler);
+        List<Block> blocksWithRaw = handler.dat().orNull();
+        assertNotNull(blocksWithRaw);
+        assertNotEquals(0, blocksWithRaw.size());
+
         blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
-                false, true, true, true, null, handler);
+                true, true, true, null, handler);
+        List<Block> blocksWithParts = handler.dat().orNull();
+        assertNotNull(blocksWithParts);
+        assertNotEquals(0, blocksWithParts.size());
+
+        blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
+                false, false, false, null, handler);
         List<Block> allBlocks = handler.dat().orNull();
         assertNotNull(allBlocks);
         assertNotEquals(0, allBlocks.size());
 
         blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
-                false, true, true, true, 1, handler);
+                false, false, false, 1, handler);
         List<Block> pagedBlocks = handler.dat().orNull();
         assertNotNull(pagedBlocks);
         assertNotEquals(0, pagedBlocks.size());
@@ -95,8 +107,20 @@ public class BlockchainDbIT {
         SynchronousCompletionHandler<Block> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlock("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                true, true, true, true, handler);
+                true, true, true, handler);
         Block block = handler.dat().orNull();
+        assertNotNull(block);
+        assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+
+        blockchainDb.getBlock("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+                false, false, false, handler);
+        block = handler.dat().orNull();
+        assertNotNull(block);
+        assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+
+        blockchainDb.getBlockWithRaw("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+                handler);
+        block = handler.dat().orNull();
         assertNotNull(block);
         assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
     }
@@ -214,8 +238,14 @@ public class BlockchainDbIT {
         SynchronousCompletionHandler<Transaction> handler = new SynchronousCompletionHandler<>();
 
         String transactionId = "bitcoin-mainnet:06d7d63d6c1966a378bbbd234a27a5b583f37d3bdf9fb9ef50f4724c86b4559b";
+
         blockchainDb.getTransaction(transactionId, true, true, handler);
         Transaction transaction = handler.dat().orNull();
+        assertNotNull(transaction);
+        assertEquals(transactionId, transaction.getId());
+
+        blockchainDb.getTransaction(transactionId, false, false, handler);
+        transaction = handler.dat().orNull();
         assertNotNull(transaction);
         assertEquals(transactionId, transaction.getId());
     }
