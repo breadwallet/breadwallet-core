@@ -64,6 +64,9 @@
                   Identifier = "CoreTests/testBitcoinSync()">
                </Test>
                <Test
+                  Identifier = "CoreTests/testBitcoinSyncAll()">
+               </Test>
+               <Test
                   Identifier = "CoreTests/testBitcoinSyncMany()">
                </Test>
                <Test
