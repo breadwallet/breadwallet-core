@@ -105,16 +105,14 @@ typedef enum {
 
     /**
      * For P2P and API, this event occurs once a transaction has been added to a
-     * wallet (via BRWalletRegisterTransaction). Transactions are added when they have
-     * been relayed by the P2P network or synced via BlockchainDB.
+     * wallet (via BRWalletRegisterTransaction).
      */
     BITCOIN_TRANSACTION_ADDED,
 
     /**
-     * For P2P and API, this event occurs once a transaction is initially registered (via
-     * BRWalletRegisterTransaction) or once it has been marked as CONFIRMED or UNCONFIRMED
-     * (via BRWalletUpdateTransactions). Transaction are updated when they have been
-     * broadcast by the P2P network or synced via BlockchainDB.
+     * For P2P and API, this event occurs once a transaction has been added to a vallet
+     * (via BRWalletRegisterTransaction) or once it has been marked as CONFIRMED or
+     * UNCONFIRMED (via BRWalletUpdateTransactions).
      */
     BITCOIN_TRANSACTION_UPDATED,
 
