@@ -525,6 +525,7 @@ public class BlockChainDB {
                 ]
             default:
                 precondition(false);
+                return [:]
             }
         }
 

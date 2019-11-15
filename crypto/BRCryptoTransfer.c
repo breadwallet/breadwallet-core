@@ -252,7 +252,7 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 extern BRCryptoTransfer
 cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
-                           BRGenericTransfer tid) {
+                           OwnershipGiven BRGenericTransfer tid) {
     BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
     transfer->u.gen = tid;
 
@@ -273,6 +273,16 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     cryptoUnitGive (transfer->unitForFee);
     cryptoTransferStateRelease (&transfer->state);
     if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
+
+    switch (transfer->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            genTransferRelease(transfer->u.gen);
+            break;
+    }
 
     pthread_mutex_destroy (&transfer->lock);
 

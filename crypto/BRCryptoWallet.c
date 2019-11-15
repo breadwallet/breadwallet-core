@@ -43,6 +43,7 @@ struct BRCryptoWalletRecord {
             BREthereumWallet wid;
         } eth;
 
+        // The GEN wallet is owned by the GEN Manager!
         BRGenericWallet gen;
     } u;
 
@@ -123,7 +124,7 @@ private_extern BRCryptoWallet
 cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
                          BRGenericManager gwm,
-                         BRGenericWallet wid) {
+                         OwnershipKept BRGenericWallet wid) {
     BRCryptoWallet wallet = cryptoWalletCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
 
     wallet->u.gen = wid;
@@ -140,6 +141,17 @@ cryptoWalletRelease (BRCryptoWallet wallet) {
         cryptoTransferGive (wallet->transfers[index]);
     array_free (wallet->transfers);
 
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            break;
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            break;
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            // wallet->u.gen is owned by the GEN manager
+            break;
+    }
     pthread_mutex_destroy (&wallet->lock);
 
     memset (wallet, 0, sizeof(*wallet));

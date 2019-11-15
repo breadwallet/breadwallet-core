@@ -21,6 +21,7 @@
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "support/BRFileService.h"
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
@@ -117,6 +118,24 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     }
 
     return cwm;
+}
+
+extern void
+cryptoWalletManagerWipe (BRCryptoNetwork network,
+                         const char *path) {
+    switch (cryptoNetworkGetType(network)) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerWipe (cryptoNetworkAsBTC(network), path);
+            break;
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmWipe (cryptoNetworkAsETH(network), path);
+            break;
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            genManagerWipe (cryptoNetworkAsGEN (network), path);
+            break;
+    }
 }
 
 extern BRCryptoWalletManager
@@ -230,7 +249,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 break; }
 
             // ... and create the primary wallet
-            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerCreatePrimaryWallet (cwm->u.gen));
+            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerGetPrimaryWallet (cwm->u.gen));
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
@@ -267,6 +286,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 // TODO: A BRGenericTransfer must allow us to determine the Wallet (via a Currency).
                 cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
             }
+            array_free (transfers);
 
             // Having added the transfers, get the wallet balance...
             BRCryptoAmount balance = cryptoWalletGetBalance (cwm->wallet);
@@ -1150,7 +1170,7 @@ cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
 
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
-                                      BRGenericTransfer transferGeneric) {
+                                      OwnershipGiven BRGenericTransfer transferGeneric) {
     int transferWasCreated = 0;
 
     // TODO: Determine the currency from `transferGeneric`
@@ -1166,7 +1186,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
 
     // If we don't know about `transferGeneric`, create a crypto transfer
     if (NULL == transfer) {
-        // Create the generic transfer...
+        // Create the generic transfer... `transferGeneric` owned by `transfer`
         transfer = cryptoTransferCreateAsGEN (unit, unitForFee, transferGeneric);
         transferWasCreated = 1;
     }
@@ -1188,6 +1208,9 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
     BRCryptoTransferState newState = cryptoTransferStateCreateGEN (genTransferGetState(transferGeneric), unitForFee);
     cryptoTransferSetState (transfer, newState);
+
+    if (!transferWasCreated)
+        genTransferRelease(transferGeneric);
 
     // Save the transfer as it is now fully updated.
     genManagerSaveTransfer (cwm->u.gen, cryptoTransferAsGEN(transfer));

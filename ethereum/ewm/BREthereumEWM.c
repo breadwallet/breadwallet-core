@@ -1094,6 +1094,12 @@ ewmUpdateMode (BREthereumEWM ewm,
     pthread_mutex_unlock (&ewm->lock);
 }
 
+extern void
+ewmWipe (BREthereumNetwork network,
+         const char *storagePath) {
+    fileServiceWipe (storagePath, "eth", networkGetName(network));
+}
+
 /// MARK: - Blocks
 
 extern uint64_t

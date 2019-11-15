@@ -416,6 +416,10 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
                                         const char **blocks,
                                         const char **peers);
 
+extern void
+BRWalletManagerWipe (const BRChainParams *params,
+                     const char *baseStoragePath);
+
 //
 // Mark: Wallet Sweeper
 //

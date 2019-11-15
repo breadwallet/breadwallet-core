@@ -41,6 +41,7 @@ public final class CryptoApi {
     public interface SystemProvider {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
         Optional<Currency> asBDBCurrency(String uids, String name, String code, String type, UnsignedInteger decimals);
+        Optional<byte[]> migrateBRCoreKeyCiphertext(Key key, byte[] nonce12, byte[] authenticatedData, byte[] ciphertext);
         void wipe(System system);
         void wipeAll(String path, List<System> exemptSystems);
     }

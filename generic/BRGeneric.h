@@ -229,7 +229,7 @@ extern "C" {
     genManagerGetAccountAddress (BRGenericManager gwm);
 
     extern BRGenericWallet
-    genManagerCreatePrimaryWallet (BRGenericManager gwm);
+    genManagerGetPrimaryWallet (BRGenericManager gwm);
 
     extern BRGenericAccount
     genManagerGetAccount (BRGenericManager gwm);
@@ -252,6 +252,10 @@ extern "C" {
                                const char *fee,
                                uint64_t timestamp,
                                uint64_t blockHeight);
+
+    extern void
+    genManagerWipe (BRGenericNetwork network,
+                    const char *storagePath);
 
     extern BRArrayOf(BRGenericTransfer)
     genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,

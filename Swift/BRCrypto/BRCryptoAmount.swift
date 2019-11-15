@@ -37,7 +37,19 @@ public final class Amount {
     }
 
     ///
-    /// Allows UISliders and the like to easily acquire the value
+    /// Convert `Amount` into `Double` using `unit`
+    ///
+    /// - Note: This can introduce inaccuracy as `Double` precision is less than the possible
+    /// number of UInt256 decimals (78).  For example, an Amount of 123456789012345678.0 WEI
+    /// (approx 1.234e17) when converted will have a different double representation:
+    ///
+    /// ```
+    /// let a7 = Amount.create(string: "123456789012345678.0", negative: false, unit: ETH_WEI)
+    /// XCTAssertEqual(1.2345678901234568e17, a7?.double(as: ETH_WEI)
+    /// ```
+    /// (the final three digits of '678' are rounded to '680')
+    ///
+    /// - Parameter unit:
     ///
     public func double (as unit: Unit) -> Double? {
         var overflow: BRCryptoBoolean = CRYPTO_FALSE
@@ -45,8 +57,30 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
+    /// Convert `Amount` into `String` using `unit` and `formatter`.
+    ///
+    /// - Note: This can introduce inaccuracy.  Use of the `formatter` *requires* that Amount be
+    /// converted to a Double and the limit in Double precision can compromise the UInt256 value.
+    /// For example, an Amount of 123456789012345678.0 WEI (approx 1.234e20) when converted will
+    /// have different string representation:
+    ///
+    /// ```
+    /// let a7 = Amount.create(string: "123456789012345678.0", negative: false, unit: ETH_WEI)
+    /// XCTAssertEqual   ("123456789012345678",         a7?.string(base: 10, preface: ""))
+    /// XCTAssertEqual   ("wei123,456,789,012,346,000", a7?.string(as: ETH_WEI)!)
+    /// XCTAssertNotEqual("wei123,456,789,012,345,678", a7?.string(as: ETH_WEI)!)
+    /// ```
+    /// (the final 6 digits of '345,678' are rounded to '346,000')
+    ///
+    /// - Parameters:
+    ///   - unit:
+    ///   - formatter: an optional formatter.  If not provided, `formatterWith (unit: unit)` is
+    ///        used.
+    ///
     public func string (as unit: Unit, formatter: NumberFormatter? = nil) -> String? {
         return double (as: unit)
+            // If we are going to use a formatter, then we must have an NSNumber with a Double.
+            // A Double will have limited precision compared to the UInt256 held by `Amount`.
             .flatMap { (formatter ?? self.formatterWith (unit: unit))
                 .string (from: NSNumber(value: $0)) }
     }
