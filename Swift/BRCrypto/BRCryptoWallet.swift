@@ -319,7 +319,7 @@ public enum WalletState: Equatable {
         switch core {
         case CRYPTO_WALLET_STATE_CREATED: self = .created
         case CRYPTO_WALLET_STATE_DELETED: self = .deleted
-        default: self = .created; precondition(false)
+        default: self = .created; preconditionFailure()
         }
     }
 }

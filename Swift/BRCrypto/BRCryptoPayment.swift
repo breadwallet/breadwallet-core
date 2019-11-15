@@ -26,7 +26,7 @@ public enum PaymentProtocolError: Error {
         case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED:  self = .signatureTypeUnsupported
         case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED: self = .signatureVerificationFailed
         case CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED:                       self = .requestExpired
-        default: self = .signatureVerificationFailed; precondition(false)
+        default: self = .signatureVerificationFailed; preconditionFailure()
         }
     }
 }
@@ -39,7 +39,7 @@ public enum PaymentProtocolRequestType {
         switch core {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70:  self = .bip70
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY: self = .bitPay
-        default: self = .bip70; precondition(false)
+        default: self = .bip70; preconditionFailure()
         }
     }
 }
