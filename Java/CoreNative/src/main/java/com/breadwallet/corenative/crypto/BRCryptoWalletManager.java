@@ -342,6 +342,7 @@ public class BRCryptoWalletManager extends PointerType {
 
     public void announceGetTransfersItemGen(BRCryptoCWMClientCallbackState callbackState,
                                             String hash,
+                                            String uids,
                                             String from,
                                             String to,
                                             String amount,
@@ -355,6 +356,7 @@ public class BRCryptoWalletManager extends PointerType {
                 thisPtr,
                 callbackState.getPointer(),
                 hash,
+                uids,
                 from,
                 to,
                 amount,

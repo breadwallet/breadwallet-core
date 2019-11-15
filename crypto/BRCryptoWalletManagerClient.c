@@ -2059,6 +2059,7 @@ extern void
 cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                BRCryptoCWMClientCallbackState callbackState,
                                OwnershipKept const char *hash,
+                               OwnershipKept const char *uids,
                                OwnershipKept const char *from,
                                OwnershipKept const char *to,
                                OwnershipKept const char *amount,
@@ -2083,7 +2084,7 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
     if (NULL != wallet) {
         // Create a 'GEN' transfer
         BRGenericWallet   genWallet   = cryptoWalletAsGEN(wallet);
-        BRGenericTransfer genTransfer = genManagerRecoverTransfer (cwm->u.gen, genWallet, hash,
+        BRGenericTransfer genTransfer = genManagerRecoverTransfer (cwm->u.gen, genWallet, hash, uids,
                                                                    from, to,
                                                                    amount, currency, fee,
                                                                    timestamp, blockHeight);

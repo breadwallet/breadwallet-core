@@ -1720,26 +1720,57 @@ extension System {
     private static func mergeTransfers (_ transfers: [BlockChainDB.Model.Transfer], with address: String)
         -> [(transfer: BlockChainDB.Model.Transfer, fee: String?)] {
             // Only consider transfers w/ `address`
-            let transfers = transfers.filter { address == $0.source || address == $0.target }
+            var transfers = transfers.filter { address == $0.source || address == $0.target }
 
-            // Find a transfer with a target of "__fee__" if one exists.
-            let transfersWithFee = transfers.filter { "__fee__" == $0.target }
-            precondition (transfersWithFee.count <= 1, "Too many _fee_ transfers")
+            // Note for later: all transfers have a unique id
 
-            // Get the transferWithFee if we have one
-            let transferWithFee = transfersWithFee.isEmpty ? nil : transfersWithFee[0]
+            let partition = transfers.partition { "__fee__" != $0.target }
+            switch (0..<partition).count {
+            case 0:
+                // There is no "__fee__" entry
+                return transfers[partition...]
+                    .map { (transfer: $0, fee: nil) }
 
-            // There sould be one an only one transfer that matches the fee.  We match based on
-            // transactionId and source (address).  Sufficient?
-            return transfers
-                .filter { "__fee__" != $0.target }
-                .map { (transfer) in
-                    return (transfer: transfer,
-                            fee: transferWithFee.flatMap {
-                                return ($0.transactionId == transfer.transactionId && $0.source == transfer.source
-                                    ? $0.amountValue
-                                    : nil)
-                    })
+            case 1:
+                // There is a single "__fee__" entry
+                let transferWithFee = transfers[..<partition][0]
+
+                // We may or may not have a non-fee transfer matching `transferWithFee`.  We
+                // may or may not have more than one non-fee transfers matching `transferWithFee`
+
+                // Find the first of the non-fee transfers matching `transferWithFee`
+                let transferMatchingFee = transfers[partition...]
+                    .first {
+                        $0.transactionId == transferWithFee.transactionId &&
+                            $0.source == transferWithFee.source
+                }
+
+                // We must have a transferMatchingFee; if we don't add one
+                let transfers = transfers[partition...] +
+                    (nil != transferMatchingFee
+                        ? []
+                        : [(id: transferWithFee.id,
+                            source: transferWithFee.source,
+                            target: "unknown",
+                            amountValue: "0",
+                            amountCurrency: transferWithFee.amountCurrency,
+                            acknowledgements: transferWithFee.acknowledgements,
+                            index: transferWithFee.index,
+                            transactionId: transferWithFee.transactionId,
+                            blockchainId: transferWithFee.blockchainId)])
+
+                // Hold the Id for the transfer that we'll add a fee to.
+                let transferForFeeId = transferMatchingFee.map { $0.id } ?? transferWithFee.id
+
+                // Map transfers adding the fee to the `transferforFeeId`
+                return transfers
+                    .map { (transfer: $0,
+                            fee: ($0.id == transferForFeeId ? transferWithFee.amountValue : nil))
+                }
+
+            default:
+                // There is more than one "__fee__" entry
+                precondition(false)
             }
     }
 }
@@ -1823,6 +1854,7 @@ extension System {
                                                                 .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
                                                                     let (transfer, fee) = arg
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                                                                  transfer.id,
                                                                                                   transfer.source,
                                                                                                   transfer.target,
                                                                                                   transfer.amountValue,

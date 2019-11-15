@@ -129,16 +129,16 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (7 == itemsCount);
+    assert (8 == itemsCount);
 
-    BRRlpData hashData = rlpDecodeBytes (coder, items[0]);
-    char *strSource = rlpDecodeString  (coder, items[1]);
-    char *strTarget = rlpDecodeString  (coder, items[2]);
-    UInt256 amount  = rlpDecodeUInt256 (coder, items[3], 0);
-    char *currency  = rlpDecodeString  (coder, items[4]);
-    BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[5], coder);
-    BRGenericTransferState state = genTransferStateDecode (items[6], coder);
-
+    BRRlpData hashData = rlpDecodeBytes(coder, items[0]);
+    char *strUids   = rlpDecodeString  (coder, items[1]);
+    char *strSource = rlpDecodeString  (coder, items[2]);
+    char *strTarget = rlpDecodeString  (coder, items[3]);
+    UInt256 amount  = rlpDecodeUInt256 (coder, items[4], 0);
+    char *currency  = rlpDecodeString  (coder, items[5]);
+    BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[6], coder);
+    BRGenericTransferState state = genTransferStateDecode (items[7], coder);
 
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
@@ -162,13 +162,14 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     BRGenericWallet  wallet = genManagerGetPrimaryWallet (gwm);
 
     BRGenericTransfer transfer = genManagerRecoverTransfer (gwm, wallet, strHash,
-                                          strSource,
-                                          strTarget,
-                                          strAmount,
-                                          currency,
-                                          strFee,
-                                          timestamp,
-                                          blockHeight);
+                                                            strUids,
+                                                            strSource,
+                                                            strTarget,
+                                                            strAmount,
+                                                            currency,
+                                                            strFee,
+                                                            timestamp,
+                                                            blockHeight);
 
     free (strFee);
     free (strAmount);
@@ -176,6 +177,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     free (currency);
     free (strTarget);
     free (strSource);
+    free (strUids);
 
     rlpReleaseItem (coder, item);
     rlpCoderRelease(coder);
@@ -203,8 +205,9 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     char *strSource = genAddressAsString(source);
     char *strTarget = genAddressAsString(target);
 
-    BRRlpItem item = rlpEncodeList (coder, 7,
+    BRRlpItem item = rlpEncodeList (coder, 8,
                                     rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
+                                    rlpEncodeString (coder, transfer->uids),
                                     rlpEncodeString (coder, strSource),
                                     rlpEncodeString (coder, strTarget),
                                     rlpEncodeUInt256 (coder, amount, 0),
@@ -412,6 +415,7 @@ extern BRGenericTransfer
 genManagerRecoverTransfer (BRGenericManager gwm,
                            BRGenericWallet wallet,
                            const char *hash,
+                           const char *uids,
                            const char *from,
                            const char *to,
                            const char *amount,
@@ -421,6 +425,8 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            uint64_t blockHeight) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
                                                           gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
+
+    transfer->uids = strdup (uids);
 
     BRGenericAddress  source   = genTransferGetSourceAddress (transfer);
     BRGenericAddress  target   = genTransferGetTargetAddress (transfer);

@@ -333,7 +333,7 @@ public final class CryptoLibraryDirect {
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
-                                                            String hash, String sourceAddr, String targetAddr,
+                                                            String hash, String uids, String sourceAddr, String targetAddr,
                                                             String amount, String currency, String fee,
                                                             long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransfersComplete(Pointer cwm, Pointer callbackState, int success);
