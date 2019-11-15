@@ -111,10 +111,10 @@ typedef enum {
     BITCOIN_TRANSACTION_ADDED,
 
     /**
-     * For P2P, this event occurs once a transaction has been marked as CONFIRMED/UNCONFIRMED
-     * by the P2P network.
-     *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For P2P and API, this event occurs once a transaction is initially registered (via
+     * BRWalletRegisterTransaction) or once it has been marked as CONFIRMED or UNCONFIRMED
+     * (via BRWalletUpdateTransactions). Transaction are updated when they have been
+     * broadcast by the P2P network or synced via BlockchainDB.
      */
     BITCOIN_TRANSACTION_UPDATED,
 
@@ -123,7 +123,7 @@ typedef enum {
      * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
      * being visible in the mempools of any of connected P2P peers.
      *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For API, this event does not occur at present.
      */
     BITCOIN_TRANSACTION_DELETED,
 } BRTransactionEventType;

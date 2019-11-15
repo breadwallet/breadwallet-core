@@ -1736,7 +1736,7 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
         manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
         manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
 
-        _peer_log ("tickTock: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+        _peer_log ("BSM: tickTock needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
                     needSyncStoppedEvent, needDisconnectionEvent);
 
         // Send event while holding the state lock so that we
@@ -1852,7 +1852,7 @@ _BRPeerSyncManagerSyncStarted (void *info) {
         manager->isFullScan = needSyncStartedEvent ? 1 : manager->isFullScan;
         manager->successfulScanBlockHeight = MIN (startBlockHeight, manager->successfulScanBlockHeight);
 
-        _peer_log ("syncStarted: needConnect:%"PRIu8", needStart:%"PRIu8", needStop:%"PRIu8"\n",
+        _peer_log ("BSM: syncStarted needConnect:%"PRIu8", needStart:%"PRIu8", needStop:%"PRIu8"\n",
                    needConnectionEvent, needSyncStartedEvent, needSyncStoppedEvent);
 
         // Send event while holding the state lock so that we
@@ -1911,7 +1911,7 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
         manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
         manager->successfulScanBlockHeight =  needSuccessfulScanBlockHeightUpdate ? BRPeerManagerLastBlockHeight (manager->peerManager) : manager->successfulScanBlockHeight;
 
-        _peer_log ("syncStopped: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+        _peer_log ("BSM: syncStopped needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
                    needSyncStoppedEvent, needDisconnectionEvent);
 
         // Send event while holding the state lock so that we

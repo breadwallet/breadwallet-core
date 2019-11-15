@@ -652,38 +652,6 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 cryptoUnitGive (unit);
            }
 
-            // ... update state to reflect included if the timestamp and block height are already set
-            if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
-
-                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-                assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
-
-                // The transfer is included and thus we now have a feeBasisConfirmed.  For BTC
-                // the feeBasisConfirmed is identical to feeBasisEstimated
-                BRCryptoFeeBasis feeBasisConfirmed = cryptoTransferGetEstimatedFeeBasis (transfer);
-                cryptoTransferSetConfirmedFeeBasis (transfer, feeBasisConfirmed);
-                BRCryptoAmount fee = cryptoFeeBasisGetFee (feeBasisConfirmed);
-
-                BRCryptoTransferState newState = cryptoTransferStateIncludedInit (btcTransaction->blockHeight,
-                                                                                  0,
-                                                                                  btcTransaction->timestamp,
-                                                                                  fee);
-
-                cryptoAmountGive (fee);
-                cryptoFeeBasisGive (feeBasisConfirmed);
-
-                cryptoTransferSetState (transfer, newState);
-
-                cwm->listener.transferEventCallback (cwm->listener.context,
-                                                     cryptoWalletManagerTake (cwm),
-                                                     cryptoWalletTake (wallet),
-                                                     cryptoTransferTake (transfer),
-                                                     (BRCryptoTransferEvent) {
-                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
-                                                         { .state = { oldState, newState }}
-                                                     });
-            }
-
             cryptoTransferGive (transfer);
             break;
         }
@@ -698,7 +666,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
 
-            if (CRYPTO_TRANSFER_STATE_INCLUDED == oldState.type &&
+            if (CRYPTO_TRANSFER_STATE_SUBMITTED != oldState.type &&
                 (0 == event.u.updated.timestamp || TX_UNCONFIRMED == event.u.updated.blockHeight)) {
                 // The transfer is not included so set it to the submitted state at this point
                 BRCryptoTransferState newState = cryptoTransferStateInit (CRYPTO_TRANSFER_STATE_SUBMITTED);
