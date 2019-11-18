@@ -524,7 +524,7 @@ public class BlockChainDB {
                     "confirmations" : subscriptionEvent.confirmations
                 ]
             default:
-                precondition(false);
+                preconditionFailure()
             }
         }
 

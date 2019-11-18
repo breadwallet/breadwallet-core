@@ -367,7 +367,7 @@ public enum WalletSweeperError: Error {
         case CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS:       self = .unexpectedError
         case CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION:     self = .unexpectedError
         case CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION:       self = .unexpectedError
-        default: self = .unexpectedError; precondition(false)
+        default: self = .unexpectedError; preconditionFailure()
         }
     }
 }
@@ -396,7 +396,7 @@ public final class WalletSweeper {
                 .initAsBTC(bdb: bdb,
                            completion: completion)
         default:
-            precondition(false)
+            preconditionFailure()
         }
     }
 
@@ -503,7 +503,7 @@ public enum WalletManagerDisconnectReason: Equatable {
             var c = core
             self = .posix(errno: core.u.posix.errnum,
                           message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0, true) })
-        default: self = .unknown; precondition(false)
+        default: self = .unknown; preconditionFailure()
         }
     }
 }
@@ -525,7 +525,7 @@ public enum WalletManagerState: Equatable {
         case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
         case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
         case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
-        default: self = .created; precondition(false)
+        default: self = .created; preconditionFailure()
         }
     }
 }
@@ -576,7 +576,7 @@ public enum WalletManagerMode: Equatable {
         case SYNC_MODE_BRD_WITH_P2P_SEND: self = .api_with_p2p_submit
         case SYNC_MODE_P2P_WITH_BRD_SYNC: self = .p2p_with_api_sync
         case SYNC_MODE_P2P_ONLY: self = .p2p_only
-        default: self = .api_only; precondition (false)
+        default: self = .api_only; preconditionFailure()
         }
     }
 
@@ -631,7 +631,7 @@ public enum WalletManagerSyncDepth: Equatable {
         case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: self = .fromLastConfirmedSend
         case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: self = .fromLastTrustedBlock
         case SYNC_DEPTH_FROM_CREATION: self = .fromCreation
-        default: self = .fromCreation; precondition (false)
+        default: self = .fromCreation; preconditionFailure()
         }
     }
 
@@ -680,7 +680,7 @@ public enum WalletManagerSyncStoppedReason: Equatable {
             var c = core
             self = .posix(errno: core.u.posix.errnum,
                           message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0, true) })
-        default: self = .unknown; precondition(false)
+        default: self = .unknown; preconditionFailure()
         }
     }
 }

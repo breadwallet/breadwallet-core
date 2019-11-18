@@ -69,10 +69,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         guard let accountSpecification = accountSpecifications.first (where: { $0.identifier == accountIdentifier })
             ?? (accountSpecifications.count > 0 ? accountSpecifications[0] : nil)
-            else {
-                precondition (false, "APP: No AccountSpecification: \(accountIdentifier)");
-                return false
-        }
+            else { preconditionFailure ("APP: No AccountSpecification: \(accountIdentifier)"); }
+
         self.accountSpecification = accountSpecification
 
         let dateFormatter = DateFormatter()
@@ -85,10 +83,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                       timestamp: accountSpecification.timestamp,
                                       uids: accountUids)
         guard nil != account
-            else {
-            precondition(false, "APP: No account")
-            return false
-        }
+            else { preconditionFailure ("APP: No account") }
         accountSerialization = account.serialize
 
         mainnet = (accountSpecification.network == "mainnet")
@@ -259,7 +254,7 @@ extension UIApplication {
 
         guard let account = Account.createFrom(serialization: app.accountSerialization,
                                                uids: app.accountUids)
-            else { precondition(false, "APP: No Account on Reset"); return }
+            else { preconditionFailure ("APP: No Account on Reset") }
 
         print ("APP: Account PaperKey  : \(app.accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
