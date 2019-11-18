@@ -11,8 +11,6 @@ import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.NativeLibrary;
-import com.sun.jna.Platform;
 
 import org.junit.After;
 import org.junit.Before;
@@ -506,8 +504,7 @@ public class CryptoLibraryIT {
     }
 
     public interface TestCryptoLibrary extends Library {
-        String JNA_LIBRARY_NAME = Platform.isAndroid() ? "corecrypto" : "corecryptoWithTests";
-        TestCryptoLibrary INSTANCE = Native.load(JNA_LIBRARY_NAME, TestCryptoLibrary.class);
+        TestCryptoLibrary INSTANCE = Native.load(CryptoLibrary.LIBRARY_NAME, TestCryptoLibrary.class);
 
         int BRRunTests();
         int BRRunSupTests();

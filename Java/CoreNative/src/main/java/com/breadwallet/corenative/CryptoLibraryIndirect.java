@@ -11,12 +11,11 @@ import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.utility.SizeT;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 
 public final class CryptoLibraryIndirect {
 
-    private static final LibraryInterface INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, LibraryInterface.class);
+    private static final LibraryInterface INSTANCE = Native.load(CryptoLibrary.LIBRARY_NAME, LibraryInterface.class);
 
     // TODO(fix): Can this be migrated to CryptoLibraryDirect? Well, not easily. The JNA library explicitly mentions
     //            it doesn't support arrays of pointers in direct mapping mode. That said, it has an example of how

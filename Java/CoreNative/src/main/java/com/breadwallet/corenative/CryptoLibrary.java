@@ -7,15 +7,19 @@
  */
 package com.breadwallet.corenative;
 
-import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
-import com.breadwallet.corenative.utility.SizeT;
-import com.sun.jna.Library;
-import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
-import com.sun.jna.Pointer;
 
-public interface CryptoLibrary extends Library {
+public final class CryptoLibrary {
 
-    String JNA_LIBRARY_NAME = "corecrypto";
-    NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
+    public static final String LIBRARY_NAME;
+
+    public static final NativeLibrary LIBRARY;
+
+    static {
+        LIBRARY_NAME = "test".equals(System.getProperty("com.breadwallet.corenative.libtype", null)) ?
+                "corecryptoWithTests" : "corecrypto";
+        LIBRARY = NativeLibrary.getInstance(CryptoLibrary.LIBRARY_NAME);
+    }
+
+    private CryptoLibrary() {}
 }
