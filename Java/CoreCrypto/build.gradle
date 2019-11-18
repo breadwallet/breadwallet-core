@@ -1,3 +1,5 @@
 ext {
     javaMainSrcDir              = projectDir.absolutePath + "/src/main/java"
+
+    javaTestSrcDir              = projectDir.absolutePath + "/src/commonTest/java"
 }

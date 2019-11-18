@@ -41,7 +41,14 @@ android {
 
     sourceSets {
         main {
-            java.srcDirs = [project(':CoreCrypto').javaMainSrcDir]
+            java {
+                srcDirs = [project(':CoreCrypto').javaMainSrcDir]
+            }
+        }
+        androidTest {
+            java {
+                srcDirs = [project(':CoreCrypto').javaTestSrcDir]
+            }
         }
     }
 }

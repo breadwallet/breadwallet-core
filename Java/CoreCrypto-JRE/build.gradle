@@ -1,0 +1,30 @@
+apply plugin: 'java-library'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [project(':CoreCrypto').javaMainSrcDir]
+        }
+    }
+    test {
+        java {
+            srcDirs = [project(':CoreCrypto').javaTestSrcDir]
+        }
+    }
+}
+
+dependencies {
+    api project(':Crypto')
+
+    implementation project(':CoreNative-JRE')
+    implementation deps.guavaJre
+    implementation deps.androidAppCompatV7
+    implementation deps.jacksonAnnotations
+    implementation deps.jacksonCore
+    implementation deps.jacksonDatabind
+
+    testImplementation deps.junit
+}

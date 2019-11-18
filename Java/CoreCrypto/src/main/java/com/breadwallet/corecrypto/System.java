@@ -132,7 +132,7 @@ final class System implements com.breadwallet.crypto.System {
     private static final List<System> SYSTEMS_INACTIVE = Collections.synchronizedList(new ArrayList<>());
 
     /// If true, save removed system in the above array. Set to `false` for debugging 'release'.
-    private static final boolean SYSTEMS_INACTIVE_RETAIN = !BuildConfig.DEBUG;
+    private static final boolean SYSTEMS_INACTIVE_RETAIN = true;
 
     // Create a dedicated executor to pump CWM events as quickly as possible
     private static final Executor EXECUTOR_LISTENER = Executors.newSingleThreadExecutor();

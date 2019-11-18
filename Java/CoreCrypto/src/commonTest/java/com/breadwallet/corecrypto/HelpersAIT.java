@@ -7,9 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.content.Context;
-import android.support.test.InstrumentationRegistry;
-
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
@@ -28,6 +25,7 @@ import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent;
 import com.google.common.base.Optional;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import java.io.File;
@@ -54,13 +52,7 @@ class HelpersAIT {
 
     /* package */
     static File generateCoreDataDir() {
-        Context context = InstrumentationRegistry.getInstrumentation().getContext();
-        return generateCoreDataDir(context.getFilesDir());
-    }
-
-    /* package */
-    static File generateCoreDataDir(File baseDir) {
-        return new File (baseDir, UUID.randomUUID().toString());
+        return Files.createTempDir();
     }
 
     /* package */
