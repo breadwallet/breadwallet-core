@@ -506,7 +506,7 @@ public class CryptoLibraryIT {
     }
 
     public interface TestCryptoLibrary extends Library {
-        String JNA_LIBRARY_NAME = Platform.isAndroid() ? "crypto" : "cryptoWithTests";
+        String JNA_LIBRARY_NAME = Platform.isAndroid() ? "corecrypto" : "corecryptoWithTests";
         TestCryptoLibrary INSTANCE = Native.load(JNA_LIBRARY_NAME, TestCryptoLibrary.class);
 
         int BRRunTests();

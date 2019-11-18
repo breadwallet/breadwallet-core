@@ -16,6 +16,6 @@ import com.sun.jna.Pointer;
 
 public interface CryptoLibrary extends Library {
 
-    String JNA_LIBRARY_NAME = "crypto";
+    String JNA_LIBRARY_NAME = "corecrypto";
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
 }

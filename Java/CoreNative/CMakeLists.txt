@@ -33,12 +33,12 @@ target_compile_definitions (sqlite3
 #
 
 add_library( # Sets the name of the library.
-             crypto
+             corecrypto
              # Sets the library as a shared library.
              SHARED)
 
 # Support
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/support/BRAddress.c
                 src/main/cpp/core/support/BRAddress.h
@@ -71,13 +71,13 @@ target_sources (crypto
 
 # Support Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
+    target_sources (corecrypto
                     PRIVATE
                     src/main/cpp/core/support/testSup.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Bitcoin
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/bitcoin/BRBIP38Key.c
                 src/main/cpp/core/bitcoin/BRBIP38Key.h
@@ -106,14 +106,14 @@ target_sources (crypto
 
 # Bitcoin Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
+    target_sources (corecrypto
                     PRIVATE
                     src/main/cpp/core/bitcoin/test.c
                     src/main/cpp/core/bitcoin/testBwm.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # BCash
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/bcash/BRBCashAddr.c
                 src/main/cpp/core/bcash/BRBCashAddr.h
@@ -121,7 +121,7 @@ target_sources (crypto
                 src/main/cpp/core/bcash/BRBCashParams.c)
 
 # Ethereum
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/ethereum/BREthereum.h
                 # Util
@@ -250,7 +250,7 @@ target_sources (crypto
 
 # Ethereum Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
+    target_sources (corecrypto
                     PRIVATE
                     src/main/cpp/core/ethereum/base/testBase.c
                     src/main/cpp/core/ethereum/blockchain/testBc.c
@@ -264,7 +264,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Ripple
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/ripple/BRRipplePrivateStructs.h
                 src/main/cpp/core/ripple/BRRippleBase.h
@@ -284,7 +284,7 @@ target_sources (crypto
 
 # Ripple Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
+    target_sources (corecrypto
                     PRIVATE
                     src/main/cpp/core/ripple/testRipple.c
                     src/main/cpp/core/ripple/testRippleTxList1.h
@@ -292,7 +292,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Generic
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/generic/BRGenericBase.h
                 src/main/cpp/core/generic/BRGeneric.c
@@ -305,7 +305,7 @@ target_sources (crypto
                 src/main/cpp/core/generic/BRGenericRipple.c)
 
 # Crypto
-target_sources (crypto
+target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/crypto/BRCryptoAccount.c
                 src/main/cpp/core/crypto/BRCryptoAccount.h
@@ -353,13 +353,13 @@ target_sources (crypto
 
 # Crypto Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_sources (crypto
+    target_sources (corecrypto
                     PRIVATE
                     src/main/cpp/core/crypto/testCrypto.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Setup all the include paths
-target_include_directories (crypto
+target_include_directories (corecrypto
                             PUBLIC
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/support
@@ -371,7 +371,7 @@ target_include_directories (crypto
 
 # Set the DEBUG define when building DEBUG builds
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_definitions(crypto
+    target_compile_definitions(corecrypto
                                PUBLIC
                                "DEBUG"
                                "BITCOIN_DEBUG")
@@ -379,14 +379,14 @@ endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 
 # Link in the static sqlite3 library
-target_link_libraries (crypto
+target_link_libraries (corecrypto
                        sqlite3)
 
 # On Android, link in the log library
 if (ANDROID)
     find_library (log-lib
                   log)
-    target_link_libraries (crypto
+    target_link_libraries (corecrypto
                            ${log-lib})
 endif(ANDROID)
 
@@ -394,7 +394,7 @@ endif(ANDROID)
 if (APPLE)
     find_library (log-lib
                   log)
-    target_link_libraries (crypto
+    target_link_libraries (corecrypto
                            "resolv"
                            "-framework Security")
 endif(APPLE)

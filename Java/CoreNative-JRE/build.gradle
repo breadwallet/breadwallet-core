@@ -81,7 +81,7 @@ model {
                 }
             }
         }
-        crypto(NativeLibrarySpec) {
+        corecrypto(NativeLibrarySpec) {
             sources {
                 c {
                     source {
@@ -124,7 +124,7 @@ model {
         }
         // Add a second target for the test version of the crypto library. This looks like it is
         // needed because we can't change the source set based on build type...
-        cryptoWithTests(NativeLibrarySpec) {
+        corecryptoWithTests(NativeLibrarySpec) {
             sources {
                 c {
                     source {
