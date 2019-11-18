@@ -11,14 +11,15 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolPaymentAck;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
 final class PaymentProtocolPaymentAck implements com.breadwallet.crypto.PaymentProtocolPaymentAck {
@@ -85,76 +86,59 @@ final class PaymentProtocolPaymentAck implements com.breadwallet.crypto.PaymentP
         }
     }
 
-    private static final class BitPayPayment {
+    private static final class BitPayAck {
 
-        static Optional<BitPayPayment> asBitPayPayment(JSONObject json) {
+        static Optional<BitPayAck> asBitPayAck(String json) {
+            ObjectMapper mapper = new ObjectMapper();
+
+            BitPayAck ack;
             try {
-                String currency = json.getString("currency");
-                JSONArray transactionsJson = json.getJSONArray("transactions");
-
-                List<String> transactions = new ArrayList<>();
-                for (int i = 0; i < transactionsJson.length(); i++) {
-                    transactions.add(transactionsJson.getString(i));
-                }
-
-                return Optional.of(
-                        new BitPayPayment(
-                                currency,
-                                transactions
-                        )
-                );
-            } catch (JSONException e) {
-                return Optional.absent();
+                ack = mapper.readValue(json, BitPayAck.class);
+            } catch (JsonProcessingException e) {
+                ack = null;
             }
+
+            return Optional.fromNullable(ack);
         }
 
-        final String currency;
-        final List<String> transactions;
+        @JsonCreator
+        static BitPayAck create(@JsonProperty("memo") String memo,
+                                @JsonProperty("payment") BitPayPayment payment) {
+            return new BitPayAck(
+                    memo,
+                    payment
+            );
+        }
 
-        BitPayPayment(String currency, List<String> transactions) {
-            this.currency = currency;
-            this.transactions = transactions;
+        private final @Nullable String memo;
+        private final BitPayPayment payment;
+
+        private BitPayAck(@Nullable String memo,
+                          BitPayPayment payment) {
+            this.memo = memo;
+            this.payment = payment;
         }
 
     }
 
-    private static final class BitPayAck {
+    private static final class BitPayPayment {
 
-        static Optional<BitPayAck> asBitPayAck(String json) {
-            try {
-                return asBitPayAck(new JSONObject(json));
-            } catch (JSONException e) {
-                return Optional.absent();
-            }
+        @JsonCreator
+        static BitPayPayment create(@JsonProperty("currency") String currency,
+                                    @JsonProperty("transactions") List<String> transactions) {
+            return new BitPayPayment(
+                    checkNotNull(currency),
+                    checkNotNull(transactions)
+            );
         }
 
-        static Optional<BitPayAck> asBitPayAck(JSONObject json) {
-            try {
-                Optional<String> maybeMemo = Optional.fromNullable(json.optString("memo"));
-                Optional<BitPayPayment> maybePayment = BitPayPayment.asBitPayPayment(json.getJSONObject("payment"));
+        private final String currency;
+        private final List<String> transactions;
 
-                if (!maybePayment.isPresent()) {
-                    return Optional.absent();
-                }
-
-                return Optional.of(
-                        new BitPayAck(
-                                maybeMemo.orNull(),
-                                maybePayment.get()
-                        )
-                );
-            } catch (JSONException e) {
-                return Optional.absent();
-            }
-        }
-
-        @Nullable
-        String memo;
-        BitPayPayment payment;
-
-        BitPayAck(@Nullable String memo, BitPayPayment payment) {
-            this.memo = memo;
-            this.payment = payment;
+        private BitPayPayment(String currency,
+                              List<String> transactions) {
+            this.currency = currency;
+            this.transactions = transactions;
         }
     }
 

@@ -189,7 +189,7 @@ public class TransferCreatePaymentActivity extends AppCompatActivity {
                             }
 
                             try (ResponseBody body = response.body()) {
-                                if (!mimeType.startsWith(expectedMimeType)) {
+                                if (null == body || !mimeType.startsWith(expectedMimeType)) {
                                     showError("Failed with unexpected protocol request content type");
 
                                 } else if (mimeType.startsWith(MIME_TYPE_PAYMENT_REQUEST_BIP70)) {

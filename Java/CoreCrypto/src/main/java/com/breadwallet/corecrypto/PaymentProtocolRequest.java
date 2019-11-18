@@ -18,15 +18,15 @@ import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.PaymentProtocolError;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.UnsignedLong;
 import com.google.common.primitives.UnsignedLongs;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
@@ -37,19 +37,16 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
 final class PaymentProtocolRequest implements com.breadwallet.crypto.PaymentProtocolRequest {
@@ -243,119 +240,63 @@ final class PaymentProtocolRequest implements com.breadwallet.crypto.PaymentProt
     // BitPay
     //
 
-    private static final ThreadLocal<DateFormat> ISO_8601_FORMAT = new ThreadLocal<DateFormat>() {
-        @Override protected DateFormat initialValue() {
-            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ROOT);
-        }
-    };
-
-    private static final class BitPayOutput {
-
-        static Optional<BitPayOutput> asBitPayOutput(JSONObject json) {
-            try {
-                UnsignedLong amount = UnsignedLong.fromLongBits(UnsignedLongs.decode(json.getString("amount")));
-                String address = json.getString("address");
-
-                return Optional.of(
-                        new BitPayOutput(
-                                amount,
-                                address
-                        )
-                );
-            } catch (JSONException e) {
-                return Optional.absent();
-            }
-        }
-
-        static Optional<List<BitPayOutput>> asBitPayOutputs(JSONArray json) {
-            List<BitPayOutput> outputs = new ArrayList<>();
-            for (int i = 0; i < json.length(); i++) {
-                JSONObject jsonObject = json.optJSONObject(i);
-                if (jsonObject == null) {
-                    return Optional.absent();
-                }
-
-                Optional<BitPayOutput> optionalBlock = asBitPayOutput(jsonObject);
-                if (!optionalBlock.isPresent()) {
-                    return Optional.absent();
-                }
-
-                outputs.add(optionalBlock.get());
-            }
-            return Optional.of(outputs);
-        }
-
-        final UnsignedLong amount;
-        final String address;
-
-        BitPayOutput(UnsignedLong amount, String address) {
-            this.amount = amount;
-            this.address = address;
-        }
-    }
-
     private static final class BitPayRequest {
+
         static Optional<BitPayRequest> asBitPayRequest(String json) {
+            ObjectMapper mapper = new ObjectMapper();
+
+            BitPayRequest request;
             try {
-                return asBitPayRequest(new JSONObject(json));
-            } catch (JSONException e) {
-                return Optional.absent();
+                request = mapper.readValue(json, BitPayRequest.class);
+            } catch (JsonProcessingException e) {
+                request = null;
             }
+
+            return Optional.fromNullable(request);
         }
 
-        static Optional<BitPayRequest> asBitPayRequest(JSONObject json) {
-            try {
-                String network = json.getString("network");
-                String currency = json.getString("currency");
-                double requiredFeeRate = json.getDouble("requiredFeeRate");
-                Date time = ISO_8601_FORMAT.get().parse(json.getString("time"));
-                Date expires = ISO_8601_FORMAT.get().parse(json.getString("expires"));
-                String memo = json.getString("memo");
-                String paymentUrl = json.getString("paymentUrl");
-                String paymentId = json.getString("paymentId");
-                Optional<List<BitPayOutput>> maybeOutputs = BitPayOutput.asBitPayOutputs(json.getJSONArray("outputs"));
-
-                if (!maybeOutputs.isPresent()) {
-                    return Optional.absent();
-                }
-
-                return Optional.of(
-                        new BitPayRequest(
-                                network,
-                                currency,
-                                requiredFeeRate,
-                                maybeOutputs.get(),
-                                time,
-                                expires,
-                                memo,
-                                paymentUrl,
-                                paymentId
-                        )
-                );
-            } catch (JSONException | ParseException e) {
-                return Optional.absent();
-            }
+        @JsonCreator
+        static BitPayRequest create(@JsonProperty("network") String network,
+                                    @JsonProperty("currency") String currency,
+                                    @JsonProperty("requiredFeeRate") Double requiredFeeRate,
+                                    @JsonProperty("time") Date time,
+                                    @JsonProperty("expires") Date expires,
+                                    @JsonProperty("memo") String memo,
+                                    @JsonProperty("paymentUrl") String paymentUrl,
+                                    @JsonProperty("paymentId") String paymentId,
+                                    @JsonProperty("outputs") List<BitPayOutput> outputs) {
+            return new BitPayRequest(
+                    checkNotNull(network),
+                    checkNotNull(currency),
+                    checkNotNull(requiredFeeRate),
+                    checkNotNull(time),
+                    checkNotNull(expires),
+                    checkNotNull(memo),
+                    checkNotNull(paymentUrl),
+                    checkNotNull(paymentId),
+                    checkNotNull(outputs)
+            );
         }
 
-        final String network;
-        final String currency;
-        final double requiredFeeRate;
-        final List<BitPayOutput> outputs;
-        final Date time;
-        final Date expires;
-        final String memo;
-        final String paymentUrl;
-        final String paymentId;
+        private final String network;
+        private final String currency;
+        private final double requiredFeeRate;
+        private final List<BitPayOutput> outputs;
+        private final Date time;
+        private final Date expires;
+        private final String memo;
+        private final String paymentUrl;
+        private final String paymentId;
 
         private BitPayRequest(String network,
                               String currency,
                               double requiredFeeRate,
-                              List<BitPayOutput> outputs,
                               Date time,
                               Date expires,
                               String memo,
                               String paymentUrl,
-                              String paymentId) {
+                              String paymentId,
+                              List<BitPayOutput> outputs) {
             this.network = network;
             this.currency = currency;
             this.requiredFeeRate = requiredFeeRate;
@@ -365,6 +306,26 @@ final class PaymentProtocolRequest implements com.breadwallet.crypto.PaymentProt
             this.memo = memo;
             this.paymentUrl = paymentUrl;
             this.paymentId = paymentId;
+        }
+    }
+
+    private static final class BitPayOutput {
+
+        @JsonCreator
+        static BitPayOutput create(@JsonProperty("amount") String amount,
+                                   @JsonProperty("address") String address) {
+            return new BitPayOutput(
+                    checkNotNull(UnsignedLong.fromLongBits(UnsignedLongs.decode(amount))),
+                    checkNotNull(address)
+            );
+        }
+
+        private final UnsignedLong amount;
+        private final String address;
+
+        BitPayOutput(UnsignedLong amount, String address) {
+            this.amount = amount;
+            this.address = address;
         }
     }
 

@@ -52,6 +52,9 @@ dependencies {
     implementation project(':CoreNative-Android')
     implementation deps.guavaAndroid
     implementation deps.androidAppCompatV7
+    implementation deps.jacksonAnnotations
+    implementation deps.jacksonCore
+    implementation deps.jacksonDatabind
 
     testImplementation deps.junit
 
