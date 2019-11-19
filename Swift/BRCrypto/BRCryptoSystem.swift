@@ -1214,7 +1214,7 @@ extension System {
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     walletManagerEvent = WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value)
 
-                default: precondition(false)
+                default: preconditionFailure()
                 }
 
                 walletManagerEvent.map { (event) in
@@ -1292,7 +1292,7 @@ extension System {
                         let feeError = Wallet.FeeEstimationError.fromStatus(event.u.feeBasisEstimated.status)
                         system.callbackCoordinator.handleWalletFeeEstimateFailure (cookie, error: feeError)
                     }
-                default: precondition (false)
+                default: preconditionFailure()
                 }
 
                 walletEvent.map { (event) in
@@ -1327,7 +1327,7 @@ extension System {
                 case CRYPTO_TRANSFER_EVENT_DELETED:
                     transferEvent = TransferEvent.deleted
 
-                default: precondition(false)
+                default: preconditionFailure()
                 }
 
                 transferEvent.map { (event) in

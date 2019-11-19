@@ -179,7 +179,7 @@ public enum TransferDirection: Equatable {
         case CRYPTO_TRANSFER_SENT:      self = .sent
         case CRYPTO_TRANSFER_RECEIVED:  self = .received
         case CRYPTO_TRANSFER_RECOVERED: self = .recovered
-        default: self = .sent;  precondition(false)
+        default: self = .sent;  preconditionFailure()
         }
     }
 
@@ -295,7 +295,7 @@ public enum TransferSubmitError: Equatable, Error {
             var c = core
             self = .posix(errno: core.u.posix.errnum,
                           message: BRTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
-        default: self = .unknown; precondition(false)
+        default: self = .unknown; preconditionFailure()
         }
     }
 }
@@ -333,7 +333,7 @@ public enum TransferState {
                                                 fee: core.u.included.fee.map { Amount (core: $0, take: false) }))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
-        default: /* ignore this */ self = .pending; precondition(false)
+        default: /* ignore this */ self = .pending; preconditionFailure()
         }
     }
 }

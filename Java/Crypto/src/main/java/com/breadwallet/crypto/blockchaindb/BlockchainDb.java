@@ -98,7 +98,7 @@ public class BlockchainDb {
         this.blockchainApi = new BlockchainApi(bdbClient);
         this.currencyApi = new CurrencyApi(bdbClient);
         this.subscriptionApi = new SubscriptionApi(bdbClient);
-        this.transferApi = new TransferApi(bdbClient);
+        this.transferApi = new TransferApi(bdbClient, executorService);
         this.transactionApi = new TransactionApi(bdbClient, executorService);
 
         this.ethBalanceApi = new EthBalanceApi(brdClient);
@@ -183,8 +183,19 @@ public class BlockchainDb {
 
     // Transfer
 
-    public void getTransfers(String id, List<String> addresses, CompletionHandler<List<Transfer>, QueryError> handler) {
-        transferApi.getTransfers(id, addresses, handler);
+    public void getTransfers(String id, List<String> addresses,
+                             UnsignedLong beginBlockNumber,
+                             UnsignedLong endBlockNumber,
+                             CompletionHandler<List<Transfer>, QueryError> handler) {
+        getTransfers(id, addresses, beginBlockNumber, endBlockNumber, null, handler);
+    }
+
+    public void getTransfers(String id, List<String> addresses,
+                             UnsignedLong beginBlockNumber,
+                             UnsignedLong endBlockNumber,
+                             @Nullable Integer maxPageSize,
+                             CompletionHandler<List<Transfer>, QueryError> handler) {
+        transferApi.getTransfers(id, addresses, beginBlockNumber, endBlockNumber, maxPageSize, handler);
     }
 
     public void getTransfer(String id, CompletionHandler<Transfer, QueryError> handler) {
@@ -199,8 +210,19 @@ public class BlockchainDb {
                                 boolean includeRaw,
                                 boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
+        getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
+                null, handler);
+    }
+
+    public void getTransactions(String id, List<String> addresses,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
+                                boolean includeRaw,
+                                boolean includeProof,
+                                @Nullable Integer maxPageSize,
+                                CompletionHandler<List<Transaction>, QueryError> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
-                handler);
+                maxPageSize, handler);
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
@@ -217,8 +239,15 @@ public class BlockchainDb {
     public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           CompletionHandler<List<Block>, QueryError> handler) {
+        getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
+                null, handler);
+    }
+
+    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
+                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof, @Nullable Integer maxPageSize,
+                          CompletionHandler<List<Block>, QueryError> handler) {
         blockApi.getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
-                handler);
+                maxPageSize, handler);
     }
 
     public void getBlock(String id, boolean includeRaw,

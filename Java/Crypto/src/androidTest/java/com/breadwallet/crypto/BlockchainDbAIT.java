@@ -45,6 +45,7 @@ import okhttp3.Response;
 
 import static org.junit.Assert.*;
 
+// TODO(fix): Expand the tests defined below
 public class BlockchainDbAIT {
 
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
@@ -76,13 +77,19 @@ public class BlockchainDbAIT {
     public void testGetBlocks() {
         SynchronousCompletionHandler<List<Block>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(1000),
-                false, true, true, true, handler);
-        List<Block> blocks = handler.dat().orNull();
-        assertNotNull(blocks);
-        assertNotEquals(0, blocks.size());
+        blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
+                false, true, true, true, null, handler);
+        List<Block> allBlocks = handler.dat().orNull();
+        assertNotNull(allBlocks);
+        assertNotEquals(0, allBlocks.size());
 
-        // TODO: Expand these tests
+        blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(10),
+                false, true, true, true, 1, handler);
+        List<Block> pagedBlocks = handler.dat().orNull();
+        assertNotNull(pagedBlocks);
+        assertNotEquals(0, pagedBlocks.size());
+
+        assertEquals(allBlocks.size(), pagedBlocks.size());
     }
 
     @Test
@@ -94,8 +101,6 @@ public class BlockchainDbAIT {
         Block block = handler.dat().orNull();
         assertNotNull(block);
         assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
-
-        // TODO: Expand these tests
     }
 
     @Test
@@ -111,8 +116,6 @@ public class BlockchainDbAIT {
         blockchains = handler.dat().orNull();
         assertNotNull(blockchains);
         assertNotEquals(0, blockchains.size());
-
-        // TODO: Expand these tests
     }
 
     @Test
@@ -124,8 +127,6 @@ public class BlockchainDbAIT {
         assertNotNull(blockchain);
         assertEquals(blockchain.getId(), "bitcoin-mainnet");
         assertEquals(blockchain.getConfirmationsUntilFinal(), UnsignedInteger.valueOf(6));
-
-        // TODO: Expand these tests
     }
 
     @Test
@@ -142,8 +143,6 @@ public class BlockchainDbAIT {
         currencies = handler.dat().orNull();
         assertNotNull(currencies);
         assertNotEquals(0, currencies.size());
-
-        // TODO: Expand these tests
     }
 
     @Test
@@ -154,19 +153,26 @@ public class BlockchainDbAIT {
         Currency currency = handler.dat().orNull();
         assertNotNull(currency);
         assertEquals(currency.getCode(), "btc");
-
-        // TODO: Expand these tests
     }
 
     @Test
     public void testGetTransfers() {
         SynchronousCompletionHandler<List<Transfer>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransfers("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), handler);
-        List<Transfer> transfers = handler.dat().orNull();
-        assertNotNull(transfers);
+        blockchainDb.getTransfers("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
+                UnsignedLong.ZERO, UnsignedLong.valueOf(500000), null, handler);
+        List<Transfer> allTransfers = handler.dat().orNull();
+        assertNotNull(allTransfers);
+        assertNotEquals(0, allTransfers.size());
 
-        // TODO: Expand these tests
+        blockchainDb.getTransfers("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
+                UnsignedLong.ZERO, UnsignedLong.valueOf(500000), 1, handler);
+        List<Transfer> pagedTransfers = handler.dat().orNull();
+        assertNotNull(pagedTransfers);
+        assertNotEquals(0, pagedTransfers.size());
+
+        // TODO(fix): This test fails; see CORE-741 for more details
+        assertEquals(allTransfers.size(), pagedTransfers.size());
     }
 
     @Test
@@ -178,8 +184,6 @@ public class BlockchainDbAIT {
         Transfer transfer = handler.dat().orNull();
         assertNotNull(transfer);
         assertEquals(transferId, transfer.getId());
-
-        // TODO: Expand these tests
     }
 
     @Test
@@ -187,11 +191,30 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTransactions("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
-                UnsignedLong.ZERO, UnsignedLong.valueOf(500000),
-                true, true, handler);
-        List<Transaction> transactions = handler.dat().orNull();
-        assertNotNull(transactions);
-        assertNotEquals(0, transactions.size());
+                UnsignedLong.ZERO, UnsignedLong.valueOf(500000), true, true, null, handler);
+        List<Transaction> allTransactions = handler.dat().orNull();
+        assertNotNull(allTransactions);
+        assertNotEquals(0, allTransactions.size());
+
+        blockchainDb.getTransactions("bitcoin-mainnet", Collections.singletonList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
+                UnsignedLong.ZERO, UnsignedLong.valueOf(500000), true, true, 1, handler);
+        List<Transaction> pagedTransactions = handler.dat().orNull();
+        assertNotNull(pagedTransactions);
+        assertNotEquals(0, pagedTransactions.size());
+
+        // TODO(fix): This test fails; see CORE-741 for more details
+        assertEquals(allTransactions.size(), pagedTransactions.size());
+    }
+
+    @Test
+    public void testGetTransaction() {
+        SynchronousCompletionHandler<Transaction> handler = new SynchronousCompletionHandler<>();
+
+        String transactionId = "bitcoin-mainnet:06d7d63d6c1966a378bbbd234a27a5b583f37d3bdf9fb9ef50f4724c86b4559b";
+        blockchainDb.getTransaction(transactionId, true, true, handler);
+        Transaction transaction = handler.dat().orNull();
+        assertNotNull(transaction);
+        assertEquals(transactionId, transaction.getId());
     }
 
     @Test
@@ -305,7 +328,7 @@ public class BlockchainDbAIT {
     public void testGetBalanceAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getBalanceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
+        blockchainDb.getBalanceAsEth("mainnet", "0x04d542459de6765682d21771d1ba23dc30fb675f", handler);
         String output = handler.dat().orNull();
         assertNotNull(output);
         assertFalse(output.isEmpty());
@@ -315,7 +338,7 @@ public class BlockchainDbAIT {
     public void testGetBalanceAsTok() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getBalanceAsTok("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+        blockchainDb.getBalanceAsTok("mainnet", "0x04d542459de6765682d21771d1ba23dc30fb675f",
                 "0xE41d2489571d322189246Dafa5EBDE1f4699F498", handler);
         String output = handler.dat().orNull();
         assertNotNull(output);
@@ -338,8 +361,8 @@ public class BlockchainDbAIT {
 
         blockchainDb.getGasEstimateAsEth(
                 "mainnet",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                "0x04d542459de6765682d21771d1ba23dc30fb675f",
+                "0x04d542459de6765682d21771d1ba23dc30fb675f",
                 "0x1000000000",
                 "",
                 handler);
@@ -359,7 +382,7 @@ public class BlockchainDbAIT {
 
         blockchainDb.getTransactionsAsEth(
                 "mainnet",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                "0x04d542459de6765682d21771d1ba23dc30fb675f",
                 UnsignedLong.ZERO,
                 UnsignedLong.valueOf(7778000), handler);
         List<EthTransaction> output = handler.dat().orNull();
@@ -374,7 +397,7 @@ public class BlockchainDbAIT {
          blockchainDb.getLogsAsEth(
                  "mainnet",
                  null,
-                 "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                 "0x04d542459de6765682d21771d1ba23dc30fb675f",
                  "0xa9059cbb",
                  UnsignedLong.ZERO,
                  UnsignedLong.valueOf(7778000),
@@ -390,7 +413,7 @@ public class BlockchainDbAIT {
 
         blockchainDb.getBlocksAsEth(
                 "mainnet",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F",
+                "0x04d542459de6765682d21771d1ba23dc30fb675f",
                 UnsignedInteger.valueOf(0xF),
                 UnsignedLong.ZERO,
                 UnsignedLong.valueOf(7778000),
@@ -414,7 +437,7 @@ public class BlockchainDbAIT {
     public void testGetNonceAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
+        blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682d21771d1ba23dc30fb675f", handler);
         String output = handler.dat().orNull();
         assertNotNull(output);
         assertFalse(output.isEmpty());

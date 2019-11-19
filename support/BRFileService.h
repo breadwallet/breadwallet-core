@@ -139,6 +139,12 @@ fileServiceRemove (BRFileService fs,
                    UInt256 identifier);
 
 extern int
+fileServiceReplace (BRFileService fs,
+                    const char *type,
+                    const void **entities,
+                    size_t entitiesCount);
+
+extern int
 fileServiceClear (BRFileService fs,
                   const char *type);
 
