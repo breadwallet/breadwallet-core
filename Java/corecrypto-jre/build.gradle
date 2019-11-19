@@ -7,20 +7,20 @@ targetCompatibility = '1.8'
 sourceSets {
     main {
         java {
-            srcDirs = [project(':CoreCrypto').javaMainSrcDir]
+            srcDirs = [project(':corecrypto').javaMainSrcDir]
         }
     }
     test {
         java {
-            srcDirs = [project(':CoreCrypto').javaTestSrcDir]
+            srcDirs = [project(':corecrypto').javaTestSrcDir]
         }
     }
 }
 
 dependencies {
-    api project(':Crypto')
+    api project(':crypto')
 
-    implementation project(':CoreNative-JRE')
+    implementation project(':corenative-jre')
     implementation deps.guavaJre
     implementation deps.androidAppCompatV7
     implementation deps.jacksonAnnotations

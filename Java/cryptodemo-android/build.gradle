@@ -46,7 +46,7 @@ android {
 }
 
 dependencies {
-    implementation project(':CoreCrypto-Android')
+    implementation project(':corecrypto-android')
     implementation deps.androidAppCompatV7
     implementation deps.androidRecyclerView
     implementation deps.androidConstraintLayout

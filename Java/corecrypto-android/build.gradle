@@ -43,21 +43,21 @@ android {
     sourceSets {
         main {
             java {
-                srcDirs = [project(':CoreCrypto').javaMainSrcDir]
+                srcDirs = [project(':corecrypto').javaMainSrcDir]
             }
         }
         androidTest {
             java {
-                srcDirs = [project(':CoreCrypto').javaTestSrcDir]
+                srcDirs = [project(':corecrypto').javaTestSrcDir]
             }
         }
     }
 }
 
 dependencies {
-    api project(':Crypto')
+    api project(':crypto')
 
-    implementation project(':CoreNative-Android')
+    implementation project(':corenative-android')
     implementation deps.guavaAndroid
     implementation deps.androidAppCompatV7
     implementation deps.jacksonAnnotations

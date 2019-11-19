@@ -67,7 +67,7 @@ model {
             sources {
                 c {
                     source {
-                        srcDir project(':CoreNative').cppSqliteSrcDir
+                        srcDir project(':corenative').cppSqliteSrcDir
                         include "sqlite3.c"
                     }
                 }
@@ -86,7 +86,7 @@ model {
             sources {
                 c {
                     source {
-                        srcDirs project(':CoreNative').cppCryptoSrcDirs
+                        srcDirs project(':corenative').cppCryptoSrcDirs
                         include "**/*.c"
                         exclude "**/test*.c"
                     }
@@ -94,7 +94,7 @@ model {
             }
             binaries {
                 binaries.all {
-                    project(':CoreNative').cppCryptoIncDirs.forEach {
+                    project(':corenative').cppCryptoIncDirs.forEach {
                         cCompiler.args "-I$it"
                     }
 
@@ -129,7 +129,7 @@ model {
             sources {
                 c {
                     source {
-                        srcDirs project(':CoreNative').cppCryptoSrcDirs
+                        srcDirs project(':corenative').cppCryptoSrcDirs
                         include "**/*.c"
                         // note the missing 'exclude' here; we WANT the test source
                     }
@@ -137,7 +137,7 @@ model {
             }
             binaries {
                 binaries.all {
-                    project(':CoreNative').cppCryptoIncDirs.forEach {
+                    project(':corenative').cppCryptoIncDirs.forEach {
                         cCompiler.args "-I$it"
                     }
 
@@ -181,7 +181,7 @@ model {
 sourceSets {
     main {
         java {
-            srcDirs = [project(':CoreNative').javaMainSrcDir]
+            srcDirs = [project(':corenative').javaMainSrcDir]
         }
         resources {
             srcDirs = [file(projectResMainDir)]
@@ -190,7 +190,7 @@ sourceSets {
     // use the same source set as the main target but package in the cryptoWithTests library instead
     test {
         java {
-            srcDirs = [project(':CoreNative').javaTestSrcDir]
+            srcDirs = [project(':corenative').javaTestSrcDir]
         }
         resources {
             srcDirs = [file(projectResTestDir)]
