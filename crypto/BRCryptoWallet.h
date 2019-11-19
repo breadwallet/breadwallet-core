@@ -193,6 +193,13 @@ extern "C" {
                                                          BRCryptoPaymentProtocolRequest request,
                                                          BRCryptoFeeBasis estimatedFeeBasis);
 
+    extern BRCryptoAmount
+    cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
+                               BRCryptoBoolean asMaximum,
+                               BRCryptoAddress target,
+                               BRCryptoNetworkFee fee,
+                               BRCryptoBoolean *needEstimate);
+
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
@@ -205,7 +212,7 @@ extern "C" {
      */
     extern void
     cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
-                                  BRCryptoCookie cookie,
+                                  BRCryptoCookie  cookie,
                                   BRCryptoAddress target,
                                   BRCryptoAmount  amount,
                                   BRCryptoNetworkFee fee);

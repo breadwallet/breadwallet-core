@@ -108,7 +108,7 @@ extern "C" {
     cryptoAmountCreateInternal (BRCryptoUnit unit,
                                 BRCryptoBoolean isNegative,
                                 UInt256 value,
-                                int takeCurrency);
+                                int takeUnit);
 
     /// MARK: - Address
 

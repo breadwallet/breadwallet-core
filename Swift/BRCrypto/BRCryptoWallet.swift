@@ -169,7 +169,118 @@ public final class Wallet: Equatable {
         }
     }
 
-    /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
+    /// MARK: Estimate Limit
+
+    ///
+    /// A `Wallet.EstimateLimitHandler` is a function th handle the result of `Wallet.estimateLimit`
+    /// with return type of `Amount`.
+    ///
+    public typealias EstimateLimitHandler = (Result<Amount,LimitEstimationError>) -> Void
+
+    internal func estimateLimit (asMaximum: Bool,
+                                 target: Address,
+                                 fee: NetworkFee,
+                                 completion: @escaping Wallet.EstimateLimitHandler) {
+        var needEstimate: BRCryptoBoolean = CRYPTO_TRUE
+
+        // This `amount` is in the `unit` of `wallet/self`
+        guard let amount = cryptoWalletEstimateLimit (self.core,
+                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                      target.core,
+                                                      fee.core,
+                                                      &needEstimate)
+            .map ({ Amount (core: $0, take: false)})
+            else {
+                completion (Result.failure (LimitEstimationError.InsufficientFunds))
+                return;
+        }
+
+        if CRYPTO_FALSE == needEstimate {
+            system.queue.async {
+                completion (Result.success(amount))
+            }
+            return
+        }
+
+        // If we need an estimate, then we need to adjust the amount by the fee... but we can't
+        // be sure of the fee.  So, get an estimate.
+        precondition (self.unit == self.unitForFee)
+
+        var transferFee = Amount.create (integer: 0, unit: self.unit)
+        var estimationCompleter: EstimateFeeHandler! = nil
+
+        estimationCompleter = {
+            (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+            switch res {
+            case .success (let feeBasis):
+                // The estimated transfer fee
+                let newTransferFee = feeBasis.fee
+
+                // The estimated transfer amount, updated with the transferFee
+                guard let newTransferAmount = amount.sub (transferFee)
+                    else { preconditionFailure() }
+
+                // If the two transfer fees match, then we have converged
+                if transferFee == newTransferFee {
+                    completion (amount > transferFee
+                        ? Result.success (newTransferAmount)
+                        : Result.failure (Wallet.LimitEstimationError.InsufficientFunds))
+
+                }
+
+                else {
+                    // but is they haven't converged try again with the new amount
+                    transferFee = newTransferFee
+                    self.estimateFee (target: target, amount: newTransferAmount, fee: fee, completion: estimationCompleter)
+                }
+
+            case .failure (let error):
+                completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+
+            }
+        }
+
+        estimateFee (target: target, amount: amount, fee: fee,
+                     completion: estimationCompleter)
+    }
+
+    public func estimateLimitMaximum (target: Address,
+                                      fee: NetworkFee,
+                                      completion: @escaping Wallet.EstimateLimitHandler) {
+        estimateLimit (asMaximum: true, target: target, fee: fee, completion: completion)
+    }
+
+    public func estimateLimitMinimum (target: Address,
+                                      fee: NetworkFee,
+                                      completion: @escaping Wallet.EstimateLimitHandler) {
+        estimateLimit(asMaximum: false, target: target, fee: fee, completion: completion)
+    }
+
+    public enum LimitEstimationError: Error {
+        case ServiceUnavailable
+        case ServiceError
+        case InsufficientFunds
+
+        static func fromStatus (_ status: BRCryptoStatus) -> LimitEstimationError {
+            switch status {
+            case CRYPTO_ERROR_FAILED: return .ServiceError
+            default: return .ServiceError // preconditionFailure ("Unknown FeeEstimateError")
+            }
+        }
+
+        static func fromFeeEstimationError (_ error: FeeEstimationError) -> LimitEstimationError{
+            switch error {
+            case .ServiceUnavailable: return .ServiceUnavailable
+            case .ServiceError:       return .ServiceError
+            case .InsufficientFunds:  return .InsufficientFunds
+            }
+        }
+    }
+
+
+    /// MARK: Estimate Fee
+
+    /// A `Wallet.EstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
     public typealias EstimateFeeHandler = (Result<TransferFeeBasis,FeeEstimationError>) -> Void
 
     ///
@@ -177,10 +288,10 @@ public final class Wallet: Equatable {
     /// otherwise use the wallet's `defaultFeeBasis`
     ///
     /// - Parameters:
+    ///   - target: the transfer's target address
     ///   - amount: the transfer amount MUST BE GREATER THAN 0
-    ///   - feeBasis: the feeBasis to use, if provided
-    ///
-    /// - Returns: transfer fee
+    ///   - fee: the network fee (aka priority)
+    ///   - completion: handler function
     ///
     public func estimateFee (target: Address,
                              amount: Amount,
@@ -195,7 +306,7 @@ public final class Wallet: Equatable {
 
     internal func estimateFee (sweeper: WalletSweeper,
                                fee: NetworkFee,
-                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+                               completion: @escaping EstimateFeeHandler) {
         cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
                                                    callbackCoordinator.addWalletFeeEstimateHandler(completion),
                                                    sweeper.core,
@@ -204,7 +315,7 @@ public final class Wallet: Equatable {
 
     internal func estimateFee (request: PaymentProtocolRequest,
                                fee: NetworkFee,
-                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+                               completion: @escaping EstimateFeeHandler) {
         cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
                                                               callbackCoordinator.addWalletFeeEstimateHandler(completion),
                                                               request.core,

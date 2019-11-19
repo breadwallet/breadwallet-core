@@ -619,6 +619,75 @@ cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
     return transfer;
 }
 
+extern BRCryptoAmount
+cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
+                           BRCryptoBoolean asMaximum,
+                           BRCryptoAddress target,
+                           BRCryptoNetworkFee fee,
+                           BRCryptoBoolean *needEstimate) {
+    assert (NULL != needEstimate);
+
+    UInt256 amount = UINT256_ZERO;
+    BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = wallet->u.btc.wid;
+
+            uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
+                                    ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
+                                    : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
+
+            *needEstimate = CRYPTO_FALSE;
+
+            // Amount may be zero if insufficient fees
+            amount = createUInt256(amountInSAT);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid = wallet->u.eth.wid;
+
+            UInt256 amount = UINT256_ZERO;
+
+            *needEstimate = CRYPTO_FALSE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
+
+                if (AMOUNT_ETHER == amountGetType(ethAmount))
+                    *needEstimate = CRYPTO_TRUE;
+
+                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
+                                 ? amountGetEther(ethAmount).valueInWEI
+                                 : amountGetTokenQuantity(ethAmount).valueAsInteger);
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+
+            *needEstimate = CRYPTO_TRUE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                amount = createUInt256(0);
+            }
+            break;
+        }
+    }
+
+    return cryptoAmountCreateInternal (unit,
+                                       CRYPTO_FALSE,
+                                       amount,
+                                       0);
+}
+
 extern void
 cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
                               BRCryptoCookie cookie,
