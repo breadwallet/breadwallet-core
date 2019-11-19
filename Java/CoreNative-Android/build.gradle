@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'digital.wup.android-maven-publish'
 
 android {
     compileSdkVersion androidConfig.compileSdkVersion
@@ -10,7 +11,7 @@ android {
 
     defaultConfig {
         versionCode 1
-        versionName "1.0"
+        versionName version
 
         minSdkVersion androidConfig.minSdkVersion
         targetSdkVersion androidConfig.targetSdkVersion
@@ -68,4 +69,12 @@ dependencies {
 
     androidTestImplementation deps.androidTestRunner
     androidTestImplementation deps.androidTestEspresso
+}
+
+publishing {
+    publications {
+        mavenAar(MavenPublication) {
+            from components.android
+        }
+    }
 }

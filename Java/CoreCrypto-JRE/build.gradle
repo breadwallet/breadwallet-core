@@ -1,4 +1,5 @@
 apply plugin: 'java-library'
+apply plugin: 'maven-publish'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
@@ -27,4 +28,12 @@ dependencies {
     implementation deps.jacksonDatabind
 
     testImplementation deps.junit
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
 }
