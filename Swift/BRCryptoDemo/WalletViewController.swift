@@ -188,7 +188,7 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
                 self.transfers.insert(transfer, at: 0)
                 self.transfers.sort { $0.isBefore ($1) }
                 guard let index = self.transfers.firstIndex (of: transfer) else {
-                    precondition(false); return
+                    preconditionFailure()
                 }
 
                 let path = IndexPath (row: index, section: 0)

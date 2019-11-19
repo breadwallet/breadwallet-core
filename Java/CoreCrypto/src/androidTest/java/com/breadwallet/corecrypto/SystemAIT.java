@@ -93,17 +93,18 @@ public class SystemAIT {
         assertNotNull(network);
 
         assertTrue(network.getCurrencyByCode("eth").isPresent());
-        Optional<? extends Currency> fooCurrency = network.getCurrencyByCode("FOO");
-        assertTrue(fooCurrency.isPresent());
+        assertTrue(network.getCurrencyByCode("foo").isPresent());
+        assertFalse(network.getCurrencyByCode("FOO").isPresent());
 
-        assertEquals("erc20", fooCurrency.get().getType());
+        Currency fooCurrency = network.getCurrencyByCode("foo").get();
+        assertEquals("erc20", fooCurrency.getType());
 
-        Optional<? extends Unit> fooDefault = network.defaultUnitFor(fooCurrency.get());
+        Optional<? extends Unit> fooDefault = network.defaultUnitFor(fooCurrency);
         assertTrue(fooDefault.isPresent());
         assertEquals(UnsignedInteger.valueOf(10), fooDefault.get().getDecimals());
         assertEquals("foo", fooDefault.get().getSymbol());
 
-        Optional<? extends Unit> fooBase = network.baseUnitFor(fooCurrency.get());
+        Optional<? extends Unit> fooBase = network.baseUnitFor(fooCurrency);
         assertTrue(fooBase.isPresent());
         assertEquals(UnsignedInteger.ZERO, fooBase.get().getDecimals());
         assertEquals("fooi", fooBase.get().getSymbol());
