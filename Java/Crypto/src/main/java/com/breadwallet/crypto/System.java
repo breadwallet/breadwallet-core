@@ -100,9 +100,12 @@ public interface System {
 
     /**
      * Remove (aka 'wipe') the persistent storage associated with any and all systems located
-     * within `atPath` except for a specified array of systems to preserve.  Generally, this
+     * within `storagePath` except for a specified array of systems to preserve.  Generally, this
      * function should be called on startup after all systems have been created.  When called at
      * that time, any 'left over' systems will have their persistent storeage wiped.
+     *
+     * Note: This function will perform no action if `storagePath` does not exist or is
+     *       not a directory.
      *
      * @param storagePath the file system path where system data is persistently stored
      * @param exemptSystems the list of systems that should not have their data wiped.
