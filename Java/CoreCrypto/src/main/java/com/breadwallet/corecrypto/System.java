@@ -281,9 +281,12 @@ final class System implements com.breadwallet.crypto.System {
         }
 
         File storageFile = new File(storagePath);
-        for (File child : storageFile.listFiles()) {
-            if (!exemptSystemPath.contains(child.getAbsolutePath())) {
-                deleteRecursively(child);
+        File[] childFiles = storageFile.listFiles();
+        if (null != childFiles) {
+            for (File child : childFiles) {
+                if (!exemptSystemPath.contains(child.getAbsolutePath())) {
+                    deleteRecursively(child);
+                }
             }
         }
     }

@@ -1008,7 +1008,10 @@ public final class System {
     /// Remove (aka 'wipe') the persistent storage associated with any and all systems located
     /// within `atPath` except for a specified array of systems to preserve.  Generally, this
     /// function should be called on startup after all systems have been created.  When called at
-    ///  that time, any 'left over' systems will have their persistent storeage wiped.
+    /// that time, any 'left over' systems will have their persistent storeage wiped.
+    ///
+    /// - Note: This function will perform no action if `atPath` does not exist or is
+    ///         not a directory.
     ///
     /// - Parameter atPath: the file system path where system data is persistently stored
     /// - Parameter systems: the array of systems that shouldn not have their data wiped.

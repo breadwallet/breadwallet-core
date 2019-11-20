@@ -1816,9 +1816,24 @@ _BRWalletManagerSyncEvent(void * context,
         }
         case SYNC_MANAGER_SET_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceReplace (bwm->fileService, fileServiceTypePeers,
-                                (const void **) event.u.peers.peers,
-                                event.u.peers.count);
+            if (0 == event.u.peers.count) {
+                // no peers to set, just do a clear
+                fileServiceClear (bwm->fileService, fileServiceTypePeers);
+            } else {
+                // fileServiceReplace expects an array of pointers to entities, instead of an array of
+                // structures so let's do the conversion here
+                BRPeer **peers = calloc (event.u.peers.count,
+                                         sizeof(BRPeer *));
+
+                for (size_t i = 0; i < event.u.peers.count; i++) {
+                    peers[i] = &event.u.peers.peers[i];
+                }
+
+                fileServiceReplace (bwm->fileService, fileServiceTypePeers,
+                                    (const void **) peers,
+                                    event.u.peers.count);
+                free (peers);
+            }
             break;
         }
         case SYNC_MANAGER_ADD_PEERS: {
