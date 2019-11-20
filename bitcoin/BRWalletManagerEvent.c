@@ -87,12 +87,13 @@ typedef struct {
     BRWalletManager manager;
     UInt256 hash;
     int recommendRescan;
+    BRWalletRemoveReason reason;
 } BRWalletManagerWalletTxDeletedEvent;
 
 static void
 bwmSignalTxDeletedDispatcher (BREventHandler ignore,
                               BRWalletManagerWalletTxDeletedEvent *event) {
-    bwmHandleTxDeleted(event->manager, event->hash,  event->recommendRescan);
+    bwmHandleTxDeleted(event->manager, event->hash,  event->recommendRescan, event->reason);
 }
 
 static BREventType bwmSignalTxDeletedEventType = {
@@ -104,9 +105,10 @@ static BREventType bwmSignalTxDeletedEventType = {
 extern void
 bwmSignalTxDeleted (BRWalletManager manager,
                     UInt256 hash,
-                    int recommendRescan) {
+                    int recommendRescan,
+                    BRWalletRemoveReason reason) {
     BRWalletManagerWalletTxDeletedEvent message =
-    { { NULL, &bwmSignalTxDeletedEventType}, manager, hash, recommendRescan};
+    { { NULL, &bwmSignalTxDeletedEventType}, manager, hash, recommendRescan, reason};
     eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
 }
 

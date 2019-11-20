@@ -39,6 +39,17 @@ extern "C" {
 #define MIN_FEE_PER_KB     TX_FEE_PER_KB                       // bitcoind 0.12 default min-relay fee
 #define MAX_FEE_PER_KB     ((TX_FEE_PER_KB*1000100 + 190)/191) // slightly higher than a 10,000bit fee on a 191byte tx
 
+typedef enum {
+    BRWalletRemoveReasonNotFound,
+    BRWalletRemoveReasonInvalid,
+    BRWalletRemoveReasonSpent,
+    BRWalletRemoveReasonNonStandard,
+    BRWalletRemoveReasonDust,
+    BRWalletRemoveReasonLowFee,
+    BRWalletRemoveReasonDirected,
+    BRWalletRemoveReasonUnknown
+} BRWalletRemoveReason;
+
 typedef struct {
     UInt256 hash;
     uint32_t n;
@@ -73,7 +84,7 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*txAdded)(void *info, BRTransaction *tx),
                           void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                             uint32_t timestamp),
-                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan));
+                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason));
 
 // wallets are composed of chains of addresses
 // each chain is traversed until a gap of a number of addresses is found that haven't been used in any transactions
@@ -166,7 +177,7 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx);
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx);
 
 // removes a tx from the wallet, along with any tx that depend on its outputs
-void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
+void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash, BRWalletRemoveReason reason);
 
 // returns the transaction with the given hash if it's been registered in the wallet
 BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);

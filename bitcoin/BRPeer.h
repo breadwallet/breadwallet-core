@@ -56,7 +56,7 @@ extern "C" {
 #define SERVICES_NODE_BLOOM   0x04 // BIP111: https://github.com/bitcoin/bips/blob/master/bip-0111.mediawiki
 #define SERVICES_NODE_WITNESS 0x08 // BIP144: https://github.com/bitcoin/bips/blob/master/bip-0144.mediawiki
 #define SERVICES_NODE_BCASH   0x20 // https://github.com/Bitcoin-UAHF/spec/blob/master/uahf-technical-spec.md
-    
+
 #define BR_VERSION "2.1"
 #define USER_AGENT "/bread:" BR_VERSION "/"
 
@@ -91,6 +91,18 @@ extern "C" {
 #define REJECT_LOWFEE      0x42 // transaction does not have enough fee/priority to be relayed or mined
 
 typedef enum {
+    BRPeerRejectReasonNone              = 0,
+    BRPeerRejectReasonNotConnected      = 0xFF01,
+    BRPeerRejectReasonConflict          = 0xFFFF,
+
+    BRPeerRejectReasonInvalid           = REJECT_INVALID,
+    BRPeerRejectReasonSpent             = REJECT_SPENT,
+    BRPeerRejectReasonNonStandard       = REJECT_NONSTANDARD,
+    BRPeerRejectReasonDust              = REJECT_DUST,
+    BRPeerRejectReasonLowFee            = REJECT_LOWFEE
+} BRPeerRejectReason;
+
+typedef enum {
     BRPeerStatusDisconnected = 0,
     BRPeerStatusConnecting,
     BRPeerStatusConnected
@@ -122,7 +134,7 @@ BRPeer *BRPeerNew(uint32_t magicNumber);
 // void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
 // BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup    
+// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),
@@ -197,7 +209,7 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock);
 inline static size_t BRPeerHash(const void *peer)
 {
     uint32_t address = ((const BRPeer *)peer)->address.u32[3], port = ((const BRPeer *)peer)->port;
- 
+
     // (((FNV_OFFSET xor address)*FNV_PRIME) xor port)*FNV_PRIME
     return (size_t)((((0x811C9dc5 ^ address)*0x01000193) ^ port)*0x01000193);
 }

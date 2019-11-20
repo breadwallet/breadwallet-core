@@ -79,7 +79,7 @@ struct BRWalletStruct {
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
     void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight, uint32_t timestamp);
-    void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
+    void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason);
     pthread_mutex_t lock;
 };
 
@@ -313,7 +313,7 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*txAdded)(void *info, BRTransaction *tx),
                           void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                             uint32_t timestamp),
-                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan))
+                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason))
 {
     assert(wallet != NULL);
     wallet->callbackInfo = info;
@@ -818,7 +818,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 }
 
 // removes a tx from the wallet, along with any tx that depend on its outputs
-void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
+void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash, BRWalletRemoveReason reason)
 {
     BRTransaction *tx, *t;
     UInt256 *hashes = NULL;
@@ -848,10 +848,10 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
             pthread_mutex_unlock(&wallet->lock);
             
             for (size_t i = array_count(hashes); i > 0; i--) {
-                BRWalletRemoveTransaction(wallet, hashes[i - 1]);
+                BRWalletRemoveTransaction(wallet, hashes[i - 1], reason);
             }
-            
-            BRWalletRemoveTransaction(wallet, txHash);
+
+            BRWalletRemoveTransaction(wallet, txHash, reason);
         }
         else {
             for (size_t i = array_count(wallet->transactions); i > 0; i--) {
@@ -876,7 +876,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
             }
 
             if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
-            if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash, notifyUser, recommendRescan);
+            if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash, notifyUser, recommendRescan, reason);
         }
         
         array_free(hashes);

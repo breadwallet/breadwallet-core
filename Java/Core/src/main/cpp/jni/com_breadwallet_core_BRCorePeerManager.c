@@ -34,7 +34,7 @@ static void savePeers(void *info, int replace, const BRPeer peers[], size_t coun
 static int networkIsReachable(void *info);
 static void threadCleanup(void *info);
 
-static void txPublished (void *info, int error);
+static void txPublished (void *info, BRPeerRejectReason reason);
 
 //
 // Statically Initialize Java References
@@ -612,7 +612,7 @@ networkIsReachable(void *info) {
 }
 
 static void
-txPublished (void *info, int error) {
+txPublished (void *info, BRPeerRejectReason reason) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -632,7 +632,7 @@ txPublished (void *info, int error) {
                                  "(Ljava/lang/String;)V");
     assert (NULL != listenerMethod);
 
-    jstring errorString = (*env)->NewStringUTF (env, (error == 0 ? "" : strerror (error)));
+    jstring errorString = (*env)->NewStringUTF (env, (reason == BRPeerRejectReasonNone ? "" : "rejected"));
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);

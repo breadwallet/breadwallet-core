@@ -34,7 +34,7 @@ static void txAdded(void *info, BRTransaction *tx);
 static void txUpdated(void *info, const UInt256 txHashes[], size_t count,
                       uint32_t blockHeight,
                       uint32_t timestamp);
-static void txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
+static void txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason);
 
 //
 // Statically Initialize Java References
@@ -461,7 +461,7 @@ Java_com_breadwallet_core_BRCoreWallet_removeTransaction
 
     uint8_t *hashData = (uint8_t *) (*env)->GetByteArrayElements(env, hashByteArray, 0);
 
-    BRWalletRemoveTransaction (wallet, UInt256Get(hashData));
+    BRWalletRemoveTransaction (wallet, UInt256Get(hashData), BRWalletRemoveReasonDirected);
 }
 
 /*
@@ -778,7 +778,7 @@ txUpdated(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeig
 }
 
 static void
-txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan) {
+txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 

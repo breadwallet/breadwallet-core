@@ -442,7 +442,7 @@ static void _BRPeerSyncManagerSaveBlocks (void *info, int replace, BRMerkleBlock
 static void _BRPeerSyncManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t count);
 static int  _BRPeerSyncManagerNetworkIsReachable (void *info);
 static void _BRPeerSyncManagerThreadCleanup (void *info);
-static void _BRPeerSyncManagerTxPublished (void *info, int error);
+static void _BRPeerSyncManagerTxPublished (void *info, BRPeerRejectReason reason);
 
 /// MARK: - Misc. Helper Declarations
 
@@ -2009,18 +2009,21 @@ _BRPeerSyncManagerThreadCleanup (void *info) {
 
 static void
 _BRPeerSyncManagerTxPublished (void *info,
-                               int error) {
+                               BRPeerRejectReason reason) {
     BRPeerSyncManager manager    = ((SubmitTransactionInfo*) info)->manager;
     BRTransaction *transaction = ((SubmitTransactionInfo*) info)->transaction;
     free (info);
 
+    // TODO(fix): Either map BRPeerRejectReason to BRTransferSubmitError or
+    //            consolidate them; either way, don't use BRTransferSubmitErrorUnknown
+    //            here.
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
-                            (error ?
+                            (reason != BRPeerRejectReasonNone ?
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_FAILED,
                                  { .submitFailed = {
-                                     transaction, BRTransferSubmitErrorPosix (error) }
+                                     transaction, BRTransferSubmitErrorUnknown() }
                                  },
                              } :
                              (BRSyncManagerEvent) {

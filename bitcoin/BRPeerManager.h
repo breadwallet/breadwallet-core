@@ -110,7 +110,7 @@ const char *BRPeerManagerDownloadPeerName(BRPeerManager *manager);
 
 // publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
-                            void (*callback)(void *info, int error));
+                            void (*callback)(void *info, BRPeerRejectReason error));
 
 // number of connected peers that have relayed the given unconfirmed transaction
 size_t BRPeerManagerRelayCount(BRPeerManager *manager, UInt256 txHash);

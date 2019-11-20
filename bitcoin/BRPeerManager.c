@@ -61,7 +61,8 @@ typedef struct {
 typedef struct {
     BRTransaction *tx;
     void *info;
-    void (*callback)(void *info, int error);
+    BRPeerRejectReason reason;
+    void (*callback)(void *info, BRPeerRejectReason reason);
 } BRPublishedTx;
 
 typedef struct {
@@ -166,6 +167,30 @@ inline static int _BRBlockHeightEq(const void *block, const void *otherBlock)
     return (((const BRMerkleBlock *)block)->height == ((const BRMerkleBlock *)otherBlock)->height);
 }
 
+static const char *_BRPeerRejectReasonToString(BRPeerRejectReason reason) {
+    switch (reason) {
+        case BRPeerRejectReasonNone:                return "none";
+        case BRPeerRejectReasonNotConnected:        return "not connected";
+        case BRPeerRejectReasonInvalid:             return "invalid";
+        case BRPeerRejectReasonNonStandard:         return "nonstandard";
+        case BRPeerRejectReasonDust:                return "dust";
+        case BRPeerRejectReasonLowFee:              return "low fee";
+        default:                                    return "unknown";
+    }
+}
+
+static BRWalletRemoveReason _BRPeerRejectReasonToRemoveReason(BRPeerRejectReason reason) {
+    switch (reason) {
+        case BRPeerRejectReasonNone:                return BRWalletRemoveReasonNotFound;
+        case BRPeerRejectReasonNotConnected:        return BRWalletRemoveReasonNotFound;
+        case BRPeerRejectReasonInvalid:             return BRWalletRemoveReasonInvalid;
+        case BRPeerRejectReasonNonStandard:         return BRWalletRemoveReasonNonStandard;
+        case BRPeerRejectReasonDust:                return BRWalletRemoveReasonDust;
+        case BRPeerRejectReasonLowFee:              return BRWalletRemoveReasonLowFee;
+        default:                                    return BRWalletRemoveReasonUnknown;
+    }
+}
+
 struct BRPeerManagerStruct {
     const BRChainParams *params;
     BRWallet *wallet;
@@ -221,14 +246,14 @@ static void _BRPeerManagerSyncStopped(BRPeerManager *manager)
 
 // adds transaction to list of tx to be published, along with any unconfirmed inputs
 static void _BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransaction *tx, void *info,
-                                             void (*callback)(void *, int))
+                                             void (*callback)(void *, BRPeerRejectReason))
 {
     if (tx && tx->blockHeight == TX_UNCONFIRMED) {
         for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
             if (BRTransactionEq(manager->publishedTx[i - 1].tx, tx)) return;
         }
-        
-        array_add(manager->publishedTx, ((const BRPublishedTx) { tx, info, callback }));
+
+        array_add(manager->publishedTx, ((const BRPublishedTx) { tx, info, BRPeerRejectReasonNone, callback }));
         array_add(manager->publishedTxHashes, tx->txHash);
 
         for (size_t i = 0; i < tx->inCount; i++) {
@@ -472,17 +497,23 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
         for (size_t i = txCount; i > 0; i--) {
             hash = tx[i - 1]->txHash;
             isPublishing = 0;
-            
+            BRPeerRejectReason reason = BRPeerRejectReasonNone;
+
             for (size_t j = array_count(manager->publishedTx); ! isPublishing && j > 0; j--) {
-                if (BRTransactionEq(manager->publishedTx[j - 1].tx, tx[i - 1]) &&
-                    manager->publishedTx[j - 1].callback != NULL) isPublishing = 1;
+                if (BRTransactionEq(manager->publishedTx[j - 1].tx, tx[i - 1])) {
+                    if (manager->publishedTx[j - 1].callback != NULL) {
+                        isPublishing = 1;
+                    } else {
+                        reason = manager->publishedTx[j - 1].reason;
+                    }
+                }
             }
             
             if (! isPublishing && _BRTxPeerListCount(manager->txRelays, hash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, hash) == 0) {
                 peer_log(peer, "removing tx unconfirmed at: %d, txHash: %s", manager->lastBlock->height, u256hex(hash));
                 assert(tx[i - 1]->blockHeight == TX_UNCONFIRMED);
-                BRWalletRemoveTransaction(manager->wallet, hash);
+                BRWalletRemoveTransaction(manager->wallet, hash, _BRPeerRejectReasonToRemoveReason (reason));
             }
             else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, hash) < manager->maxConnectCount) {
                 // set timestamp 0 to mark as unverified
@@ -844,7 +875,7 @@ static void _peerDisconnected(void *info, int error)
         
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
         array_clear(manager->peers);
-        txError = ENOTCONN; // trigger any pending tx publish callbacks
+        txError = 1; // trigger any pending tx publish callbacks
         willSave = 1;
         peer_log(peer, "sync failed");
     }
@@ -853,10 +884,17 @@ static void _peerDisconnected(void *info, int error)
     if (txError) {
         for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
             if (manager->publishedTx[i - 1].callback == NULL) continue;
-            peer_log(peer, "transaction canceled: %s", strerror(txError));
             pubTx[txCount++] = manager->publishedTx[i - 1];
+
+            if (BRPeerRejectReasonNone == pubTx[txCount++].reason ||
+                BRPeerRejectReasonConflict == pubTx[txCount++].reason) {
+                pubTx[txCount++].reason = BRPeerRejectReasonNotConnected;
+            }
+            peer_log(peer, "transaction canceled: %s", _BRPeerRejectReasonToString(pubTx[txCount++].reason));
+
             manager->publishedTx[i - 1].callback = NULL;
             manager->publishedTx[i - 1].info = NULL;
+            manager->publishedTx[i - 1].reason = BRPeerRejectReasonNone;
         }
     }
     
@@ -870,7 +908,7 @@ static void _peerDisconnected(void *info, int error)
     pthread_mutex_unlock(&manager->lock);
     
     for (size_t i = 0; i < txCount; i++) {
-        pubTx[i].callback(pubTx[i].info, txError);
+        pubTx[i].callback(pubTx[i].info, pubTx[i].reason);
     }
     
     if (willSave && manager->savePeers) manager->savePeers(manager->info, 1, NULL, 0);
@@ -914,7 +952,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     void *txInfo = NULL;
-    void (*txCallback)(void *, int) = NULL;
+    void (*txCallback)(void *, BRPeerRejectReason) = NULL;
     int isWalletTx = 0, hasPendingCallbacks = 0;
     size_t relayCount = 0;
     
@@ -927,6 +965,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
             txCallback = manager->publishedTx[i - 1].callback;
             manager->publishedTx[i - 1].info = NULL;
             manager->publishedTx[i - 1].callback = NULL;
+            manager->publishedTx[i - 1].reason = BRPeerRejectReasonNone;
             relayCount = _BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
         }
         else if (manager->publishedTx[i - 1].callback != NULL) hasPendingCallbacks = 1;
@@ -988,7 +1027,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     }
     
     pthread_mutex_unlock(&manager->lock);
-    if (txCallback) txCallback(txInfo, 0);
+    if (txCallback) txCallback(txInfo, BRPeerRejectReasonNone);
 }
 
 static void _peerHasTx(void *info, UInt256 txHash)
@@ -996,7 +1035,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     BRTransaction *tx;
-    BRPublishedTx pubTx = { NULL, NULL, NULL };
+    BRPublishedTx pubTx = { NULL, NULL, BRPeerRejectReasonNone, NULL };
     int isWalletTx = 0, hasPendingCallbacks = 0;
     size_t relayCount = 0;
     
@@ -1010,6 +1049,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
             if (! tx) tx = pubTx.tx;
             manager->publishedTx[i - 1].callback = NULL;
             manager->publishedTx[i - 1].info = NULL;
+            manager->publishedTx[i - 1].reason = BRPeerRejectReasonNone;
             relayCount = _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
         }
         else if (manager->publishedTx[i - 1].callback != NULL) hasPendingCallbacks = 1;
@@ -1042,7 +1082,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     }
     
     pthread_mutex_unlock(&manager->lock);
-    if (pubTx.callback) pubTx.callback(pubTx.info, 0);
+    if (pubTx.callback) pubTx.callback(pubTx.info, BRPeerRejectReasonNone);
 }
 
 static void _peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
@@ -1055,6 +1095,26 @@ static void _peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
     peer_log(peer, "rejected tx: %s", u256hex(txHash));
     tx = BRWalletTransactionForHash(manager->wallet, txHash);
     _BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
+
+    // record the reason for rejection for any published transaction
+    for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
+        if (UInt256Eq(manager->publishedTxHashes[i - 1], txHash)) {
+            if (BRPeerRejectReasonConflict == manager->publishedTx[i - 1].reason) {
+                // conflicted reject code, ignore it
+
+            } else if (BRPeerRejectReasonNone == manager->publishedTx[i - 1].reason) {
+                // no reject code, store it
+                manager->publishedTx[i - 1].reason = code;
+
+            } else if (code != manager->publishedTx[i - 1].reason) {
+                // conflicting reject code, mark it
+                manager->publishedTx[i - 1].reason = BRPeerRejectReasonConflict;
+
+            } else {
+                // matching reject code, ignore it
+            }
+        }
+    }
 
     if (tx) {
         if (_BRTxPeerListRemovePeer(manager->txRelays, txHash, peer) && tx->blockHeight == TX_UNCONFIRMED) {
@@ -1458,8 +1518,9 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    BRPublishedTx pubTx = { NULL, NULL, NULL };
-    int hasPendingCallbacks = 0, error = 0;
+    BRPublishedTx pubTx = { NULL, NULL, BRPeerRejectReasonNone, NULL };
+    int hasPendingCallbacks = 0;
+    BRPeerRejectReason reason = BRPeerRejectReasonNone;
 
     pthread_mutex_lock(&manager->lock);
 
@@ -1468,6 +1529,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
             pubTx = manager->publishedTx[i - 1];
             manager->publishedTx[i - 1].callback = NULL;
             manager->publishedTx[i - 1].info = NULL;
+            manager->publishedTx[i - 1].reason = BRPeerRejectReasonNone;
         }
         else if (manager->publishedTx[i - 1].callback != NULL) hasPendingCallbacks = 1;
     }
@@ -1479,9 +1541,9 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
 
     _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
     if (pubTx.tx) BRWalletRegisterTransaction(manager->wallet, pubTx.tx);
-    if (pubTx.tx && ! BRWalletTransactionIsValid(manager->wallet, pubTx.tx)) error = EINVAL;
+    if (pubTx.tx && ! BRWalletTransactionIsValid(manager->wallet, pubTx.tx)) reason = BRPeerRejectReasonInvalid;
     pthread_mutex_unlock(&manager->lock);
-    if (pubTx.callback) pubTx.callback(pubTx.info, error);
+    if (pubTx.callback) pubTx.callback(pubTx.info, reason);
     return pubTx.tx;
 }
 
@@ -1983,7 +2045,7 @@ static void _publishTxInvDone(void *info, int success)
 
 // publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
-                            void (*callback)(void *info, int error))
+                            void (*callback)(void *info, BRPeerRejectReason reason))
 {
     assert(manager != NULL);
     assert(tx != NULL && BRTransactionIsSigned(tx));
@@ -1991,7 +2053,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
     
     if (tx && ! BRTransactionIsSigned(tx)) {
         pthread_mutex_unlock(&manager->lock);
-        if (callback) callback(info, EINVAL); // transaction not signed
+        if (callback) callback(info, BRPeerRejectReasonInvalid); // transaction not signed
         tx = NULL;
     }
     else if (tx && ! manager->isConnected) {
@@ -2001,7 +2063,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 
         if (connectFailureCount >= MAX_CONNECT_FAILURES ||
             (manager->networkIsReachable && ! manager->networkIsReachable(manager->info))) {
-            if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
+            if (callback) callback(info, BRPeerRejectReasonNotConnected); // not connected to bitcoin network
             tx = NULL;
         }
         else pthread_mutex_lock(&manager->lock);

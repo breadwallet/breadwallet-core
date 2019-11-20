@@ -52,7 +52,7 @@ static void _BRWalletManagerSyncEvent(void * context, BRSyncManager manager, BRS
 static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
 static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
 static void _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp);
-static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan);
+static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan, BRWalletRemoveReason reason);
 
 static const char *
 getNetworkName (const BRChainParams *params) {
@@ -881,11 +881,6 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
             break;
     }
     _peer_log ("BWM: FileService Error: FORCED SYNC%s", "");
-
-    // BRWalletManager bwm = (BRWalletManager) context;
-    // TODO(fix): What do we actually want to happen here?
-    // if (NULL != bwm->peerManager)
-    //     BRPeerManagerRescan (bwm->peerManager);
 }
 
 static_on_release BRFileServiceTypeSpecification fileServiceSpecifications[] = {
@@ -1663,13 +1658,14 @@ static void
 _BRWalletManagerTxDeleted (void *info,
                            UInt256 hash,
                            int notifyUser,
-                           int recommendRescan) {
+                           int recommendRescan,
+                           BRWalletRemoveReason reason) {
     BRWalletManager manager = (BRWalletManager) info;
 
     // filesystem changes are NOT queued; they are acted upon immediately
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
-    bwmSignalTxDeleted (manager, hash, recommendRescan);
+    bwmSignalTxDeleted (manager, hash, recommendRescan, reason);
 }
 
 /// MARK: Wallet Callback Event Handlers
@@ -1741,13 +1737,17 @@ bwmHandleTxUpdated (BRWalletManager manager,
 extern void
 bwmHandleTxDeleted (BRWalletManager manager,
                     UInt256 hash,
-                    int recommendRescan) {
+                    int recommendRescan,
+                    BRWalletRemoveReason reason) {
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
     assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
 
     BRTransactionWithStateSetDeleted (txnWithState);
     pthread_mutex_unlock (&manager->lock);
+
+    // TODO(fix): Communicate the reason as to why the transaction is being removed
+    _peer_log ("BWM: deleting transaction with reason %d", reason);
 
     bwmSignalTransactionEvent(manager,
                               manager->wallet,
