@@ -2514,20 +2514,32 @@ int BRWalletTests()
     printf("                                    ");
     BRWalletFree(w);
 
-    int64_t amt;
+    int64_t amt, bal, fee;
     
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
     w = BRWalletNew(BRMainNetParams->addrParams, &tx, 1, mpk);
+    bal = BRWalletBalance(w);
+
+    if (740000 != bal)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletBalance() test\n", __func__);
+
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRWalletSetFeePerKb(w, 65000);
     amt = BRWalletMaxOutputAmount(w);
     tx = BRWalletCreateTransaction(w, amt, addr.s);
     
     if (BRWalletAmountSentByTx(w, tx) - BRWalletFeeForTx(w, tx) != amt || BRWalletAmountReceivedFromTx(w, tx) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletMaxOutputAmount() test 1\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletMaxOutputAmount() test\n", __func__);
+
+    fee = BRWalletFeeForTxAmount (w, amt);
+    if (amt + fee != bal)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmount() test 3\n", __func__);
+
+    if (fee != BRWalletFeeForTxAmountWithFeePerKb (w, 65000, amt))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmountWithFeePerKb() test\n", __func__);
 
     BRTransactionFree(tx);
     BRWalletFree(w);
