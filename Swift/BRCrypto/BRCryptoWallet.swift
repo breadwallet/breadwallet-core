@@ -177,18 +177,61 @@ public final class Wallet: Equatable {
     ///
     public typealias EstimateLimitHandler = (Result<Amount,LimitEstimationError>) -> Void
 
+    ///
+    /// Estimate the maximum amount that can be transfered from Wallet.  This value does not
+    /// include the fee, however, a fee estimate has been performed and the maximum has been
+    /// adjusted to be (nearly) balance = amount + fee.  That is, the maximum amount is what you
+    /// can safe transfer to 'zero out' the wallet
+    ///
+    /// In cases where `balance < fee` then .insufficientFunds is returned.  This can occur for
+    /// an ERC20 transfer where the ETH wallet's balance is not enough to pay the fee.  That is,
+    /// the .insufficientFunds check respects the wallet from which fees are extracted.  Both
+    /// BTC and ETH transfer might have an insufficient balance to pay a fee.
+    ///
+    /// This is an synchronous function that returns immediately but will call `completion` once
+    /// the maximum has been determined.
+    ///
+    /// The returned Amount is always in the wallet's currencyh.
+    ///
+    /// - Parameters:
+    ///   - target: the target address
+    ///   - fee: the network fees
+    ///   - completion: the handler for the results
+    ///
     public func estimateLimitMaximum (target: Address,
                                       fee: NetworkFee,
                                       completion: @escaping Wallet.EstimateLimitHandler) {
         estimateLimit (asMaximum: true, target: target, fee: fee, completion: completion)
     }
 
+    ///
+    /// Estimate the minimum amount that can be transfered from Wallet.  This value does not
+    /// include the fee, however, a fee estimate has been performed.  Generally the minimum
+    /// amount in zero; however, some currencies have minimum values, below which miners will
+    /// reject.  In those casaes the minimum amount is above zero.
+    ///
+    /// In cases where `balance < amount + fee` then .insufficientFunds is returned.  The
+    /// .insufficientFunds check respects the wallet from which fees are extracted.
+    ///
+    /// This is an synchronous function that returns immediately but will call `completion` once
+    /// the maximum has been determined.
+    ///
+    /// The returned Amount is always in the wallet's currencyh.
+    ///
+    /// - Parameters:
+    ///   - target: the target address
+    ///   - fee: the network fees
+    ///   - completion: the handler for the results
+    ///
     public func estimateLimitMinimum (target: Address,
                                       fee: NetworkFee,
                                       completion: @escaping Wallet.EstimateLimitHandler) {
         estimateLimit (asMaximum: false, target: target, fee: fee, completion: completion)
     }
 
+    ///
+    /// Internal function to handle limit estimation
+    ///
     internal func estimateLimit (asMaximum: Bool,
                                  target: Address,
                                  fee: NetworkFee,
