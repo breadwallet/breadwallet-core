@@ -198,11 +198,6 @@ sourceSets {
     }
 }
 
-test {
-    // set property to force loading of the test library
-    systemProperty "com.breadwallet.corenative.libtype", "test"
-}
-
 dependencies {
     api deps.jnaJre
 

@@ -2,6 +2,8 @@
 
 Development is primarily done in a macOS environment (10.14.6 confirmed) but should function in Linux environments as well (untested).
 
+  * XCode (v11.2.1 confirmed)
+  * XCode Command Line Tools
   * Android Studio (v3.4.2 confirmed)
   * Android SDK Platform installed (Android 9.0 SDK Platform confirmed)
   * LLDB, CMake and NDK installed
@@ -32,6 +34,12 @@ In addition, there is a **cryptodemo-android** project that demonstrates how the
 # Build outputs
 
 Build outputs can be found under the **build** subdirectory of the individual sub-projects (ex: *./corenative-android/build*).
+
+# A Word About JRE Modules
+
+The build system currently only builds **corenative-jre** and **corecrypto-jre** for the host platform. We are relying on the Gradle native plugins for builds and they do not support building for other platforms at the moment (see [issue](https://github.com/gradle/gradle-native/issues/1031)).
+
+At some point, multiplatform builds will be supported for those core modules; whether that is due to Gradle adding proper support or a different build solution being used is to be determined.
 
 # Deprecated
 

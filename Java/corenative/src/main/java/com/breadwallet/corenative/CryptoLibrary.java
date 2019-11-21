@@ -16,9 +16,22 @@ public final class CryptoLibrary {
     public static final NativeLibrary LIBRARY;
 
     static {
-        LIBRARY_NAME = "test".equals(System.getProperty("com.breadwallet.corenative.libtype", null)) ?
-                "corecryptoWithTests" : "corecrypto";
-        LIBRARY = NativeLibrary.getInstance(CryptoLibrary.LIBRARY_NAME);
+        String libname;
+        NativeLibrary library;
+
+        try {
+            // this should only be available in the `cryptonative-jre` test target
+            libname = "corecryptoWithTests";
+            library = NativeLibrary.getInstance(libname);
+
+        } catch (UnsatisfiedLinkError e) {
+            // fall back to the stand library
+            libname = "corecrypto";
+            library = NativeLibrary.getInstance(libname);
+        }
+
+        LIBRARY_NAME = libname;
+        LIBRARY = library;
     }
 
     private CryptoLibrary() {}
