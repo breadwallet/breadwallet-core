@@ -145,6 +145,11 @@ cryptoAmountIsCompatible (BRCryptoAmount a1,
     return cryptoUnitIsCompatible (a1->unit, a2->unit);
 }
 
+extern BRCryptoBoolean
+cryptoAmountIsZero (BRCryptoAmount amount) {
+    return AS_CRYPTO_BOOLEAN (eqUInt256 (amount->value, UINT256_ZERO));
+}
+
 static BRCryptoComparison
 cryptoCompareUInt256 (UInt256 v1, UInt256 v2) {
     switch (compareUInt256 (v1, v2)) {
