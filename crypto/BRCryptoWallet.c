@@ -624,24 +624,41 @@ cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
                            BRCryptoBoolean asMaximum,
                            BRCryptoAddress target,
                            BRCryptoNetworkFee fee,
-                           BRCryptoBoolean *needEstimate) {
-    assert (NULL != needEstimate);
+                           BRCryptoBoolean *needEstimate,
+                           BRCryptoBoolean *isZeroIfInsuffientFunds) {
+    assert (NULL != needEstimate && NULL != isZeroIfInsuffientFunds);
 
     UInt256 amount = UINT256_ZERO;
     BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
+
+    // By default, we don't need an estimate
+    *needEstimate = CRYPTO_FALSE;
+
+    // By default, zero does not indicate insufficient funds
+    *isZeroIfInsuffientFunds = CRYPTO_FALSE;
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = wallet->u.btc.wid;
 
+            // Amount may be zero if insufficient fees
+            *isZeroIfInsuffientFunds = CRYPTO_TRUE;
+
+            uint64_t balance     = BRWalletBalance (wid);
             uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
             uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
                                     ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
                                     : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
+            uint64_t fee         = (amountInSAT > 0
+                                    ? BRWalletFeeForTxAmountWithFeePerKb (wid, feePerKB, amountInSAT)
+                                    : 0);
 
-            *needEstimate = CRYPTO_FALSE;
+//            if (CRYPTO_TRUE == asMaximum)
+//                assert (balance == amountInSAT + fee);
 
-            // Amount may be zero if insufficient fees
+            if (amountInSAT + fee > balance)
+                amountInSAT = 0;
+
             amount = createUInt256(amountInSAT);
             break;
         }
@@ -650,28 +667,25 @@ cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
             BREthereumEWM ewm = wallet->u.eth.ewm;
             BREthereumWallet wid = wallet->u.eth.wid;
 
-            UInt256 amount = UINT256_ZERO;
-
-            *needEstimate = CRYPTO_FALSE;
+            // We always need an estimate as we do not know the fees.
+            *needEstimate = CRYPTO_TRUE;
 
             if (CRYPTO_FALSE == asMaximum)
                 amount = createUInt256(0);
             else {
                 BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
 
-                if (AMOUNT_ETHER == amountGetType(ethAmount))
-                    *needEstimate = CRYPTO_TRUE;
-
                 amount = (AMOUNT_ETHER == amountGetType(ethAmount)
-                                 ? amountGetEther(ethAmount).valueInWEI
-                                 : amountGetTokenQuantity(ethAmount).valueAsInteger);
+                          ? amountGetEther(ethAmount).valueInWEI
+                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
             }
             break;
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
 
-            *needEstimate = CRYPTO_TRUE;
+            *needEstimate = CRYPTO_FALSE; // TODO: True
 
             if (CRYPTO_FALSE == asMaximum)
                 amount = createUInt256(0);

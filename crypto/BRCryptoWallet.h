@@ -198,7 +198,8 @@ extern "C" {
                                BRCryptoBoolean asMaximum,
                                BRCryptoAddress target,
                                BRCryptoNetworkFee fee,
-                               BRCryptoBoolean *needEstimate);
+                               BRCryptoBoolean *needEstimate,
+                               BRCryptoBoolean *isZeroIfInsuffientFunds);
 
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount

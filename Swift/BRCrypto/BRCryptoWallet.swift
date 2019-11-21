@@ -177,73 +177,6 @@ public final class Wallet: Equatable {
     ///
     public typealias EstimateLimitHandler = (Result<Amount,LimitEstimationError>) -> Void
 
-    internal func estimateLimit (asMaximum: Bool,
-                                 target: Address,
-                                 fee: NetworkFee,
-                                 completion: @escaping Wallet.EstimateLimitHandler) {
-        var needEstimate: BRCryptoBoolean = CRYPTO_TRUE
-
-        // This `amount` is in the `unit` of `wallet/self`
-        guard let amount = cryptoWalletEstimateLimit (self.core,
-                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                                      target.core,
-                                                      fee.core,
-                                                      &needEstimate)
-            .map ({ Amount (core: $0, take: false)})
-            else {
-                completion (Result.failure (LimitEstimationError.InsufficientFunds))
-                return;
-        }
-
-        if CRYPTO_FALSE == needEstimate {
-            system.queue.async {
-                completion (Result.success(amount))
-            }
-            return
-        }
-
-        // If we need an estimate, then we need to adjust the amount by the fee... but we can't
-        // be sure of the fee.  So, get an estimate.
-        precondition (self.unit == self.unitForFee)
-
-        var transferFee = Amount.create (integer: 0, unit: self.unit)
-        var estimationCompleter: EstimateFeeHandler! = nil
-
-        estimationCompleter = {
-            (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
-            switch res {
-            case .success (let feeBasis):
-                // The estimated transfer fee
-                let newTransferFee = feeBasis.fee
-
-                // The estimated transfer amount, updated with the transferFee
-                guard let newTransferAmount = amount.sub (transferFee)
-                    else { preconditionFailure() }
-
-                // If the two transfer fees match, then we have converged
-                if transferFee == newTransferFee {
-                    completion (amount > transferFee
-                        ? Result.success (newTransferAmount)
-                        : Result.failure (Wallet.LimitEstimationError.InsufficientFunds))
-
-                }
-
-                else {
-                    // but is they haven't converged try again with the new amount
-                    transferFee = newTransferFee
-                    self.estimateFee (target: target, amount: newTransferAmount, fee: fee, completion: estimationCompleter)
-                }
-
-            case .failure (let error):
-                completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
-
-            }
-        }
-
-        estimateFee (target: target, amount: amount, fee: fee,
-                     completion: estimationCompleter)
-    }
-
     public func estimateLimitMaximum (target: Address,
                                       fee: NetworkFee,
                                       completion: @escaping Wallet.EstimateLimitHandler) {
@@ -253,26 +186,173 @@ public final class Wallet: Equatable {
     public func estimateLimitMinimum (target: Address,
                                       fee: NetworkFee,
                                       completion: @escaping Wallet.EstimateLimitHandler) {
-        estimateLimit(asMaximum: false, target: target, fee: fee, completion: completion)
+        estimateLimit (asMaximum: false, target: target, fee: fee, completion: completion)
+    }
+
+    internal func estimateLimit (asMaximum: Bool,
+                                 target: Address,
+                                 fee: NetworkFee,
+                                 completion: @escaping Wallet.EstimateLimitHandler) {
+        var needFeeEstimate: BRCryptoBoolean = CRYPTO_TRUE
+        var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
+
+        // This `amount` is in the `unit` of `wallet`
+        guard let amount = cryptoWalletEstimateLimit (self.core,
+                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                      target.core,
+                                                      fee.core,
+                                                      &needFeeEstimate,
+                                                      &isZeroIfInsuffientFunds)
+            .map ({ Amount (core: $0, take: false)})
+            else {
+                // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
+                completion (Result.failure (LimitEstimationError.insufficientFunds))
+                return;
+        }
+
+        // If we don't need an estimate, then we invoke `completion` and skip out immediately.  But
+        // include a check on a zero amount - which indicates insufficient funds.
+        if CRYPTO_FALSE == needFeeEstimate {
+            system.queue.async {
+                completion (CRYPTO_TRUE == isZeroIfInsuffientFunds && amount.isZero
+                    ? Result.failure (LimitEstimationError.insufficientFunds)
+                    : Result.success (amount))
+            }
+            return
+        }
+
+        // We need an estimate of the fees.
+
+        // The currency for the fee
+        let currencyForFee = fee.pricePerCostFactor.currency
+
+        guard let walletForFee = self.manager.wallets
+            .first (where: { $0.currency == currencyForFee })
+            else { completion (Result.failure (LimitEstimationError.serviceError)); return }
+
+        // Skip out immediately if we've no balance.
+        if walletForFee.balance.isZero {
+            completion (Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+        }
+
+        //
+        // If the `walletForFee` differs from `wallet` then we just need to estimate the fee
+        // once.  Get the fee estimate and just ensure that walletForFee has sufficient balance
+        // to pay the fee.
+        //
+        if self != walletForFee {
+            // This `amount` will not unusually be zero.
+            // TODO: Does ETH fee estimation work if the ERC20 amount is zero?
+            self.estimateFee (target: target, amount: amount, fee: fee) {
+                (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+                switch res {
+                case .success (let feeBasis):
+                    completion (walletForFee.balance >= feeBasis.fee
+                        ? Result.success(amount)
+                        : Result.failure(LimitEstimationError.insufficientFunds))
+
+                case .failure (let error):
+                    completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+                }
+            }
+            return
+        }
+
+        // The `fee` is in the same unit as the `wallet`
+
+        //
+        // If we are estimating the minimum, then get the fee and ensure that the wallet's
+        // balance is enough to cover the (minimum) amount plus the fee
+        //
+        if !asMaximum {
+            self.estimateFee (target: target, amount: amount, fee: fee) {
+                (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+                switch res {
+                case .success (let feeBasis):
+                    guard let transactionAmount = amount + feeBasis.fee
+                        else { preconditionFailure() }
+
+                    completion (self.balance >= transactionAmount
+                        ? Result.success (amount)
+                        : Result.failure (LimitEstimationError.insufficientFunds))
+
+                case .failure (let error):
+                    completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+                }
+            }
+            return
+        }
+
+        // If the `walletForFee` and `wallet` are identical, then we need to iteratively estimate
+        // the fee and adjust the amount until the fee stabilizes.
+        var transferFee = Amount.create (integer: 0, unit: self.unit)
+
+        // We'll limit the number of iterations
+        let estimationCompleterRecurseLimit = 3
+        var estimationCompleterRecurseCount = 0
+
+        // This function will be recursively defined
+        func estimationCompleter (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) {
+            // Another estimation completed
+            estimationCompleterRecurseCount += 1
+
+            // Check the result
+            switch res {
+            case .success (let feeBasis):
+                // The estimated transfer fee
+                let newTransferFee = feeBasis.fee
+
+                // The estimated transfer amount, updated with the transferFee
+                guard let newTransferAmount = amount.sub (newTransferFee)
+                    else { preconditionFailure() }
+
+                // If the two transfer fees match, then we have converged
+                if transferFee == newTransferFee {
+                    guard let transactionAmount = newTransferAmount + newTransferFee
+                        else { preconditionFailure() }
+                    
+                    completion (self.balance >= transactionAmount
+                        ? Result.success (newTransferAmount)
+                        : Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+
+                }
+
+                else if estimationCompleterRecurseCount < estimationCompleterRecurseLimit {
+                    // but is they haven't converged try again with the new amount
+                    transferFee = newTransferFee
+                    self.estimateFee (target: target, amount: newTransferAmount, fee: fee, completion: estimationCompleter)
+                }
+
+                else {
+                    // We've tried too many times w/o convergence; abort
+                    completion (Result.failure (Wallet.LimitEstimationError.serviceError))
+                }
+
+            case .failure (let error):
+                completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+            }
+        }
+
+        estimateFee (target: target, amount: amount, fee: fee, completion: estimationCompleter)
     }
 
     public enum LimitEstimationError: Error {
-        case ServiceUnavailable
-        case ServiceError
-        case InsufficientFunds
+        case serviceUnavailable
+        case serviceError
+        case insufficientFunds
 
         static func fromStatus (_ status: BRCryptoStatus) -> LimitEstimationError {
             switch status {
-            case CRYPTO_ERROR_FAILED: return .ServiceError
-            default: return .ServiceError // preconditionFailure ("Unknown FeeEstimateError")
+            case CRYPTO_ERROR_FAILED: return .serviceError
+            default: return .serviceError // preconditionFailure ("Unknown FeeEstimateError")
             }
         }
 
         static func fromFeeEstimationError (_ error: FeeEstimationError) -> LimitEstimationError{
             switch error {
-            case .ServiceUnavailable: return .ServiceUnavailable
-            case .ServiceError:       return .ServiceError
-            case .InsufficientFunds:  return .InsufficientFunds
+            case .ServiceUnavailable: return .serviceUnavailable
+            case .ServiceError:       return .serviceError
+            case .InsufficientFunds:  return .insufficientFunds
             }
         }
     }
