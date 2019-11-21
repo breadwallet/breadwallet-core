@@ -205,8 +205,8 @@ public class BlockchainDb {
     // Transactions
 
     public void getTransactions(String id, List<String> addresses,
-                                UnsignedLong beginBlockNumber,
-                                UnsignedLong endBlockNumber,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
                                 boolean includeRaw,
                                 boolean includeProof,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
@@ -215,8 +215,8 @@ public class BlockchainDb {
     }
 
     public void getTransactions(String id, List<String> addresses,
-                                UnsignedLong beginBlockNumber,
-                                UnsignedLong endBlockNumber,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
                                 boolean includeRaw,
                                 boolean includeProof,
                                 @Nullable Integer maxPageSize,

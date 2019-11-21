@@ -42,8 +42,13 @@ public class TransactionApi {
         this.executorService = executorService;
     }
 
-    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
-                                boolean includeRaw, boolean includeProof, @Nullable Integer maxPageSize,
+    public void getTransactions(String id,
+                                List<String> addresses,
+                                @Nullable UnsignedLong beginBlockNumber,
+                                @Nullable UnsignedLong endBlockNumber,
+                                boolean includeRaw,
+                                boolean includeProof,
+                                @Nullable Integer maxPageSize,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transaction> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
@@ -55,9 +60,9 @@ public class TransactionApi {
             paramsBuilder.put("blockchain_id", id);
             paramsBuilder.put("include_proof", String.valueOf(includeProof));
             paramsBuilder.put("include_raw", String.valueOf(includeRaw));
-            paramsBuilder.put("start_height", beginBlockNumber.toString());
-            paramsBuilder.put("end_height", endBlockNumber.toString());
-            if (null != maxPageSize) paramsBuilder.put("max_page_size", maxPageSize.toString());
+            if (beginBlockNumber != null) paramsBuilder.put("start_height", beginBlockNumber.toString());
+            if (endBlockNumber != null) paramsBuilder.put("end_height", endBlockNumber.toString());
+            if (maxPageSize != null) paramsBuilder.put("max_page_size", maxPageSize.toString());
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 

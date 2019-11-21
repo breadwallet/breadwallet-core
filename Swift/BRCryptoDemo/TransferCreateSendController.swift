@@ -65,6 +65,8 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         amountSlider.maximumValue = Float (balance)
         amountSlider.value = 0.0
 
+        print ("APP: TCC: Want to Submit: Source: \(wallet.source)")
+
         if nil != UIPasteboard.general.string {
             recvField.text = UIPasteboard.general.string
         }
