@@ -40,7 +40,3 @@ Build outputs can be found under the **build** subdirectory of the individual su
 The build system currently only builds **corenative-jre** and **corecrypto-jre** for the host platform. We are relying on the Gradle native plugins for builds and they do not support building for other platforms at the moment (see [issue](https://github.com/gradle/gradle-native/issues/1031)).
 
 At some point, multiplatform builds will be supported for those core modules; whether that is due to Gradle adding proper support or a different build solution being used is to be determined.
-
-# Deprecated
-
-The **Core** and **CoreDemo** sub-projects are deprecated and will be removed. They are no longer sound and supported. These projects should not be depended on; migrate to **corecrypto-jre** or **corecrypto-android** in **Core's** place.
