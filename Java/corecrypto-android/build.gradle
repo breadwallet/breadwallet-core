@@ -1,0 +1,79 @@
+apply plugin: 'com.android.library'
+apply plugin: 'digital.wup.android-maven-publish'
+
+android {
+    compileSdkVersion androidConfig.compileSdkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        versionCode 1
+        versionName version
+
+        minSdkVersion androidConfig.minSdkVersion
+        targetSdkVersion androidConfig.targetSdkVersion
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled false
+        }
+    }
+
+    lintOptions {
+        quiet false
+        explainIssues true
+        abortOnError true
+        ignoreWarnings false
+        checkReleaseBuilds false
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDirs = [project(':corecrypto').javaMainSrcDir]
+            }
+        }
+        androidTest {
+            java {
+                srcDirs = [project(':corecrypto').javaTestSrcDir]
+            }
+        }
+    }
+}
+
+dependencies {
+    api project(':crypto')
+
+    implementation project(':corenative-android')
+    implementation deps.guavaAndroid
+    implementation deps.androidAppCompatV7
+    implementation deps.jacksonAnnotations
+    implementation deps.jacksonCore
+    implementation deps.jacksonDatabind
+
+    testImplementation deps.junit
+
+    androidTestImplementation deps.androidTestRunner
+    androidTestImplementation deps.androidTestEspresso
+}
+
+publishing {
+    publications {
+        mavenAar(MavenPublication) {
+            from components.android
+        }
+    }
+}
