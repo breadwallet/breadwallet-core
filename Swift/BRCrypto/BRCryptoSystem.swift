@@ -1008,7 +1008,10 @@ public final class System {
     /// Remove (aka 'wipe') the persistent storage associated with any and all systems located
     /// within `atPath` except for a specified array of systems to preserve.  Generally, this
     /// function should be called on startup after all systems have been created.  When called at
-    ///  that time, any 'left over' systems will have their persistent storeage wiped.
+    /// that time, any 'left over' systems will have their persistent storeage wiped.
+    ///
+    /// - Note: This function will perform no action if `atPath` does not exist or is
+    ///         not a directory.
     ///
     /// - Parameter atPath: the file system path where system data is persistently stored
     /// - Parameter systems: the array of systems that shouldn not have their data wiped.
@@ -1388,8 +1391,8 @@ extension System {
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: addresses,
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
+                                               begBlockNumber: (begBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : begBlockNumber),
+                                               endBlockNumber: (endBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : endBlockNumber),
                                                includeRaw: true) {
                                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                                 defer { cryptoWalletManagerGive (cwm!) }
@@ -1430,7 +1433,9 @@ extension System {
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                        failure: { (e) in
+                            print ("SYS: BTC: SubmitTransaction: Error: \(e)")
+                            cwmAnnounceSubmitTransferFailure (cwm, sid) })
                 }
         })
     }
@@ -1739,8 +1744,8 @@ extension System {
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: [asUTF8String(address!)],
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
+                                               begBlockNumber: (begBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : begBlockNumber),
+                                               endBlockNumber: (endBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : endBlockNumber),
                                                includeRaw: true) {
                                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                                 defer { cryptoWalletManagerGive(cwm) }

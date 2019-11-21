@@ -160,11 +160,11 @@ public class AmountAIT {
         assertTrue(a4.doubleAmount(ether_eth).isPresent());
         assertEquals(new Double(123.12345678), a4.doubleAmount(gwei_eth).get());
 
-        Amount a5 = Amount.create( "1.234567891234567891", false, ether_eth).get();
-        assertEquals(new Double(1234567891234567891L), a5.doubleAmount(wei_eth).get());
-        // TODO(discuss): The swift behaviour diverges here; how do we want to handle?
-        // assertEquals("wei1,234,567,891,234,570,000", a5.toStringAsUnit(wei_eth, null).get());
-        assertEquals("1234567891234567891", a5.toStringWithBase(10, ""));
+        Amount a5 = Amount.create( "1.234567891234567936", false, ether_eth).get();
+        assertEquals(new Double(1234567891234567936L), a5.doubleAmount(wei_eth).get());
+        assertEquals("1234567891234567936", a5.toStringWithBase(10, ""));
+        // TODO(discuss): The swift behaviour diverges here (rounds to ..."568,000:); does that matter?
+        assertEquals("wei1,234,567,891,234,567,940", a5.toStringAsUnit(wei_eth, null).get());
 
         Amount a6 = Amount.create("1", false, ether_eth).get();
         assertEquals("1000000000000000000", a6.toStringWithBase(10, ""));
@@ -178,10 +178,7 @@ public class AmountAIT {
 
         Amount a8 = Amount.create("123456789012345678.0", false, wei_eth).get();
         assertEquals("123456789012345678", a8.toStringWithBase(10, ""));
-        // TODO(discuss): The swift behaviour diverges here; how do we want to handle?
-        // assertEquals("wei123,456,789,012,345,600", a8.toStringAsUnit(wei_eth).get());
         assertEquals("wei123,456,789,012,345,680", a8.toStringAsUnit(wei_eth).get());
-        assertNotEquals("wei123,456,789,012,345,678", a8.toStringAsUnit(wei_eth).get());
 
         double a8Double = a8.doubleAmount(wei_eth).get();
         assertEquals(1.2345678901234568e17, a8Double, 0.0);

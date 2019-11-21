@@ -23,6 +23,7 @@ import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
+import com.breadwallet.corenative.support.BRConstants;
 import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
@@ -280,9 +281,12 @@ final class System implements com.breadwallet.crypto.System {
         }
 
         File storageFile = new File(storagePath);
-        for (File child : storageFile.listFiles()) {
-            if (!exemptSystemPath.contains(child.getAbsolutePath())) {
-                deleteRecursively(child);
+        File[] childFiles = storageFile.listFiles();
+        if (null != childFiles) {
+            for (File child : childFiles) {
+                if (!exemptSystemPath.contains(child.getAbsolutePath())) {
+                    deleteRecursively(child);
+                }
             }
         }
     }
@@ -1685,9 +1689,13 @@ final class System implements com.breadwallet.crypto.System {
                     if (optWalletManager.isPresent()) {
                         WalletManager walletManager = optWalletManager.get();
 
-                        system.query.getTransactions(walletManager.getNetwork().getUids(), addresses, begBlockNumberUnsigned,
-                                endBlockNumberUnsigned, true,
-                                false, new CompletionHandler<List<Transaction>, QueryError>() {
+                        system.query.getTransactions(walletManager.getNetwork().getUids(),
+                                addresses,
+                                begBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : begBlockNumberUnsigned,
+                                endBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : endBlockNumberUnsigned,
+                                true,
+                                false,
+                                new CompletionHandler<List<Transaction>, QueryError>() {
                                     @Override
                                     public void handleData(List<Transaction> transactions) {
                                         Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback received transactions");
@@ -2376,9 +2384,14 @@ final class System implements com.breadwallet.crypto.System {
                     if (optWalletManager.isPresent()) {
                         WalletManager walletManager = optWalletManager.get();
 
-                        system.query.getTransactions(walletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
-                                endBlockNumberUnsigned, true,
-                                false, new CompletionHandler<List<Transaction>, QueryError>() {
+                        system.query.getTransactions(
+                                walletManager.getNetwork().getUids(),
+                                Collections.singletonList(address),
+                                begBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : begBlockNumberUnsigned,
+                                endBlockNumberUnsigned.equals(BRConstants.BLOCK_HEIGHT_UNBOUND) ? null : endBlockNumberUnsigned,
+                                true,
+                                false,
+                                new CompletionHandler<List<Transaction>, QueryError>() {
                                     @Override
                                     public void handleData(List<Transaction> transactions) {
                                         Log.d(TAG, "BRCryptoCWMGenGetTransactionsCallback  received transactions");
