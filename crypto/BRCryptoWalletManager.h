@@ -272,6 +272,10 @@ extern "C" {
                                                                   BRCryptoPaymentProtocolRequest request,
                                                                   BRCryptoNetworkFee fee);
 
+    extern void
+    cryptoWalletManagerWipe (BRCryptoNetwork network,
+                             const char *path);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
     /// MARK: Wallet Migrator

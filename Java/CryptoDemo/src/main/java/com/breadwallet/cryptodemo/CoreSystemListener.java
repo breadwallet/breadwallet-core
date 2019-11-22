@@ -53,54 +53,32 @@ public class CoreSystemListener implements SystemListener {
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
     }
 
+    // SystemListener Handlers
+
     @Override
     public void handleSystemEvent(System system, SystemEvent event) {
-        Log.d(TAG, String.format("System: %s", event));
-
         ApplicationExecutors.runOnBlockingExecutor(() -> {
+            Log.d(TAG, String.format("System: %s", event));
+
             event.accept(new DefaultSystemEventVisitor<Void>() {
                 @Nullable
                 @Override
-                public Void visit(SystemManagerAddedEvent event) {
-                    WalletManager manager = event.getWalletManager();
-                    manager.connect(null);
+                public Void visit(SystemNetworkAddedEvent event) {
+                    createWalletManager(system, event.getNetwork());
                     return null;
                 }
 
                 @Nullable
                 @Override
-                public Void visit(SystemNetworkAddedEvent event) {
-                    Network network = event.getNetwork();
-
-                    boolean isNetworkNeeded = false;
-                    for (String currencyCode: currencyCodesNeeded) {
-                        Optional<? extends Currency> currency = network.getCurrencyByCode(currencyCode);
-                        if (currency.isPresent()) {
-                            isNetworkNeeded = true;
-                            break;
-                        }
-                    }
-
-                    if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-                        WalletManagerMode mode = system.supportsWalletManagerMode(network, preferredMode) ?
-                                preferredMode : system.getDefaultWalletManagerMode(network);
-
-                        AddressScheme addressScheme = system.getDefaultAddressScheme(network);
-                        Log.d(TAG, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
-                        checkState(system.createWalletManager(network, mode, addressScheme, Collections.emptySet()));
-                    }
+                public Void visit(SystemManagerAddedEvent event) {
+                    connectWalletManager(event.getWalletManager());
                     return null;
                 }
 
                 @Nullable
                 @Override
                 public Void visit(SystemDiscoveredNetworksEvent event) {
-                    Log.d(TAG, String.format("Currencies (Discovered): %s", event));
-                    for (Network network: event.getNetworks()) {
-                        for (Currency currency: network.getCurrencies()) {
-                            Log.d(TAG, String.format("    Currency: %s for %s", currency.getCode(), network.getName()));
-                        }
-                    }
+                    logDiscoveredCurrencies(event.getNetworks());
                     return null;
                 }
             });
@@ -109,33 +87,80 @@ public class CoreSystemListener implements SystemListener {
 
     @Override
     public void handleNetworkEvent(System system, Network network, NetworkEvent event) {
-        Log.d(TAG, String.format("Network: %s", event));
+        ApplicationExecutors.runOnBlockingExecutor(() -> {
+            Log.d(TAG, String.format("Network: %s", event));
+        });
     }
 
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
-        Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
+        ApplicationExecutors.runOnBlockingExecutor(() -> {
+                Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
+        });
     }
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
-        Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
+        ApplicationExecutors.runOnBlockingExecutor(() -> {
+            Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
 
-//        TODO(fix): Uncomment when GEN address works
-//        ApplicationExecutors.runOnBlockingExecutor(() -> {
-//            event.accept(new DefaultWalletEventVisitor<Void>() {
-//                @Nullable
-//                @Override
-//                public Void visit(WalletCreatedEvent event) {
-//                    Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
-//                    return null;
-//                }
-//            });
-//        });
+            event.accept(new DefaultWalletEventVisitor<Void>() {
+                @Nullable
+                @Override
+                public Void visit(WalletCreatedEvent event) {
+                    logWalletAddresses(wallet);
+                    return null;
+                }
+            });
+        });
     }
 
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
+        ApplicationExecutors.runOnBlockingExecutor(() -> {
+            Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
+        });
+    }
+
+    // Misc.
+
+    private void createWalletManager(System system, Network network) {
+        boolean isNetworkNeeded = false;
+        for (String currencyCode : currencyCodesNeeded) {
+            Optional<? extends Currency> currency = network.getCurrencyByCode(currencyCode);
+            if (currency.isPresent()) {
+                isNetworkNeeded = true;
+                break;
+            }
+        }
+
+        if (isMainnet == network.isMainnet() && isNetworkNeeded) {
+            WalletManagerMode mode = system.supportsWalletManagerMode(network, preferredMode) ?
+                    preferredMode : system.getDefaultWalletManagerMode(network);
+
+            AddressScheme addressScheme = system.getDefaultAddressScheme(network);
+            Log.d(TAG, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
+            boolean success = system.createWalletManager(network, mode, addressScheme, Collections.emptySet());
+            if (!success) {
+                system.wipe(network);
+                checkState(system.createWalletManager(network, mode, addressScheme, Collections.emptySet()));
+            }
+        }
+    }
+
+    private void connectWalletManager(WalletManager walletManager) {
+        walletManager.connect(null);
+    }
+
+    private void logWalletAddresses(Wallet wallet) {
+        Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
+    }
+
+    private void logDiscoveredCurrencies(List<Network> networks) {
+        for (Network network: networks) {
+            for (Currency currency: network.getCurrencies()) {
+                Log.d(TAG, String.format("Discovered: %s for %s", currency.getCode(), network.getName()));
+            }
+        };
     }
 }

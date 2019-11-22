@@ -31,10 +31,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.NetworkPeer;
 import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -54,6 +57,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -84,6 +88,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
     }
 
     private Wallet wallet;
+    private boolean isBitcoin;
     private Adapter transferAdapter;
     private ClipboardManager clipboardManager;
 
@@ -100,6 +105,8 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             return;
         }
 
+        String currencyCode = wallet.getCurrency().getCode();
+        isBitcoin = Currency.CODE_AS_BTC.equals(currencyCode) || Currency.CODE_AS_BCH.equals(currencyCode);
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
         Button sendView = findViewById(R.id.send_view);
@@ -146,6 +153,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_transfer_list, menu);
+        menu.findItem(R.id.action_connect_with_peer).setVisible(isBitcoin);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -154,6 +162,9 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
         switch (item.getItemId()) {
             case R.id.action_connect:
                 connect();
+                return true;
+            case R.id.action_connect_with_peer:
+                showConnectWithPeerMenu();
                 return true;
             case R.id.action_disconnect:
                 disconnect();
@@ -234,22 +245,71 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
         ApplicationExecutors.runOnBlockingExecutor(() -> wallet.getWalletManager().disconnect());
     }
 
+    private void showConnectWithPeerMenu() {
+        runOnUiThread(() -> {
+            View dialogView = getLayoutInflater().inflate(R.layout.layout_connect_with_peer, null);
+            CharSequence address = ((EditText) dialogView.findViewById(R.id.address_view)).getText().toString();
+            CharSequence port = ((EditText) dialogView.findViewById(R.id.port_view)).getText().toString();
+            CharSequence pubkey = ((EditText) dialogView.findViewById(R.id.pubkey_view)).getText().toString();
+            new AlertDialog.Builder(this)
+                    .setTitle("Connect with Peer")
+                    .setView(dialogView)
+                    .setNegativeButton("Cancel", (d, w) -> {})
+                    .setPositiveButton("Ok", (d, w) -> connectWithPeer(address, port, pubkey))
+                    .show();
+        });
+    }
+
+    private Optional<? extends NetworkPeer> createPeer(CharSequence addressSeq, CharSequence portSeq, CharSequence pubkeySeq) {
+        // required
+        String address = addressSeq.toString();
+        if (address.isEmpty()) {
+            return Optional.absent();
+        }
+
+        UnsignedInteger port;
+        try {
+            port = UnsignedInteger.valueOf(portSeq.toString());
+        } catch (NumberFormatException e) {
+            return Optional.absent();
+        }
+
+        // optional (null if empty)
+        String pubkey = pubkeySeq.length() == 0 ? null : pubkeySeq.toString();
+        return wallet.getWalletManager().getNetwork().createPeer(address, port, pubkey);
+    }
+
+    private void connectWithPeer(CharSequence addressSeq, CharSequence portSeq, CharSequence pubkeySeq) {
+        Optional<? extends NetworkPeer> maybePeer = createPeer(addressSeq, portSeq, pubkeySeq);
+        if (maybePeer.isPresent()) {
+            ApplicationExecutors.runOnBlockingExecutor(() -> wallet.getWalletManager().connect(maybePeer.get()));
+        } else {
+            showError("Unable to create peer");
+        }
+    }
+
     private void showSyncToDepthMenu() {
-        new AlertDialog.Builder(this)
+        runOnUiThread(() -> new AlertDialog.Builder(this)
                 .setTitle("Sync Depth")
                 .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
                         -1,
                         (d, w) -> {
                             ApplicationExecutors.runOnBlockingExecutor(() -> {
                                 switch (w) {
-                                    case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND); break;
-                                    case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK); break;
-                                    default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION); break;
+                                    case 0:
+                                        wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND);
+                                        break;
+                                    case 1:
+                                        wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK);
+                                        break;
+                                    default:
+                                        wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION);
+                                        break;
                                 }
                             });
                             d.dismiss();
                         })
-                .show();
+                .show());
     }
 
     private void showSelectModeMenu() {
@@ -266,8 +326,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
                 itemTexts[i] = itemModes[i].toString();
             }
 
-            runOnUiThread(() -> {
-                new AlertDialog.Builder(this)
+            runOnUiThread(() -> new AlertDialog.Builder(this)
                         .setTitle("Sync Mode")
                         .setSingleChoiceItems(itemTexts,
                                 -1,
@@ -275,13 +334,12 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
                                     ApplicationExecutors.runOnBlockingExecutor(() -> wm.setMode(itemModes[w]));
                                     d.dismiss();
                                 })
-                        .show();
-            });
+                        .show());
         });
     }
 
     private void showPaymentMenu(Activity context, Wallet wallet) {
-        new AlertDialog.Builder(this)
+        runOnUiThread(() -> new AlertDialog.Builder(this)
                 .setTitle("Payment Protocol")
                 .setSingleChoiceItems(new String[]{PaymentProtocolRequestType.BITPAY.name(), PaymentProtocolRequestType.BIP70.name()},
                         -1,
@@ -293,7 +351,16 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
                             };
                             d.dismiss();
                         })
-                .show();
+                .show());
+    }
+
+    private void showError(String message) {
+        runOnUiThread(() -> new AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setCancelable(false)
+                .setNeutralButton("Ok", (d, w) -> {})
+                .show());
     }
 
     private void copyReceiveAddress() {

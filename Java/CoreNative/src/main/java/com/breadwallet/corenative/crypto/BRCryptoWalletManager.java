@@ -32,6 +32,10 @@ import javax.annotation.Nullable;
 
 public class BRCryptoWalletManager extends PointerType {
 
+    public static void wipe(BRCryptoNetwork network, String path) {
+        CryptoLibraryDirect.cryptoWalletManagerWipe(network.getPointer(), path);
+    }
+
     public static Optional<BRCryptoWalletManager> create(BRCryptoCWMListener listener,
                                                          BRCryptoCWMClient client,
                                                          BRCryptoAccount account,
@@ -338,6 +342,7 @@ public class BRCryptoWalletManager extends PointerType {
 
     public void announceGetTransfersItemGen(BRCryptoCWMClientCallbackState callbackState,
                                             String hash,
+                                            String uids,
                                             String from,
                                             String to,
                                             String amount,
@@ -351,6 +356,7 @@ public class BRCryptoWalletManager extends PointerType {
                 thisPtr,
                 callbackState.getPointer(),
                 hash,
+                uids,
                 from,
                 to,
                 amount,

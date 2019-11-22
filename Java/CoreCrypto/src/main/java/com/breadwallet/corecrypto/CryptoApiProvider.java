@@ -92,6 +92,12 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
 
         @Override
+        public Optional<byte[]> migrateBRCoreKeyCiphertext(com.breadwallet.crypto.Key key, byte[] nonce12,
+                                                           byte[] authenticatedData, byte[] ciphertext) {
+            return System.migrateBRCoreKeyCiphertext(key, nonce12, authenticatedData, ciphertext);
+        }
+
+        @Override
         public void wipe(com.breadwallet.crypto.System system) {
             System.wipe(system);
         }

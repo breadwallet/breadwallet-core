@@ -287,8 +287,8 @@ BRWallet *BRWalletNew(BRAddressParams addrParams, BRTransaction *transactions[],
         }
     }
     
-    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
-    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, SEQUENCE_INTERNAL_CHAIN);
+    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL_EXTENDED, SEQUENCE_EXTERNAL_CHAIN);
+    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL_EXTENDED, SEQUENCE_INTERNAL_CHAIN);
 
     _BRWalletUpdateBalance(wallet);
 
@@ -596,6 +596,14 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
 // result must be freed by calling BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr)
 {
+    return BRWalletCreateTransactionWithFeePerKb(wallet, UINT64_MAX, amount, addr);
+}
+
+// returns an unsigned transaction that sends the specified amount from the wallet to the given address
+// result must be freed using BRTransactionFree()
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+BRTransaction *BRWalletCreateTransactionWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, uint64_t amount, const char *addr)
+{
     BRTxOutput o = BR_TX_OUTPUT_NONE;
     
     assert(wallet != NULL);
@@ -603,12 +611,20 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
     assert(addr != NULL && BRAddressIsValid(wallet->addrParams, addr));
     o.amount = amount;
     BRTxOutputSetAddress(&o, wallet->addrParams, addr);
-    return BRWalletCreateTxForOutputs(wallet, &o, 1);
+    return BRWalletCreateTxForOutputsWithFeePerKb(wallet, feePerKb, &o, 1);
 }
 
 // returns an unsigned transaction that satisifes the given transaction outputs
 // result must be freed by calling BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount)
+{
+    return BRWalletCreateTxForOutputsWithFeePerKb(wallet, UINT64_MAX, outputs, outCount);
+}
+
+// returns an unsigned transaction that satisifes the given transaction outputs
+// result must be freed using BRTransactionFree()
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+BRTransaction *BRWalletCreateTxForOutputsWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, const BRTxOutput outputs[], size_t outCount)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();
     uint64_t feeAmount, amount = 0, balance = 0, minAmount;
@@ -625,9 +641,10 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         amount += outputs[i].amount;
     }
     
-    minAmount = BRWalletMinOutputAmount(wallet);
+    minAmount = BRWalletMinOutputAmountWithFeePerKb(wallet, feePerKb);
     pthread_mutex_lock(&wallet->lock);
-    feeAmount = _txFee(wallet->feePerKb, BRTransactionVSize(transaction) + TX_OUTPUT_SIZE);
+    feePerKb = UINT64_MAX == feePerKb ? wallet->feePerKb : feePerKb;
+    feeAmount = _txFee(feePerKb, BRTransactionVSize(transaction) + TX_OUTPUT_SIZE);
     
     // TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
     // TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
@@ -645,7 +662,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
             transaction = NULL;
         
             // check for sufficient total funds before building a smaller transaction
-            if (wallet->balance < amount + _txFee(wallet->feePerKb, 10 + array_count(wallet->utxos)*TX_INPUT_SIZE +
+            if (wallet->balance < amount + _txFee(feePerKb, 10 + array_count(wallet->utxos)*TX_INPUT_SIZE +
                                                   (outCount + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
             pthread_mutex_unlock(&wallet->lock);
 
@@ -657,9 +674,9 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
                 }
                 
                 newOutputs[outCount - 1].amount -= amount + feeAmount - balance; // reduce last output amount
-                transaction = BRWalletCreateTxForOutputs(wallet, newOutputs, outCount);
+                transaction = BRWalletCreateTxForOutputsWithFeePerKb(wallet, feePerKb, newOutputs, outCount);
             }
-            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, outCount - 1); // remove last output
+            else transaction = BRWalletCreateTxForOutputsWithFeePerKb(wallet, feePerKb, outputs, outCount - 1); // remove last output
 
             balance = amount = feeAmount = 0;
             pthread_mutex_lock(&wallet->lock);
@@ -674,7 +691,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
 //            ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionVSize(tx);
 
         // fee amount after adding a change output
-        feeAmount = _txFee(wallet->feePerKb, BRTransactionVSize(transaction) + TX_OUTPUT_SIZE + cpfpSize);
+        feeAmount = _txFee(feePerKb, BRTransactionVSize(transaction) + TX_OUTPUT_SIZE + cpfpSize);
 
         // increase fee to round off remaining wallet balance to nearest 100 satoshi
         if (wallet->balance > amount + feeAmount) feeAmount += (wallet->balance - (amount + feeAmount)) % 100;
@@ -791,8 +808,8 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 
     if (wasAdded) {
         // when a wallet address is used in a transaction, generate a new address to replace it
-        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
+        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, SEQUENCE_INTERNAL_CHAIN);
         if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
         if (wallet->txAdded) wallet->txAdded(wallet->callbackInfo, tx);
     }
@@ -1159,6 +1176,13 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 // fee that will be added for a transaction of the given amount
 uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
 {
+    return BRWalletFeeForTxAmountWithFeePerKb(wallet, UINT64_MAX, amount);
+}
+
+// fee that will be added for a transaction of the given amount
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletFeeForTxAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, uint64_t amount)
+{
     static const uint8_t dummyScript[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                            0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
     BRTxOutput o = BR_TX_OUTPUT_NONE;
@@ -1167,10 +1191,10 @@ uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
     
     assert(wallet != NULL);
     assert(amount > 0);
-    maxAmount = BRWalletMaxOutputAmount(wallet);
+    maxAmount = BRWalletMaxOutputAmountWithFeePerKb(wallet, feePerKb);
     o.amount = (amount < maxAmount) ? amount : maxAmount;
     BRTxOutputSetScript(&o, dummyScript, sizeof(dummyScript)); // unspendable dummy scriptPubKey
-    tx = BRWalletCreateTxForOutputs(wallet, &o, 1);
+    tx = BRWalletCreateTxForOutputsWithFeePerKb(wallet, feePerKb, &o, 1);
 
     if (tx) {
         fee = BRWalletFeeForTx(wallet, tx);
@@ -1183,17 +1207,32 @@ uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
 // outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
 {
+    return BRWalletMinOutputAmountWithFeePerKb(wallet, UINT64_MAX);
+}
+
+// outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletMinOutputAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb)
+{
     uint64_t amount;
     
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
-    amount = (TX_MIN_OUTPUT_AMOUNT*wallet->feePerKb + MIN_FEE_PER_KB - 1)/MIN_FEE_PER_KB;
+    feePerKb = UINT64_MAX == feePerKb ? wallet->feePerKb : feePerKb;
+    amount = (TX_MIN_OUTPUT_AMOUNT*feePerKb + MIN_FEE_PER_KB - 1)/MIN_FEE_PER_KB;
     pthread_mutex_unlock(&wallet->lock);
     return (amount > TX_MIN_OUTPUT_AMOUNT) ? amount : TX_MIN_OUTPUT_AMOUNT;
 }
 
 // maximum amount that can be sent from the wallet to a single address after fees
 uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
+{
+    return BRWalletMaxOutputAmountWithFeePerKb(wallet, UINT64_MAX);
+}
+
+// maximum amount that can be sent from the wallet to a single address after fees
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletMaxOutputAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb)
 {
     BRTransaction *tx;
     BRUTXO *o;
@@ -1202,6 +1241,7 @@ uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
 
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
+    feePerKb = UINT64_MAX == feePerKb ? wallet->feePerKb : feePerKb;
 
     for (i = array_count(wallet->utxos); i > 0; i--) {
         o = &wallet->utxos[i - 1];
@@ -1217,7 +1257,7 @@ uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
     }
 
     txSize = 8 + BRVarIntSize(inCount) + TX_INPUT_SIZE*inCount + BRVarIntSize(2) + TX_OUTPUT_SIZE*2;
-    fee = _txFee(wallet->feePerKb, txSize + cpfpSize);
+    fee = _txFee(feePerKb, txSize + cpfpSize);
     pthread_mutex_unlock(&wallet->lock);
     
     return (amount > fee) ? amount - fee : 0;

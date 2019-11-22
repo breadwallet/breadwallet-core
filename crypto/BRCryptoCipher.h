@@ -54,15 +54,22 @@ extern "C" {
 
     extern size_t
     cryptoCipherDecryptLength (BRCryptoCipher cipher,
-                               const char *ciphertext,
+                               const uint8_t *ciphertext,
                                size_t ciphertextLen);
 
     extern BRCryptoBoolean
     cryptoCipherDecrypt (BRCryptoCipher cipher,
                          uint8_t *plaintext,
                          size_t plaintextLen,
-                         const char *ciphertext,
+                         const uint8_t *ciphertext,
                          size_t ciphertextLen);
+
+    extern BRCryptoBoolean
+    cryptoCipherMigrateBRCoreKeyCiphertext (BRCryptoCipher cipher,
+                                            uint8_t *migratedCiphertext,
+                                            size_t migratedCiphertextLen,
+                                            const uint8_t *originalCiphertext,
+                                            size_t originalCiphertextLen);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoCipher, cryptoCipher);
 

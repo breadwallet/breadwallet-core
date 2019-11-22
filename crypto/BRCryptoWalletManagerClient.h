@@ -257,6 +257,7 @@ extern "C" {
     cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                    BRCryptoCWMClientCallbackState callbackState,
                                    OwnershipKept const char *hash,
+                                   OwnershipKept const char *uids,
                                    OwnershipKept const char *from,
                                    OwnershipKept const char *to,
                                    OwnershipKept const char *amount,
