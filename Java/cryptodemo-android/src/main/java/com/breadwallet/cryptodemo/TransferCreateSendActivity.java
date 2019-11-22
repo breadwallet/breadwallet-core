@@ -257,8 +257,8 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         Amount amount = calculateValue(progress);
         Optional<? extends Address> target = network.addressFor(receiver.toString());
 
-        amountMinView.setText(minValue.toString());
-        amountMaxView.setText(maxValue.toString());
+        amountMinView.setText(minValue.toStringAsUnit(baseUnit).or(""));
+        amountMaxView.setText(maxValue.toStringAsUnit(baseUnit).or(""));
 
         if (amount.isZero()) {
             // we have a valid amount but it is zero...

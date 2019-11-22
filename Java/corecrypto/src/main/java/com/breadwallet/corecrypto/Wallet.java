@@ -160,7 +160,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         BRCryptoWallet.EstimateLimitResult result = core.estimateLimit(asMaximum, coreAddress, coreFee);
         if (result.amount == null) {
             // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
-            handler.handleError(new LimitEstimationInsufficientFundsError());
+            callbackCoordinator.completeLimitEstimateWithError(handler, new LimitEstimationInsufficientFundsError());
             return;
         }
 
@@ -172,9 +172,9 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         // include a check on a zero amount - which indicates insufficient funds.
         if (!needFeeEstimate) {
             if (isZeroIfInsuffientFunds && amount.isZero()) {
-                callbackCoordinator.completeLimitEstimateWithSuccess(handler, amount);
-            } else {
                 callbackCoordinator.completeLimitEstimateWithError(handler, new LimitEstimationInsufficientFundsError());
+            } else {
+                callbackCoordinator.completeLimitEstimateWithSuccess(handler, amount);
             }
             return;
         }
