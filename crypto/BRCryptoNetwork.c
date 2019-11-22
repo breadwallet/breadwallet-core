@@ -10,7 +10,9 @@
 
 #include <pthread.h>
 
-#include "BRCryptoNetwork.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoUnit.h"
+
 #include "BRCryptoPrivate.h"
 
 #include "bitcoin/BRChainParams.h"
@@ -21,13 +23,6 @@
 
 static void
 cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee);
-
-struct BRCryptoNetworkFeeRecord {
-    uint64_t confirmationTimeInMilliseconds;
-    BRCryptoAmount pricePerCostFactor;
-    BRCryptoUnit   pricePerCostFactorUnit;  // Until in BRCryptoAmount
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee)
 
@@ -103,48 +98,9 @@ cryptoNetworkFeeAsGEN( BRCryptoNetworkFee networkFee) {
 static void
 cryptoNetworkRelease (BRCryptoNetwork network);
 
-typedef struct {
-    BRCryptoCurrency currency;
-    BRCryptoUnit baseUnit;
-    BRCryptoUnit defaultUnit;
-    BRArrayOf(BRCryptoUnit) units;
-} BRCryptoCurrencyAssociation;
-
 #define CRYPTO_NETWORK_DEFAULT_CURRENCY_ASSOCIATIONS        (2)
 #define CRYPTO_NETWORK_DEFAULT_FEES                         (3)
 #define CRYPTO_NETWORK_DEFAULT_NETWORKS                     (5)
-
-struct BRCryptoNetworkRecord {
-    pthread_mutex_t lock;
-
-    char *uids;
-    char *name;
-    BRCryptoBlockChainHeight height;
-    BRCryptoCurrency currency;
-    BRArrayOf(BRCryptoCurrencyAssociation) associations;
-    BRArrayOf(BRCryptoNetworkFee) fees;
-
-    uint32_t confirmationsUntilFinal;
-    
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            uint8_t forkId;
-            const BRChainParams *params;
-        } btc;
-
-        struct {
-            uint32_t chainId;
-            BREthereumNetwork net;
-        } eth;
-
-        struct {
-            // TODO: TBD
-            uint8_t mainnet;
-        } gen;
-    } u;
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork)
 

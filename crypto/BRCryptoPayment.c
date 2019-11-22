@@ -14,11 +14,12 @@
 #include <string.h>
 
 #include "BRCryptoBase.h"
-#include "BRCryptoAddress.h"
-#include "BRCryptoAmount.h"
-#include "BRCryptoCurrency.h"
+
 #include "BRCryptoPrivate.h"
-#include "BRCryptoNetwork.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoWalletP.h"
 
 #include "bcash/BRBCashAddr.h"
 #include "bitcoin/BRPaymentProtocol.h"

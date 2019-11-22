@@ -13,10 +13,16 @@
 
 #include "BRCryptoBase.h"
 #include "BRCryptoStatus.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletP.h"
+
+#include "BRCryptoPrivate.h" // cryptoStatusFromETH
+
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "BRCryptoWalletManagerPrivate.h"
+#include "BRCryptoWalletManagerP.h"
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"

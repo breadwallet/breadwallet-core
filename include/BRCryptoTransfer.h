@@ -224,6 +224,14 @@ extern "C" {
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
 
+    extern void
+    cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                    uint8_t **bytes,
+                                    size_t   *bytesCount,
+                                    uint32_t *blockHeight,
+                                    uint32_t *timestamp);
+
+
 #ifdef __cplusplus
 }
 #endif

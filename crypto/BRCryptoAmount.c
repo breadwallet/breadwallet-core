@@ -15,6 +15,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "BRCryptoAmount.h"
+
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilMath.h"
 
