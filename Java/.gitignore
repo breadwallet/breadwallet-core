@@ -5,17 +5,13 @@ libcore.jnilib
 *.class
 *.log
 
-.gradle/
-/build
-/captures
-.externalNativeBuild
-
 # OS
 .DS_Store
 
 # Android Studio
+*.iml
 local.properties
-Java.iml
+.idea/modules.xml
 .idea/misc.xml
 .idea/vcs.xml
 
@@ -45,6 +41,11 @@ Java.iml
 .idea/**/dbnavigator.xml
 
 # Gradle
+.gradle/
+build/
+*/build/
+/captures
+.externalNativeBuild
 .idea/**/gradle.xml
 .idea/**/libraries
 
