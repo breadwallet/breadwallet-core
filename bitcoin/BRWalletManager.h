@@ -105,16 +105,14 @@ typedef enum {
 
     /**
      * For P2P and API, this event occurs once a transaction has been added to a
-     * wallet (via BRWalletRegisterTransaction). Transactions are added when they have
-     * been relayed by the P2P network or synced via BlockchainDB.
+     * wallet (via BRWalletRegisterTransaction).
      */
     BITCOIN_TRANSACTION_ADDED,
 
     /**
-     * For P2P, this event occurs once a transaction has been marked as CONFIRMED/UNCONFIRMED
-     * by the P2P network.
-     *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For P2P and API, this event occurs once a transaction has been added to a vallet
+     * (via BRWalletRegisterTransaction) or once it has been marked as CONFIRMED or
+     * UNCONFIRMED (via BRWalletUpdateTransactions).
      */
     BITCOIN_TRANSACTION_UPDATED,
 
@@ -123,7 +121,7 @@ typedef enum {
      * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
      * being visible in the mempools of any of connected P2P peers.
      *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For API, this event does not occur at present.
      */
     BITCOIN_TRANSACTION_DELETED,
 } BRTransactionEventType;
@@ -415,6 +413,10 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
                                         const char **transactions,
                                         const char **blocks,
                                         const char **peers);
+
+extern void
+BRWalletManagerWipe (const BRChainParams *params,
+                     const char *baseStoragePath);
 
 //
 // Mark: Wallet Sweeper

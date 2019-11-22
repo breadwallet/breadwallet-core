@@ -38,15 +38,20 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private static final String TAG = WalletManager.class.getName();
 
     /* package */
+    static void wipe(Network network, String storagePath) {
+        BRCryptoWalletManager.wipe(network.getCoreBRCryptoNetwork(), storagePath);
+    }
+
+    /* package */
     static Optional<WalletManager> create(BRCryptoCWMListener listener,
-                                BRCryptoCWMClient client,
-                                Account account,
-                                Network network,
-                                WalletManagerMode mode,
-                                AddressScheme addressScheme,
-                                String storagePath,
-                                System system,
-                                SystemCallbackCoordinator callbackCoordinator) {
+                                          BRCryptoCWMClient client,
+                                          Account account,
+                                          Network network,
+                                          WalletManagerMode mode,
+                                          AddressScheme addressScheme,
+                                          String storagePath,
+                                          System system,
+                                          SystemCallbackCoordinator callbackCoordinator) {
         return BRCryptoWalletManager.create(
                 listener,
                 client,

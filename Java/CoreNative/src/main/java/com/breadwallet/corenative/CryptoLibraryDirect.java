@@ -264,6 +264,7 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletGive(Pointer obj);
 
     // crypto/BRCryptoWalletManager.h
+    public static native Pointer cryptoWalletManagerWipe(Pointer network, String path);
     public static native Pointer cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
                                                            BRCryptoCWMClient.ByValue client,
                                                            Pointer account,
@@ -332,7 +333,7 @@ public final class CryptoLibraryDirect {
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
-                                                            String hash, String sourceAddr, String targetAddr,
+                                                            String hash, String uids, String sourceAddr, String targetAddr,
                                                             String amount, String currency, String fee,
                                                             long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransfersComplete(Pointer cwm, Pointer callbackState, int success);
@@ -371,6 +372,7 @@ public final class CryptoLibraryDirect {
     public static native int cryptoCipherEncrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     public static native SizeT cryptoCipherDecryptLength(Pointer cipher, byte[] src, SizeT srcLen);
     public static native int cryptoCipherDecrypt(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
+    public static native int cryptoCipherMigrateBRCoreKeyCiphertext(Pointer cipher, byte[] dst, SizeT dstLen, byte[] src, SizeT srcLen);
     public static native void cryptoCipherGive(Pointer cipher);
 
     // crypto/BRCryptoCoder.h

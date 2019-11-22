@@ -69,6 +69,7 @@ extern "C" {
     unsigned int _c = atomic_fetch_add (&obj->ref.count, 1);                      \
     /* catch take after release */                                                \
     assert (0 != _c);                                                             \
+    if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Take: %s @ %d\n", #type, obj->ref.count); } \
     return obj;                                                                   \
   }                                                                               \
   extern type                                                                     \
@@ -78,6 +79,7 @@ extern "C" {
     while (_c != 0 &&                                                             \
            !atomic_compare_exchange_weak (&obj->ref.count, &_c, _c + 1)) {}       \
     if (0 != CRYPTO_REF_DEBUG && 0 == _c) { printf ("CRY: Missed: %s\n", #type); }\
+    if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Take: %s @ %d (weak) \n", #type, obj->ref.count); } \
     return (_c != 0) ? obj : NULL;                                                \
   }                                                                               \
   extern void                                                                     \
@@ -85,8 +87,8 @@ extern "C" {
     unsigned int _c = atomic_fetch_sub (&obj->ref.count, 1);                      \
     /* catch give after release */                                                \
     assert (0 != _c);                                                             \
+    if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Give: %s @ %d\n", #type, obj->ref.count); }      \
     if (1 == _c) {                                                                \
-        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); }      \
         obj->ref.free (obj);                                                      \
     }                                                                             \
   }

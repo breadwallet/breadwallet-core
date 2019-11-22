@@ -255,6 +255,7 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
         case BLOCK_CHAIN_TYPE_ETH:
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            genNetworkRelease (network->u.gen);
             break;
     }
 

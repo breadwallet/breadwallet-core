@@ -1708,6 +1708,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB609F20AF8C5D00810CE4 /* Build configuration list for PBXNativeTarget "Core" */;
 			buildPhases = (
+				3C92654F235E616B0063246E /* Update Submodules */,
 				3CAB609720AF8C5D00810CE4 /* Sources */,
 				3CAB609820AF8C5D00810CE4 /* Frameworks */,
 				3CAB609920AF8C5D00810CE4 /* CopyFiles */,
@@ -1899,6 +1900,24 @@
 			shellPath = /bin/sh;
 			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.json\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
 			showEnvVarsInLog = 0;
+		};
+		3C92654F235E616B0063246E /* Update Submodules */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Update Submodules";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# All submodules updated.\ngit submodule update --init && echo \"Submodules Updated.\"\n";
 		};
 		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2397,6 +2416,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MARKETING_VERSION = 3.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_CFLAGS = (
@@ -2435,6 +2455,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MARKETING_VERSION = 3.0;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCrypto;

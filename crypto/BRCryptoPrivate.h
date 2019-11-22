@@ -204,7 +204,7 @@ extern "C" {
     extern BRCryptoTransfer
     cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
-                               BRGenericTransfer tid);
+                               OwnershipGiven BRGenericTransfer tid);
 
     private_extern BRTransaction *
     cryptoTransferAsBTC (BRCryptoTransfer transfer);
@@ -378,7 +378,7 @@ extern "C" {
     cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
                              BRGenericManager gwm,
-                             BRGenericWallet wid);
+                             OwnershipKept BRGenericWallet wid);
 
     private_extern BRCryptoTransfer
     cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
@@ -464,7 +464,7 @@ extern "C" {
 
     extern void
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
-                                          BRGenericTransfer transferGeneric);
+                                          OwnershipGiven BRGenericTransfer transferGeneric);
 
     private_extern void
     cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,

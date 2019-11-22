@@ -126,6 +126,12 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t utxosCount);
     
 // fee-per-kb of transaction size to use when creating a transaction
+// the wallet maintains a fee per kb that is associated with it
+// this value can be set by calls to `BRWalletSetFeePerKb` but is also set in response to `feefilter` messages
+// transactions can be created using functions that use the wallet's fee per kb or a passed in value (see
+// BRWalletCreateTransaction and BRWalletCreateTransactionWithFeePerKb for example); the latter is to support
+// cases where a specific feePerKb value is desired, so as to avoid having to get the wallet's feePerKb, set a
+// new value, create a transaction and then restore the wallet's feePerKb (which potentially races against P2P updates)
 uint64_t BRWalletFeePerKb(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
@@ -133,9 +139,19 @@ void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 // result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr);
 
+// returns an unsigned transaction that sends the specified amount from the wallet to the given address
+// result must be freed using BRTransactionFree()
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+BRTransaction *BRWalletCreateTransactionWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, uint64_t amount, const char *addr);
+
 // returns an unsigned transaction that satisifes the given transaction outputs
 // result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount);
+
+// returns an unsigned transaction that satisifes the given transaction outputs
+// result must be freed using BRTransactionFree()
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+BRTransaction *BRWalletCreateTxForOutputsWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, const BRTxOutput outputs[], size_t outCount);
 
 // signs any inputs in tx that can be signed using private keys from the wallet
 // forkId is 0 for bitcoin, 0x40 for b-cash
@@ -193,11 +209,23 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 // fee that will be added for a transaction of the given amount
 uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount);
 
+// fee that will be added for a transaction of the given amount
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletFeeForTxAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb, uint64_t amount);
+
 // outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet);
 
+// outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletMinOutputAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb);
+
 // maximum amount that can be sent from the wallet to a single address after fees
 uint64_t BRWalletMaxOutputAmount(BRWallet *wallet);
+
+// maximum amount that can be sent from the wallet to a single address after fees
+// use feePerKb UINT64_MAX to indicate that the wallet feePerKb should be used
+uint64_t BRWalletMaxOutputAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
 // frees memory allocated for wallet, and calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet);

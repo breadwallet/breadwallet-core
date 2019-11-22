@@ -3342,7 +3342,7 @@ extern int BRRunTestsSync (const char *paperKey,
         err = usleep(100000);
     }
 
-    printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
+    printf ("***\n*** PaperKey (Done): \"%s\"\n***\n***\n", paperKey);
     BRPeerManagerDisconnect(pm);
     BRPeerManagerFree(pm);
     BRWalletFree(wallet);

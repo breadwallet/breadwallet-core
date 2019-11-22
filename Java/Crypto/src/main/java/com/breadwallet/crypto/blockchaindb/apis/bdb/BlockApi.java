@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -31,8 +33,14 @@ public class BlockApi {
         this.executorService = executorService;
     }
 
-    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
-                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
+    public void getBlocks(String id,
+                          UnsignedLong beginBlockNumber,
+                          UnsignedLong endBlockNumber,
+                          boolean includeRaw,
+                          boolean includeTx,
+                          boolean includeTxRaw,
+                          boolean includeTxProof,
+                          @Nullable Integer maxPageSize,
                           CompletionHandler<List<Block>, QueryError> handler) {
         ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
         paramsBuilder.put("blockchain_id", id);
@@ -42,6 +50,7 @@ public class BlockApi {
         paramsBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
         paramsBuilder.put("start_height", beginBlockNumber.toString());
         paramsBuilder.put("end_height", endBlockNumber.toString());
+        if (null != maxPageSize) paramsBuilder.put("max_page_size", maxPageSize.toString());
         ImmutableMultimap<String, String> params = paramsBuilder.build();
 
         PagedCompletionHandler<List<Block>, QueryError> pagedHandler = createPagedResultsHandler(handler);

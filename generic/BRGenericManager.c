@@ -59,6 +59,9 @@ struct BRGenericManagerRecord {
     BRGenericClient client;
     char *storagePath;
 
+    /** The primary wallet */
+    BRGenericWallet wallet;
+
     /** The file service */
     BRFileService fileService;
 
@@ -126,16 +129,16 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (7 == itemsCount);
+    assert (8 == itemsCount);
 
-    BRRlpData hashData = rlpDecodeBytes (coder, items[0]);
-    char *strSource = rlpDecodeString  (coder, items[1]);
-    char *strTarget = rlpDecodeString  (coder, items[2]);
-    UInt256 amount  = rlpDecodeUInt256 (coder, items[3], 0);
-    char *currency  = rlpDecodeString  (coder, items[4]);
-    BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[5], coder);
-    BRGenericTransferState state = genTransferStateDecode (items[6], coder);
-
+    BRRlpData hashData = rlpDecodeBytes(coder, items[0]);
+    char *strUids   = rlpDecodeString  (coder, items[1]);
+    char *strSource = rlpDecodeString  (coder, items[2]);
+    char *strTarget = rlpDecodeString  (coder, items[3]);
+    UInt256 amount  = rlpDecodeUInt256 (coder, items[4], 0);
+    char *currency  = rlpDecodeString  (coder, items[5]);
+    BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[6], coder);
+    BRGenericTransferState state = genTransferStateDecode (items[7], coder);
 
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
@@ -156,16 +159,17 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                             : GENERIC_TRANSFER_BLOCK_NUMBER_UNKNOWN);
 
     // Derive `wallet` from currency
-    BRGenericWallet  wallet = genManagerCreatePrimaryWallet (gwm);
+    BRGenericWallet  wallet = genManagerGetPrimaryWallet (gwm);
 
     BRGenericTransfer transfer = genManagerRecoverTransfer (gwm, wallet, strHash,
-                                          strSource,
-                                          strTarget,
-                                          strAmount,
-                                          currency,
-                                          strFee,
-                                          timestamp,
-                                          blockHeight);
+                                                            strUids,
+                                                            strSource,
+                                                            strTarget,
+                                                            strAmount,
+                                                            currency,
+                                                            strFee,
+                                                            timestamp,
+                                                            blockHeight);
 
     free (strFee);
     free (strAmount);
@@ -173,6 +177,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     free (currency);
     free (strTarget);
     free (strSource);
+    free (strUids);
 
     rlpReleaseItem (coder, item);
     rlpCoderRelease(coder);
@@ -200,8 +205,9 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     char *strSource = genAddressAsString(source);
     char *strTarget = genAddressAsString(target);
 
-    BRRlpItem item = rlpEncodeList (coder, 7,
+    BRRlpItem item = rlpEncodeList (coder, 8,
                                     rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
+                                    rlpEncodeString (coder, transfer->uids),
                                     rlpEncodeString (coder, strSource),
                                     rlpEncodeString (coder, strTarget),
                                     rlpEncodeUInt256 (coder, amount, 0),
@@ -254,6 +260,7 @@ genManagerCreate (BRGenericClient client,
     gwm->network = network;
     gwm->account = account;
     gwm->client  = client;
+    gwm->wallet  = genWalletCreate (account);
     gwm->storagePath = strdup (storagePath);
     gwm->blockHeight = (uint32_t) blockHeight;
     gwm->requestId = 0;
@@ -312,6 +319,11 @@ genManagerCreate (BRGenericClient client,
 extern void
 genManagerRelease (BRGenericManager gwm) {
     genManagerDisconnect (gwm);
+    genWalletRelease (gwm->wallet);
+
+    fileServiceRelease (gwm->fileService);
+    eventHandlerDestroy (gwm->handler);
+    free (gwm->storagePath);
     free (gwm);
 }
 
@@ -336,6 +348,11 @@ genManagerGetClient (BRGenericManager gwm) {
     return gwm->client;
 }
 
+extern BRGenericWallet
+genManagerGetPrimaryWallet (BRGenericManager gwm) {
+   return gwm->wallet;
+}
+
 extern void
 genManagerConnect (BRGenericManager gwm) {
     eventHandlerStart (gwm->handler);
@@ -356,11 +373,6 @@ genManagerSync (BRGenericManager gwm) {
 extern BRGenericAddress
 genManagerGetAccountAddress (BRGenericManager gwm) {
     return genAccountGetAddress (gwm->account);
-}
-
-extern BRGenericWallet
-genManagerCreatePrimaryWallet (BRGenericManager gwm) {
-    return genWalletCreate(gwm->account);
 }
 
 extern int
@@ -403,6 +415,7 @@ extern BRGenericTransfer
 genManagerRecoverTransfer (BRGenericManager gwm,
                            BRGenericWallet wallet,
                            const char *hash,
+                           const char *uids,
                            const char *from,
                            const char *to,
                            const char *amount,
@@ -412,6 +425,8 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            uint64_t blockHeight) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
                                                           gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
+
+    transfer->uids = strdup (uids);
 
     BRGenericAddress  source   = genTransferGetSourceAddress (transfer);
     BRGenericAddress  target   = genTransferGetTargetAddress (transfer);
@@ -509,7 +524,8 @@ genManagerPeriodicDispatcher (BREventHandler handler,
 
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
-        char *address = genAddressAsString (genManagerGetAccountAddress(gwm));
+        BRGenericAddress accountAddress = genManagerGetAccountAddress(gwm);
+        char *address = genAddressAsString (accountAddress);
         
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;
@@ -536,14 +552,23 @@ genManagerPeriodicDispatcher (BREventHandler handler,
                                          gwm->requestId++);
         }
 
-        // TODO: Handle address
-        // free (address);
+
+        free (address);
+        genAddressRelease(accountAddress);
 
         // 3c) Mark as not completed
         gwm->brdSync.completed = 0;
     }
 
     // End handling a BRD Sync
+}
+
+extern void
+genManagerWipe (BRGenericNetwork network,
+                const char *storagePath) {
+        fileServiceWipe (storagePath,
+                         genNetworkGetType(network),
+                         genNetworkIsMainnet (network) ? "mainnet" : "testnet");
 }
 
 /// MARK: - Announce

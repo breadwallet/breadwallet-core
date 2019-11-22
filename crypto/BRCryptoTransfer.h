@@ -209,6 +209,28 @@ extern "C" {
     extern BRCryptoBoolean
     cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
 
+    /**
+     * Compares two transfers.
+     *
+     * The transfers are ordered according to the following algorithm:
+     *   - IF neither transfer is in the INCLUDED state, they are ordered by pointer identity
+     *   - ELSE IF one transfer is in the INCLUDED state, it is "lesser than" one that is NOT
+     *   - ELSE both are in the INCLUDED state, order by timestamp, block number and transaction
+     *     index (in that order), with those values being compared by magnitude
+     *
+     * In practice, this means that:
+     *   - Transfer A (INCLUDED at time 0, block 0, index 0) is lesser than
+     *   - Transfer B (INCLUDED at time 0, block 0, index 1) is lesser than
+     *   - Transfer C (INCLUDED at time 0, block 1, index 0) is lesser than
+     *   - Transfer D (INCLUDED at time 1, block 0, index 0) is lesser than
+     *   - Transfer E (CREATED with pointer 0x10000000) is lesser than
+     *   - Transfer F (SIGNED  with pointer 0x20000000) is lesser than
+     *   - Transfer G (CREATED with pointer 0x30000000) is lesser than
+     *   - Transfer H (DELETED with pointer 0x40000000)
+     */
+    extern BRCryptoComparison
+    cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
 
 #ifdef __cplusplus

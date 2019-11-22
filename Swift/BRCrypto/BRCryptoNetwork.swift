@@ -192,7 +192,7 @@ public final class Network: CustomStringConvertible {
                 core = cryptoNetworkCreateAsETHForRinkeby (uids, name)
             }
             else {
-                precondition (false)
+                preconditionFailure()
             }
 
         default:

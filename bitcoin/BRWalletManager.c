@@ -64,6 +64,8 @@ getNetworkName (const BRChainParams *params) {
         params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "testnet";
 
+    // this should never happen!
+    assert (0);
     return NULL;
 }
 
@@ -77,6 +79,8 @@ getCurrencyName (const BRChainParams *params) {
         params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "bch";
 
+    // this should never happen!
+    assert (0);
     return NULL;
 }
 
@@ -395,6 +399,8 @@ BRWalletSweeperValidate (BRWalletSweeper sweeper) {
 /// MARK: - Transaction Tracking
 
 /**
+ * A Word About Ownership
+ *
  * The BRWallet has ownership over its set of transactions. As a result, it is not safe
  * for the BRWalletManager to access a transaction owned by its wrapped BRWallet, as that
  * transaction may be deleted at any time by the wallet.
@@ -408,6 +414,39 @@ BRWalletSweeperValidate (BRWalletSweeper sweeper) {
  * The key to this design is that the `refedTransaction` is NEVER, EVER dereferenced. It is
  * used solely for lookups based on identify in callbacks from the BRWallet and
  * BRPeerManager (via the BRSyncManager).
+ *
+ *
+ * A Word About State
+ *
+ * Some of the other currency impls (ex: ethereum, generic crypto) have the concept of
+ * transaction state that is persisted alongside the raw transaction bytes. We do not
+ * track that information in the Bitcoin logic, to the same degree, as we are leveraging
+ * the behaviour of the existing BRWallet code, as well as the behaviour of the
+ * BRSyncManager/BRPeerManager. Specifically, we are leveraging the fact that a transaction
+ * is only added to the wallet if it has been broadcast to the Bitcoin network (see:
+ * usage of BRWalletRegisterTransaction).
+ *
+ * To understand why, here is a breakdown of each conceptual state present in the Generic
+ * Crypto codebase:
+ *
+ *  - DELETED: Do not persist; by definition, we don't persist something that is deleted.
+ *  - CREATED: Do not persist; no value to it. If a user wants to create many transactions
+ *             but not submit them, this would clutter the persistent store.
+ *  - SIGNED: Do not persist; no value to it. Like created, transactions that have yet to
+ *            to be submitted don't need to be persisted.
+ *  - ERRORED: Do not persist. This one is a tricky one. For now, the decision has been
+ *             made not to persist these. One could argue that there is value in having
+ *             a persistent record of transactions that have been attempted to submit but
+ *             failed. Ultimately, in the interest of simplicity, these are NOT persisted as
+ *             for both API and P2P mode, these will not be registered to the wallet and
+ *             thus do not need to be stored for the wallet to be logically consistent on
+ *             re-instantiation.
+ *  - INCLUDED: Do persist!
+ *  - SUBMITTED: Do persist!
+ *
+ * As you can see from the above possible states, only INCLUDED and SUBMITTED provide value.
+ * Since both of these are derived from the existing BRTransaction fields (namely height and
+ * tiemstamp), we do NOT need to persist a state field alongside the BRTransaction data.
  */
 
 struct BRTransactionWithStateStruct {
@@ -616,6 +655,7 @@ initialTransactionsLoad (BRWalletManager manager) {
     BRSetOf(BRTransaction*) transactionSet = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
     if (1 != fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1)) {
         BRSetFreeAll(transactionSet, (void (*) (void*)) BRTransactionFree);
+        _peer_log ("BWM: failed to load transactions");
         return NULL;
     }
 
@@ -628,6 +668,7 @@ initialTransactionsLoad (BRWalletManager manager) {
     BRSetAll(transactionSet, (void**) transactions, transactionsCount);
     BRSetFree(transactionSet);
 
+    _peer_log ("BWM: loaded %zu transactions", transactionsCount);
     return transactions;
 }
 
@@ -699,6 +740,7 @@ initialBlocksLoad (BRWalletManager manager) {
     BRSetOf(BRMerkleBlock*) blockSet = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, 100);
     if (1 != fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1)) {
         BRSetFreeAll(blockSet, (void (*) (void*)) BRMerkleBlockFree);
+        _peer_log ("BWM: failed to load blocks");
         return NULL;
     }
 
@@ -711,6 +753,7 @@ initialBlocksLoad (BRWalletManager manager) {
     BRSetAll(blockSet, (void**) blocks, blocksCount);
     BRSetFree(blockSet);
 
+    _peer_log ("BWM: loaded %zu blocks", blocksCount);
     return blocks;
 }
 
@@ -797,6 +840,7 @@ initialPeersLoad (BRWalletManager manager) {
     BRSetOf(BRPeer*) peerSet = BRSetNew(BRPeerHash, BRPeerEq, 100);
     if (1 != fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1)) {
         BRSetFreeAll(peerSet, free);
+        _peer_log ("BWM: failed to load peers");
         return NULL;
     }
 
@@ -808,6 +852,7 @@ initialPeersLoad (BRWalletManager manager) {
     FOR_SET (BRPeer*, peer, peerSet) array_add (peers, *peer);
     BRSetFreeAll(peerSet, free);
 
+    _peer_log ("BWM: loaded %zu peers", peersCount);
     return peers;
 }
 
@@ -818,24 +863,24 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
     switch (error.type) {
         case FILE_SERVICE_IMPL:
             // This actually a FATAL - an unresolvable coding error.
-            _peer_log ("bread: FileService Error: IMPL: %s", error.u.impl.reason);
+            _peer_log ("BWM: FileService Error: IMPL: %s", error.u.impl.reason);
             break;
         case FILE_SERVICE_UNIX:
-            _peer_log ("bread: FileService Error: UNIX: %s", strerror(error.u.unix.error));
+            _peer_log ("BWM: FileService Error: UNIX: %s", strerror(error.u.unix.error));
             break;
         case FILE_SERVICE_ENTITY:
             // This is likely a coding error too.
-            _peer_log ("bread: FileService Error: ENTITY (%s): %s",
+            _peer_log ("BWM: FileService Error: ENTITY (%s): %s",
                      error.u.entity.type,
                      error.u.entity.reason);
             break;
         case FILE_SERVICE_SDB:
-            _peer_log ("bread: FileService Error: SDB: (%d): %s",
+            _peer_log ("BWM: FileService Error: SDB: (%d): %s",
                        error.u.sdb.code,
                        error.u.sdb.reason);
             break;
     }
-    _peer_log ("bread: FileService Error: FORCED SYNC%s", "");
+    _peer_log ("BWM: FileService Error: FORCED SYNC%s", "");
 
     // BRWalletManager bwm = (BRWalletManager) context;
     // TODO(fix): What do we actually want to happen here?
@@ -894,11 +939,38 @@ static_on_release size_t fileServiceSpecificationsCount = (sizeof (fileServiceSp
 
 static BRWalletManager
 bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
-    if (NULL != bwm) free (bwm);
-    if (fileService)
-        _peer_log ("bread: on bwmCreate: FileService Error: %s", reason);
-    else
-        _peer_log ("bread: on bwmCreate: Error: %s", reason);
+    if (fileService) {
+        _peer_log ("BWM: on bwmCreate: FileService Error: %s", reason);
+    } else {
+        _peer_log ("BWM: on bwmCreate: Error: %s", reason);
+    }
+
+    if (NULL != bwm) {
+        if (NULL != bwm->handler) {
+            eventHandlerDestroy (bwm->handler);
+        }
+
+        if (NULL != bwm->fileService) {
+            fileServiceRelease (bwm->fileService);
+        }
+
+        if (NULL != bwm->syncManager) {
+            BRSyncManagerFree (bwm->syncManager);
+        }
+
+        if (NULL != bwm->transactions) {
+            BRWalletManagerFreeTransactions (bwm);
+        }
+
+        if (NULL != bwm->wallet) {
+            BRWalletFree (bwm->wallet);
+        }
+
+        pthread_mutex_destroy (&bwm->lock);
+
+        memset (bwm, 0, sizeof(*bwm));
+        free (bwm);
+    }
 
     return NULL;
 }
@@ -915,16 +987,15 @@ BRWalletManagerNew (BRWalletManagerClient client,
     assert (mode == SYNC_MODE_BRD_ONLY || SYNC_MODE_P2P_ONLY);
 
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
-    if (NULL == bwm) return bwmCreateErrorHandler (NULL, 0, "allocate");
+    if (NULL == bwm) {
+        return bwmCreateErrorHandler (NULL, 0, "allocate");
+    }
 
     bwm->mode = mode;
     bwm->client = client;
     bwm->chainParams = params;
     bwm->earliestKeyTime = earliestKeyTime;
     bwm->sleepWakeupsForSyncTickTock = 0;
-
-    const char *networkName  = getNetworkName  (params);
-    const char *currencyName = getCurrencyName (params);
 
     {
         pthread_mutexattr_t attr;
@@ -954,12 +1025,16 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
+    const char *networkName  = getNetworkName  (params);
+    const char *currencyName = getCurrencyName (params);
     bwm->fileService = fileServiceCreateFromTypeSpecfications (baseStoragePath, currencyName, networkName,
                                                                bwm,
                                                                bwmFileServiceErrorHandler,
                                                                fileServiceSpecificationsCount,
                                                                fileServiceSpecifications);
-    if (NULL == bwm->fileService) return bwmCreateErrorHandler (bwm, 1, "create");
+    if (NULL == bwm->fileService) {
+        return bwmCreateErrorHandler (bwm, 1, "create");
+    }
 
     /// Load transactions for the wallet manager.
     BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(bwm);
@@ -984,7 +1059,14 @@ BRWalletManagerNew (BRWalletManagerClient client,
     array_new(bwm->transactions, array_count(transactions));
 
     // Create the Wallet being managed and populate with the loaded transactions
+    _peer_log ("BWM: initializing wallet with %zu transactions", array_count(transactions));
     bwm->wallet = BRWalletNew (params->addrParams, transactions, array_count(transactions), mpk);
+    if (NULL == bwm->wallet) {
+        array_free(transactions); array_free(blocks); array_free(peers);
+        return bwmCreateErrorHandler (bwm, 0, "wallet");
+    }
+
+    // Set the callbacks if the wallet has been created successfully
     BRWalletSetCallbacks (bwm->wallet, bwm,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,
@@ -993,6 +1075,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     // Create the SyncManager responsible for interacting with the P2P network or delegating to a client
     // for retrieving blockchain data
+    _peer_log ("BWM: initializing sync manager with %zu blocks and %zu peers",
+               array_count(blocks), array_count(peers));
     bwm->syncManager = BRSyncManagerNewForMode (mode,
                                                 bwm,
                                                 _BRWalletManagerSyncEvent,
@@ -1155,6 +1239,14 @@ BRWalletManagerSetFixedPeer (BRWalletManager manager,
 }
 
 extern void
+BRWalletManagerWipe (const BRChainParams *params,
+                      const char *baseStoragePath) {
+    const char *networkName  = getNetworkName  (params);
+    const char *currencyName = getCurrencyName (params);
+    fileServiceWipe (baseStoragePath, currencyName, networkName);
+}
+
+extern void
 BRWalletManagerScan (BRWalletManager manager) {
     BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
 }
@@ -1216,6 +1308,8 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
         manager->mode = mode;
 
         // create the new sync manager
+        _peer_log ("BWM: initializing sync manager with %zu blocks and %zu peers",
+                   array_count(blocks), array_count(peers));
         manager->syncManager = BRSyncManagerNewForMode (mode,
                                                         manager,
                                                         _BRWalletManagerSyncEvent,
@@ -1265,12 +1359,7 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr.s);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
+    BRTransaction *transaction = BRWalletCreateTransactionWithFeePerKb (wallet, feePerKb, amount, addr.s);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
     pthread_mutex_unlock (&manager->lock);
 
@@ -1325,12 +1414,7 @@ BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
+    BRTransaction *transaction = BRWalletCreateTxForOutputsWithFeePerKb (wallet, feePerKb, outputs, outputsLen);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
     pthread_mutex_unlock (&manager->lock);
 
@@ -1444,12 +1528,8 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmount (wallet, transferAmount));
+    uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmountWithFeePerKb (wallet, feePerKb, transferAmount));
     uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
-    BRWalletSetFeePerKb (wallet, feePerKBSaved);
     pthread_mutex_unlock (&manager->lock);
 
     bwmSignalWalletEvent(manager,
@@ -1493,11 +1573,7 @@ BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
-    BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
-    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+    BRTransaction *transaction = BRWalletCreateTxForOutputsWithFeePerKb (wallet, feePerKb, outputs, outputsLen);
 
     uint64_t fee = 0;
     if (NULL != transaction) {
@@ -1629,6 +1705,16 @@ bwmHandleTxAdded (BRWalletManager manager,
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_ADDED
                               });
+
+    bwmSignalTransactionEvent (manager,
+                               manager->wallet,
+                               BRTransactionWithStateGetOwned (txnWithState),
+                               (BRTransactionEvent) {
+                               BITCOIN_TRANSACTION_UPDATED,
+                                   { .updated = {
+                                       BRTransactionWithStateGetOwned (txnWithState)->blockHeight,
+                                       BRTransactionWithStateGetOwned (txnWithState)->timestamp }}
+                               });
 }
 
 extern void
@@ -1717,11 +1803,10 @@ _BRWalletManagerSyncEvent(void * context,
     switch (event.type) {
         case SYNC_MANAGER_SET_BLOCKS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceClear(bwm->fileService, fileServiceTypeBlocks);
-
-            // !!!!!!!!!
-            // no break;
-            // !!!!!!!!!
+            fileServiceReplace (bwm->fileService, fileServiceTypeBlocks,
+                                (const void **) event.u.blocks.blocks,
+                                event.u.blocks.count);
+            break;
         }
         case SYNC_MANAGER_ADD_BLOCKS: {
             // filesystem changes are NOT queued; they are acted upon immediately
@@ -1729,14 +1814,12 @@ _BRWalletManagerSyncEvent(void * context,
                 fileServiceSave (bwm->fileService, fileServiceTypeBlocks, event.u.blocks.blocks[index]);
             break;
         }
-
         case SYNC_MANAGER_SET_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceClear(bwm->fileService, fileServiceTypePeers);
-
-            // !!!!!!!!!
-            // no break;
-            // !!!!!!!!!
+            fileServiceReplace (bwm->fileService, fileServiceTypePeers,
+                                (const void **) event.u.peers.peers,
+                                event.u.peers.count);
+            break;
         }
         case SYNC_MANAGER_ADD_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
@@ -1744,7 +1827,6 @@ _BRWalletManagerSyncEvent(void * context,
                 fileServiceSave (bwm->fileService, fileServiceTypePeers, &event.u.peers.peers[index]);
             break;
         }
-
         case SYNC_MANAGER_CONNECTED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {

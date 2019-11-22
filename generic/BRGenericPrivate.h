@@ -19,26 +19,26 @@
 #define private_extern extern
 #endif
 
-#define DECLARE_GENERIC_TYPE(name)            \
-struct BRGeneric##name##Record {              \
-  const char *type;                           \
-  BRGeneric##name##Handlers handlers;         \
-  BRGeneric##name##Ref ref;                   \
-};                                            \
-private_extern BRGeneric##name                \
-gen##name##AllocAndInit (const char *type,    \
-                         BRGeneric##name##Ref ref);
+#define DECLARE_GENERIC_TYPE(name)                \
+    struct BRGeneric##name##Record {              \
+      const char *type;                           \
+      BRGeneric##name##Handlers handlers;         \
+      BRGeneric##name##Ref ref;                   \
+    };                                            \
+    private_extern BRGeneric##name                \
+    gen##name##AllocAndInit (const char *type,    \
+                             BRGeneric##name##Ref ref);
 
-#define IMPLEMENT_GENERIC_TYPE(name,field)         \
-private_extern BRGeneric##name                     \
-gen##name##AllocAndInit (const char *type,         \
-                         BRGeneric##name##Ref ref) { \
-  BRGeneric##name __obj = calloc (1, sizeof (struct BRGeneric##name##Record)); \
-  __obj->type = type;                              \
-  __obj->handlers = genHandlerLookup(type)->field; \
-  __obj->ref = ref;                                \
-  return __obj;                                    \
-}
+#define IMPLEMENT_GENERIC_TYPE(name,field)             \
+    private_extern BRGeneric##name                     \
+    gen##name##AllocAndInit (const char *type,         \
+                             BRGeneric##name##Ref ref) { \
+      BRGeneric##name __obj = calloc (1, sizeof (struct BRGeneric##name##Record)); \
+      __obj->type = type;                              \
+      __obj->handlers = genHandlerLookup(type)->field; \
+      __obj->ref = ref;                                \
+      return __obj;                                    \
+    }
 
 struct BRGenericNetworkRecord {
     const char *type;
@@ -58,6 +58,7 @@ DECLARE_GENERIC_TYPE(Address)
 
 struct BRGenericTransferRecord {
     const char *type;
+    char *uids;
     BRGenericTransferHandlers handlers;
     BRGenericTransferRef ref;
     BRGenericTransferState state;

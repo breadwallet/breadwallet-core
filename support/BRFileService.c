@@ -208,6 +208,17 @@ fileServiceCreateReturnError (BRFileService fs,
     return NULL;
 }
 
+static char *
+fileServiceCreateFilePath (const char *basePath,
+                           const char *currency,
+                           const char *network,
+                           const char *filename) {
+    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (filename) + 1;
+    char   *sdbPath      = malloc (sdbPathLength);
+    sprintf (sdbPath, "%s/%s-%s-%s", basePath, currency, network, filename);
+    return sdbPath;
+}
+
 extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
@@ -258,9 +269,7 @@ fileServiceCreate (const char *basePath,
     fs->network  = strdup (network);
 
     // Locate the SQLITE Database
-    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
-    fs->sdbPath = malloc (sdbPathLength);
-    sprintf (fs->sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+    fs->sdbPath = fileServiceCreateFilePath (basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
 
     // Create/Open the SQLITE Database
     sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
@@ -607,6 +616,9 @@ _fileServiceSave (BRFileService fs,
         return fileServiceFailedSDB (fs, needLock, status);
     }
 
+    // Ensure the 'implicit DB transaction' is committed.
+    sqlite3_reset (fs->sdbInsertStmt);
+
     if (needLock)
         pthread_mutex_unlock (&fs->lock);
 
@@ -641,6 +653,7 @@ fileServiceLoad (BRFileService fs,
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbSelectAllStmt);
+    sqlite3_clear_bindings (fs->sdbSelectAllStmt);
 
     status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -730,6 +743,10 @@ fileServiceLoad (BRFileService fs,
             // but we'll continue and will try next time we load it.
             _fileServiceSave (fs, type, entity, 0);
     }
+
+    // Ensure the 'implicit DB transaction' is committed.
+    sqlite3_reset (fs->sdbSelectAllStmt);
+
     pthread_mutex_unlock (&fs->lock);
 
     if (dataBytes != dataBytesBuffer) free (dataBytes);
@@ -757,6 +774,7 @@ fileServiceRemove (BRFileService fs,
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteStmt);
+    sqlite3_clear_bindings (fs->sdbDeleteStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -770,6 +788,9 @@ fileServiceRemove (BRFileService fs,
     if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
+    // Ensure the 'implicit DB transaction' is committed.
+    sqlite3_reset (fs->sdbDeleteStmt);
+
     pthread_mutex_unlock (&fs->lock);
 
     return 1;
@@ -777,16 +798,18 @@ fileServiceRemove (BRFileService fs,
 
 static int
 fileServiceClearForType (BRFileService fs,
-                         BRFileServiceEntityType *entityType) {
+                         BRFileServiceEntityType *entityType,
+                         int needLock) {
     const char *type = entityType->type;
 
     sqlite3_status_code status;
 
-    pthread_mutex_lock (&fs->lock);
+    if (needLock) pthread_mutex_lock (&fs->lock);
     if (fs->sdbClosed)
         return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
+    sqlite3_clear_bindings (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -796,7 +819,10 @@ fileServiceClearForType (BRFileService fs,
     if (SQLITE_DONE != status)
         return fileServiceFailedSDB (fs, 1, status);
 
-    pthread_mutex_unlock (&fs->lock);
+    // Ensure the 'implicit DB transaction' is committed.
+    sqlite3_reset (fs->sdbDeleteAllTypeStmt);
+
+    if (needLock) pthread_mutex_unlock (&fs->lock);
 
     return 1;
 }
@@ -808,7 +834,7 @@ fileServiceClear (BRFileService fs,
     if (NULL == entityType)
         return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
-    return fileServiceClearForType(fs, entityType);
+    return fileServiceClearForType(fs, entityType, 1);
 }
 
 extern int
@@ -816,8 +842,63 @@ fileServiceClearAll (BRFileService fs) {
     int success = 1;
     size_t typeCount = array_count(fs->entityTypes);
     for (size_t index = 0; index < typeCount; index++)
-        success &= fileServiceClearForType (fs, &fs->entityTypes[index]);
+        success &= fileServiceClearForType (fs, &fs->entityTypes[index], 1);
     return success;
+}
+
+static int
+fileServiceReplaceFailed (BRFileService fs, int needUnlock) {
+    if (needUnlock) pthread_mutex_unlock (&fs->lock);
+    return 0;
+}
+
+extern int
+fileServiceReplace (BRFileService fs,
+                    const char *type,
+                    const void **entities,
+                    size_t entitiesCount) {
+    BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
+    if (NULL == entityType)
+        return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
+
+    sqlite3_status_code status;
+
+    pthread_mutex_lock (&fs->lock);
+    if (fs->sdbClosed)
+        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+
+    status = sqlite3_exec (fs->sdb, "BEGIN", NULL, NULL, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    if (0 == fileServiceClearForType (fs, entityType, 0))
+        return fileServiceReplaceFailed (fs, 1);
+
+    for (size_t index = 0; index < entitiesCount; index++)
+        if (0 == _fileServiceSave (fs, type, entities[index], 0))
+            return fileServiceReplaceFailed (fs, 1);
+
+    status = sqlite3_exec (fs->sdb, "COMMIT", NULL, NULL, NULL);
+    if (SQLITE_OK != status)
+        return fileServiceFailedSDB (fs, 1, status);
+
+    pthread_mutex_unlock (&fs->lock);
+
+    return 1;
+}
+
+extern int
+fileServiceWipe (const char *basePath,
+                 const char *currency,
+                 const char *network) {
+
+    // Locate the SQLITE Database
+    char *sdbPath = fileServiceCreateFilePath (basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+
+    // Remove it.
+    int   result  = 0 == remove (sdbPath) ? 0 : errno;
+    free (sdbPath);
+    return result;
 }
 
 extern UInt256

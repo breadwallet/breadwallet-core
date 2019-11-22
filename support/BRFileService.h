@@ -139,6 +139,12 @@ fileServiceRemove (BRFileService fs,
                    UInt256 identifier);
 
 extern int
+fileServiceReplace (BRFileService fs,
+                    const char *type,
+                    const void **entities,
+                    size_t entitiesCount);
+
+extern int
 fileServiceClear (BRFileService fs,
                   const char *type);
 
@@ -231,5 +237,19 @@ fileServiceCreateFromTypeSpecfications (const char *basePath,
                                         BRFileServiceErrorHandler handler,
                                         size_t specificationsCount,
                                         BRFileServiceTypeSpecification *specfications);
+
+///
+/// Deletes file system data
+///
+/// @param basePath
+/// @param currency
+/// @param network
+///
+/// @return 0 on success, errno on failure
+///
+extern int
+fileServiceWipe (const char *basePath,
+                 const char *currency,
+                 const char *network);
 
 #endif /* BRFileService_h */
