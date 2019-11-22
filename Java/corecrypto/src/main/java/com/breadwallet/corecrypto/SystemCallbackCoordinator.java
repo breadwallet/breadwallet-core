@@ -8,7 +8,9 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.utility.Cookie;
+import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 
 import java.util.Map;
@@ -54,5 +56,15 @@ final class SystemCallbackCoordinator {
         if (null != handler) {
             executor.submit(() -> handler.handleError(error));
         }
+    }
+
+    /* package */
+    void completeLimitEstimateWithSuccess(CompletionHandler<Amount, LimitEstimationError> handler, Amount amount) {
+        executor.submit(() -> handler.handleData(amount));
+    }
+
+    /* package */
+    void completeLimitEstimateWithError(CompletionHandler<Amount, LimitEstimationError> handler, LimitEstimationError error) {
+        executor.submit(() -> handler.handleError(error));
     }
 }

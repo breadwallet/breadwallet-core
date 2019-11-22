@@ -8,4 +8,10 @@
 package com.breadwallet.crypto.errors;
 
 public final class FeeEstimationInsufficientFundsError extends FeeEstimationError {
+
+    @Override
+    /* package */
+    LimitEstimationError toLimitEstimationError() {
+        return new LimitEstimationInsufficientFundsError();
+    }
 }
