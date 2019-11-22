@@ -249,18 +249,18 @@ public final class Wallet: Equatable {
             .map ({ Amount (core: $0, take: false)})
             else {
                 // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
-                completion (Result.failure (LimitEstimationError.insufficientFunds))
+                estimateLimitCompleteInQueue (completion,
+                                              Result.failure (LimitEstimationError.insufficientFunds))
                 return;
         }
 
         // If we don't need an estimate, then we invoke `completion` and skip out immediately.  But
         // include a check on a zero amount - which indicates insufficient funds.
         if CRYPTO_FALSE == needFeeEstimate {
-            system.queue.async {
-                completion (CRYPTO_TRUE == isZeroIfInsuffientFunds && amount.isZero
-                    ? Result.failure (LimitEstimationError.insufficientFunds)
-                    : Result.success (amount))
-            }
+            estimateLimitCompleteInQueue (completion,
+                                          (CRYPTO_TRUE == isZeroIfInsuffientFunds && amount.isZero
+                                            ? Result.failure (LimitEstimationError.insufficientFunds)
+                                            : Result.success (amount)))
             return
         }
 
@@ -271,11 +271,16 @@ public final class Wallet: Equatable {
 
         guard let walletForFee = self.manager.wallets
             .first (where: { $0.currency == currencyForFee })
-            else { completion (Result.failure (LimitEstimationError.serviceError)); return }
+            else {
+                estimateLimitCompleteInQueue(completion, Result.failure (LimitEstimationError.serviceError))
+                return
+
+        }
 
         // Skip out immediately if we've no balance.
         if walletForFee.balance.isZero {
-            completion (Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+            estimateLimitCompleteInQueue (completion, Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+            return
         }
 
         //
@@ -377,6 +382,13 @@ public final class Wallet: Equatable {
         }
 
         estimateFee (target: target, amount: amount, fee: fee, completion: estimationCompleter)
+    }
+
+    private func estimateLimitCompleteInQueue (_ completion: @escaping Wallet.EstimateLimitHandler,
+                                               _ result: Result<Amount, Wallet.LimitEstimationError>) {
+        system.queue.async {
+            completion (result)
+        }
     }
 
     public enum LimitEstimationError: Error {
