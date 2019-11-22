@@ -19,6 +19,7 @@
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
 #include "BRCryptoWalletManagerClient.h"
+#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {

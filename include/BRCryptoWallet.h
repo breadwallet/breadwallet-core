@@ -11,13 +11,13 @@
 #ifndef BRCryptoWallet_h
 #define BRCryptoWallet_h
 
-#include "BRBase.h"
-#include "BRCryptoFeeBasis.h"
+#include "BRCryptoStatus.h"
 #include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
 #include "BRCryptoPayment.h"
-#include "BRCryptoStatus.h"
+#include "BRCryptoFeeBasis.h"
 #include "BRCryptoTransfer.h"
+#include "support/BRBase.h"
 
 #ifdef __cplusplus
 extern "C" {

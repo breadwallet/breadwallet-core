@@ -11,8 +11,6 @@
 #ifndef BRCryptoUnit_h
 #define BRCryptoUnit_h
 
-#include <inttypes.h>
-
 #include "BRCryptoBase.h"
 #include "BRCryptoCurrency.h"
 

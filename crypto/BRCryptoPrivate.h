@@ -53,6 +53,14 @@ extern "C" {
     private_extern BRCryptoHash
     cryptoHashCreateAsGEN (BRGenericHash gen);
 
+    /// MARK: - Key
+
+    private_extern BRCryptoKey
+    cryptoKeyCreateFromKey (BRKey *key);
+
+    private_extern BRKey *
+    cryptoKeyGetCore (BRCryptoKey key);
+
     /// MARK: - Currency
 
     /**
@@ -109,6 +117,9 @@ extern "C" {
                                 BRCryptoBoolean isNegative,
                                 UInt256 value,
                                 int takeCurrency);
+
+    private_extern UInt256
+    cryptoAmountGetValue (BRCryptoAmount amount);
 
     /// MARK: - Address
 

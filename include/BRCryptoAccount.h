@@ -11,9 +11,8 @@
 #ifndef BRCryptoAccount_h
 #define BRCryptoAccount_h
 
-#include <inttypes.h>
-#include "BRInt.h"
 #include "BRCryptoBase.h"
+#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {

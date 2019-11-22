@@ -14,11 +14,13 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 
-#include "../support/BRArray.h"
+#include "support/BRBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    typedef BRBlockHeight BRCryptoBlockChainHeight;
 
     /**
      *
@@ -63,21 +65,6 @@ extern "C" {
      */
     typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
 
-#if 0
-    typedef void  *BRCryptoNetworkListenerContext;
-    typedef void (*BRCryptoNetworkListenerCreated) (BRCryptoNetworkListenerContext context,
-                                                    BRCryptoNetwork network);
-    typedef void (*BRCryptoNetworkListenerCurrency) (BRCryptoNetworkListenerContext context,
-                                                     BRCryptoNetwork network,
-                                                     BRCryptoCurrency currency);
-
-    typedef struct {
-        BRCryptoNetworkListenerContext context;
-        BRCryptoNetworkListenerCreated created;
- //       BRCryptoNetworkListenerCurrency currencyAdded;
-//        BRCryptoNetworkListenerCurrency currencyDeleted;
-    } BRCryptoNetworkListener;
-#endif
     typedef void *BRCryptoNetworkListener;
 
     extern BRCryptoBlockChainType

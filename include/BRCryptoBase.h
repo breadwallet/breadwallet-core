@@ -11,13 +11,19 @@
 #ifndef BRCryptoBase_h
 #define BRCryptoBase_h
 
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdatomic.h>
-#include "support/BRBase.h"
-#include "support/BRInt.h"
-#include "support/BRSyncMode.h"
+
 // temporary
-#include <stdio.h>
+
+#if !defined (OwnershipGiven)
+#define OwnershipGiven
+#endif
+
+#if !defined (OwnershipKept)
+#define OwnershipKept
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +44,6 @@ extern "C" {
 
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
-    typedef BRBlockHeight BRCryptoBlockChainHeight;
 
     // Private-ish
     typedef enum {
@@ -47,6 +52,14 @@ extern "C" {
         BLOCK_CHAIN_TYPE_GEN
     } BRCryptoBlockChainType;
 
+    // Only for use in Swift/Java
+    typedef size_t BRCryptoCount;
+
+    // Only for use in Swift/Java
+    static inline void
+    cryptoMemoryFree (void *memory) {
+        free (memory);
+    }
 
     /// MARK: Reference Counting
 
@@ -55,8 +68,13 @@ extern "C" {
         void (*free) (void *);
     } BRCryptoRef;
 
-#if !defined (CRYPTO_REF_DEBUG)
-#define CRYPTO_REF_DEBUG 0
+#if defined (CRYPTO_REF_DEBUG)
+#include <stdio.h>
+static int cryptoRefDebug = 1;
+#define cryptoRefShow   printf
+#else
+static int cryptoRefDebug = 0;
+#define cryptoRefShow 
 #endif
 
 #define DECLARE_CRYPTO_GIVE_TAKE(type, preface)                                   \
@@ -78,7 +96,7 @@ extern "C" {
     /* keep trying to take unless object is released */                           \
     while (_c != 0 &&                                                             \
            !atomic_compare_exchange_weak (&obj->ref.count, &_c, _c + 1)) {}       \
-    if (0 != CRYPTO_REF_DEBUG && 0 == _c) { printf ("CRY: Missed: %s\n", #type); }\
+    if (cryptoRefDebug && 0 == _c) { cryptoRefShow ("CRY: Missed: %s\n", #type); }\
     return (_c != 0) ? obj : NULL;                                                \
   }                                                                               \
   extern void                                                                     \
@@ -87,7 +105,7 @@ extern "C" {
     /* catch give after release */                                                \
     assert (0 != _c);                                                             \
     if (1 == _c) {                                                                \
-        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); }      \
+        if (cryptoRefDebug) { cryptoRefShow ("CRY: Release: %s\n", #type); }      \
         obj->ref.free (obj);                                                      \
     }                                                                             \
   }
