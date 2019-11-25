@@ -21,6 +21,7 @@ module BRCryptoC [system] [extern_c] {
     header "../../include/BRCryptoHasher.h"
     header "../../include/BRCryptoSigner.h"
 
+    // This should disappear, at some point.
     explicit module Impl {
         header "../../crypto/BRCryptoPrivate.h"
     }
