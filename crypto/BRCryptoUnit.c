@@ -45,7 +45,7 @@ cryptoUnitCreateInternal (BRCryptoCurrency currency,
     return unit;
 }
 
-private_extern BRCryptoUnit
+extern BRCryptoUnit
 cryptoUnitCreateAsBase (BRCryptoCurrency currency,
                         const char *uids,
                         const char *name,
@@ -58,7 +58,7 @@ cryptoUnitCreateAsBase (BRCryptoCurrency currency,
     return unit;
 }
 
-private_extern BRCryptoUnit
+extern BRCryptoUnit
 cryptoUnitCreate (BRCryptoCurrency currency,
                   const char *uids,
                   const char *name,

@@ -31,7 +31,7 @@ struct BRCryptoNetworkFeeRecord {
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee)
 
-private_extern BRCryptoNetworkFee
+extern BRCryptoNetworkFee
 cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
                         BRCryptoAmount pricePerCostFactor,
                         BRCryptoUnit   pricePerCostFactorUnit) {
@@ -211,10 +211,6 @@ cryptoNetworkCreateAsGEN (const char *uids,
     return network;
 }
 
-private_extern void
-cryptoNetworkAnnounce (BRCryptoNetwork network) {
-}
-
 static void
 cryptoNetworkRelease (BRCryptoNetwork network) {
     for (size_t index = 0; index < array_count (network->associations); index++) {
@@ -284,7 +280,7 @@ cryptoNetworkGetHeight (BRCryptoNetwork network) {
     return network->height;
 }
 
-private_extern void
+extern void
 cryptoNetworkSetHeight (BRCryptoNetwork network,
                         BRCryptoBlockChainHeight height) {
     network->height = height;
@@ -295,7 +291,7 @@ cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network) {
     return network->confirmationsUntilFinal;
 }
 
-private_extern void
+extern void
 cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
                                          uint32_t confirmationsUntilFinal) {
     network->confirmationsUntilFinal = confirmationsUntilFinal;
@@ -314,7 +310,7 @@ cryptoNetworkGetCurrencyCode (BRCryptoNetwork network) {
     return cryptoCurrencyGetCode (network->currency);
 }
 
-private_extern void
+extern void
 cryptoNetworkSetCurrency (BRCryptoNetwork network,
                           BRCryptoCurrency newCurrency) {
     pthread_mutex_lock (&network->lock);
@@ -446,7 +442,7 @@ cryptoNetworkGetUnitAt (BRCryptoNetwork network,
     return unit;
 }
 
-private_extern void
+extern void
 cryptoNetworkAddCurrency (BRCryptoNetwork network,
                           BRCryptoCurrency currency,
                           BRCryptoUnit baseUnit,
@@ -464,7 +460,7 @@ cryptoNetworkAddCurrency (BRCryptoNetwork network,
     pthread_mutex_unlock (&network->lock);
 }
 
-private_extern void
+extern void
 cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
                               BRCryptoCurrency currency,
                               BRCryptoUnit unit) {
@@ -474,7 +470,7 @@ cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
     pthread_mutex_unlock (&network->lock);
 }
 
-private_extern void
+extern void
 cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                             BRCryptoNetworkFee fee) {
     pthread_mutex_lock (&network->lock);
@@ -482,7 +478,7 @@ cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
     pthread_mutex_unlock (&network->lock);
 }
 
-private_extern void
+extern void
 cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
                              const BRCryptoNetworkFee *fees,
                              size_t count) {

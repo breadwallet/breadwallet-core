@@ -178,6 +178,14 @@ extern "C" {
     extern BRCryptoWallet
     cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm);
 
+    extern void
+    cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
+
+    extern void
+    cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
+
     /**
      * Returns a newly allocated array of the managers's wallets.
      *
@@ -201,6 +209,9 @@ extern "C" {
     extern BRCryptoWallet
     cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
                                        BRCryptoCurrency currency);
+
+    extern void
+    cryptoWalletManagerStop (BRCryptoWalletManager cwm);
 
     extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm,

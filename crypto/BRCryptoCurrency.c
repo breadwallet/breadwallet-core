@@ -28,7 +28,7 @@ struct BRCryptoCurrencyRecord {
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
 
-/* private */ extern BRCryptoCurrency
+extern BRCryptoCurrency
 cryptoCurrencyCreate (const char *uids,
                       const char *name,
                       const char *code,

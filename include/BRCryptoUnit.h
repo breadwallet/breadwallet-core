@@ -18,53 +18,68 @@
 extern "C" {
 #endif
 
-    typedef struct BRCryptoUnitRecord *BRCryptoUnit;
+typedef struct BRCryptoUnitRecord *BRCryptoUnit;
 
-    extern const char *
-    cryptoUnitGetUids(BRCryptoUnit unit);
+private_extern BRCryptoUnit
+cryptoUnitCreateAsBase (BRCryptoCurrency currency,
+                        const char *uids,
+                        const char *name,
+                        const char *symbol);
 
-    extern const char *
-    cryptoUnitGetName (BRCryptoUnit unit);
+private_extern BRCryptoUnit
+cryptoUnitCreate (BRCryptoCurrency currency,
+                  const char *uids,
+                  const char *name,
+                  const char *symbol,
+                  BRCryptoUnit baseUnit,
+                  uint8_t powerOffset);
 
-    extern const char *
-    cryptoUnitGetSymbol (BRCryptoUnit unit);
 
-    /**
-     * Returns the unit's currency
-     *
-     * @param unit the Unit
-     *
-     * @return The currency w/ an incremented reference count (aka 'taken')
-     */
-    extern BRCryptoCurrency
-    cryptoUnitGetCurrency (BRCryptoUnit unit);
+extern const char *
+cryptoUnitGetUids(BRCryptoUnit unit);
 
-    extern BRCryptoBoolean
-    cryptoUnitHasCurrency (BRCryptoUnit unit,
-                           BRCryptoCurrency currency);
+extern const char *
+cryptoUnitGetName (BRCryptoUnit unit);
 
-    /**
-     * Returns the unit's base unit.  If unit is itself the base unit then unit is returned
-     *
-     * @param unit The unit
-     *
-     * @return the base unit w/ an incremented reference count (aka 'taken')
-     */
-    extern BRCryptoUnit
-    cryptoUnitGetBaseUnit (BRCryptoUnit unit);
+extern const char *
+cryptoUnitGetSymbol (BRCryptoUnit unit);
 
-    extern uint8_t
-    cryptoUnitGetBaseDecimalOffset (BRCryptoUnit unit);
+/**
+ * Returns the unit's currency
+ *
+ * @param unit the Unit
+ *
+ * @return The currency w/ an incremented reference count (aka 'taken')
+ */
+extern BRCryptoCurrency
+cryptoUnitGetCurrency (BRCryptoUnit unit);
 
-    extern BRCryptoBoolean
-    cryptoUnitIsCompatible (BRCryptoUnit u1,
-                            BRCryptoUnit u2);
+extern BRCryptoBoolean
+cryptoUnitHasCurrency (BRCryptoUnit unit,
+                       BRCryptoCurrency currency);
 
-    extern BRCryptoBoolean
-    cryptoUnitIsIdentical (BRCryptoUnit u1,
-                           BRCryptoUnit u2);
+/**
+ * Returns the unit's base unit.  If unit is itself the base unit then unit is returned
+ *
+ * @param unit The unit
+ *
+ * @return the base unit w/ an incremented reference count (aka 'taken')
+ */
+extern BRCryptoUnit
+cryptoUnitGetBaseUnit (BRCryptoUnit unit);
 
-    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit);
+extern uint8_t
+cryptoUnitGetBaseDecimalOffset (BRCryptoUnit unit);
+
+extern BRCryptoBoolean
+cryptoUnitIsCompatible (BRCryptoUnit u1,
+                        BRCryptoUnit u2);
+
+extern BRCryptoBoolean
+cryptoUnitIsIdentical (BRCryptoUnit u1,
+                       BRCryptoUnit u2);
+
+DECLARE_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit);
 
 #ifdef __cplusplus
 }

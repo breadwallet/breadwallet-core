@@ -274,7 +274,7 @@ cryptoWalletFindTransferAsGEN (BRCryptoWallet wallet,
     return transfer;
 }
 
-private_extern void
+extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
     pthread_mutex_lock (&wallet->lock);
@@ -284,7 +284,7 @@ cryptoWalletAddTransfer (BRCryptoWallet wallet,
     pthread_mutex_unlock (&wallet->lock);
 }
 
-private_extern void
+extern void
 cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
     BRCryptoTransfer walletTransfer = NULL;
     pthread_mutex_lock (&wallet->lock);

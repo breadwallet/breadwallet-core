@@ -63,41 +63,7 @@ extern "C" {
 
     /// MARK: - Currency
 
-    /**
-     * Create a currency
-     *
-     * @param uids the 'unique identifier string'.  This will be globally unique
-     * @param name the name, such as "The Breadwallet Token"
-     * @param code the code, such as "BRD"
-     * @param type the type, such a 'erc20'
-     * @param issuer the issuer or NULL.  For currency derived from an ERC20 token, the issue must
-     *    be a 'hex string' (starts with '0x') representing the Smart Contract Address.
-     *
-     * @return a currency
-     */
-    private_extern BRCryptoCurrency
-    cryptoCurrencyCreate (const char *uids,
-                          const char *name,
-                          const char *code,
-                          const char *type,
-                          const char *issuer);
-
-
     /// MARK: - Unit
-
-    private_extern BRCryptoUnit
-    cryptoUnitCreateAsBase (BRCryptoCurrency currency,
-                            const char *uids,
-                            const char *name,
-                            const char *symbol);
-
-    private_extern BRCryptoUnit
-    cryptoUnitCreate (BRCryptoCurrency currency,
-                      const char *uids,
-                      const char *name,
-                      const char *symbol,
-                      BRCryptoUnit baseUnit,
-                      uint8_t powerOffset);
 
     private_extern BRArrayOf(BRCryptoUnit)
     cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units);
@@ -248,10 +214,6 @@ extern "C" {
                                     uint32_t *timestamp);
 
     /// MARK: - Network Fee
-    private_extern BRCryptoNetworkFee
-    cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
-                            BRCryptoAmount pricePerCostFactor,
-                            BRCryptoUnit   pricePerCostFactorUnit);
 
     private_extern uint64_t
     cryptoNetworkFeeAsBTC (BRCryptoNetworkFee networkFee);
@@ -265,39 +227,12 @@ extern "C" {
     /// MARK: - Network
 
     private_extern void
-    cryptoNetworkAnnounce (BRCryptoNetwork network);
-
-    private_extern void
     cryptoNetworkSetHeight (BRCryptoNetwork network,
                             BRCryptoBlockChainHeight height);
 
     private_extern void
     cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
                                              uint32_t confirmationsUntilFinal);
-
-    private_extern void
-    cryptoNetworkSetCurrency (BRCryptoNetwork network,
-                              BRCryptoCurrency currency);
-
-    private_extern void
-    cryptoNetworkAddCurrency (BRCryptoNetwork network,
-                              BRCryptoCurrency currency,
-                              BRCryptoUnit baseUnit,
-                              BRCryptoUnit defaultUnit);
-
-    private_extern void
-    cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
-                                  BRCryptoCurrency currency,
-                                  BRCryptoUnit unit);
-
-    private_extern void
-    cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
-                                BRCryptoNetworkFee fee);
-
-    private_extern void
-    cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
-                                 const BRCryptoNetworkFee *fees,
-                                 size_t count);
 
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
@@ -394,12 +329,6 @@ extern "C" {
     cryptoWalletFindTransferAsGEN (BRCryptoWallet wallet,
                                    BRGenericTransfer gen);
 
-    private_extern void
-    cryptoWalletAddTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-
-    private_extern void
-    cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-
     /// MARK: - WalletManager
 
     private_extern BRWalletManagerClient
@@ -421,7 +350,6 @@ extern "C" {
     private_extern void
     cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                                  BRCryptoWalletManagerState state);
-
 
     private_extern void
     cryptoWalletManagerStop (BRCryptoWalletManager cwm);
@@ -455,14 +383,6 @@ extern "C" {
     private_extern BRCryptoWallet
     cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
                                         BRGenericWallet gen);
-
-    private_extern void
-    cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
-                                  BRCryptoWallet wallet);
-
-    private_extern void
-    cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
-                                  BRCryptoWallet wallet);
 
     extern void
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
