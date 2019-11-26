@@ -29,9 +29,9 @@
 #include "ethereum/ewm/BREthereumAccount.h"
 #include "ethereum/ewm/BREthereumWallet.h"
 #include "ethereum/ewm/BREthereumTransfer.h"
-#include "BREthereum.h"
+#include "ethereum/BREthereum.h"
 
-#include "test.h"
+#include "ethereum/test.h"
 
 extern const char *tokenBRDAddress;
 
