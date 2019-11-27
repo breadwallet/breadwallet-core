@@ -17,7 +17,6 @@
 #include "BRCryptoPayment.h"
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoTransfer.h"
-#include "support/BRBase.h"
 
 #ifdef __cplusplus
 extern "C" {

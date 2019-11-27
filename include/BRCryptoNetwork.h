@@ -14,13 +14,12 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 
-#include "support/BRBase.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    typedef BRBlockHeight BRCryptoBlockChainHeight;
+    // Same as: BRBlockHeight
+    typedef uint64_t BRCryptoBlockChainHeight;
 
     typedef struct BRCryptoNetworkFeeRecord *BRCryptoNetworkFee;
 

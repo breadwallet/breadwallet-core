@@ -12,24 +12,12 @@
 #define BRCryptoAccount_h
 
 #include "BRCryptoBase.h"
-#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoAccountRecord *BRCryptoAccount;
-
-    /**
-     * Given a phrase (A BIP-39 PaperKey) dervied the corresponding 'seed'.  This is used
-     * exclusive to sign transactions (BTC ones for sure).
-     *
-     * @param phrase A BIP-32 Paper Key
-     *
-     * @return A UInt512 seed
-     */
-    extern UInt512
-    cryptoAccountDeriveSeed (const char *phrase);
 
     /**
      * Generate a BIP-39 PaperKey from a BIP-39 word list

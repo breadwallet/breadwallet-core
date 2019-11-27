@@ -34,6 +34,18 @@ struct BRCryptoAccountRecord {
     BRCryptoRef ref;
 };
 
+/**
+ * Given a phrase (A BIP-39 PaperKey) dervie the corresponding 'seed'.  This is used
+ * exclusive to sign transactions (BTC ones for sure).
+ *
+ * @param phrase A BIP-32 Paper Key
+ *
+ * @return A UInt512 seed
+ */
+extern UInt512
+cryptoAccountDeriveSeed (const char *phrase);
+
+
 private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account);
 
