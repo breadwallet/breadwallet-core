@@ -12,6 +12,7 @@
 
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoUnit.h"
+#include "BRCryptoAddressP.h"
 
 #include "BRCryptoPrivate.h"
 

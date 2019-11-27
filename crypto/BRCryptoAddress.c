@@ -80,7 +80,7 @@ cryptoAddressAsGEN (BRCryptoAddress address) {
 }
 
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddress) {
     assert (btcAddress);
 
@@ -89,7 +89,7 @@ cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddre
             : NULL);
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress) {
     assert (bchAddress);
 
@@ -99,7 +99,7 @@ cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddre
             : NULL);
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     assert (ethAddress);
     BRCryptoAddress address = NULL;
@@ -110,7 +110,7 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     return address;
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsGEN (const char *ethAddress) {
     assert (0);
     return NULL;
