@@ -12,7 +12,7 @@
 #define BRCryptoAddress_h
 
 #include "BRCryptoBase.h"
-#include "support/BRAddress.h"
+#include "support/BRAddress.h"  // BRAddressParams
 
 #ifdef __cplusplus
 extern "C" {

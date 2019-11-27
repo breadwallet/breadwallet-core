@@ -10,6 +10,7 @@
 //
 import Foundation  // Data, DispatchQueue
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 /// System (a singleton)
@@ -1602,7 +1603,7 @@ extension System {
                                                         lgs.forEach { (log: BlockChainDB.ETH.Log) in
                                                             let topicsCount = Int32 (log.topics.count)
                                                             var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
-                                                            defer { topics.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
+                                                            defer { topics.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
 
                                                             cwmAnnounceGetLogsItem (cwm, sid,
                                                                                     log.hash,
@@ -2044,7 +2045,7 @@ extension System {
             var timestamp:   UInt32 = 0
             var bytesCount:  size_t = 0
             var bytes: UnsafeMutablePointer<UInt8>? = nil
-            defer { if nil != bytes { free(bytes) }}
+            defer { if nil != bytes { cryptoMemoryFree (bytes) }}
 
             cryptoTransferExtractBlobAsBTC (transfer.core,
                                             &bytes, &bytesCount,

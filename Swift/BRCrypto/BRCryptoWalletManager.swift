@@ -10,6 +10,7 @@
 //
 import Foundation // Data
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 /// A WallettManager manages one or more wallets one of which is designated the `primaryWallet`.

@@ -308,47 +308,47 @@ target_sources (corecrypto
 target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/crypto/BRCryptoAccount.c
-                src/main/cpp/core/crypto/BRCryptoAccount.h
+                src/main/cpp/core/include/BRCryptoAccount.h
                 src/main/cpp/core/crypto/BRCryptoAddress.c
-                src/main/cpp/core/crypto/BRCryptoAddress.h
+                src/main/cpp/core/include/BRCryptoAddress.h
                 src/main/cpp/core/crypto/BRCryptoAmount.c
-                src/main/cpp/core/crypto/BRCryptoAmount.h
-                src/main/cpp/core/crypto/BRCryptoBase.h
+                src/main/cpp/core/include/BRCryptoAmount.h
+                src/main/cpp/core/include/BRCryptoBase.h
                 src/main/cpp/core/crypto/BRCryptoCurrency.c
-                src/main/cpp/core/crypto/BRCryptoCurrency.h
+                src/main/cpp/core/include/BRCryptoCurrency.h
                 src/main/cpp/core/crypto/BRCryptoFeeBasis.c
-                src/main/cpp/core/crypto/BRCryptoFeeBasis.h
+                src/main/cpp/core/include/BRCryptoFeeBasis.h
                 src/main/cpp/core/crypto/BRCryptoHash.c
-                src/main/cpp/core/crypto/BRCryptoHash.h
+                src/main/cpp/core/include/BRCryptoHash.h
                 src/main/cpp/core/crypto/BRCryptoCipher.c
-                src/main/cpp/core/crypto/BRCryptoCipher.h
+                src/main/cpp/core/include/BRCryptoCipher.h
                 src/main/cpp/core/crypto/BRCryptoCoder.c
-                src/main/cpp/core/crypto/BRCryptoCoder.h
+                src/main/cpp/core/include/BRCryptoCoder.h
                 src/main/cpp/core/crypto/BRCryptoHasher.c
-                src/main/cpp/core/crypto/BRCryptoHasher.h
+                src/main/cpp/core/include/BRCryptoHasher.h
                 src/main/cpp/core/crypto/BRCryptoKey.c
-                src/main/cpp/core/crypto/BRCryptoKey.h
+                src/main/cpp/core/include/BRCryptoKey.h
                 src/main/cpp/core/crypto/BRCryptoSigner.c
-                src/main/cpp/core/crypto/BRCryptoSigner.h
+                src/main/cpp/core/include/BRCryptoSigner.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
-                src/main/cpp/core/crypto/BRCryptoNetwork.h
+                src/main/cpp/core/include/BRCryptoNetwork.h
                 src/main/cpp/core/crypto/BRCryptoStatus.c
-                src/main/cpp/core/crypto/BRCryptoStatus.h
+                src/main/cpp/core/include/BRCryptoStatus.h
                 src/main/cpp/core/crypto/BRCryptoPayment.c
-                src/main/cpp/core/crypto/BRCryptoPayment.h
+                src/main/cpp/core/include/BRCryptoPayment.h
                 src/main/cpp/core/crypto/BRCryptoPeer.c
-                src/main/cpp/core/crypto/BRCryptoPeer.h
+                src/main/cpp/core/include/BRCryptoPeer.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
                 src/main/cpp/core/crypto/BRCryptoTransfer.c
-                src/main/cpp/core/crypto/BRCryptoTransfer.h
+                src/main/cpp/core/include/BRCryptoTransfer.h
                 src/main/cpp/core/crypto/BRCryptoUnit.c
-                src/main/cpp/core/crypto/BRCryptoUnit.h
+                src/main/cpp/core/include/BRCryptoUnit.h
                 src/main/cpp/core/crypto/BRCryptoWallet.c
-                src/main/cpp/core/crypto/BRCryptoWallet.h
+                src/main/cpp/core/include/BRCryptoWallet.h
                 src/main/cpp/core/crypto/BRCryptoWalletManager.c
-                src/main/cpp/core/crypto/BRCryptoWalletManager.h
+                src/main/cpp/core/include/BRCryptoWalletManager.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
-                src/main/cpp/core/crypto/BRCryptoWalletManagerClient.h
+                src/main/cpp/core/include/BRCryptoWalletManagerClient.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h)
 
 # Crypto Tests
@@ -362,6 +362,7 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 target_include_directories (corecrypto
                             PUBLIC
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/include
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/support
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bitcoin
                             ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bcash

@@ -15,6 +15,7 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoFeeBasis.h"
+#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {

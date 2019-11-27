@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include "BRCryptoSigner.h"
+#include "BRCryptoPrivate.h"
 #include "support/BRCrypto.h"
 
 static void

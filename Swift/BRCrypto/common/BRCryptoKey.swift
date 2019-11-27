@@ -33,7 +33,7 @@ public final class Key {
     ///
     static public func createFrom (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateFromPhraseWithWords (phrase, &words)
             .map { Key (core: $0)}
@@ -96,7 +96,7 @@ public final class Key {
 
     static public func createForBIP32ApiAuth (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateForBIP32ApiAuth (phrase, &words)
             .map { Key (core: $0) }
@@ -104,7 +104,7 @@ public final class Key {
 
     static public func createForBIP32BitID (phrase: String, index: Int, uri:String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateForBIP32BitID (phrase, Int32(index), uri, &words)
             .map { Key (core: $0) }
