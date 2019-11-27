@@ -11,6 +11,8 @@
 #ifndef BRCryptoWalletP_h
 #define BRCryptoWalletP_h
 
+#include <pthread.h>
+
 #include "BRCryptoBase.h"
 #include "BRCryptoWallet.h"
 

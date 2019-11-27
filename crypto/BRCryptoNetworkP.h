@@ -11,6 +11,8 @@
 #ifndef BRCryptoNetworkP_h
 #define BRCryptoNetworkP_h
 
+#include <pthread.h>
+
 #include "BRCryptoBase.h"
 #include "BRCryptoNetwork.h"
 

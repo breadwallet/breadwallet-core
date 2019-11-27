@@ -11,12 +11,14 @@
 #ifndef BRCryptoTransferP_h
 #define BRCryptoTransferP_h
 
+#include <pthread.h>
+
 #include "BRCryptoTransfer.h"
 
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
-#include "BRGeneric.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
