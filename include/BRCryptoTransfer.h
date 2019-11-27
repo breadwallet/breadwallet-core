@@ -15,13 +15,44 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoFeeBasis.h"
-#include "support/BRSyncMode.h" // BRTransferSubmitError
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
+
+    /// MARK: Transfer Submission Result
+
+    typedef enum {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN,
+        CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX,
+    } BRCryptoTransferSubmitErrorType;
+
+    typedef struct {
+        BRCryptoTransferSubmitErrorType type;
+        union {
+            struct {
+                int errnum;
+            } posix;
+        } u;
+    } BRCryptoTransferSubmitError;
+
+    extern BRCryptoTransferSubmitError
+    BRCryptoTransferSubmitErrorUnknown(void);
+
+    extern BRCryptoTransferSubmitError
+    BRCryptoTransferSubmitErrorPosix(int errnum);
+
+    /**
+     * Return a descriptive message as to why the error occurred.
+     *
+     *@return the detailed reason as a string or NULL
+     */
+    extern char *
+    BRCryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError *e);
+
+    /// MARK: - Transfer State
 
     typedef enum {
         CRYPTO_TRANSFER_STATE_CREATED,
@@ -43,7 +74,7 @@ extern "C" {
             } included;
 
             struct {
-                BRTransferSubmitError error;
+                BRCryptoTransferSubmitError error;
             } errored;
         } u;
     } BRCryptoTransferState;
@@ -58,7 +89,7 @@ extern "C" {
                                      BRCryptoAmount fee);
 
     extern BRCryptoTransferState
-    cryptoTransferStateErroredInit (BRTransferSubmitError error);
+    cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error);
 
     extern BRCryptoTransferState
     cryptoTransferStateCopy (BRCryptoTransferState *state);

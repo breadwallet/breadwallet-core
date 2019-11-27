@@ -1,11 +1,11 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 9/18/19.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.corenative.support;
+package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.google.common.base.Optional;
@@ -17,7 +17,7 @@ import com.sun.jna.Union;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRTransferSubmitError extends Structure {
+public class BRCryptoSyncStoppedReason extends Structure {
 
     public int typeEnum;
     public u_union u;
@@ -79,38 +79,38 @@ public class BRTransferSubmitError extends Structure {
         }
     }
 
-    public BRTransferSubmitError() {
+    public BRCryptoSyncStoppedReason() {
         super();
     }
 
-    public BRTransferSubmitErrorType type() {
-        return BRTransferSubmitErrorType.fromCore(typeEnum);
+    public BRCryptoSyncStoppedReasonType type() {
+        return BRCryptoSyncStoppedReasonType.fromCore(typeEnum);
     }
 
     protected List<String> getFieldOrder() {
         return Arrays.asList("typeEnum", "u");
     }
 
-    public BRTransferSubmitError(int type, u_union u) {
+    public BRCryptoSyncStoppedReason(int type, u_union u) {
         super();
         this.typeEnum = type;
         this.u = u;
     }
 
-    public BRTransferSubmitError(Pointer peer) {
+    public BRCryptoSyncStoppedReason(Pointer peer) {
         super(peer);
     }
 
     @Override
     public void read() {
         super.read();
-        if (type() == BRTransferSubmitErrorType.TRANSFER_SUBMIT_ERROR_POSIX)
+        if (type() == BRCryptoSyncStoppedReasonType.CRYPTO_SYNC_STOPPED_REASON_POSIX)
             u.setType(u_union.posix_struct.class);
         u.read();
     }
 
     public Optional<String> getMessage() {
-        Pointer ptr = CryptoLibraryDirect.BRTransferSubmitErrorGetMessage(this);
+        Pointer ptr = CryptoLibraryDirect.cryptoSyncStoppedReasonGetMessage(this);
         try {
             return Optional.fromNullable(
                     ptr
