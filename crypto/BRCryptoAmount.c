@@ -20,9 +20,6 @@
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilMath.h"
 
-static void
-cryptoAmountRelease (BRCryptoAmount amount);
-
 struct BRCryptoAmountRecord {
     BRCryptoUnit unit;
     BRCryptoBoolean isNegative;

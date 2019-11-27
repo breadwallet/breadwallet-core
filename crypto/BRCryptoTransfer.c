@@ -25,9 +25,6 @@
 static BRCryptoTransferDirection
 cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
 
-static void
-cryptoTransferRelease (BRCryptoTransfer transfer);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer)
 
 static BRCryptoTransfer

@@ -21,9 +21,6 @@
 
 /// MARK: - Network Fee
 
-static void
-cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee)
 
 extern BRCryptoNetworkFee
@@ -94,9 +91,6 @@ cryptoNetworkFeeAsGEN( BRCryptoNetworkFee networkFee) {
 }
 
 /// MARK: - Network
-
-static void
-cryptoNetworkRelease (BRCryptoNetwork network);
 
 #define CRYPTO_NETWORK_DEFAULT_CURRENCY_ASSOCIATIONS        (2)
 #define CRYPTO_NETWORK_DEFAULT_FEES                         (3)

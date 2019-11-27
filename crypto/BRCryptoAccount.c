@@ -29,9 +29,6 @@ randomBytes (void *bytes, size_t bytesCount);
 
 #define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
 
-static void
-cryptoAccountRelease (BRCryptoAccount account);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
 static UInt512

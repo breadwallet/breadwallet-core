@@ -10,9 +10,6 @@
 
 #include "BRCryptoAddressP.h"
 
-static void
-cryptoAddressRelease (BRCryptoAddress address);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 static void

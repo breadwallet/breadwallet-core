@@ -30,9 +30,6 @@
 #include "support/BRFileService.h"
 
 static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
-
-static void
 cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)

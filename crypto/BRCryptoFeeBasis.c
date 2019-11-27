@@ -13,9 +13,6 @@
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoPrivate.h"
 
-static void
-cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis)
 
 static BRCryptoFeeBasis

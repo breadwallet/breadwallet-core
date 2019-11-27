@@ -15,9 +15,6 @@
 #include <string.h>
 #include <assert.h>
 
-static void
-cryptoUnitRelease (BRCryptoUnit unit);
-
 struct BRCryptoUnitRecord {
     BRCryptoCurrency currency;
     char *uids;

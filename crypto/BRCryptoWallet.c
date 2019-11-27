@@ -22,9 +22,6 @@
 
 #include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
 
-static void
-cryptoWalletRelease (BRCryptoWallet wallet);
-
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 
 static BRCryptoWallet

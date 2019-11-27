@@ -36,9 +36,6 @@ cryptoPaymentProtocolRequestCreateForBitPay (BRCryptoPaymentProtocolRequestBitPa
 
 /// MARK: - BitPay Payment Protocol Request Builder Implementation
 
-static void
-cryptoPaymentProtocolRequestBitPayBuilderRelease (BRCryptoPaymentProtocolRequestBitPayBuilder builder);
-
 struct BRCryptoPaymentProtocolRequestBitPayBuilderRecord {
     BRCryptoNetwork cryptoNetwork;
     BRCryptoCurrency cryptoCurrency;

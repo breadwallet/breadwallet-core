@@ -13,10 +13,6 @@
 #include "support/BRInt.h"
 #include "BRCryptoPeer.h"
 
-/** Forward Declarations */
-static void
-cryptoPeerRelease (BRCryptoPeer peer);
-
 struct BRCryptoPeerRecord {
     BRCryptoNetwork network;
     char *address;
