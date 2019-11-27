@@ -308,8 +308,10 @@ target_sources (corecrypto
 target_sources (corecrypto
                 PRIVATE
                 src/main/cpp/core/crypto/BRCryptoAccount.c
+                src/main/cpp/core/crypto/BRCryptoAccountP.h
                 src/main/cpp/core/include/BRCryptoAccount.h
                 src/main/cpp/core/crypto/BRCryptoAddress.c
+                src/main/cpp/core/crypto/BRCryptoAddressP.h
                 src/main/cpp/core/include/BRCryptoAddress.h
                 src/main/cpp/core/crypto/BRCryptoAmount.c
                 src/main/cpp/core/include/BRCryptoAmount.h
@@ -317,6 +319,7 @@ target_sources (corecrypto
                 src/main/cpp/core/crypto/BRCryptoCurrency.c
                 src/main/cpp/core/include/BRCryptoCurrency.h
                 src/main/cpp/core/crypto/BRCryptoFeeBasis.c
+                src/main/cpp/core/crypto/BRCryptoFeeBasisP.h
                 src/main/cpp/core/include/BRCryptoFeeBasis.h
                 src/main/cpp/core/crypto/BRCryptoHash.c
                 src/main/cpp/core/include/BRCryptoHash.h
@@ -331,6 +334,7 @@ target_sources (corecrypto
                 src/main/cpp/core/crypto/BRCryptoSigner.c
                 src/main/cpp/core/include/BRCryptoSigner.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
+                src/main/cpp/core/crypto/BRCryptoNetworkP.h
                 src/main/cpp/core/include/BRCryptoNetwork.h
                 src/main/cpp/core/crypto/BRCryptoStatus.c
                 src/main/cpp/core/include/BRCryptoStatus.h
@@ -340,16 +344,18 @@ target_sources (corecrypto
                 src/main/cpp/core/include/BRCryptoPeer.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
                 src/main/cpp/core/crypto/BRCryptoTransfer.c
+                src/main/cpp/core/crypto/BRCryptoTransferP.h
                 src/main/cpp/core/include/BRCryptoTransfer.h
                 src/main/cpp/core/crypto/BRCryptoUnit.c
                 src/main/cpp/core/include/BRCryptoUnit.h
                 src/main/cpp/core/crypto/BRCryptoWallet.c
+                src/main/cpp/core/crypto/BRCryptoWalletP.h
                 src/main/cpp/core/include/BRCryptoWallet.h
                 src/main/cpp/core/crypto/BRCryptoWalletManager.c
+                src/main/cpp/core/crypto/BRCryptoWalletManagerP.h
                 src/main/cpp/core/include/BRCryptoWalletManager.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
-                src/main/cpp/core/include/BRCryptoWalletManagerClient.h
-                src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h)
+                src/main/cpp/core/include/BRCryptoWalletManagerClient.h)
 
 # Crypto Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
