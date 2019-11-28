@@ -11,7 +11,6 @@
 #ifndef BRCryptoPeer_h
 #define BRCryptoPeer_h
 
-#include <stdint.h>
 #include "BRCryptoBase.h"
 #include "BRCryptoNetwork.h"
 

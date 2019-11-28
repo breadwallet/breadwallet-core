@@ -14,7 +14,6 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoCurrency.h"
 #include "BRCryptoUnit.h"
-#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -175,10 +174,6 @@ extern "C" {
     extern uint64_t
     cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                                BRCryptoBoolean *overflow);
-
-    // Private-ish (this is *ALWAYS* in the currency's base (aka INTEGER) unit.)
-    extern UInt256
-    cryptoAmountGetValue (BRCryptoAmount amount);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 

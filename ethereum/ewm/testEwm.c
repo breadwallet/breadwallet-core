@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include "ethereum/event/BREventAlarm.h"
-#include "BREthereumEWMPrivate.h"
+#include "ethereum/ewm/BREthereumEWMPrivate.h"
 
 //
 // EWM Tests

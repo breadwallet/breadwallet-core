@@ -88,9 +88,9 @@ public final class Wallet: Equatable {
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
-        var transfersCount: size_t = 0
+        var transfersCount: BRCryptoCount = 0
         let transfersPtr = cryptoWalletGetTransfers(core, &transfersCount);
-        defer { if let ptr = transfersPtr { free (ptr) } }
+        defer { if let ptr = transfersPtr { cryptoMemoryFree (ptr) } }
         
         let transfers: [BRCryptoTransfer] = transfersPtr?.withMemoryRebound(to: BRCryptoTransfer.self, capacity: transfersCount) {
             Array(UnsafeBufferPointer (start: $0, count: transfersCount))

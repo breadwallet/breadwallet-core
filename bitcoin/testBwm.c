@@ -17,12 +17,12 @@
 #include "bcash/BRBCashParams.h"
 #include "bitcoin/BRChainParams.h"
 
-#include "BRArray.h"
-#include "BRBIP39Mnemonic.h"
-#include "BRPeerManager.h"
-#include "BRTransaction.h"
-#include "BRWallet.h"
-#include "BRWalletManager.h"
+#include "support/BRArray.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "bitcoin/BRPeerManager.h"
+#include "bitcoin/BRTransaction.h"
+#include "bitcoin/BRWallet.h"
+#include "bitcoin/BRWalletManager.h"
 
 #ifdef __ANDROID__
 #include <android/log.h>

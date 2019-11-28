@@ -28,9 +28,9 @@
 #include "support/BRCrypto.h"
 #include "ethereum/base/BREthereumHash.h"
 #include "ethereum/blockchain/BREthereumNetwork.h"
-#include "BREthereumLESRandom.h"
-#include "BREthereumLES.h"
-#include "BREthereumNode.h"
+#include "ethereum/les/BREthereumLESRandom.h"
+#include "ethereum/les/BREthereumLES.h"
+#include "ethereum/les/BREthereumNode.h"
 
 #include "ethereum/BREthereum.h"
 

@@ -12,7 +12,7 @@
 #define BRCryptoKey_h
 
 #include "BRCryptoBase.h"
-#include "BRKey.h"
+#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,9 +22,6 @@ extern "C" {
 
     extern BRCryptoBoolean
     cryptoKeyIsProtectedPrivate (const char *privateKey);
-
-    private_extern BRCryptoKey
-    cryptoKeyCreateFromKey (BRKey *key);
 
     extern BRCryptoKey
     cryptoKeyCreateFromSecret (UInt256 secret);
@@ -82,9 +79,6 @@ extern "C" {
 
 //    extern size_t
 //    cryptoKeySign (BRCryptoKey key, void *sig, size_t sigLen, UInt256 md);
-
-    extern BRKey *
-    cryptoKeyGetCore (BRCryptoKey key);
 
     extern void
     cryptoKeyProvidePublicKey (BRCryptoKey key, int useCompressed, int compressed);

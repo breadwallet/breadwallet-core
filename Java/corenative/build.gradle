@@ -14,7 +14,8 @@ ext {
                                    projectDir.absolutePath + "/src/main/cpp/core/support"]
 
     cppCryptoIncDirs            = cppCryptoSrcDirs +
-                                  [projectDir.absolutePath + "/src/main/cpp/core",
+                                  [projectDir.absolutePath + "/src/main/cpp/core/include",
+                                   projectDir.absolutePath + "/src/main/cpp/core",
                                    projectDir.absolutePath + "/src/main/cpp/core/vendor/secp256k1"]
 
     cmakeCMakeListsFile         = projectDir.absolutePath + "/CMakeLists.txt"

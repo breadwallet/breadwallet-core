@@ -345,7 +345,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     free (cwm);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
     // Stop the specific cwm type, if it exists.
     switch (cwm->type) {
@@ -544,7 +544,7 @@ cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
     return r;
 }
 
-private_extern void
+extern void
 cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
     pthread_mutex_lock (&cwm->lock);
@@ -554,7 +554,7 @@ cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
     pthread_mutex_unlock (&cwm->lock);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
 
