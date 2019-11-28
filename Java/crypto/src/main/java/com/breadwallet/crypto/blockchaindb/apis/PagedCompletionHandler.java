@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 public interface PagedCompletionHandler<T, E> {
 

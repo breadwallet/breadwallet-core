@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.ObjectCoder;

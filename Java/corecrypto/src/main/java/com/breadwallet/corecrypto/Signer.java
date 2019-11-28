@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoSigner;

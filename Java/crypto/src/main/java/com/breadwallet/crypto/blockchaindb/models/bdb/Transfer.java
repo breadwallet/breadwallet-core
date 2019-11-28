@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

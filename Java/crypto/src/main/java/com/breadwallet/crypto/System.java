@@ -9,7 +9,7 @@
  */
 package com.breadwallet.crypto;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.errors.MigrateError;

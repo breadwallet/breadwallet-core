@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.events.walletmanager;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 public abstract class DefaultWalletManagerEventVisitor<T> implements WalletManagerEventVisitor<T> {
 

@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
