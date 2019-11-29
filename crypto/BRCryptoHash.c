@@ -15,9 +15,6 @@
 #include "ethereum/util/BRUtilHex.h"
 #include "generic/BRGeneric.h"
 
-static void
-cryptoHashRelease (BRCryptoHash hash);
-
 struct BRCryptoHashRecord {
     BRCryptoBlockChainType type;
     union {

@@ -8,11 +8,12 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include <pthread.h>
+#include "BRCryptoTransferP.h"
 
-#include "BRCryptoTransfer.h"
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoFeeBasisP.h"
 
 #include "support/BRAddress.h"
 #include "bitcoin/BRWallet.h"
@@ -21,63 +22,6 @@
 
 static BRCryptoTransferDirection
 cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
-
-/**
- *
- */
-typedef struct {
-    uint64_t blockNumber;
-    uint64_t transactionIndex;
-    uint64_t timestamp;
-    BRCryptoAmount fee; // ouch; => cant be a struct
-} BRCryptoTransferConfirmation;
-
-static void
-cryptoTransferRelease (BRCryptoTransfer transfer);
-
-struct BRCryptoTransferRecord {
-    pthread_mutex_t lock;
-
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            BRTransaction *tid;
-            uint64_t fee;
-            uint64_t send;
-            uint64_t recv;
-        } btc;
-        struct {
-            BREthereumEWM ewm;
-            BREthereumTransfer tid;
-            BREthereumAddress accountAddress;
-        } eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericTransfer tid;
-        } gen;
-    } u;
-
-    BRCryptoAddress sourceAddress;
-    BRCryptoAddress targetAddress;
-    BRCryptoTransferState state;
-
-    /// The amount's unit.
-    BRCryptoUnit unit;
-
-    /// The fee's unit
-    BRCryptoUnit unitForFee;
-
-    /// The feeBasis.  We must include this here for at least the case of BTC where the fees
-    /// encoded into the BTC-wire-transaction are based on the BRWalletFeePerKB value at the time
-    /// that the transaction is created.  Sometime later, when the feeBasis is needed we can't
-    /// go to the BTC wallet and expect the FeePerKB to be unchanged.
-
-    /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
-    BRCryptoFeeBasis feeBasisEstimated;
-    BRCryptoFeeBasis feeBasisConfirmed;
-
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer)
 
@@ -805,7 +749,7 @@ cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2) {
     return compareValue;
 }
 
-private_extern void
+extern void
 cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
                                 uint8_t **bytes,
                                 size_t   *bytesCount,

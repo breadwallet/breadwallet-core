@@ -16,14 +16,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "BRCryptoAmount.h"
 #include "BRCryptoPrivate.h"
-#include "BRCryptoWalletManager.h"
+#include "BRCryptoAmount.h"
+#include "BRCryptoNetworkP.h"
 #include "BRCryptoWallet.h"
-#include "BRCryptoTransfer.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletManagerP.h"
 
-#include "bitcoin/BRChainParams.h"
+#include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39Mnemonic.h"
+#include "bitcoin/BRChainParams.h"
+#include "bitcoin/BRWallet.h"
 
 #ifdef __ANDROID__
 #include <android/log.h>

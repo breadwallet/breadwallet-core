@@ -15,7 +15,7 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoFeeBasis.h"
-#include "support/BRSyncMode.h"
+#include "support/BRSyncMode.h" // BRTransferSubmitError
 
 #ifdef __cplusplus
 extern "C" {
@@ -223,6 +223,14 @@ extern "C" {
     cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
+
+    extern void
+    cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                    uint8_t **bytes,
+                                    size_t   *bytesCount,
+                                    uint32_t *blockHeight,
+                                    uint32_t *timestamp);
+
 
 #ifdef __cplusplus
 }

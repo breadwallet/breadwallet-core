@@ -83,6 +83,7 @@ static int cryptoRefDebug = 0;
   extern void preface##Give (type obj)
 
 #define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface)                                 \
+  static void preface##Release (type obj);                                        \
   extern type                                                                     \
   preface##Take (type obj) {                                                      \
     unsigned int _c = atomic_fetch_add (&obj->ref.count, 1);                      \

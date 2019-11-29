@@ -8,35 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRCryptoAddress.h"
-#include "BRCryptoBase.h"
-
-#include "bcash/BRBCashAddr.h"
-#include "support/BRAddress.h"
-#include "ethereum/BREthereum.h"
-#include "generic/BRGeneric.h"
-
-static void
-cryptoAddressRelease (BRCryptoAddress address);
-
-struct BRCryptoAddressRecord {
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            BRCryptoBoolean isBitcoinAddr; // TRUE if BTC; FALSE if BCH
-
-            // This BRAddress always satisfies BRAddressIsValid (given the corresponding
-            // BRAddressParams).
-            BRAddress addr;
-        } btc;
-        BREthereumAddress eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericAddress aid;
-        } gen;
-    } u;
-    BRCryptoRef ref;
-};
+#include "BRCryptoAddressP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
@@ -108,7 +80,7 @@ cryptoAddressAsGEN (BRCryptoAddress address) {
 }
 
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddress) {
     assert (btcAddress);
 
@@ -117,7 +89,7 @@ cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddre
             : NULL);
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress) {
     assert (bchAddress);
 
@@ -127,7 +99,7 @@ cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddre
             : NULL);
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     assert (ethAddress);
     BRCryptoAddress address = NULL;
@@ -138,7 +110,7 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     return address;
 }
 
-extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateFromStringAsGEN (const char *ethAddress) {
     assert (0);
     return NULL;

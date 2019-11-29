@@ -12,7 +12,6 @@
 #define BRCryptoAddress_h
 
 #include "BRCryptoBase.h"
-#include "support/BRAddress.h"  // BRAddressParams
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,45 +20,6 @@ extern "C" {
     /// MARK: - Address
 
     typedef struct BRCryptoAddressRecord *BRCryptoAddress;
-
-    /**
-     * Create an address from a NULL terminated BTC address string.
-     *
-     * The expected format differs depending on if the address is for mainnet vs
-     * testnet, as well as legacy vs segwit. For example, a testnet segwit
-     * address string will be of the form "tb1...".
-     *
-     * @return An address or NULL if the address string is invalid.
-     */
-    extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *address);
-
-    /**
-     * Create an addres from a NULL terminated BCH address string.
-     *
-     * @return An address or NULL if the address string is invalid.
-     */
-    extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress);
-
-    /**
-     * Create an address from a NULL terminated ETH address string.
-     *
-     * An addresss string will be of the form "0x8fB4..." (with prefix)
-     * or "8fB4..." (without prefix).
-     *
-     * @return An address or NULL if the address string is invalid.
-     */
-    extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsETH (const char *address);
-
-    /**
-     * ASSERT currently
-     *
-     * @return An address or NULL if the address string is invalid.
-     */
-    extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
 
     /**
      * Returns the address' string representation which is suitable for display.  Note that an

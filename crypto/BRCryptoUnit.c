@@ -9,14 +9,11 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRCryptoUnit.h"
-#include "BRCryptoPrivate.h"
+#include "support/BRArray.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-static void
-cryptoUnitRelease (BRCryptoUnit unit);
 
 struct BRCryptoUnitRecord {
     BRCryptoCurrency currency;

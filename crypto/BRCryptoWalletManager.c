@@ -9,22 +9,24 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <assert.h>
-#include <pthread.h>
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
+
 #include "BRCryptoPrivate.h"
+#include "BRCryptoAccountP.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletP.h"
+
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "BRCryptoWalletManagerPrivate.h"
+#include "BRCryptoWalletManagerP.h"
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 #include "support/BRFileService.h"
-
-static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
 static void
 cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
