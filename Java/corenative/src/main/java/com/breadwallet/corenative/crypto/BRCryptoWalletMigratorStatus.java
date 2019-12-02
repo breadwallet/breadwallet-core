@@ -7,10 +7,8 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import com.sun.jna.Union;
 
 import java.util.Arrays;
 import java.util.List;

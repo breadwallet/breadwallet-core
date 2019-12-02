@@ -71,7 +71,7 @@ private_extern BRCryptoWalletManagerState
 cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type);
 
 private_extern BRCryptoWalletManagerState
-cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason);
+cryptoWalletManagerStateDisconnectedInit(BRCryptoWalletManagerDisconnectReason reason);
 
 private_extern void
 cryptoWalletManagerSetState (BRCryptoWalletManager cwm,

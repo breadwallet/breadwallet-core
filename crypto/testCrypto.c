@@ -311,8 +311,8 @@ runCryptoTransferTests (void) {
 typedef struct {
     uint8_t kill;
     BRCryptoWalletManager manager;
-    BRSyncMode primaryMode;
-    BRSyncMode secondaryMode;
+    BRCryptoSyncMode primaryMode;
+    BRCryptoSyncMode secondaryMode;
 } CWMAbuseThreadState;
 
 static void *
@@ -971,7 +971,7 @@ static BRCryptoWalletManager
 BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
                                             BRCryptoAccount account,
                                             BRCryptoNetwork network,
-                                            BRSyncMode mode,
+                                            BRCryptoSyncMode mode,
                                             BRCryptoAddressScheme scheme,
                                             const char *storagePath)
 {
@@ -1021,7 +1021,7 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
 static int
 runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                      BRCryptoNetwork network,
-                                     BRSyncMode mode,
+                                     BRCryptoSyncMode mode,
                                      BRCryptoAddressScheme scheme,
                                      const char *storagePath) {
     int success = 1;
@@ -1030,7 +1030,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
     BRCryptoBlockChainHeight originalNetworkHeight = cryptoNetworkGetHeight (network);
 
     printf("Testing BRCryptoWalletManager events for mode=\"%s\", network=\"%s (%s)\" and path=\"%s\"...\n",
-           BRSyncModeString (mode),
+           cryptoSyncModeString (mode),
            cryptoNetworkGetName (network),
            cryptoNetworkIsMainnet (network) ? "mainnet" : "testnet",
            storagePath);
@@ -1075,7 +1075,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
-                                                                                                    cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
+                                                                                                    cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonUnknown())),
                                                       },
                                                       9,
                                                       (CWMEvent []) {
@@ -1145,7 +1145,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                      cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                                                                                                      cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
-                                                                                                     cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
+                                                                                                     cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonUnknown())),
                                                        },
                                                        9,
                                                        (CWMEvent []) {
@@ -1274,7 +1274,7 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
                                                                                                      cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                            CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                                                                                                      cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
-                                                                                                     cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
+                                                                                                     cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonUnknown())),
                                                        },
                                                        9,
                                                        (CWMEvent []) {
@@ -1351,9 +1351,9 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
     }
 
     printf("Testing BRCryptoWalletManager threading...\n");
-    if (mode == SYNC_MODE_P2P_ONLY && BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (network)) {
+    if (mode == CRYPTO_SYNC_MODE_P2P_ONLY && BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (network)) {
         // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
-        fprintf(stderr, "***WARNING*** %s:%d: BRCryptoWalletManager threading test is disabled for SYNC_MODE_P2P_ONLY and BLOCK_CHAIN_TYPE_BTC\n", __func__, __LINE__);
+        fprintf(stderr, "***WARNING*** %s:%d: BRCryptoWalletManager threading test is disabled for CRYPTO_SYNC_MODE_P2P_ONLY and BLOCK_CHAIN_TYPE_BTC\n", __func__, __LINE__);
 
     } else {
         // Test setup
@@ -1422,8 +1422,8 @@ runCryptoWalletManagerLifecycleTest (BRCryptoAccount account,
 static int
 runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
                                                 BRCryptoNetwork network,
-                                                BRSyncMode primaryMode,
-                                                BRSyncMode secondaryMode,
+                                                BRCryptoSyncMode primaryMode,
+                                                BRCryptoSyncMode secondaryMode,
                                                 BRCryptoAddressScheme scheme,
                                                 const char *storagePath) {
     int success = 1;
@@ -1432,8 +1432,8 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
     BRCryptoBlockChainHeight originalNetworkHeight = cryptoNetworkGetHeight (network);
 
     printf("Testing BRCryptoWalletManager events for mode=\"%s/%s\", network=\"%s (%s)\" and path=\"%s\"...\n",
-           BRSyncModeString (primaryMode),
-           BRSyncModeString (secondaryMode),
+           cryptoSyncModeString (primaryMode),
+           cryptoSyncModeString (secondaryMode),
            cryptoNetworkGetName (network),
            cryptoNetworkIsMainnet (network) ? "mainnet" : "testnet",
            storagePath);
@@ -1539,7 +1539,7 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED)),
                                                           CWMEventForWalletManagerStateType    (CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                                                                                                     cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED),
-                                                                                                    cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown())),
+                                                                                                    cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonUnknown())),
                                                       },
                                                       9,
                                                       (CWMEvent []) {
@@ -1567,9 +1567,9 @@ runCryptoWalletManagerLifecycleWithSetModeTest (BRCryptoAccount account,
 
     printf("Testing BRCryptoWalletManager mode swap threading...\n");
     if (BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (network) &&
-        (primaryMode == SYNC_MODE_P2P_ONLY || secondaryMode == SYNC_MODE_P2P_ONLY)) {
+        (primaryMode == CRYPTO_SYNC_MODE_P2P_ONLY || secondaryMode == CRYPTO_SYNC_MODE_P2P_ONLY)) {
         // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
-        fprintf(stderr, "***WARNING*** %s:%d: BRCryptoWalletManager threading test is disabled for SYNC_MODE_P2P_ONLY and BLOCK_CHAIN_TYPE_BTC\n", __func__, __LINE__);
+        fprintf(stderr, "***WARNING*** %s:%d: BRCryptoWalletManager threading test is disabled for CRYPTO_SYNC_MODE_P2P_ONLY and BLOCK_CHAIN_TYPE_BTC\n", __func__, __LINE__);
 
     } else {
         // Test setup
@@ -1665,7 +1665,7 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
     if (isBtc || isEth || isGen) {
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleTest (account,
                                                                          network,
-                                                                         SYNC_MODE_BRD_ONLY,
+                                                                         CRYPTO_SYNC_MODE_API_ONLY,
                                                                          scheme,
                                                                          storagePath));
         if (!success) {
@@ -1677,7 +1677,7 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
     if (isBtc || isBch || isEth) {
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleTest (account,
                                                                          network,
-                                                                         SYNC_MODE_P2P_ONLY,
+                                                                         CRYPTO_SYNC_MODE_P2P_ONLY,
                                                                          scheme,
                                                                          storagePath));
         if (!success) {
@@ -1689,7 +1689,7 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
     if (isEth) {
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleTest (account,
                                                                          network,
-                                                                         SYNC_MODE_BRD_WITH_P2P_SEND,
+                                                                         CRYPTO_SYNC_MODE_API_WITH_P2P_SEND,
                                                                          scheme,
                                                                          storagePath));
         if (!success) {
@@ -1701,8 +1701,8 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
     if (isBtc) {
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleWithSetModeTest (account,
                                                                                     network,
-                                                                                    SYNC_MODE_P2P_ONLY,
-                                                                                    SYNC_MODE_BRD_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_P2P_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_API_ONLY,
                                                                                     scheme,
                                                                                     storagePath));
         if (!success) {
@@ -1712,8 +1712,8 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
 
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleWithSetModeTest (account,
                                                                                     network,
-                                                                                    SYNC_MODE_BRD_ONLY,
-                                                                                    SYNC_MODE_P2P_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_API_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_P2P_ONLY,
                                                                                     scheme,
                                                                                     storagePath));
         if (!success) {
@@ -1725,8 +1725,8 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
     if (isEth) {
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleWithSetModeTest (account,
                                                                                     network,
-                                                                                    SYNC_MODE_P2P_ONLY,
-                                                                                    SYNC_MODE_BRD_WITH_P2P_SEND,
+                                                                                    CRYPTO_SYNC_MODE_P2P_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_API_WITH_P2P_SEND,
                                                                                     scheme,
                                                                                     storagePath));
         if (!success) {
@@ -1736,8 +1736,8 @@ runCryptoTestsWithAccountAndNetwork (BRCryptoAccount account,
 
         success = AS_CRYPTO_BOOLEAN(runCryptoWalletManagerLifecycleWithSetModeTest (account,
                                                                                     network,
-                                                                                    SYNC_MODE_BRD_WITH_P2P_SEND,
-                                                                                    SYNC_MODE_P2P_ONLY,
+                                                                                    CRYPTO_SYNC_MODE_API_WITH_P2P_SEND,
+                                                                                    CRYPTO_SYNC_MODE_P2P_ONLY,
                                                                                     scheme,
                                                                                     storagePath));
         if (!success) {

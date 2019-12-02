@@ -287,14 +287,14 @@ public enum TransferSubmitError: Equatable, Error {
     case unknown
     case posix(errno: Int32, message: String?)
 
-    internal init (core: BRTransferSubmitError) {
+    internal init (core: BRCryptoTransferSubmitError) {
         switch core.type {
-        case TRANSFER_SUBMIT_ERROR_UNKNOWN:
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN:
             self = .unknown
-        case TRANSFER_SUBMIT_ERROR_POSIX:
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
+                          message: BRCryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
         default: self = .unknown; preconditionFailure()
         }
     }

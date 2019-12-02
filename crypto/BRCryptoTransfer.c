@@ -788,7 +788,7 @@ cryptoTransferStateInit (BRCryptoTransferStateType type) {
             assert (0); // if you are hitting this, use cryptoTransferStateErroredInit!
             return (BRCryptoTransferState) {
                 CRYPTO_TRANSFER_STATE_ERRORED,
-                { .errored = { BRTransferSubmitErrorUnknown() }}
+                { .errored = { BRCryptoTransferSubmitErrorUnknown() }}
             };
         }
     }
@@ -806,7 +806,7 @@ cryptoTransferStateIncludedInit (uint64_t blockNumber,
 }
 
 extern BRCryptoTransferState
-cryptoTransferStateErroredInit (BRTransferSubmitError error) {
+cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error) {
     return (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_ERRORED,
         { .errored = { error }}
@@ -870,4 +870,43 @@ BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
         return "CRYPTO_TRANSFER_EVENT_DELETED";
     }
     return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}
+
+
+/// MARK: Transaction Submission Error
+
+// TODO(fix): This should be moved to a more appropriate file (BRTransfer.c/h?)
+
+extern BRCryptoTransferSubmitError
+BRCryptoTransferSubmitErrorUnknown(void) {
+    return (BRCryptoTransferSubmitError) {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN
+    };
+}
+
+extern BRCryptoTransferSubmitError
+BRCryptoTransferSubmitErrorPosix(int errnum) {
+    return (BRCryptoTransferSubmitError) {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+BRCryptoTransferSubmitErrorGetMessage (BRCryptoTransferSubmitError *e) {
+    char *message = NULL;
+
+    switch (e->type) {
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX: {
+            if (NULL != (message = strerror (e->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
 }

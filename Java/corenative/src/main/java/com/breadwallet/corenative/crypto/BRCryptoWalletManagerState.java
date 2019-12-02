@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.support.BRDisconnectReason;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -26,7 +25,7 @@ public class BRCryptoWalletManagerState extends Structure {
 
         public static class disconnected_struct extends Structure {
 
-            public BRDisconnectReason reason;
+            public BRCryptoWalletManagerDisconnectReason reason;
 
             public disconnected_struct() {
                 super();
@@ -36,7 +35,7 @@ public class BRCryptoWalletManagerState extends Structure {
                 return Arrays.asList("reason");
             }
 
-            public disconnected_struct(BRDisconnectReason reason) {
+            public disconnected_struct(BRCryptoWalletManagerDisconnectReason reason) {
                 super();
                 this.reason = reason;
             }

@@ -65,9 +65,7 @@ target_sources (corecrypto
                 src/main/cpp/core/support/BRKeyECIES.c
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
-                src/main/cpp/core/support/BRSet.h
-                src/main/cpp/core/support/BRSyncMode.c
-                src/main/cpp/core/support/BRSyncMode.h)
+                src/main/cpp/core/support/BRSet.h)
 
 # Support Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -351,6 +349,7 @@ target_sources (corecrypto
                 src/main/cpp/core/crypto/BRCryptoWallet.c
                 src/main/cpp/core/crypto/BRCryptoWalletP.h
                 src/main/cpp/core/include/BRCryptoWallet.h
+                src/main/cpp/core/include/BRCryptoSync.h
                 src/main/cpp/core/crypto/BRCryptoWalletManager.c
                 src/main/cpp/core/crypto/BRCryptoWalletManagerP.h
                 src/main/cpp/core/include/BRCryptoWalletManager.h

@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.support.BRSyncDepth;
-import com.breadwallet.corenative.support.BRSyncStoppedReason;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -124,7 +122,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
 
         public static class syncStopped_struct extends Structure {
 
-            public BRSyncStoppedReason reason;
+            public BRCryptoSyncStoppedReason reason;
 
             public syncStopped_struct() {
                 super();
@@ -134,7 +132,7 @@ public class BRCryptoWalletManagerEvent extends Structure {
                 return Arrays.asList("reason");
             }
 
-            public syncStopped_struct(BRSyncStoppedReason reason) {
+            public syncStopped_struct(BRCryptoSyncStoppedReason reason) {
                 super();
                 this.reason = reason;
             }
@@ -173,8 +171,8 @@ public class BRCryptoWalletManagerEvent extends Structure {
                 super(peer);
             }
 
-            public BRSyncDepth depth() {
-                return BRSyncDepth.fromCore(depthEnum);
+            public BRCryptoSyncDepth depth() {
+                return BRCryptoSyncDepth.fromCore(depthEnum);
             }
 
             public static class ByReference extends syncRecommended_struct implements Structure.ByReference {
