@@ -154,36 +154,34 @@ public class BlockChainDB {
     ///       which suffices for DEBUG builds.
     ///
     public init (session: URLSession = URLSession (configuration: .default),
-                 bdbBaseURL: String = "https://api.blockset.com", // "http://blockchain-db.us-east-1.elasticbeanstalk.com",
+                 bdbBaseURL: String = "https://api.blockset.com",
                  bdbDataTaskFunc: DataTaskFunc? = nil,
                  apiBaseURL: String = "https://api.breadwallet.com",
                  apiDataTaskFunc: DataTaskFunc? = nil) {
 
         self.session = session
 
-        #if DEBUG
-        self.bdbBaseURL = "https://api.blockset.com" // pending
-        self.apiBaseURL = "https://stage2.breadwallet.com"
-        #else
         self.bdbBaseURL = bdbBaseURL
         self.apiBaseURL = apiBaseURL
-        #endif
 
         self.bdbDataTaskFunc = bdbDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }
 
+    // this token has no expiration - testing only.
+    public static let createForTestBDBBaseURL = "https://api.blockset.com"
+    public static let createForTestBDBToken   = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
+
     ///
     /// Create a BlockChainDB using a specified Authorization token.  This is declared 'public'
     /// so that the Crypto Demo can use it.
     ///
-    public static func createForTest (bdbBaseURL: String = "https://api.blockset.com") -> BlockChainDB {
+    public static func createForTest (bdbBaseURL: String = BlockChainDB.createForTestBDBBaseURL,
+                                      bdbToken:   String = BlockChainDB.createForTestBDBToken) -> BlockChainDB {
         return BlockChainDB (bdbBaseURL: bdbBaseURL,
                              bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
-                                // this token has no expiration - testing only.
-                                let token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
                                 var decoratedReq = request
-                                decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                                decoratedReq.setValue ("Bearer \(bdbToken)", forHTTPHeaderField: "Authorization")
                                 return session.dataTask (with: decoratedReq, completionHandler: completion)
         })
     }
