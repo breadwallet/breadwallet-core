@@ -25,6 +25,13 @@ extern BRHederaAccount hederaAccountCreateWithSeed (UInt512 seed)
     return account;
 }
 
+extern BRHederaAccount
+hederaAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount)
+{
+    // TODO - parse the bytes to create an account
+    return NULL;
+}
+
 extern void hederaAccountFree (BRHederaAccount account)
 {
     assert(account);
@@ -66,4 +73,10 @@ extern uint8_t *hederaAccountGetSerialization (BRHederaAccount account, size_t *
     // who stores it?
     BRKeyPubKey(&account->publicKey, bytes, *bytesCount);
     return bytes;
+}
+
+extern int
+hederaAccountHasAddress (BRHederaAccount account,
+                         BRHederaAddress address) {
+    return hederaAddressEqual (account->address, address);
 }

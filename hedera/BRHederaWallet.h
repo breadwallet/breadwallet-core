@@ -13,6 +13,8 @@
 
 
 #include "BRHederaAccount.h"
+#include "BRHederaFeeBasis.h"
+#include "BRHederaTransaction.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,6 +87,38 @@ hederaWalletSetBalance (BRHederaWallet wallet, BRHederaUnitTinyBar balance);
  */
 extern BRHederaUnitTinyBar
 hederaWalletGetBalance (BRHederaWallet wallet);
+
+extern BRHederaAddress /* Caller must free address using hederaAddressFree */
+hederaWalletGetNodeAddress(BRHederaWallet wallet);
+
+/**
+ * Set the ripple fee basis default amount
+ *
+ * @param wallet     the specified wallet
+ * @param feeBasis   the default fee basis to be used for all transactions
+ *
+ * @return void
+ */
+extern void
+hederaWalletSetDefaultFeeBasis (BRHederaWallet wallet, BRHederaFeeBasis feeBasis);
+
+/**
+ * Get the ripple default fee basis that is stored with this wallet
+ *
+ * @param wallet the specified ripple wallet
+ *
+ * @return feeBasis  the default base fee that has been set for this wallet
+ */
+extern BRHederaFeeBasis
+hederaWalletGetDefaultFeeBasis (BRHederaWallet wallet);
+
+extern int hederaWalletHasTransfer (BRHederaWallet wallet, BRHederaTransaction transfer);
+
+extern void hederaWalletAddTransfer(BRHederaWallet wallet, BRHederaTransaction transfer);
+
+extern int
+hederaWalletHasAddress (BRHederaWallet wallet,
+                        BRHederaAddress address);
 
 #ifdef __cplusplus
 }

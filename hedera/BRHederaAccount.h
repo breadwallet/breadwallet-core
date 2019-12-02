@@ -35,6 +35,17 @@ extern BRHederaAccount  /* caller must free - using "free" function */
 hederaAccountCreateWithSeed (UInt512 seed);
 
 /**
+ * Create a Hedera account from a byte array (previously serialized
+ *
+ * @param bytes              array of bytes
+ * @param bytesCount     size of byte array
+ *
+ * @return account
+*/
+extern BRHederaAccount  /* caller must free - using "free" function */
+hederaAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount);
+
+/**
  * Free all memory associated with this account
  *
  * @param account
@@ -87,6 +98,16 @@ extern BRHederaAddress hederaAccountGetPrimaryAddress (BRHederaAccount account);
 
 extern uint8_t * // Caller owns memory and must delete calling "free"
 hederaAccountGetSerialization (BRHederaAccount account, size_t *bytesCount);
+
+/**
+ * Check if this account has the specified address
+ *
+ * @param account   hedera account
+ * @param address   hedera address to check
+ *
+ * @return 1 if true, 0 if false
+*/
+extern int hederaAccountHasAddress (BRHederaAccount account, BRHederaAddress address);
 
 #ifdef __cplusplus
 }

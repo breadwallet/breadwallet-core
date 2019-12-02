@@ -5,10 +5,21 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include "support/BRArray.h"
+#include "BRHederaAddress.h"
+#include <stdio.h>
+#include <stdbool.h>
+#include <pthread.h>
 
 struct BRHederaWalletRecord {
     BRHederaAccount account;
     BRHederaUnitTinyBar balance;
+    BRHederaFeeBasis feeBasis;
+    BRArrayOf(BRHederaAddress)  nodes;
+
+    BRArrayOf(BRHederaTransaction) transactions;
+
+    pthread_mutex_t lock;
 };
 
 extern BRHederaWallet
@@ -17,6 +28,15 @@ hederaWalletCreate (BRHederaAccount account)
     assert(account);
     BRHederaWallet wallet = calloc(1, sizeof(struct BRHederaWalletRecord));
     wallet->account = account;
+    // TODO - do we just hard code Hedera nodes here - we probably can for now
+    // but perhaps in the future there will be additional shards/realms
+    array_new(wallet->nodes, 10);
+    array_add(wallet->nodes, hederaAddressCreateFromString("0.0.3"));
+
+    // Add a default fee basis
+    wallet->feeBasis.costFactor = 1;
+    wallet->feeBasis.pricePerCostFactor = 500000;
+
     return wallet;
 }
 
@@ -24,6 +44,10 @@ extern void
 hederaWalletFree (BRHederaWallet wallet)
 {
     assert(wallet);
+    for (int i = 0; i < array_count(wallet->nodes); i++) {
+        hederaAddressFree(wallet->nodes[i]);
+    }
+    array_free(wallet->nodes);
     free(wallet);
 }
 
@@ -61,4 +85,71 @@ hederaWalletGetBalance (BRHederaWallet wallet)
     return (wallet->balance);
 }
 
+extern BRHederaAddress
+hederaWalletGetNodeAddress(BRHederaWallet wallet)
+{
+    assert(wallet);
+    BRHederaAddress node = wallet->nodes[0];
+    return hederaAddressClone(node);
+}
 
+extern void
+hederaWalletSetDefaultFeeBasis (BRHederaWallet wallet, BRHederaFeeBasis feeBasis)
+{
+    assert(wallet);
+    wallet->feeBasis = feeBasis;
+}
+
+extern BRHederaFeeBasis
+hederaWalletGetDefaultFeeBasis (BRHederaWallet wallet)
+{
+    assert(wallet);
+    return wallet->feeBasis;
+}
+
+static bool
+walletHasTransfer (BRHederaWallet wallet, BRHederaTransaction transaction) {
+    bool r = false;
+    for (size_t index = 0; index < array_count(wallet->transactions) && false == r; index++) {
+        r = hederaTransactionEqual (transaction, wallet->transactions[index]);
+    }
+    return r;
+}
+
+extern int hederaWalletHasTransfer (BRHederaWallet wallet, BRHederaTransaction transfer) {
+    pthread_mutex_lock (&wallet->lock);
+    int result = walletHasTransfer (wallet, transfer);
+    pthread_mutex_unlock (&wallet->lock);
+    return result;
+}
+
+extern void hederaWalletAddTransfer(BRHederaWallet wallet, BRHederaTransaction transaction)
+{
+    assert(wallet);
+    assert(transaction);
+    pthread_mutex_lock (&wallet->lock);
+    if (!walletHasTransfer(wallet, transaction)) {
+        array_add(wallet->transactions, transaction);
+        // Update the balance
+        BRHederaUnitTinyBar amount = hederaTransactionGetAmount(transaction);
+        BRHederaAddress accountAddress = hederaAccountGetAddress(wallet->account);
+        BRHederaAddress source = hederaTransactionGetSource(transaction);
+        if (1 == hederaAddressEqual(accountAddress, source)) {
+            wallet->balance -= (amount + hederaTransactionGetFee (transaction));
+        } else {
+            wallet->balance += amount;
+        }
+        // Clean up...
+        hederaAddressFree (source);
+        hederaAddressFree (accountAddress);
+
+    }
+    pthread_mutex_unlock (&wallet->lock);
+}
+
+extern int
+hederaWalletHasAddress (BRHederaWallet wallet,
+                        BRHederaAddress address)
+{
+    return hederaAccountHasAddress (wallet->account, address);
+}

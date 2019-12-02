@@ -139,15 +139,19 @@ static BRHederaTransaction createSignedTransaction (const char * source, const c
 
     BRHederaAddress sourceAddress = hederaAddressCreateFromString (source_account.account_string);
     BRHederaAddress targetAddress = hederaAddressCreateFromString (target_account.account_string);
-    BRHederaTransaction transaction = hederaTransactionCreateNew(sourceAddress, targetAddress, amount);
-
-    // Sign the transaction
     BRHederaAddress nodeAddress = hederaAddressCreateFromString (node_account.account_string);
-    BRKey publicKey = hederaAccountGetPublicKey(account);
     BRHederaTimeStamp timeStamp;
     timeStamp.seconds = seconds;
     timeStamp.nano = nanos;
-    hederaTransactionSignTransaction (transaction, publicKey, nodeAddress, timeStamp, fee, seed);
+    BRHederaFeeBasis feeBasis;
+    feeBasis.costFactor = 1;
+    feeBasis.pricePerCostFactor = fee;
+    BRHederaTransaction transaction = hederaTransactionCreateNew(sourceAddress, targetAddress, amount,
+                                                                 feeBasis, nodeAddress, &timeStamp);
+
+    // Sign the transaction
+    BRKey publicKey = hederaAccountGetPublicKey(account);
+    hederaTransactionSignTransaction (transaction, publicKey, seed);
 
     // Cleaup
     hederaAddressFree (sourceAddress);
@@ -219,7 +223,11 @@ static void createExistingTransaction(const char * sourceUserName, const char *t
     BRHederaTransactionHash expectedHash;
     // Create a fake hash for this transaction
     BRSHA256(expectedHash.bytes, sourceAccountInfo.paper_key, strlen(sourceAccountInfo.paper_key));
-    BRHederaTransaction transaction = hederaTransactionCreate(source, target, amount, txId, expectedHash);
+    BRHederaUnitTinyBar fee = 500000;
+    uint64_t timestamp = 1000;
+    uint64_t blockHeight = 1000;
+    BRHederaTransaction transaction = hederaTransactionCreate(source, target, amount, fee, txId, expectedHash,
+                                                              timestamp, blockHeight);
 
     // Check the values
     BRHederaTransactionHash hash = hederaTransactionGetHash(transaction);
