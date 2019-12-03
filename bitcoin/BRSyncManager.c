@@ -1217,8 +1217,8 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
 static BRArrayOf(char *)
 BRClientSyncManagerConvertAddressToString (BRClientSyncManager manager,
                                            OwnershipGiven BRArrayOf(BRAddress *) addresses) {
-    if (NULL == addresses || 0 == array_count(addresses))
-        return NULL;
+    if (NULL == addresses) return NULL;
+    if (0 == array_count(addresses)) { array_free (addresses); return NULL; }
     
     size_t addressesCount = array_count(addresses);
 
