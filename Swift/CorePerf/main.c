@@ -23,7 +23,7 @@ runEWM_freeClient (BREthereumClient client);
 
 static void
 runSyncMany (BREthereumNetwork newtork,
-             BRSyncMode mode,
+             BRCryptoSyncMode mode,
              unsigned int durationInSeconds,
              unsigned int accounts) {
 
@@ -81,7 +81,7 @@ runSyncMany (BREthereumNetwork newtork,
 
 
 int main(int argc, const char * argv[]) {
-    BRSyncMode mode = SYNC_MODE_BRD_WITH_P2P_SEND;
+    BRCryptoSyncMode mode = CRYPTO_SYNC_MODE_API_WITH_P2P_SEND;
 
     const char *paperKey = (argc > 1 ? argv[1] : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
     BREthereumAccount account = createAccount(paperKey);

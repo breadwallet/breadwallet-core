@@ -236,13 +236,11 @@ public final class System {
     ///
     static let supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.api_only, .p2p_only],
-        "bitcoincash-mainnet":  [.p2p_only],
+        "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-mainnet":       [],
         "bitcoin-testnet":      [.api_only, .p2p_only],
-        "bitcoincash-testnet":  [.p2p_only],
+        "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-testnet":       []
     ]
 
     ///
@@ -252,11 +250,9 @@ public final class System {
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
-//        "ripple-mainnet":       [],
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
-//        "ripple-testnet":       []
     ]
 
 
@@ -1451,9 +1447,9 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address = asUTF8String (address!)
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {network, address}", cwm: cwm); return }
 
                 manager.query.getBalanceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1469,10 +1465,10 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address  = asUTF8String (address!)
-                let contract = asUTF8String (contract!)
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String),
+                    let contract = contract.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {network, address, contract}", cwm: cwm); return }
 
                 manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1488,8 +1484,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetGasPrice: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetGasPrice: Missed {network}", cwm: cwm); return }
 
                 manager.query.getGasPriceAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1508,8 +1504,8 @@ extension System {
                 guard let price = price.map (asUTF8String)
                     else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {price}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {network}", cwm: cwm); return }
 
                 manager.query.getGasEstimateAsETH (network: network,
                                                    from:   asUTF8String(from!),
@@ -1529,8 +1525,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {network}", cwm: cwm); return }
 
                 manager.query.submitTransactionAsETH (network: network,
                                                       transaction: asUTF8String(transaction!)) {
@@ -1547,8 +1543,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {network}", cwm: cwm); return }
 
                 manager.query.getTransactionsAsETH (network: network,
                                                     address: asUTF8String (address!),
@@ -1587,8 +1583,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetLogs: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {network}", cwm: cwm); return }
 
                 manager.query.getLogsAsETH (network: network,
                                             contract: contract.map { asUTF8String($0) },
@@ -1627,8 +1623,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetBlocks: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetBlocks: Missed {network}", cwm: cwm); return }
 
                 manager.query.getBlocksAsETH (network: network,
                                               address: asUTF8String(address!),
@@ -1678,8 +1674,8 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {network}", cwm: cwm); return }
 
                 manager.query.getBlockNumberAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1702,13 +1698,11 @@ extension System {
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup  ("SYS: ETH: GetNonce: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {network, address}", cwm: cwm); return }
 
-                guard let address = address.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {address}", cwm: cwm); return }
-
-                 manager.query.getNonceAsETH (network: network, address: address) {
+                manager.query.getNonceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (

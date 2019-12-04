@@ -18,12 +18,46 @@
 #include "BRCryptoAccount.h"
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
+#include "BRCryptoSync.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    /// MARK: - Wallet Manager Disconnect Reason
+
+    typedef enum {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_REQUESTED,
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_UNKNOWN,
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX
+    } BRCryptoWalletManagerDisconnectReasonType;
+
+    typedef struct {
+        BRCryptoWalletManagerDisconnectReasonType type;
+        union {
+            struct {
+                int errnum;
+            } posix;
+        } u;
+    } BRCryptoWalletManagerDisconnectReason;
+
+    extern BRCryptoWalletManagerDisconnectReason
+    cryptoWalletManagerDisconnectReasonRequested (void);
+
+    extern BRCryptoWalletManagerDisconnectReason
+    cryptoWalletManagerDisconnectReasonUnknown (void);
+
+    extern BRCryptoWalletManagerDisconnectReason
+    cryptoWalletManagerDisconnectReasonPosix (int errnum);
+
+    /**
+     * Return a descriptive message as to why the disconnect occurred.
+     *
+     *@return the detailed reason as a string or NULL
+     */
+    extern char *
+    cryptoWalletManagerDisconnectReasonGetMessage (BRCryptoWalletManagerDisconnectReason *reason);
 
     /// MARK: Wallet Manager Event
 
@@ -39,7 +73,7 @@ extern "C" {
         BRCryptoWalletManagerStateType type;
         union {
             struct {
-                BRDisconnectReason reason;
+                BRCryptoWalletManagerDisconnectReason reason;
             } disconnected;
         } u;
     } BRCryptoWalletManagerState;
@@ -81,16 +115,16 @@ extern "C" {
             } wallet;
 
             struct {
-                BRSyncTimestamp timestamp;
-                BRSyncPercentComplete percentComplete;
+                BRCryptoSyncTimestamp timestamp;
+                BRCryptoSyncPercentComplete percentComplete;
             } syncContinues;
 
             struct {
-                BRSyncStoppedReason reason;
+                BRCryptoSyncStoppedReason reason;
             } syncStopped;
 
             struct {
-                BRSyncDepth depth;
+                BRCryptoSyncDepth depth;
             } syncRecommended;
 
             struct {
@@ -138,7 +172,7 @@ extern "C" {
                                BRCryptoCWMClient client,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
-                               BRSyncMode mode,
+                               BRCryptoSyncMode mode,
                                BRCryptoAddressScheme scheme,
                                const char *path);
 
@@ -148,11 +182,11 @@ extern "C" {
     extern BRCryptoAccount
     cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm);
 
-    extern BRSyncMode
+    extern BRCryptoSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
 
     extern void
-    cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode);
+    cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRCryptoSyncMode mode);
 
     extern BRCryptoWalletManagerState
     cryptoWalletManagerGetState (BRCryptoWalletManager cwm);
@@ -225,7 +259,7 @@ extern "C" {
 
     extern void
     cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
-                                    BRSyncDepth depth);
+                                    BRCryptoSyncDepth depth);
 
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,

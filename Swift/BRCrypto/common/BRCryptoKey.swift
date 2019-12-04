@@ -173,8 +173,6 @@ public final class Key {
         return 1 == cryptoKeySecretMatch (core, that.core)
     }
 
-
-
     ///
     /// Initialize based on a Core BRKey - the provided BRKey might be private+public or just
     /// a public key (such as one that is recovered from the signature.

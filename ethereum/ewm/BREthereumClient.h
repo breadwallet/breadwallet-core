@@ -12,6 +12,7 @@
 #define BR_Ethereum_Client_H
 
 #include "BREthereumBase.h"
+#include "BRCryptoSync.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -440,8 +441,8 @@ extern "C" {
                 BREthereumEWMState newState;
             } changed;
             struct {
-                BRSyncTimestamp timestamp;
-                BRSyncPercentComplete percentComplete;
+                BRCryptoSyncTimestamp timestamp;
+                BRCryptoSyncPercentComplete percentComplete;
             } syncProgress;
             struct {
                 uint64_t value;

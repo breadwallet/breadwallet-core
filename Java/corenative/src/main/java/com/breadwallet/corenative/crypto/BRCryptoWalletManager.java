@@ -8,8 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
-import com.breadwallet.corenative.support.BRSyncDepth;
-import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -39,7 +37,7 @@ public class BRCryptoWalletManager extends PointerType {
                                                          BRCryptoCWMClient client,
                                                          BRCryptoAccount account,
                                                          BRCryptoNetwork network,
-                                                         BRSyncMode mode,
+                                                         BRCryptoSyncMode mode,
                                                          BRCryptoAddressScheme scheme,
                                                          String path) {
         return Optional.fromNullable(
@@ -128,13 +126,13 @@ public class BRCryptoWalletManager extends PointerType {
         );
     }
 
-    public BRSyncMode getMode() {
+    public BRCryptoSyncMode getMode() {
         Pointer thisPtr = this.getPointer();
 
-        return BRSyncMode.fromCore(CryptoLibraryDirect.cryptoWalletManagerGetMode(thisPtr));
+        return BRCryptoSyncMode.fromCore(CryptoLibraryDirect.cryptoWalletManagerGetMode(thisPtr));
     }
 
-    public void setMode(BRSyncMode mode) {
+    public void setMode(BRCryptoSyncMode mode) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoWalletManagerSetMode(thisPtr, mode.toCore());
@@ -188,7 +186,7 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cryptoWalletManagerStop(thisPtr);
     }
 
-    public void syncToDepth(BRSyncDepth depth) {
+    public void syncToDepth(BRCryptoSyncDepth depth) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoWalletManagerSyncToDepth(thisPtr, depth.toCore());

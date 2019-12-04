@@ -8,65 +8,17 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include <pthread.h>
+#include "BRCryptoWalletP.h"
 
 #include "BRCryptoFeeBasis.h"
-#include "BRCryptoWallet.h"
-#include "BRCryptoBase.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoAmount.h"
 
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoNetworkP.h"
 
-#include "bitcoin/BRWallet.h"
-#include "bitcoin/BRWalletManager.h"
-#include "ethereum/BREthereum.h"
-#include "generic/BRGeneric.h"
-
-/**
- *
- */
-static void
-cryptoWalletRelease (BRCryptoWallet wallet);
-
-
-struct BRCryptoWalletRecord {
-    pthread_mutex_t lock;
-
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            BRWalletManager bwm;
-            BRWallet *wid;
-        } btc;
-
-        struct {
-            BREthereumEWM ewm;
-            BREthereumWallet wid;
-        } eth;
-
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericWallet wid;
-        } gen;
-    } u;
-
-    BRCryptoWalletState state;
-    BRCryptoUnit unit;  // baseUnit
-
-    //
-    // Do we hold transfers here?  The BRWallet and the BREthereumWallet already hold transfers.
-    // Shouldn't we defer to those to get transfers (and then wrap them in BRCryptoTransfer)?
-    // Then we avoid caching trouble (in part).  For a newly created transaction (not yet signed),
-    // the BRWallet will not hold a BRTransaction however, BREthereumWallet will hold a new
-    // BREthereumTransaction. From BRWalet: `assert(tx != NULL && BRTransactionIsSigned(tx));`
-    //
-    // We are going to have the same
-    //
-    BRArrayOf (BRCryptoTransfer) transfers;
-
-    //
-    BRCryptoUnit unitForFee;
-    BRCryptoRef ref;
-};
+#include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 

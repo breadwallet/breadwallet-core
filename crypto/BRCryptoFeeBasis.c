@@ -10,30 +10,8 @@
 //
 #include <math.h>
 
-#include "BRCryptoFeeBasis.h"
-#include "ethereum/BREthereum.h"
-#include "generic/BRGeneric.h"
+#include "BRCryptoFeeBasisP.h"
 #include "BRCryptoPrivate.h"
-
-static void
-cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis);
-
-struct BRCryptoFeeBasisRecord {
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            uint32_t feePerKB;
-            uint32_t sizeInByte;
-        } btc;
-        BREthereumFeeBasis eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericFeeBasis bid;
-        } gen;
-    } u;
-    BRCryptoUnit unit;
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis)
 

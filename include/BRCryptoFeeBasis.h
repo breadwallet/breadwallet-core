@@ -7,7 +7,6 @@
 //
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
-//
 
 #ifndef BRCryptoFeeBasis_h
 #define BRCryptoFeeBasis_h

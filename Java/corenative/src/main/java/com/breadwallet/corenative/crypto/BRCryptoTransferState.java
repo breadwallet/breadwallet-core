@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -62,7 +61,7 @@ public class BRCryptoTransferState extends Structure {
 
         public static class errored_struct extends Structure {
 
-            public BRTransferSubmitError error;
+            public BRCryptoTransferSubmitError error;
 
             public errored_struct() {
                 super();
@@ -72,7 +71,7 @@ public class BRCryptoTransferState extends Structure {
                 return Arrays.asList("error");
             }
 
-            public errored_struct(BRTransferSubmitError error) {
+            public errored_struct(BRCryptoTransferSubmitError error) {
                 super();
                 this.error = error;
             }

@@ -13,15 +13,20 @@
 
 #include "BRCryptoBase.h"
 #include "BRCryptoStatus.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletP.h"
+
+#include "BRCryptoPrivate.h" // cryptoStatusFromETH
+
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "BRCryptoWalletManagerPrivate.h"
+#include "BRCryptoWalletManagerP.h"
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 #include "support/BRBase.h"
-#include "support/BRSyncMode.h"
 
 typedef enum  {
     CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER,
@@ -786,7 +791,7 @@ cwmStateFromETH (BREthereumEWMState state) {
         case EWM_STATE_CREATED:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CREATED);
         case EWM_STATE_CONNECTED:    return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
         case EWM_STATE_SYNCING:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_SYNCING);
-        case EWM_STATE_DISCONNECTED: return cryptoWalletManagerStateDisconnectedInit (BRDisconnectReasonUnknown());
+        case EWM_STATE_DISCONNECTED: return cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonUnknown());
         case EWM_STATE_DELETED:      return cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_DELETED);
     }
 }
@@ -859,7 +864,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                                                           cryptoWalletManagerTake(cwm),
                                                           (BRCryptoWalletManagerEvent) {
                                                               CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
-                                                              { .syncStopped = { BRSyncStoppedReasonComplete() } }
+                                                              { .syncStopped = { cryptoSyncStoppedReasonComplete() } }
                                                           });
             }
 
@@ -886,7 +891,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                 CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
                 { .state = { cwm->state, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED }}
             };
-            cryptoWalletManagerSetState (cwm, cryptoWalletManagerStateDisconnectedInit ( BRDisconnectReasonUnknown() ));
+            cryptoWalletManagerSetState (cwm, cryptoWalletManagerStateDisconnectedInit ( cryptoWalletManagerDisconnectReasonUnknown() ));
             break;
 
         case EWM_EVENT_BLOCK_HEIGHT_UPDATED: {
@@ -1319,7 +1324,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
             assert (NULL != transfer);
             if (NULL != transfer) {
                 BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
-                BRCryptoTransferState newState = cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown ());
+                BRCryptoTransferState newState = cryptoTransferStateErroredInit (BRCryptoTransferSubmitErrorUnknown ());
 
                 cryptoTransferSetState (transfer, newState);
 

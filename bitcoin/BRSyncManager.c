@@ -16,6 +16,9 @@
 #include <string.h>
 
 #include "support/BRArray.h"
+#include "support/BRAddress.h"
+#include "bcash/BRBCashAddr.h"
+
 #include "BRSyncManager.h"
 #include "BRPeerManager.h"
 
@@ -75,7 +78,7 @@
  *  fields in `BRSyncManagerStruct`, that refactoring would become more difficult.
  */
 struct BRSyncManagerStruct {
-    BRSyncMode mode;
+    BRCryptoSyncMode mode;
 };
 
 /// MARK: - Sync Manager Decls & Defs
@@ -222,7 +225,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
-                               BRSyncDepth depth,
+                               BRCryptoSyncDepth depth,
                                OwnershipKept BRTransaction *lastConfirmedSendTx);
 
 static void
@@ -268,6 +271,7 @@ BRClientSyncManagerGenerateRid (BRClientSyncManager manager);
 static void
 BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
                                   BRWallet *wallet,
+                                  int isBTC,
                                   uint64_t syncedBlockHeight,
                                   uint64_t networkBlockHeight,
                                   int rid);
@@ -293,12 +297,13 @@ BRClientSyncManagerScanStateGetEndBlockNumber(BRClientSyncManagerScanState scanS
 static uint64_t
 BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState scanState);
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState);
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
-                                                       BRWallet *wallet);
+                                                       BRWallet *wallet,
+                                                       int isBTC);
 
 /// MARK: - Peer Sync Manager Decls & Defs
 
@@ -421,7 +426,7 @@ BRPeerSyncManagerDisconnect(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
-                             BRSyncDepth depth,
+                             BRCryptoSyncDepth depth,
                              OwnershipKept BRTransaction *lastConfirmedSendTx);
 
 static void
@@ -448,18 +453,21 @@ static void _BRPeerSyncManagerTxPublished (void *info, int error);
 
 static BRAddress *
 _getWalletAddresses (BRWallet *wallet,
-                     size_t *addressCount);
+                     size_t *addressCount,
+                     int isBTC);
 
 static void
 _fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                      BRWallet *wallet);
+                      BRWallet *wallet,
+                      int isBTC);
 
 static BRArrayOf(BRAddress *)
 _updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                        BRWallet *wallet);
+                        BRWallet *wallet,
+                        int isBTC);
 
 static uint32_t
-_calculateSyncDepthHeight(BRSyncDepth depth,
+_calculateSyncDepthHeight(BRCryptoSyncDepth depth,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
                           OwnershipKept BRTransaction *lastConfirmedSendTx);
@@ -467,7 +475,7 @@ _calculateSyncDepthHeight(BRSyncDepth depth,
 /// MARK: - Sync Manager Implementation
 
 extern BRSyncManager
-BRSyncManagerNewForMode(BRSyncMode mode,
+BRSyncManagerNewForMode(BRCryptoSyncMode mode,
                         BRSyncManagerEventContext eventContext,
                         BRSyncManagerEventCallback eventCallback,
                         BRSyncManagerClientContext clientContext,
@@ -489,7 +497,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
     assert(peers != NULL || peersCount == 0);
 
     switch (mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         return BRClientSyncManagerAsSyncManager (BRClientSyncManagerNew (eventContext,
                                                                          eventCallback,
                                                                          clientContext,
@@ -500,7 +508,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                          blockHeight,
                                                                          confirmationsUntilFinal,
                                                                          isNetworkReachable));
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
                                                                      eventCallback,
                                                                      params,
@@ -522,10 +530,10 @@ BRSyncManagerNewForMode(BRSyncMode mode,
 extern void
 BRSyncManagerFree(BRSyncManager manager) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerFree (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerFree (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -538,10 +546,10 @@ extern uint64_t
 BRSyncManagerGetBlockHeight (BRSyncManager manager) {
     uint64_t blockHeight = 0;
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         blockHeight = BRClientSyncManagerGetBlockHeight (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         blockHeight = BRPeerSyncManagerGetBlockHeight (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -555,10 +563,10 @@ extern uint64_t
 BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager) {
     uint64_t blockHeight = 0;
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         blockHeight = BRClientSyncManagerGetConfirmationsUntilFinal (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         blockHeight = BRPeerSyncManagerGetConfirmationsUntilFinal (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -572,10 +580,10 @@ extern int
 BRSyncManagerGetNetworkReachable (BRSyncManager manager) {
     int isNetworkReachable = 1;
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         isNetworkReachable = BRClientSyncManagerGetNetworkReachable (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         isNetworkReachable = BRPeerSyncManagerGetNetworkReachable (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -589,10 +597,10 @@ extern void
 BRSyncManagerSetNetworkReachable (BRSyncManager manager,
                                   int isNetworkReachable) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerSetNetworkReachable (BRSyncManagerAsClientSyncManager (manager), isNetworkReachable);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerSetNetworkReachable (BRSyncManagerAsPeerSyncManager (manager), isNetworkReachable);
         break;
         default:
@@ -606,9 +614,9 @@ BRSyncManagerSetFixedPeer (BRSyncManager manager,
                            UInt128 address,
                            uint16_t port) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerSetFixedPeer (BRSyncManagerAsPeerSyncManager(manager), address, port);
         break;
         default:
@@ -620,10 +628,10 @@ BRSyncManagerSetFixedPeer (BRSyncManager manager,
 extern void
 BRSyncManagerConnect(BRSyncManager manager) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerConnect (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerConnect (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -635,10 +643,10 @@ BRSyncManagerConnect(BRSyncManager manager) {
 extern void
 BRSyncManagerDisconnect(BRSyncManager manager) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerDisconnect (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerDisconnect (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -649,13 +657,13 @@ BRSyncManagerDisconnect(BRSyncManager manager) {
 
 extern void
 BRSyncManagerScanToDepth(BRSyncManager manager,
-                         BRSyncDepth depth,
+                         BRCryptoSyncDepth depth,
                          OwnershipKept BRTransaction *lastConfirmedSendTx) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerScanToDepth (BRSyncManagerAsClientSyncManager (manager), depth, lastConfirmedSendTx);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerScanToDepth (BRSyncManagerAsPeerSyncManager (manager), depth, lastConfirmedSendTx);
         break;
         default:
@@ -668,11 +676,11 @@ extern void
 BRSyncManagerSubmit(BRSyncManager manager,
                     OwnershipKept BRTransaction *transaction) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerSubmit (BRSyncManagerAsClientSyncManager (manager),
                                    transaction);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerSubmit (BRSyncManagerAsPeerSyncManager (manager),
                                  transaction);
         break;
@@ -685,10 +693,10 @@ BRSyncManagerSubmit(BRSyncManager manager,
 extern void
 BRSyncManagerTickTock(BRSyncManager manager) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerTickTock (BRSyncManagerAsClientSyncManager (manager));
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerTickTock (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
@@ -700,7 +708,7 @@ BRSyncManagerTickTock(BRSyncManager manager) {
 extern void
 BRSyncManagerP2PFullScanReport(BRSyncManager manager) {
     switch (manager->mode) {
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             if (BRPeerSyncManagerIsInFullScan (BRSyncManagerAsPeerSyncManager (manager)))
                 BRPeerSyncManagerTickTock(BRSyncManagerAsPeerSyncManager (manager));
         default:
@@ -713,12 +721,12 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                     int rid,
                                     uint64_t blockHeight) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerAnnounceGetBlockNumber (BRSyncManagerAsClientSyncManager (manager),
                                                    rid,
                                                    blockHeight);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
@@ -735,7 +743,7 @@ BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          uint64_t timestamp,
                                          uint64_t blockHeight) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerAnnounceGetTransactionsItem (BRSyncManagerAsClientSyncManager (manager),
                                                         rid,
                                                         transaction,
@@ -743,7 +751,7 @@ BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                                         timestamp,
                                                         blockHeight);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
@@ -757,12 +765,12 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
                                          int rid,
                                          int success) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerAnnounceGetTransactionsDone (BRSyncManagerAsClientSyncManager (manager),
                                                         rid,
                                                         success);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
@@ -777,13 +785,13 @@ BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        OwnershipKept BRTransaction *transaction,
                                        int error) {
     switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
         BRClientSyncManagerAnnounceSubmitTransaction (BRSyncManagerAsClientSyncManager (manager),
                                                       rid,
                                                       transaction,
                                                       error);
         break;
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
         // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
@@ -806,7 +814,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        uint64_t confirmationsUntilFinal,
                        int isNetworkReachable) {
     BRClientSyncManager manager = (BRClientSyncManager) calloc (1, sizeof(struct BRClientSyncManagerStruct));
-    manager->common.mode = SYNC_MODE_BRD_ONLY;
+    manager->common.mode = CRYPTO_SYNC_MODE_API_ONLY;
 
     manager->wallet = wallet;
     manager->eventContext = eventContext;
@@ -857,7 +865,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
 
 static BRClientSyncManager
 BRSyncManagerAsClientSyncManager(BRSyncManager manager) {
-    if (manager->mode == SYNC_MODE_BRD_ONLY) {
+    if (manager->mode == CRYPTO_SYNC_MODE_API_ONLY) {
         return (BRClientSyncManager) manager;
     }
     assert (0);
@@ -971,7 +979,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
+                                        { .syncStopped = { cryptoSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -980,7 +988,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
-                                         { .disconnected = { BRDisconnectReasonRequested() } }
+                                         { .disconnected = { cryptoWalletManagerDisconnectReasonRequested() } }
                                     });
         }
 
@@ -992,7 +1000,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
 
 static void
 BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
-                               BRSyncDepth depth,
+                               BRCryptoSyncDepth depth,
                                OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint8_t needConnectionEvent = 0;
     uint8_t needSyncEvent       = 0;
@@ -1027,7 +1035,7 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
+                                        { .syncStopped = { cryptoSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1036,7 +1044,7 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
-                                        { .disconnected = { BRDisconnectReasonRequested() } }
+                                        { .disconnected = { cryptoWalletManagerDisconnectReasonRequested() } }
                                     });
 
             manager->eventCallback (manager->eventContext,
@@ -1090,7 +1098,7 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
                                     SYNC_MANAGER_TXN_SUBMIT_FAILED,
-                                    { .submitFailed = {transaction, BRTransferSubmitErrorPosix (ENOTCONN) } },
+                                    { .submitFailed = {transaction, BRCryptoTransferSubmitErrorPosix (ENOTCONN) } },
                                 });
     }
 }
@@ -1157,7 +1165,7 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                             (error ?
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_FAILED,
-                                 { .submitFailed = { txn, BRTransferSubmitErrorPosix (error) } },
+                                 { .submitFailed = { txn, BRCryptoTransferSubmitErrorPosix (error) } },
                              } :
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
@@ -1211,6 +1219,44 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 }
 
+static BRArrayOf(char *)
+BRClientSyncManagerConvertAddressToString (BRClientSyncManager manager,
+                                           OwnershipGiven BRArrayOf(BRAddress *) addresses) {
+    if (NULL == addresses) return NULL;
+    if (0 == array_count(addresses)) { array_free (addresses); return NULL; }
+
+    size_t addressesCount = array_count(addresses);
+
+    BRArrayOf(char *) addressesAsString = NULL;
+
+    // For BTC, simply extract the BRAddress' string
+    if (BRChainParamsIsBitcoin (manager->chainParams)) {
+        array_new(addressesAsString, addressesCount);
+        array_set_count(addressesAsString, addressesCount);
+
+        for (size_t index = 0; index < addressesCount; index++)
+            addressesAsString[index] = strdup (addresses[index]->s);
+    }
+
+    // For BCH, double up the array with the : BRBCash encoding + the BRAddress' string
+    else {
+        array_new(addressesAsString, 2 * addressesCount);
+        array_set_count(addressesAsString, 2 * addressesCount);
+        for (size_t index = 0; index < addressesCount; index++) {
+            addressesAsString[index] = malloc(55);
+            BRBCashAddrEncode (addressesAsString[index], addresses[index]->s);
+
+            addressesAsString[index + addressesCount] = strdup (addresses[index]->s);
+        }
+    }
+
+    for (size_t index = 0; index < addressesCount; index++)
+        free (addresses[index]);
+    array_free (addresses);
+
+    return addressesAsString;
+}
+
 static void
 BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                 int rid,
@@ -1233,8 +1279,12 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             if (success) {
 
                 // check if the first unused addresses have changed since last completion
-                addresses = BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
-                                                                                   manager->wallet);
+                addresses = BRClientSyncManagerConvertAddressToString
+                (manager,
+                 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
+                                                                        manager->wallet,
+                                                                        BRChainParamsIsBitcoin (manager->chainParams)));
+
                 addressCount = NULL != addresses ? array_count(addresses) : 0;
                 if (0 != addressCount) {
                     // ... we've discovered a new address (i.e. there were transactions announce)
@@ -1254,7 +1304,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 
                     // store control flow flags
                     needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
-                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonComplete() } }};
+                    syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { cryptoSyncStoppedReasonComplete() } }};
 
                     // reset sync state
                     BRClientSyncManagerScanStateWipe (&manager->scanState);
@@ -1268,8 +1318,8 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                 needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
                 needDiscEvent = 1;
 
-                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { BRSyncStoppedReasonUnknown() } }};
-                discEvent = (BRSyncManagerEvent) {SYNC_MANAGER_DISCONNECTED, { .disconnected = { BRDisconnectReasonUnknown() } }};
+                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { cryptoSyncStoppedReasonUnknown() } }};
+                discEvent = (BRSyncManagerEvent) {SYNC_MANAGER_DISCONNECTED, { .disconnected = { cryptoWalletManagerDisconnectReasonUnknown() } }};
 
                 // reset sync state on failure
                 BRClientSyncManagerScanStateWipe (&manager->scanState);
@@ -1334,12 +1384,15 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
 
             BRClientSyncManagerScanStateInit (&manager->scanState,
                                               manager->wallet,
+                                              BRChainParamsIsBitcoin (manager->chainParams),
                                               manager->syncedBlockHeight,
                                               manager->networkBlockHeight,
                                               BRClientSyncManagerGenerateRid (manager));
 
             // get the addresses to query the BDB with
-            addresses = BRClientSyncManagerScanStateGetAddresses (&manager->scanState);
+            addresses = BRClientSyncManagerConvertAddressToString
+            (manager, BRClientSyncManagerScanStateGetAddresses (&manager->scanState));
+
             assert (NULL != addresses);
             addressCount = array_count (addresses);
             assert (0 != addressCount);
@@ -1420,6 +1473,7 @@ BRClientSyncManagerGenerateRid (BRClientSyncManager manager) {
 static void
 BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
                                   BRWallet *wallet,
+                                  int isBTC,
                                   uint64_t syncedBlockHeight,
                                   uint64_t networkBlockHeight,
                                   int rid) {
@@ -1454,7 +1508,7 @@ BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
     // build the set of initial wallet addresses
     assert (NULL == scanState->knownAddresses);
     scanState->knownAddresses = BRSetNew (BRAddressHash, BRAddressEq, SEQUENCE_GAP_LIMIT_INTERNAL + SEQUENCE_GAP_LIMIT_EXTERNAL);
-    _fillWalletAddressSet (scanState->knownAddresses, wallet);
+    _fillWalletAddressSet (scanState->knownAddresses, wallet, isBTC);
 }
 
 static void
@@ -1497,7 +1551,7 @@ BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState sc
     return scanState->endBlockNumber - 1;
 }
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState) {
     size_t addressCount = BRSetCount(scanState->knownAddresses);
 
@@ -1512,13 +1566,14 @@ BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState)
         index++;
     }
 
-    return (BRArrayOf(char *)) addresses;
+    return addresses;
 }
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
-                                                       BRWallet *wallet) {
-    BRArrayOf(char *) newAddresses = NULL;
+                                                       BRWallet *wallet,
+                                                       int isBTC) {
+    BRArrayOf(BRAddress *) newAddresses = NULL;
 
     // generate addresses
     BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
@@ -1541,7 +1596,7 @@ BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanSt
         scanState->lastInternalAddress = internalAddress;
 
         // get the list of newly discovered addresses
-        newAddresses = (BRArrayOf(char *)) _updateWalletAddressSet (scanState->knownAddresses, wallet);
+        newAddresses = _updateWalletAddressSet (scanState->knownAddresses, wallet, isBTC);
     }
 
     return newAddresses;
@@ -1563,7 +1618,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                      OwnershipKept const BRPeer peers[],
                      size_t peersCount) {
     BRPeerSyncManager manager = (BRPeerSyncManager) calloc (1, sizeof(struct BRPeerSyncManagerStruct));
-    manager->common.mode = SYNC_MODE_P2P_ONLY;
+    manager->common.mode = CRYPTO_SYNC_MODE_P2P_ONLY;
 
     manager->wallet = wallet;
     manager->eventContext = eventContext;
@@ -1612,7 +1667,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
 
 static BRPeerSyncManager
 BRSyncManagerAsPeerSyncManager(BRSyncManager manager) {
-    if (manager->mode == SYNC_MODE_P2P_ONLY) {
+    if (manager->mode == CRYPTO_SYNC_MODE_P2P_ONLY) {
         return (BRPeerSyncManager) manager;
     }
     assert (0);
@@ -1677,7 +1732,7 @@ BRPeerSyncManagerDisconnect(BRPeerSyncManager manager) {
 
 static void
 BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
-                             BRSyncDepth depth,
+                             BRCryptoSyncDepth depth,
                              OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint32_t calcHeight = _calculateSyncDepthHeight (depth,
                                                      manager->chainParams,
@@ -1733,8 +1788,8 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
 
         uint32_t startHeight = manager->successfulScanBlockHeight;
         uint8_t needSyncProgressEvent = manager->isConnected && manager->isFullScan;
-        BRSyncPercentComplete progressComplete = needSyncProgressEvent ? AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, startHeight)) : AS_SYNC_PERCENT_COMPLETE (0);
-        BRSyncTimestamp progressTimestamp = needSyncProgressEvent ? AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager)) : AS_SYNC_TIMESTAMP (0);
+        BRCryptoSyncPercentComplete progressComplete = needSyncProgressEvent ? AS_CRYPTO_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, startHeight)) : AS_CRYPTO_SYNC_PERCENT_COMPLETE (0);
+        BRCryptoSyncTimestamp progressTimestamp = needSyncProgressEvent ? AS_CRYPTO_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager)) : AS_CRYPTO_SYNC_TIMESTAMP (0);
         needSyncProgressEvent &= progressComplete > 0.0 && progressComplete < 100.0;
 
         manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
@@ -1763,7 +1818,7 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { BRSyncStoppedReasonUnknown() } }
+                                        { .syncStopped = { cryptoSyncStoppedReasonUnknown() } }
                                     });
         }
 
@@ -1772,7 +1827,7 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_DISCONNECTED,
-                                        { .disconnected = { BRDisconnectReasonUnknown() } }
+                                        { .disconnected = { cryptoWalletManagerDisconnectReasonUnknown() } }
                                     });
         }
 
@@ -1867,7 +1922,7 @@ _BRPeerSyncManagerSyncStarted (void *info) {
                                     BRPeerSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
                                         SYNC_MANAGER_SYNC_STOPPED,
-                                        { .syncStopped = { BRSyncStoppedReasonRequested() } }
+                                        { .syncStopped = { cryptoSyncStoppedReasonRequested() } }
                                     });
         }
 
@@ -1928,10 +1983,10 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         SYNC_MANAGER_SYNC_STOPPED,
                                         { .syncStopped = {
                                                 (reason ?
-                                                BRSyncStoppedReasonPosix(reason) :
+                                                cryptoSyncStoppedReasonPosix(reason) :
                                                 (isConnected ?
-                                                 BRSyncStoppedReasonComplete() :
-                                                 BRSyncStoppedReasonRequested()))
+                                                 cryptoSyncStoppedReasonComplete() :
+                                                 cryptoSyncStoppedReasonRequested()))
                                             }
                                         }
                                     });
@@ -1944,8 +1999,8 @@ _BRPeerSyncManagerSyncStopped (void *info, int reason) {
                                         SYNC_MANAGER_DISCONNECTED,
                                         { .disconnected = {
                                                 (reason ?
-                                                 BRDisconnectReasonPosix(reason) :
-                                                 BRDisconnectReasonRequested())
+                                                 cryptoWalletManagerDisconnectReasonPosix(reason) :
+                                                 cryptoWalletManagerDisconnectReasonRequested())
                                             }
                                         }
                                     });
@@ -2024,7 +2079,7 @@ _BRPeerSyncManagerTxPublished (void *info,
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_FAILED,
                                  { .submitFailed = {
-                                     transaction, BRTransferSubmitErrorPosix (error) }
+                                     transaction, BRCryptoTransferSubmitErrorPosix (error) }
                                  },
                              } :
                              (BRSyncManagerEvent) {
@@ -2038,26 +2093,35 @@ _BRPeerSyncManagerTxPublished (void *info,
 /// MARK: - Misc. Helper Implementations
 
 static BRAddress *
-_getWalletAddresses (BRWallet *wallet,size_t *addressCount) {
+_getWalletAddresses (BRWallet *wallet,size_t *addressCount, int isBTC) {
     assert (addressCount);
 
     size_t addrCount = BRWalletAllAddrs (wallet, NULL, 0);
 
-    BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
-    BRWalletAllAddrs (wallet, addrs, addrCount);
+    // For BTC we'll create two types of addresses: SEGWIT and LEGACY.  For BCH, we'll create one
+    // type of address: LEGACY.  Double up the size if BTC.
+    *addressCount = (isBTC ? 2 * addrCount : addrCount);
 
-    memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
-    for (size_t index = 0; index < addrCount; index++)
-        addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
+    // Allocate enough addresses...
+    BRAddress *addrs = (BRAddress *) calloc (*addressCount, sizeof (BRAddress));
 
-    *addressCount = 2 * addrCount;
-    return addrs;
+    // ... and then fill in `addrs` with the wallet's default addresses
+     BRWalletAllAddrs (wallet, addrs, addrCount);
+
+    // If this is BTC, add in the LEGACY type
+    if (isBTC) {
+        memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress)); // ??
+        for (size_t index = 0; index < addrCount; index++)
+            addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
+    }
+
+   return addrs;
 }
 
 static void
-_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet, int isBTC) {
     size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount, isBTC);
 
     for (size_t index = 0; index < addressCount; index++) {
         if (!BRSetContains (addresses, &addressArray[index])) {
@@ -2071,9 +2135,9 @@ _fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
 }
 
 static BRArrayOf(BRAddress *)
-_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet, int isBTC) {
     size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount, isBTC);
 
     BRArrayOf(BRAddress *) newAddresses;
     array_new (newAddresses, addressCount);
@@ -2097,24 +2161,24 @@ _updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
 }
 
 static uint32_t
-_calculateSyncDepthHeight(BRSyncDepth depth,
+_calculateSyncDepthHeight(BRCryptoSyncDepth depth,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
                           OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint32_t scanHeight = 0;
 
     switch (depth) {
-        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
             scanHeight = NULL == lastConfirmedSendTx ? 0 : lastConfirmedSendTx->blockHeight;
             break;
         }
-        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
             const BRCheckPoint *checkpoint = BRChainParamsGetCheckpointBeforeBlockNumber (chainParams,
                                                                                           (uint32_t) MIN (networkBlockHeight, UINT32_MAX));
             scanHeight = NULL == checkpoint ? 0 : checkpoint->height;
             break;
         }
-        case SYNC_DEPTH_FROM_CREATION: {
+        case CRYPTO_SYNC_DEPTH_FROM_CREATION: {
             scanHeight = 0;
             break;
         }

@@ -13,9 +13,9 @@ import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbac
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
-import com.breadwallet.corenative.support.BRDisconnectReason;
-import com.breadwallet.corenative.support.BRSyncStoppedReason;
-import com.breadwallet.corenative.support.BRTransferSubmitError;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManagerDisconnectReason;
+import com.breadwallet.corenative.crypto.BRCryptoSyncStoppedReason;
+import com.breadwallet.corenative.crypto.BRCryptoTransferSubmitError;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -234,6 +234,8 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoTransferTake(Pointer obj);
     public static native void cryptoTransferGive(Pointer obj);
 
+    public static native Pointer BRCryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError error);
+
     // crypto/BRCryptoUnit.h
     public static native Pointer cryptoUnitGetUids(Pointer unit);
     public static native Pointer cryptoUnitGetName(Pointer unit);
@@ -299,6 +301,12 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletManagerSubmitSigned(Pointer cwm, Pointer wid, Pointer tid);
     public static native Pointer cryptoWalletManagerTake(Pointer cwm);
     public static native void cryptoWalletManagerGive(Pointer cwm);
+
+    public static native Pointer cryptoWalletManagerDisconnectReasonGetMessage(BRCryptoWalletManagerDisconnectReason reason);
+
+    // crypto/BRCryptoSync.h
+    public static native Pointer cryptoSyncStoppedReasonGetMessage(BRCryptoSyncStoppedReason reason);
+
 
     // crypto/BRCryptoWalletManager.h (BRCryptoWalletMigrator)
     public static native Pointer cryptoWalletMigratorCreate(Pointer network, String storagePath);
@@ -394,11 +402,6 @@ public final class CryptoLibraryDirect {
     //
     // Support
     //
-
-    // support/BRSyncMode.h
-    public static native Pointer BRSyncStoppedReasonGetMessage(BRSyncStoppedReason reason);
-    public static native Pointer BRDisconnectReasonGetMessage(BRDisconnectReason reason);
-    public static native Pointer BRTransferSubmitErrorGetMessage(BRTransferSubmitError error);
 
     //
     // Ethereum
