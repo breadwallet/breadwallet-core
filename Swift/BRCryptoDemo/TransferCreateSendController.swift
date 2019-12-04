@@ -16,6 +16,9 @@ class TransferCreateSendController: TransferCreateController,
 UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
     var fees: [NetworkFee] = []
+    var target: Address?
+    var minimum: Amount!
+    var maximum: Amount!
 
      override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,46 +52,14 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
 
-        fees = wallet.manager.network.fees.sorted { $0.timeIntervalInMilliseconds < $1.timeIntervalInMilliseconds }
+        self.fees = wallet.manager.network.fees.sorted { $0.timeIntervalInMilliseconds < $1.timeIntervalInMilliseconds }
+        self.fee = fees[0]
 
-        let balance: Double = wallet.balance.double (as: wallet.unit) ?? 0.0
+        self.minimum = Amount.create (double: 0.0, unit: wallet.unit)
+        self.maximum = wallet.balance;
 
-        oneEtherButton.setEnabled (isEthCurrency, forSegmentAt: 0)
-        oneEtherButton.setEnabled (isEthCurrency || isTokCurrency || isBitCurrency, forSegmentAt: 1)
-        oneEtherButton.setEnabled (isBitCurrency && balance >= 0.01, forSegmentAt: 2)
-        oneEtherButton.selectedSegmentIndex = 1 // slider
-
-        oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
-        oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
-
-        amountSlider.minimumValue = 0.0
-        amountSlider.maximumValue = Float (balance)
-        amountSlider.value = 0.0
-
-        print ("APP: TCC: Want to Submit: Source: \(wallet.source)")
-
-        if nil != UIPasteboard.general.string {
-            recvField.text = UIPasteboard.general.string
-        }
-        else {
-            switch wallet.currency.code.lowercased() {
-            case Currency.codeAsETH:
-                recvField.text = (wallet.manager.network.isMainnet
-                    ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
-                    : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
-            case Currency.codeAsBTC:
-                recvField.text = (wallet.manager.network.isMainnet
-                    ? ""
-                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-            case Currency.codeAsBCH:
-                recvField.text = (wallet.manager.network.isMainnet
-                    ? ""
-                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-            default:
-                recvField.text = "Missed currency/network"
-            }
-        }
-
+        recvField.text = UIPasteboard.general.string
+        target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
 
         gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
         gasLimitSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
@@ -99,9 +70,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
         updateView()
     }
-
-    var oneEtherSelected = false
-    var oneBitcoinSelected = false
 
     /*
     // MARK: - Navigation
@@ -171,6 +139,50 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         self.dismiss(animated: true) {}
     }
 
+    func updateLimits () {
+        guard let target = target else { return }
+
+        wallet.estimateLimitMinimum (target: target, fee: fee) {
+            (res: Result<Amount, Wallet.LimitEstimationError>) in
+            switch res {
+            case .success (let minimum):
+                DispatchQueue.main.async {
+                    self.minimum = minimum
+
+                    self.amountSlider.minimumValue = Float (minimum.double (as: self.wallet.unitForFee) ?? 0.0)
+                    self.amountMinLabel.text = self.minimum.string(as: self.wallet.unit)
+
+                    self.amountSlider.value = max (self.amountSlider.minimumValue, self.amountSlider.value)
+                    self.amountLabel.text = self.amount().description
+
+                }
+
+            case .failure:
+                break
+            }
+        }
+
+        wallet.estimateLimitMaximum (target: target, fee: fee) {
+            (res: Result<Amount, Wallet.LimitEstimationError>) in
+            switch res {
+            case .success (let maximum):
+                DispatchQueue.main.async {
+                    self.maximum = maximum
+
+                    self.amountSlider.maximumValue = Float (maximum.double (as: self.wallet.unitForFee) ?? 0.0)
+                    self.amountMaxLabel.text = self.maximum.string(as: self.wallet.unit)
+
+                    self.amountSlider.value = min (self.amountSlider.maximumValue, self.amountSlider.value)
+                    self.amountLabel.text = self.amount().description
+                }
+
+            case .failure:
+                break
+            }
+        }
+
+    }
+
     func updateFee () {
         if self.disableFeeEstimate {
             precondition(nil != self.feeBasis)
@@ -182,7 +194,8 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
         let amount = Amount.create (double: Double(self.amount()), unit: wallet.unit)
 
-        wallet.estimateFee (target: target, amount: amount, fee: fee) { (result: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+        wallet.estimateFee (target: target, amount: amount, fee: fee) {
+            (result: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
             guard case let .success(feeBasis) = result
                 else { return }
 
@@ -195,13 +208,15 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     
     func updateView () {
 
-        amountMinLabel.text = amountSlider.minimumValue.description
-        amountMaxLabel.text = amountSlider.maximumValue.description
+        self.amountSlider.value = min (self.amountSlider.maximumValue, self.amountSlider.value)
+        self.amountSlider.value = max (self.amountSlider.minimumValue, self.amountSlider.value)
+
         amountLabel.text = amount().description
-        amountSlider.isEnabled = !oneEtherSelected && !oneBitcoinSelected
+
+        updateLimits()
 
         submitButton.isEnabled = (recvField.text != "" &&
-            (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+            (0.0 != amountSlider.value))
 
         updateFee()
     }
@@ -209,25 +224,15 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     @IBAction func amountChanged(_ sender: Any) {
         amountLabel.text = amountSlider.value.description
         submitButton.isEnabled = (recvField.text != "" &&
-            (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+            (0.0 != amountSlider.value))
         updateFee()
     }
 
     func amount () -> Float {
-        return (oneBitcoinSelected
-                ? 0.01
-                : (oneEtherSelected
-                    ? 1
-                    : amountSlider!.value))
+        return amountSlider!.value
     }
 
-    @IBAction func amountOneEther(_ sender: UISegmentedControl) {
-        oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
-        oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
-        updateView()
-    }
-
-   // In WEI
+    // In WEI
     func gasPrice () -> UInt64 {
         switch (gasPriceSegmentedController.selectedSegmentIndex) {
         case 0: return   15 * 1000000000 // 15    GWEI
@@ -318,7 +323,9 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
                     inComponent component: Int) {
         guard component == 0 && row < fees.count else { return }
         self.fee = fees[row]
-        updateFee()
+
+        // Update min/max and fee
+        updateView()
     }
 
     @IBOutlet var submitButton: UIBarButtonItem!
@@ -330,7 +337,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var gasPriceSegmentedController: UISegmentedControl!
     @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
-    @IBOutlet var oneEtherButton: UISegmentedControl!
     @IBOutlet var priorityPicker: UIPickerView!
     @IBOutlet var satPerKBSegmentedController: UISegmentedControl!
     @IBAction func toPasteBoard(_ sender: UIButton) {

@@ -62,6 +62,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoAmountGetUnit(Pointer amount);
     public static native int cryptoAmountHasCurrency(Pointer amount, Pointer currency);
     public static native int cryptoAmountIsNegative(Pointer amount);
+    public static native int cryptoAmountIsZero(Pointer amount);
     public static native int cryptoAmountIsCompatible(Pointer a1, Pointer a2);
     public static native int cryptoAmountCompare(Pointer a1, Pointer a2);
     public static native Pointer cryptoAmountAdd(Pointer a1, Pointer a2);
@@ -137,6 +138,7 @@ public final class CryptoLibraryDirect {
 
     // crypto/BRCryptoNetwork.h (BRCryptoNetworkFee)
     public static native long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(Pointer fee);
+    public static native Pointer cryptoNetworkFeeGetPricePerCostFactor(Pointer fee);
     public static native int cryptoNetworkFeeEqual(Pointer fee, Pointer other);
     public static native void cryptoNetworkFeeGive(Pointer obj);
 
@@ -262,6 +264,7 @@ public final class CryptoLibraryDirect {
     public static native void cryptoWalletEstimateFeeBasis(Pointer wallet, Pointer cookie, Pointer target, Pointer amount, Pointer fee);
     public static native void cryptoWalletEstimateFeeBasisForWalletSweep(Pointer wallet, Pointer cookie, Pointer sweeper, Pointer fee);
     public static native void cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(Pointer wallet, Pointer cookie, Pointer request, Pointer fee);
+    public static native Pointer cryptoWalletEstimateLimit(Pointer wallet, int asMaximum, Pointer target, Pointer fee, IntByReference needEstimate, IntByReference isZeroIfInsuffientFunds);
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
 

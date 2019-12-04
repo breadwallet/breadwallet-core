@@ -107,6 +107,12 @@ public class BRCryptoAmount extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAmountIsNegative(thisPtr);
     }
 
+    public boolean isZero() {
+        Pointer thisPtr = this.getPointer();
+
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoAmountIsZero(thisPtr);
+    }
+
     public BRCryptoComparison compare(BRCryptoAmount other) {
         Pointer thisPtr = this.getPointer();
 

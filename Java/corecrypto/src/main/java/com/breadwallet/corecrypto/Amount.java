@@ -127,6 +127,11 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     @Override
+    public boolean isZero() {
+        return core.isZero();
+    }
+
+    @Override
     public Optional<Amount> add(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 

@@ -15,9 +15,12 @@ import com.google.common.primitives.UnsignedInts;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.ptr.IntByReference;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class BRCryptoWallet extends PointerType {
 
@@ -180,6 +183,40 @@ public class BRCryptoWallet extends PointerType {
                 cookie.getPointer(),
                 request.getPointer(),
                 fee.getPointer());
+    }
+
+    public static class EstimateLimitResult {
+
+        public @Nullable BRCryptoAmount amount;
+        public boolean needFeeEstimate;
+        public boolean isZeroIfInsuffientFunds;
+
+        EstimateLimitResult(@Nullable BRCryptoAmount amount, boolean needFeeEstimate, boolean isZeroIfInsuffientFunds) {
+            this.amount = amount;
+            this.needFeeEstimate = needFeeEstimate;
+            this.isZeroIfInsuffientFunds = isZeroIfInsuffientFunds;
+        }
+    }
+
+    public EstimateLimitResult estimateLimit(boolean asMaximum, BRCryptoAddress coreAddress, BRCryptoNetworkFee coreFee) {
+        Pointer thisPtr = this.getPointer();
+
+        IntByReference needFeeEstimateRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        IntByReference isZeroIfInsuffientFundsRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        Optional<BRCryptoAmount> maybeAmount = Optional.fromNullable(CryptoLibraryDirect.cryptoWalletEstimateLimit(
+                thisPtr,
+                asMaximum ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
+                coreAddress.getPointer(),
+                coreFee.getPointer(),
+                needFeeEstimateRef,
+                isZeroIfInsuffientFundsRef
+        )).transform(BRCryptoAmount::new);
+
+        return new EstimateLimitResult(
+                maybeAmount.orNull(),
+                needFeeEstimateRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE,
+                isZeroIfInsuffientFundsRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE
+        );
     }
 
     public BRCryptoWallet take() {

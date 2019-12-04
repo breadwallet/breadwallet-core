@@ -114,6 +114,9 @@ extern "C" {
     cryptoAmountIsCompatible (BRCryptoAmount a1,
                               BRCryptoAmount a2);
 
+    extern BRCryptoBoolean
+    cryptoAmountIsZero (BRCryptoAmount amount);
+
     extern BRCryptoComparison
     cryptoAmountCompare (BRCryptoAmount a1,
                          BRCryptoAmount a2);

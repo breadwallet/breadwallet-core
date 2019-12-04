@@ -155,6 +155,10 @@ public final class Amount {
         return Amount (core: cryptoAmountNegate (core), take: false)
     }
 
+    public var isZero: Bool {
+        return CRYPTO_TRUE == cryptoAmountIsZero (core)
+    }
+    
     internal init (core: BRCryptoAmount,
                    take: Bool) {
         self.core = take ? cryptoAmountTake(core) : core

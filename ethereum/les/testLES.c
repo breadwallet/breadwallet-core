@@ -1197,7 +1197,7 @@ runLESTests (const char *paperKey) {
     
     // Run Tests on the LES messages
     run_GetBlockHeaders_Tests(les);
-    run_GetBlookProofs_Tests(les);
+//    run_GetBlookProofs_Tests(les);
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
     run_SendTransaction_Tests(les, paperKey);

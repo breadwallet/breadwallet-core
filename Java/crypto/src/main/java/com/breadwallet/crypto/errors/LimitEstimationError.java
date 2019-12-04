@@ -1,5 +1,5 @@
 /*
- * Created by Michael Carrara <michael.carrara@breadwallet.com> on 7/1/19.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 11/22/19.
  * Copyright (c) 2019 Breadwinner AG.  All right reserved.
 *
  * See the LICENSE file at the project root for license information.
@@ -7,13 +7,14 @@
  */
 package com.breadwallet.crypto.errors;
 
-public abstract class FeeEstimationError extends Exception {
+public abstract class LimitEstimationError extends Exception {
 
     /* package */
-    FeeEstimationError() {
+    LimitEstimationError() {
         super();
     }
 
-    /* package */
-    abstract LimitEstimationError toLimitEstimationError();
+    public static LimitEstimationError from(FeeEstimationError error) {
+        return error.toLimitEstimationError();
+    }
 }
