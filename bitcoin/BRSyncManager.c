@@ -16,6 +16,9 @@
 #include <string.h>
 
 #include "support/BRArray.h"
+#include "support/BRAddress.h"
+#include "bcash/BRBCashAddr.h"
+
 #include "BRSyncManager.h"
 #include "BRPeerManager.h"
 
@@ -268,6 +271,7 @@ BRClientSyncManagerGenerateRid (BRClientSyncManager manager);
 static void
 BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
                                   BRWallet *wallet,
+                                  int isBTC,
                                   uint64_t syncedBlockHeight,
                                   uint64_t networkBlockHeight,
                                   int rid);
@@ -293,12 +297,13 @@ BRClientSyncManagerScanStateGetEndBlockNumber(BRClientSyncManagerScanState scanS
 static uint64_t
 BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState scanState);
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState);
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
-                                                       BRWallet *wallet);
+                                                       BRWallet *wallet,
+                                                       int isBTC);
 
 /// MARK: - Peer Sync Manager Decls & Defs
 
@@ -448,15 +453,18 @@ static void _BRPeerSyncManagerTxPublished (void *info, int error);
 
 static BRAddress *
 _getWalletAddresses (BRWallet *wallet,
-                     size_t *addressCount);
+                     size_t *addressCount,
+                     int isBTC);
 
 static void
 _fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                      BRWallet *wallet);
+                      BRWallet *wallet,
+                      int isBTC);
 
 static BRArrayOf(BRAddress *)
 _updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                        BRWallet *wallet);
+                        BRWallet *wallet,
+                        int isBTC);
 
 static uint32_t
 _calculateSyncDepthHeight(BRCryptoSyncDepth depth,
@@ -1211,6 +1219,44 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 }
 
+static BRArrayOf(char *)
+BRClientSyncManagerConvertAddressToString (BRClientSyncManager manager,
+                                           OwnershipGiven BRArrayOf(BRAddress *) addresses) {
+    if (NULL == addresses) return NULL;
+    if (0 == array_count(addresses)) { array_free (addresses); return NULL; }
+
+    size_t addressesCount = array_count(addresses);
+
+    BRArrayOf(char *) addressesAsString = NULL;
+
+    // For BTC, simply extract the BRAddress' string
+    if (BRChainParamsIsBitcoin (manager->chainParams)) {
+        array_new(addressesAsString, addressesCount);
+        array_set_count(addressesAsString, addressesCount);
+
+        for (size_t index = 0; index < addressesCount; index++)
+            addressesAsString[index] = strdup (addresses[index]->s);
+    }
+
+    // For BCH, double up the array with the : BRBCash encoding + the BRAddress' string
+    else {
+        array_new(addressesAsString, 2 * addressesCount);
+        array_set_count(addressesAsString, 2 * addressesCount);
+        for (size_t index = 0; index < addressesCount; index++) {
+            addressesAsString[index] = malloc(55);
+            BRBCashAddrEncode (addressesAsString[index], addresses[index]->s);
+
+            addressesAsString[index + addressesCount] = strdup (addresses[index]->s);
+        }
+    }
+
+    for (size_t index = 0; index < addressesCount; index++)
+        free (addresses[index]);
+    array_free (addresses);
+
+    return addressesAsString;
+}
+
 static void
 BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                 int rid,
@@ -1233,8 +1279,12 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             if (success) {
 
                 // check if the first unused addresses have changed since last completion
-                addresses = BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
-                                                                                   manager->wallet);
+                addresses = BRClientSyncManagerConvertAddressToString
+                (manager,
+                 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
+                                                                        manager->wallet,
+                                                                        BRChainParamsIsBitcoin (manager->chainParams)));
+
                 addressCount = NULL != addresses ? array_count(addresses) : 0;
                 if (0 != addressCount) {
                     // ... we've discovered a new address (i.e. there were transactions announce)
@@ -1334,12 +1384,15 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
 
             BRClientSyncManagerScanStateInit (&manager->scanState,
                                               manager->wallet,
+                                              BRChainParamsIsBitcoin (manager->chainParams),
                                               manager->syncedBlockHeight,
                                               manager->networkBlockHeight,
                                               BRClientSyncManagerGenerateRid (manager));
 
             // get the addresses to query the BDB with
-            addresses = BRClientSyncManagerScanStateGetAddresses (&manager->scanState);
+            addresses = BRClientSyncManagerConvertAddressToString
+            (manager, BRClientSyncManagerScanStateGetAddresses (&manager->scanState));
+
             assert (NULL != addresses);
             addressCount = array_count (addresses);
             assert (0 != addressCount);
@@ -1420,6 +1473,7 @@ BRClientSyncManagerGenerateRid (BRClientSyncManager manager) {
 static void
 BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
                                   BRWallet *wallet,
+                                  int isBTC,
                                   uint64_t syncedBlockHeight,
                                   uint64_t networkBlockHeight,
                                   int rid) {
@@ -1454,7 +1508,7 @@ BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
     // build the set of initial wallet addresses
     assert (NULL == scanState->knownAddresses);
     scanState->knownAddresses = BRSetNew (BRAddressHash, BRAddressEq, SEQUENCE_GAP_LIMIT_INTERNAL + SEQUENCE_GAP_LIMIT_EXTERNAL);
-    _fillWalletAddressSet (scanState->knownAddresses, wallet);
+    _fillWalletAddressSet (scanState->knownAddresses, wallet, isBTC);
 }
 
 static void
@@ -1497,7 +1551,7 @@ BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState sc
     return scanState->endBlockNumber - 1;
 }
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState) {
     size_t addressCount = BRSetCount(scanState->knownAddresses);
 
@@ -1512,13 +1566,14 @@ BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState)
         index++;
     }
 
-    return (BRArrayOf(char *)) addresses;
+    return addresses;
 }
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
-                                                       BRWallet *wallet) {
-    BRArrayOf(char *) newAddresses = NULL;
+                                                       BRWallet *wallet,
+                                                       int isBTC) {
+    BRArrayOf(BRAddress *) newAddresses = NULL;
 
     // generate addresses
     BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_EXTERNAL_CHAIN);
@@ -1541,7 +1596,7 @@ BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanSt
         scanState->lastInternalAddress = internalAddress;
 
         // get the list of newly discovered addresses
-        newAddresses = (BRArrayOf(char *)) _updateWalletAddressSet (scanState->knownAddresses, wallet);
+        newAddresses = _updateWalletAddressSet (scanState->knownAddresses, wallet, isBTC);
     }
 
     return newAddresses;
@@ -2038,26 +2093,35 @@ _BRPeerSyncManagerTxPublished (void *info,
 /// MARK: - Misc. Helper Implementations
 
 static BRAddress *
-_getWalletAddresses (BRWallet *wallet,size_t *addressCount) {
+_getWalletAddresses (BRWallet *wallet,size_t *addressCount, int isBTC) {
     assert (addressCount);
 
     size_t addrCount = BRWalletAllAddrs (wallet, NULL, 0);
 
-    BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
-    BRWalletAllAddrs (wallet, addrs, addrCount);
+    // For BTC we'll create two types of addresses: SEGWIT and LEGACY.  For BCH, we'll create one
+    // type of address: LEGACY.  Double up the size if BTC.
+    *addressCount = (isBTC ? 2 * addrCount : addrCount);
 
-    memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
-    for (size_t index = 0; index < addrCount; index++)
-        addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
+    // Allocate enough addresses...
+    BRAddress *addrs = (BRAddress *) calloc (*addressCount, sizeof (BRAddress));
 
-    *addressCount = 2 * addrCount;
-    return addrs;
+    // ... and then fill in `addrs` with the wallet's default addresses
+     BRWalletAllAddrs (wallet, addrs, addrCount);
+
+    // If this is BTC, add in the LEGACY type
+    if (isBTC) {
+        memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress)); // ??
+        for (size_t index = 0; index < addrCount; index++)
+            addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
+    }
+
+   return addrs;
 }
 
 static void
-_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet, int isBTC) {
     size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount, isBTC);
 
     for (size_t index = 0; index < addressCount; index++) {
         if (!BRSetContains (addresses, &addressArray[index])) {
@@ -2071,9 +2135,9 @@ _fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
 }
 
 static BRArrayOf(BRAddress *)
-_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet, int isBTC) {
     size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount, isBTC);
 
     BRArrayOf(BRAddress *) newAddresses;
     array_new (newAddresses, addressCount);
