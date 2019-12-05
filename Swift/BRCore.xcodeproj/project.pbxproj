@@ -252,8 +252,6 @@
 		3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */; };
 		3CCB134C224D1B1700ADCDB9 /* BRCryptoSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */; };
 		3CCB1363224D94C300ADCDB9 /* BRCryptoBaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */; };
-		3CCB136A2253C84E00ADCDB9 /* BRSyncMode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB13682253C84500ADCDB9 /* BRSyncMode.c */; };
-		3CCB136B2253C84E00ADCDB9 /* BRSyncMode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB13682253C84500ADCDB9 /* BRSyncMode.c */; };
 		3CCC61E8228C6C2000C0A13E /* BRCryptoHash.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */; };
 		3CCC61EB228C7FB500C0A13E /* BRCryptoFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCC61EA228C7FB500C0A13E /* BRCryptoFeeBasis.c */; };
 		3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
@@ -429,9 +427,7 @@
 		3C18F8CB219507E2006F738F /* CoreDemoListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoListener.swift; sourceTree = "<group>"; };
 		3C1C1D812264D01900597848 /* BRBlockChainDBTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRBlockChainDBTest.swift; sourceTree = "<group>"; };
 		3C1D1F2122ECDD760028B20C /* CoreTestsConfig.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = CoreTestsConfig.json; sourceTree = "<group>"; };
-		3C1D1F2322F0F1740028B20C /* BRCryptoKey.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoKey.h; sourceTree = "<group>"; };
 		3C1D1F2422F0F1740028B20C /* BRCryptoKey.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoKey.c; sourceTree = "<group>"; };
-		3C2318EE23319424007A3EC1 /* BRCryptoPeer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoPeer.h; sourceTree = "<group>"; };
 		3C2318EF23319424007A3EC1 /* BRCryptoPeer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoPeer.c; sourceTree = "<group>"; };
 		3C25BF462236EE40004B093F /* BRBCashParams.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBCashParams.c; sourceTree = "<group>"; };
 		3C25BF492236EE70004B093F /* BRChainParams.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRChainParams.c; sourceTree = "<group>"; };
@@ -512,6 +508,33 @@
 		3C3DC5BA21DFCA7C004188BD /* BRFileService.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRFileService.c; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
+		3C45208623887AB400F98290 /* BRCryptoFeeBasis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoFeeBasis.h; sourceTree = "<group>"; };
+		3C45208723887AB400F98290 /* BRCryptoCurrency.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCurrency.h; sourceTree = "<group>"; };
+		3C45208823887AB400F98290 /* BRCryptoSigner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoSigner.h; sourceTree = "<group>"; };
+		3C45208923887AB400F98290 /* BRCryptoAccount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoAccount.h; sourceTree = "<group>"; };
+		3C45208A23887AB400F98290 /* BRCryptoWalletManagerClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerClient.h; sourceTree = "<group>"; };
+		3C45208B23887AB400F98290 /* BRCryptoUnit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoUnit.h; sourceTree = "<group>"; };
+		3C45208D23887AB400F98290 /* BRCryptoAddress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoAddress.h; sourceTree = "<group>"; };
+		3C45208E23887AB400F98290 /* BRCryptoWalletManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManager.h; sourceTree = "<group>"; };
+		3C45208F23887AB400F98290 /* BRCryptoPeer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoPeer.h; sourceTree = "<group>"; };
+		3C45209023887AB400F98290 /* BRCryptoHasher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoHasher.h; sourceTree = "<group>"; };
+		3C45209123887AB400F98290 /* BRCryptoPayment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoPayment.h; sourceTree = "<group>"; };
+		3C45209223887AB400F98290 /* BRCryptoWallet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWallet.h; sourceTree = "<group>"; };
+		3C45209323887AB400F98290 /* BRCryptoCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCoder.h; sourceTree = "<group>"; };
+		3C45209423887AB400F98290 /* BRCryptoNetwork.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoNetwork.h; sourceTree = "<group>"; };
+		3C45209523887AB400F98290 /* BRCryptoTransfer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoTransfer.h; sourceTree = "<group>"; };
+		3C45209623887AB400F98290 /* BRCryptoBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoBase.h; sourceTree = "<group>"; };
+		3C45209723887AB400F98290 /* BRCryptoCipher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCipher.h; sourceTree = "<group>"; };
+		3C45209823887AB400F98290 /* BRCryptoHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoHash.h; sourceTree = "<group>"; };
+		3C45209923887AB400F98290 /* BRCryptoKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoKey.h; sourceTree = "<group>"; };
+		3C45209A23887AB400F98290 /* BRCryptoAmount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoAmount.h; sourceTree = "<group>"; };
+		3C45209B23887AB400F98290 /* BRCryptoStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatus.h; sourceTree = "<group>"; };
+		3C45209C2388913400F98290 /* BRCryptoTransferP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoTransferP.h; sourceTree = "<group>"; };
+		3C45209E2388942B00F98290 /* BRCryptoWalletP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletP.h; sourceTree = "<group>"; };
+		3C45209F2388954400F98290 /* BRCryptoNetworkP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoNetworkP.h; sourceTree = "<group>"; };
+		3C4520A0238896F800F98290 /* BRCryptoAccountP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoAccountP.h; sourceTree = "<group>"; };
+		3C4520A1238897E000F98290 /* BRCryptoFeeBasisP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoFeeBasisP.h; sourceTree = "<group>"; };
+		3C4520AA238F173600F98290 /* BRCryptoSync.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoSync.h; sourceTree = "<group>"; };
 		3C4B1AA5234CDFA200189DD5 /* InstallCoreTestsConfig.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = InstallCoreTestsConfig.sh; sourceTree = "<group>"; };
 		3C54A7FD2121F1D200C57B1B /* BREthereumMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMessage.h; sourceTree = "<group>"; };
 		3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMessage.c; sourceTree = "<group>"; };
@@ -519,7 +542,6 @@
 		3C54A8012122284900C57B1B /* BREthereumNode.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNode.c; sourceTree = "<group>"; };
 		3C54A80321234C9700C57B1B /* BREthereumNodeEndpoint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumNodeEndpoint.h; sourceTree = "<group>"; };
 		3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNodeEndpoint.c; sourceTree = "<group>"; };
-		3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatus.h; sourceTree = "<group>"; };
 		3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoStatus.c; sourceTree = "<group>"; };
 		3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateRecvController.swift; sourceTree = "<group>"; };
 		3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreatePaymentController.swift; sourceTree = "<group>"; };
@@ -598,6 +620,7 @@
 		3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagerViewController.swift; sourceTree = "<group>"; };
 		3C812EBE2266675E0007D335 /* BRRipple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRRipple.h; sourceTree = "<group>"; };
 		3C812EC12266721E0007D335 /* testRipple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRipple.c; sourceTree = "<group>"; };
+		3C8F6C6B2399709100A1CFA7 /* BRCryptoAddressP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoAddressP.h; sourceTree = "<group>"; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
 		3C9025F021063BDC00143B69 /* testRlp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRlp.c; sourceTree = "<group>"; };
 		3C9025F221064B6700143B69 /* testEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEvent.c; sourceTree = "<group>"; };
@@ -616,23 +639,13 @@
 		3C926550235F5EBD0063246E /* BRRippleAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleAddress.c; sourceTree = "<group>"; };
 		3C926551235F5EBD0063246E /* BRRippleAddress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleAddress.h; sourceTree = "<group>"; };
 		3C97E2332241658E003FD88F /* BRCryptoCurrency.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCurrency.c; sourceTree = "<group>"; };
-		3C97E2342241658E003FD88F /* BRCryptoCurrency.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCurrency.h; sourceTree = "<group>"; };
 		3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoNetwork.c; sourceTree = "<group>"; };
 		3C97E23A22416AB1003FD88F /* BRCryptoWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoWallet.c; sourceTree = "<group>"; };
 		3C97E23B22416AB1003FD88F /* BRCryptoTransfer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoTransfer.c; sourceTree = "<group>"; };
-		3C97E23C22416AB1003FD88F /* BRCryptoWallet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWallet.h; sourceTree = "<group>"; };
 		3C97E23D22416AB1003FD88F /* BRCryptoWalletManager.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoWalletManager.c; sourceTree = "<group>"; };
-		3C97E23E22416AB1003FD88F /* BRCryptoTransfer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoTransfer.h; sourceTree = "<group>"; };
-		3C97E23F22416AB1003FD88F /* BRCryptoUnit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoUnit.h; sourceTree = "<group>"; };
 		3C97E24022416AB1003FD88F /* BRCryptoUnit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoUnit.c; sourceTree = "<group>"; };
-		3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoNetwork.h; sourceTree = "<group>"; };
-		3C97E24222416AB1003FD88F /* BRCryptoAmount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoAmount.h; sourceTree = "<group>"; };
-		3C97E24322416AB1003FD88F /* BRCryptoWalletManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManager.h; sourceTree = "<group>"; };
 		3C97E24422416AB1003FD88F /* BRCryptoAmount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoAmount.c; sourceTree = "<group>"; };
-		3C97E25322416D4D003FD88F /* BRCryptoBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoBase.h; sourceTree = "<group>"; };
-		3C97E254224170B9003FD88F /* BRCryptoAccount.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoAccount.h; sourceTree = "<group>"; };
 		3C97E255224170B9003FD88F /* BRCryptoAccount.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoAccount.c; sourceTree = "<group>"; };
-		3C97E258224170EC003FD88F /* BRCryptoAddress.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoAddress.h; sourceTree = "<group>"; };
 		3C97E259224170EC003FD88F /* BRCryptoAddress.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoAddress.c; sourceTree = "<group>"; };
 		3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoPrivate.h; sourceTree = "<group>"; };
 		3C97E25E2243E589003FD88F /* BRCryptoAccountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoAccountTests.swift; sourceTree = "<group>"; };
@@ -665,11 +678,7 @@
 		3CCB1354224D3F7500ADCDB9 /* testCrypto.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testCrypto.c; sourceTree = "<group>"; };
 		3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoBaseTests.swift; sourceTree = "<group>"; };
 		3CCB13672252B58C00ADCDB9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		3CCB13682253C84500ADCDB9 /* BRSyncMode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRSyncMode.c; sourceTree = "<group>"; };
-		3CCB13692253C84D00ADCDB9 /* BRSyncMode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRSyncMode.h; sourceTree = "<group>"; };
-		3CCC61E6228C6C2000C0A13E /* BRCryptoHash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoHash.h; sourceTree = "<group>"; };
 		3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoHash.c; sourceTree = "<group>"; };
-		3CCC61E9228C7FB500C0A13E /* BRCryptoFeeBasis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoFeeBasis.h; sourceTree = "<group>"; };
 		3CCC61EA228C7FB500C0A13E /* BRCryptoFeeBasis.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoFeeBasis.c; sourceTree = "<group>"; };
 		3CCD36AA21A36B590032637A /* BREthereumBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumBase.h; sourceTree = "<group>"; };
 		3CCD36AE21A4B1EB0032637A /* BREthereumClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumClient.h; sourceTree = "<group>"; };
@@ -717,9 +726,8 @@
 		3CF66B1022AAE45400C1E9BB /* BRCryptoCurrency.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoCurrency.swift; sourceTree = "<group>"; };
 		3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoAddress.swift; sourceTree = "<group>"; };
 		3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoKey.swift; sourceTree = "<group>"; };
-		3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerPrivate.h; sourceTree = "<group>"; };
+		3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerP.h; sourceTree = "<group>"; };
 		3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoWalletManagerClient.c; sourceTree = "<group>"; };
-		3CFEFE2222BC3AF20044153D /* BRCryptoWalletManagerClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoWalletManagerClient.h; sourceTree = "<group>"; };
 		C316968423218C2300743E45 /* BRRippleTransfer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleTransfer.h; sourceTree = "<group>"; };
 		C3169685232283A200743E45 /* BRRippleTransfer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleTransfer.c; sourceTree = "<group>"; };
 		C31696872322B0A800743E45 /* BRRippleUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleUtils.c; sourceTree = "<group>"; };
@@ -746,20 +754,15 @@
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
 		CE0DBEB723032F1A00FC72BD /* BRSyncManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRSyncManager.h; sourceTree = "<group>"; };
 		CE0DBEB823032F1A00FC72BD /* BRSyncManager.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRSyncManager.c; sourceTree = "<group>"; };
-		CE179CA5233A4FF400633B97 /* BRCryptoCipher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCipher.h; sourceTree = "<group>"; };
 		CE179CA6233A4FF400633B97 /* BRCryptoCipher.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCipher.c; sourceTree = "<group>"; };
 		CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoHasher.c; sourceTree = "<group>"; };
-		CE5E43BF233902A4001E9238 /* BRCryptoHasher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoHasher.h; sourceTree = "<group>"; };
 		CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoCoder.c; sourceTree = "<group>"; };
-		CE5E43C323390FBB001E9238 /* BRCryptoCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoCoder.h; sourceTree = "<group>"; };
 		CE5E43C6233930F1001E9238 /* BRCryptoSigner.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoSigner.c; sourceTree = "<group>"; };
-		CE5E43C7233930F1001E9238 /* BRCryptoSigner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoSigner.h; sourceTree = "<group>"; };
 		CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWalletManagerEvent.c; sourceTree = "<group>"; };
 		CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRWalletManagerPrivate.h; sourceTree = "<group>"; };
 		CEA3F92D22CB8282006A330E /* BRBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBase.h; sourceTree = "<group>"; };
 		CEE6CDE82305DDA6006724EB /* testBwm.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testBwm.c; sourceTree = "<group>"; };
 		CEF5E0ED2315C166009EF3C0 /* BRCryptoPayment.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoPayment.c; sourceTree = "<group>"; };
-		CEF5E0EE2315C166009EF3C0 /* BRCryptoPayment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoPayment.h; sourceTree = "<group>"; };
 		CEF5E0F12315C290009EF3C0 /* BRCryptoPayment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoPayment.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1168,12 +1171,40 @@
 				3C3DC5BA21DFCA7C004188BD /* BRFileService.c */,
 				3CEF5FD22208C6E30010A811 /* BRAssert.h */,
 				3CEF5FD32208C6E30010A811 /* BRAssert.c */,
-				3CCB13692253C84D00ADCDB9 /* BRSyncMode.h */,
-				3CCB13682253C84500ADCDB9 /* BRSyncMode.c */,
 				3CEF5FB021FB972B0010A811 /* testSup.c */,
 			);
 			name = support;
 			path = ../../support;
+			sourceTree = "<group>";
+		};
+		3C45208523887AB400F98290 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				3C45209623887AB400F98290 /* BRCryptoBase.h */,
+				3C45209B23887AB400F98290 /* BRCryptoStatus.h */,
+				3C45209823887AB400F98290 /* BRCryptoHash.h */,
+				3C45208923887AB400F98290 /* BRCryptoAccount.h */,
+				3C45208723887AB400F98290 /* BRCryptoCurrency.h */,
+				3C45208B23887AB400F98290 /* BRCryptoUnit.h */,
+				3C45209A23887AB400F98290 /* BRCryptoAmount.h */,
+				3C45208623887AB400F98290 /* BRCryptoFeeBasis.h */,
+				3C45209923887AB400F98290 /* BRCryptoKey.h */,
+				3C45208D23887AB400F98290 /* BRCryptoAddress.h */,
+				3C45209423887AB400F98290 /* BRCryptoNetwork.h */,
+				3C45208F23887AB400F98290 /* BRCryptoPeer.h */,
+				3C45209523887AB400F98290 /* BRCryptoTransfer.h */,
+				3C45209123887AB400F98290 /* BRCryptoPayment.h */,
+				3C45209223887AB400F98290 /* BRCryptoWallet.h */,
+				3C4520AA238F173600F98290 /* BRCryptoSync.h */,
+				3C45208A23887AB400F98290 /* BRCryptoWalletManagerClient.h */,
+				3C45208E23887AB400F98290 /* BRCryptoWalletManager.h */,
+				3C45209023887AB400F98290 /* BRCryptoHasher.h */,
+				3C45209723887AB400F98290 /* BRCryptoCipher.h */,
+				3C45209323887AB400F98290 /* BRCryptoCoder.h */,
+				3C45208823887AB400F98290 /* BRCryptoSigner.h */,
+			);
+			name = include;
+			path = ../../include;
 			sourceTree = "<group>";
 		};
 		3C590F0D20950C160005597B = {
@@ -1213,6 +1244,7 @@
 		3C590F3120950C470005597B /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				3C45208523887AB400F98290 /* include */,
 				3C42EF512095143D000E58E0 /* module.modulemap */,
 				3C3DC5B821DFCA39004188BD /* support */,
 				3C25BF322236DD73004B093F /* bitcoin */,
@@ -1364,49 +1396,34 @@
 		3C97E2322241656B003FD88F /* crypto */ = {
 			isa = PBXGroup;
 			children = (
-				3C97E25322416D4D003FD88F /* BRCryptoBase.h */,
 				3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */,
-				3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */,
 				3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */,
-				3CCC61E6228C6C2000C0A13E /* BRCryptoHash.h */,
 				3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */,
-				3C97E2342241658E003FD88F /* BRCryptoCurrency.h */,
 				3C97E2332241658E003FD88F /* BRCryptoCurrency.c */,
-				3C97E23F22416AB1003FD88F /* BRCryptoUnit.h */,
 				3C97E24022416AB1003FD88F /* BRCryptoUnit.c */,
-				3C97E24222416AB1003FD88F /* BRCryptoAmount.h */,
 				3C97E24422416AB1003FD88F /* BRCryptoAmount.c */,
-				3C97E254224170B9003FD88F /* BRCryptoAccount.h */,
-				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
-				CE179CA5233A4FF400633B97 /* BRCryptoCipher.h */,
-				CE179CA6233A4FF400633B97 /* BRCryptoCipher.c */,
-				CE5E43C323390FBB001E9238 /* BRCryptoCoder.h */,
-				CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */,
-				CE5E43BF233902A4001E9238 /* BRCryptoHasher.h */,
-				CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */,
-				3C1D1F2322F0F1740028B20C /* BRCryptoKey.h */,
 				3C1D1F2422F0F1740028B20C /* BRCryptoKey.c */,
-				CE5E43C7233930F1001E9238 /* BRCryptoSigner.h */,
-				CE5E43C6233930F1001E9238 /* BRCryptoSigner.c */,
-				3CCC61E9228C7FB500C0A13E /* BRCryptoFeeBasis.h */,
+				3C4520A0238896F800F98290 /* BRCryptoAccountP.h */,
+				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
+				3C4520A1238897E000F98290 /* BRCryptoFeeBasisP.h */,
 				3CCC61EA228C7FB500C0A13E /* BRCryptoFeeBasis.c */,
-				3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */,
+				3C45209F2388954400F98290 /* BRCryptoNetworkP.h */,
 				3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */,
-				3C97E258224170EC003FD88F /* BRCryptoAddress.h */,
+				3C8F6C6B2399709100A1CFA7 /* BRCryptoAddressP.h */,
 				3C97E259224170EC003FD88F /* BRCryptoAddress.c */,
-				3C2318EE23319424007A3EC1 /* BRCryptoPeer.h */,
 				3C2318EF23319424007A3EC1 /* BRCryptoPeer.c */,
-				3C97E23E22416AB1003FD88F /* BRCryptoTransfer.h */,
+				3C45209C2388913400F98290 /* BRCryptoTransferP.h */,
 				3C97E23B22416AB1003FD88F /* BRCryptoTransfer.c */,
-				CEF5E0EE2315C166009EF3C0 /* BRCryptoPayment.h */,
 				CEF5E0ED2315C166009EF3C0 /* BRCryptoPayment.c */,
-				3C97E23C22416AB1003FD88F /* BRCryptoWallet.h */,
+				3C45209E2388942B00F98290 /* BRCryptoWalletP.h */,
 				3C97E23A22416AB1003FD88F /* BRCryptoWallet.c */,
-				3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerPrivate.h */,
-				3CFEFE2222BC3AF20044153D /* BRCryptoWalletManagerClient.h */,
 				3CFEFE2122BC3AF20044153D /* BRCryptoWalletManagerClient.c */,
-				3C97E24322416AB1003FD88F /* BRCryptoWalletManager.h */,
+				3CFEFE2022BC3AF20044153D /* BRCryptoWalletManagerP.h */,
 				3C97E23D22416AB1003FD88F /* BRCryptoWalletManager.c */,
+				CE179CA6233A4FF400633B97 /* BRCryptoCipher.c */,
+				CE5E43C223390FBB001E9238 /* BRCryptoCoder.c */,
+				CE5E43BE233902A4001E9238 /* BRCryptoHasher.c */,
+				CE5E43C6233930F1001E9238 /* BRCryptoSigner.c */,
 				3CCB1354224D3F7500ADCDB9 /* testCrypto.c */,
 			);
 			name = crypto;
@@ -1962,7 +1979,6 @@
 				3C6B17502131CE12003C313B /* BREventAlarm.c in Sources */,
 				3C6B17512131CE12003C313B /* BREthereumLESFrameCoder.c in Sources */,
 				CE179CA8233A4FF400633B97 /* BRCryptoCipher.c in Sources */,
-				3CCB136B2253C84E00ADCDB9 /* BRSyncMode.c in Sources */,
 				3C6B17522131CE12003C313B /* BRKeccak.c in Sources */,
 				3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */,
 				3C6B17532131CE12003C313B /* BREthereumEWM.c in Sources */,
@@ -2072,7 +2088,6 @@
 				CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */,
 				3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */,
 				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
-				3CCB136A2253C84E00ADCDB9 /* BRSyncMode.c in Sources */,
 				3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */,
 				3CAB60CA20AF8D1A00810CE4 /* BREthereumLESFrameCoder.c in Sources */,
 				3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */,
@@ -2357,6 +2372,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = BRCryptoDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2373,7 +2389,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/Swift/Core";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
@@ -2384,6 +2400,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = BRCryptoDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2395,7 +2412,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/Swift/Core";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};
@@ -2452,6 +2469,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../include",
+					"$(SRCROOT)/..",
+					"$(SRCROOT)/../vendor/secp256k1",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2510,6 +2532,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../include",
+					"$(SRCROOT)/..",
+					"$(SRCROOT)/../vendor/secp256k1",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -2530,7 +2557,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -2545,7 +2571,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -2559,10 +2584,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../vendor/secp256k1",
-				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OTHER_CFLAGS = (
@@ -2585,10 +2606,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../vendor/secp256k1",
-				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OTHER_CFLAGS = "";
@@ -2609,10 +2626,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../vendor/secp256k1",
-				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
 				OTHER_CFLAGS = (
@@ -2635,10 +2648,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../vendor/secp256k1",
-				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
 				OTHER_CFLAGS = "";
@@ -2657,10 +2666,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../support",
-				);
 				INFOPLIST_FILE = CoreTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2687,10 +2692,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/..",
-					"$(SRCROOT)/../support",
-				);
 				INFOPLIST_FILE = CoreTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2715,7 +2716,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -2732,7 +2732,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/..";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

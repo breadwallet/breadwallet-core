@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "BREthereumBlockChain.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
 
 //
 // Bloom Test

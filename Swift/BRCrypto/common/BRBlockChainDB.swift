@@ -154,36 +154,34 @@ public class BlockChainDB {
     ///       which suffices for DEBUG builds.
     ///
     public init (session: URLSession = URLSession (configuration: .default),
-                 bdbBaseURL: String = "https://api.blockset.com", // "http://blockchain-db.us-east-1.elasticbeanstalk.com",
+                 bdbBaseURL: String = "https://api.blockset.com",
                  bdbDataTaskFunc: DataTaskFunc? = nil,
                  apiBaseURL: String = "https://api.breadwallet.com",
                  apiDataTaskFunc: DataTaskFunc? = nil) {
 
         self.session = session
 
-        #if DEBUG
-        self.bdbBaseURL = "https://api.blockset.com" // pending
-        self.apiBaseURL = "https://stage2.breadwallet.com"
-        #else
         self.bdbBaseURL = bdbBaseURL
         self.apiBaseURL = apiBaseURL
-        #endif
 
         self.bdbDataTaskFunc = bdbDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }
 
+    // this token has no expiration - testing only.
+    public static let createForTestBDBBaseURL = "https://api.blockset.com"
+    public static let createForTestBDBToken   = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
+
     ///
     /// Create a BlockChainDB using a specified Authorization token.  This is declared 'public'
     /// so that the Crypto Demo can use it.
     ///
-    public static func createForTest (bdbBaseURL: String = "https://api.blockset.com") -> BlockChainDB {
+    public static func createForTest (bdbBaseURL: String = BlockChainDB.createForTestBDBBaseURL,
+                                      bdbToken:   String = BlockChainDB.createForTestBDBToken) -> BlockChainDB {
         return BlockChainDB (bdbBaseURL: bdbBaseURL,
                              bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
-                                // this token has no expiration - testing only.
-                                let token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
                                 var decoratedReq = request
-                                decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                                decoratedReq.setValue ("Bearer \(bdbToken)", forHTTPHeaderField: "Authorization")
                                 return session.dataTask (with: decoratedReq, completionHandler: completion)
         })
     }
@@ -795,8 +793,8 @@ public class BlockChainDB {
 
     public func getTransactions (blockchainId: String,
                                  addresses: [String],
-                                 begBlockNumber: UInt64,
-                                 endBlockNumber: UInt64,
+                                 begBlockNumber: UInt64? = nil,
+                                 endBlockNumber: UInt64? = nil,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
                                  maxPageSize: Int? = nil,
@@ -807,58 +805,65 @@ public class BlockChainDB {
             var error: QueryError? = nil
             var results = [Model.Transaction]()
 
+            let queryKeysBase = [
+                "blockchain_id",
+                begBlockNumber.map { (_) in "start_height" },
+                endBlockNumber.map { (_) in "end_height" },
+                "include_proof",
+                "include_raw",
+                maxPageSize.map { (_) in "max_page_size" }]
+                .compactMap { $0 } // Remove `nil` from {beg,end}BlockNumber
+
+            let queryValsBase: [String] = [
+                blockchainId,
+                begBlockNumber.map { $0.description },
+                endBlockNumber.map { $0.description },
+                includeProof.description,
+                includeRaw.description,
+                maxPageSize.map { $0.description }]
+                .compactMap { $0 }  // Remove `nil` from {beg,end}BlockNumber
+
+            let semaphore = DispatchSemaphore (value: 0)
+            var nextURL: URL? = nil
+
+            func handleResult (more: URL?, res: Result<[JSON], QueryError>) {
+                // Append `transactions` with the resulting transactions.
+                results += res
+                    .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
+                    .getWithRecovery { error = $0; return [] }
+
+                // Record if more exist
+                nextURL = more
+
+                // signal completion
+                semaphore.signal()
+            }
+
             for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
                 if nil != error { break }
-                var queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
-                    + Array (repeating: "address", count: addresses.count)
 
-                var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
-                    + addresses
+                let queryKeys = queryKeysBase + Array (repeating: "address", count: addresses.count)
+                let queryVals = queryValsBase + addresses
 
-                if let maxPageSize = maxPageSize {
-                    queryKeys += ["max_page_size"]
-                    queryVals += [String(maxPageSize)]
-                }
-
-                let semaphore = DispatchSemaphore (value: 0)
-
-                var nextURL: URL? = nil
-
-                queryVals[1] = begBlockNumber.description
-                queryVals[2] = endBlockNumber.description
-
+                // Ensure a 'clean' start for this set of addresses
+                nextURL = nil
+                
                 // Make the first request.  Ideally we'll get all the transactions in one gulp
-                self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
-                    (more: URL?, res: Result<[JSON], QueryError>) in
-
-                    // Append `transactions` with the resulting transactions.
-                    results += try! res
-                        .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
-                        .recover { error = $0; return [] }.get()
-
-                    nextURL = more
-
-                    semaphore.signal()
-                }
+                self.bdbMakeRequest (path: "transactions",
+                                     query: zip (queryKeys, queryVals),
+                                     completion: handleResult)
 
                 // Wait for the first request
                 semaphore.wait()
 
                 // Loop until all 'nextURL' values are queried
                 while let url = nextURL, nil == error {
-                    self.bdbMakeRequest (url: url, embedded: true, embeddedPath: "transactions") {
-                        (more: URL?, res: Result<[JSON], QueryError>) in
+                    self.bdbMakeRequest (url: url,
+                                         embedded: true,
+                                         embeddedPath: "transactions",
+                                         completion: handleResult)
 
-                        // Append `transactions` with the resulting transactions.
-                        results += try! res
-                            .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
-                            .recover { error = $0; return [] }.get()
-
-                        nextURL = more
-
-                        semaphore.signal()
-                    }
-
+                    // Wait for each subsequent result
                     semaphore.wait()
                 }
             }

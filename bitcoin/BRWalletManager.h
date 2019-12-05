@@ -13,13 +13,15 @@
 #define BRWalletManager_h
 
 #include <stdio.h>
-#include "BRSyncMode.h"
 #include "BRFileService.h"
 #include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
 #include "BRWallet.h"
+
+#include "BRCryptoTransfer.h"
+#include "BRCryptoWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -173,7 +175,7 @@ typedef struct {
 
         struct {
             BRTransaction *transaction;
-            BRTransferSubmitError error;
+            BRCryptoTransferSubmitError error;
         } submitFailed;
 
         struct {
@@ -218,17 +220,17 @@ typedef struct {
     BRWalletManagerEventType type;
     union {
         struct {
-            BRSyncTimestamp timestamp;
-            BRSyncPercentComplete percentComplete;
+            BRCryptoSyncTimestamp timestamp;
+            BRCryptoSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            BRSyncStoppedReason reason;
+            BRCryptoSyncStoppedReason reason;
         } syncStopped;
         struct {
-            BRSyncDepth depth;
+            BRCryptoSyncDepth depth;
         } syncRecommended;
         struct {
-            BRDisconnectReason reason;
+            BRCryptoWalletManagerDisconnectReason reason;
         } disconnected;
         struct {
             uint64_t value;
@@ -267,7 +269,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
-                    BRSyncMode mode,
+                    BRCryptoSyncMode mode,
                     const char *storagePath,
                     uint64_t blockHeight,
                     uint64_t confirmationsUntilFinal);
@@ -296,12 +298,12 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 extern void
-BRWalletManagerScanToDepth (BRWalletManager manager, BRSyncDepth depth);
+BRWalletManagerScanToDepth (BRWalletManager manager, BRCryptoSyncDepth depth);
 
 extern void
-BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+BRWalletManagerSetMode (BRWalletManager manager, BRCryptoSyncMode mode);
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 BRWalletManagerGetMode (BRWalletManager manager);
 
 extern void

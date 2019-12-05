@@ -45,6 +45,8 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     override func viewWillAppear (_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationItem.title = "Wallets (\(UIApplication.paperKey.components(separatedBy: " ").first!))"
+
 
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (walletListener: self)

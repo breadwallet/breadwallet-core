@@ -8,63 +8,17 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include <pthread.h>
+#include "BRCryptoWalletP.h"
 
 #include "BRCryptoFeeBasis.h"
-#include "BRCryptoWallet.h"
-#include "BRCryptoBase.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoAmount.h"
 
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoNetworkP.h"
 
-#include "bitcoin/BRWallet.h"
-#include "bitcoin/BRWalletManager.h"
-#include "ethereum/BREthereum.h"
-#include "generic/BRGeneric.h"
-
-/**
- *
- */
-static void
-cryptoWalletRelease (BRCryptoWallet wallet);
-
-
-struct BRCryptoWalletRecord {
-    pthread_mutex_t lock;
-
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            BRWalletManager bwm;
-            BRWallet *wid;
-        } btc;
-
-        struct {
-            BREthereumEWM ewm;
-            BREthereumWallet wid;
-        } eth;
-
-        // The GEN wallet is owned by the GEN Manager!
-        BRGenericWallet gen;
-    } u;
-
-    BRCryptoWalletState state;
-    BRCryptoUnit unit;  // baseUnit
-
-    //
-    // Do we hold transfers here?  The BRWallet and the BREthereumWallet already hold transfers.
-    // Shouldn't we defer to those to get transfers (and then wrap them in BRCryptoTransfer)?
-    // Then we avoid caching trouble (in part).  For a newly created transaction (not yet signed),
-    // the BRWallet will not hold a BRTransaction however, BREthereumWallet will hold a new
-    // BREthereumTransaction. From BRWalet: `assert(tx != NULL && BRTransactionIsSigned(tx));`
-    //
-    // We are going to have the same
-    //
-    BRArrayOf (BRCryptoTransfer) transfers;
-
-    //
-    BRCryptoUnit unitForFee;
-    BRCryptoRef ref;
-};
+#include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 
@@ -123,7 +77,6 @@ cryptoWalletCreateAsETH (BRCryptoUnit unit,
 private_extern BRCryptoWallet
 cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
-                         BRGenericManager gwm,
                          OwnershipKept BRGenericWallet wid) {
     BRCryptoWallet wallet = cryptoWalletCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit, unitForFee);
 
@@ -278,7 +231,7 @@ cryptoWalletFindTransferAsGEN (BRCryptoWallet wallet,
     return transfer;
 }
 
-private_extern void
+extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
     pthread_mutex_lock (&wallet->lock);
@@ -288,7 +241,7 @@ cryptoWalletAddTransfer (BRCryptoWallet wallet,
     pthread_mutex_unlock (&wallet->lock);
 }
 
-private_extern void
+extern void
 cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
     BRCryptoTransfer walletTransfer = NULL;
     pthread_mutex_lock (&wallet->lock);
@@ -610,6 +563,89 @@ cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
     cryptoUnitGive (unit);
 
     return transfer;
+}
+
+extern BRCryptoAmount
+cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
+                           BRCryptoBoolean asMaximum,
+                           BRCryptoAddress target,
+                           BRCryptoNetworkFee fee,
+                           BRCryptoBoolean *needEstimate,
+                           BRCryptoBoolean *isZeroIfInsuffientFunds) {
+    assert (NULL != needEstimate && NULL != isZeroIfInsuffientFunds);
+
+    UInt256 amount = UINT256_ZERO;
+    BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
+
+    // By default, we don't need an estimate
+    *needEstimate = CRYPTO_FALSE;
+
+    // By default, zero does not indicate insufficient funds
+    *isZeroIfInsuffientFunds = CRYPTO_FALSE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = wallet->u.btc.wid;
+
+            // Amount may be zero if insufficient fees
+            *isZeroIfInsuffientFunds = CRYPTO_TRUE;
+
+            uint64_t balance     = BRWalletBalance (wid);
+            uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
+                                    ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
+                                    : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
+            uint64_t fee         = (amountInSAT > 0
+                                    ? BRWalletFeeForTxAmountWithFeePerKb (wid, feePerKB, amountInSAT)
+                                    : 0);
+
+//            if (CRYPTO_TRUE == asMaximum)
+//                assert (balance == amountInSAT + fee);
+
+            if (amountInSAT + fee > balance)
+                amountInSAT = 0;
+
+            amount = createUInt256(amountInSAT);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid = wallet->u.eth.wid;
+
+            // We always need an estimate as we do not know the fees.
+            *needEstimate = CRYPTO_TRUE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
+
+                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
+                          ? amountGetEther(ethAmount).valueInWEI
+                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
+
+            *needEstimate = CRYPTO_FALSE; // TODO: True
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                amount = createUInt256(0);
+            }
+            break;
+        }
+    }
+
+    return cryptoAmountCreateInternal (unit,
+                                       CRYPTO_FALSE,
+                                       amount,
+                                       0);
 }
 
 extern BRCryptoFeeBasis
