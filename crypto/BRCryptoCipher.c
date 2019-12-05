@@ -12,13 +12,12 @@
 #include <stdlib.h>
 
 #include "BRCryptoCipher.h"
+#include "BRCryptoPrivate.h"
 #include "BRCryptoKey.h"
+
 #include "support/BRBase.h"
 #include "support/BRCrypto.h"
 #include "support/BRKeyECIES.h"
-
-static void
-cryptoCipherRelease (BRCryptoCipher cipher);
 
 struct BRCryptoCipherRecord {
     BRCryptoCipherType type;
@@ -45,6 +44,8 @@ struct BRCryptoCipherRecord {
 
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCipher, cryptoCipher);
 
 static BRCryptoCipher
 cryptoCipherCreateInternal(BRCryptoCipherType type) {
@@ -502,5 +503,3 @@ cryptoCipherMigrateBRCoreKeyCiphertext (BRCryptoCipher cipher,
 
     return encryptResult;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCipher, cryptoCipher);

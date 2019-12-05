@@ -9,7 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRCryptoStatus.h"
-#include "BRCryptoPrivate.h"
+#include "ethereum/BREthereum.h"
 
 extern BRCryptoStatus
     cryptoStatusFromETH (BREthereumStatus status) {

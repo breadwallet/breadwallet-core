@@ -374,7 +374,7 @@ class CoreTests: XCTestCase {
     /// - Throws: something
     ///
     func testEthereumSyncStorage () throws {
-        let mode = SYNC_MODE_P2P_ONLY;
+        let mode = CRYPTO_SYNC_MODE_P2P_ONLY;
         let timestamp : UInt64 = 0
 
         let network = (isMainnet ? ethereumMainnet : ethereumTestnet)

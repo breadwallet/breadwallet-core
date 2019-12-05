@@ -133,8 +133,8 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
 
     } else {
         switch (ewm->mode) {
-            case SYNC_MODE_BRD_ONLY:
-            case SYNC_MODE_BRD_WITH_P2P_SEND: {
+            case CRYPTO_SYNC_MODE_API_ONLY:
+            case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
                 pthread_mutex_lock (&ewm->lock);
                 ewm->client.funcGetGasPrice (ewm->client.context,
                                              ewm,
@@ -144,8 +144,8 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
                 break;
             }
 
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+            case CRYPTO_SYNC_MODE_P2P_ONLY:
                 // TODO: LES Update Wallet Balance
                 break;
         }
@@ -193,8 +193,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
 
     } else {
         switch (ewm->mode) {
-            case SYNC_MODE_BRD_ONLY:
-            case SYNC_MODE_BRD_WITH_P2P_SEND: {
+            case CRYPTO_SYNC_MODE_API_ONLY:
+            case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
                 pthread_mutex_lock (&ewm->lock);
 
                 // This will be ZERO if transaction amount is in TOKEN.
@@ -228,8 +228,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                 break;
             }
 
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+            case CRYPTO_SYNC_MODE_P2P_ONLY:
                 // TODO: LES Update Wallet Balance
                 assert (0);
                 break;
@@ -380,8 +380,8 @@ ewmHandleAnnounceTransaction (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTransactionBundle *bundle,
                               int id) {
     switch (ewm->mode) {
-        case SYNC_MODE_BRD_ONLY:
-        case SYNC_MODE_BRD_WITH_P2P_SEND: {
+        case CRYPTO_SYNC_MODE_API_ONLY:
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
             //
             // This 'announce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - it is surely confirmed.  Is that true
@@ -417,8 +417,8 @@ ewmHandleAnnounceTransaction (BREthereumEWM ewm,
             break;
         }
 
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             bcsSendTransactionRequest(ewm->bcs,
                                       bundle->hash,
                                       bundle->blockNumber,
@@ -495,8 +495,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                       BREthereumEWMClientAnnounceLogBundle *bundle,
                       int id) {
     switch (ewm->mode) {
-        case SYNC_MODE_BRD_ONLY:
-        case SYNC_MODE_BRD_WITH_P2P_SEND: {
+        case CRYPTO_SYNC_MODE_API_ONLY:
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
             // This 'announce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - it is surely confirmed.
 
@@ -551,8 +551,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             break;
         }
 
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             bcsSendLogRequest(ewm->bcs,
                               bundle->hash,
                               bundle->blockNumber,
@@ -616,7 +616,7 @@ ewmAnnounceBlocks (BREthereumEWM ewm,
                    // const char *strBlockHash,
                    int blockNumbersCount,
                    uint64_t *blockNumbers) {
-    assert (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode);
+    assert (CRYPTO_SYNC_MODE_P2P_ONLY == ewm->mode || CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == ewm->mode);
 
     // into bcs...
     BRArrayOf(uint64_t) numbers;
@@ -659,7 +659,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
     // update the transfer's status.
 
     switch (ewm->mode) {
-        case SYNC_MODE_BRD_ONLY: {
+        case CRYPTO_SYNC_MODE_API_ONLY: {
             char *rawTransaction = transactionGetRlpHexEncoded (transaction,
                                                                 ewm->network,
                                                                 (ETHEREUM_BOOLEAN_IS_TRUE (isSigned)
@@ -678,9 +678,9 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
             break;
         }
 
-        case SYNC_MODE_BRD_WITH_P2P_SEND:
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND:
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             bcsSendTransaction(ewm->bcs, transaction);
             break;
     }
@@ -700,7 +700,7 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
     BREthereumTransactionStatus status = transactionStatusCreate(TRANSACTION_STATUS_PENDING);
 
     switch (ewm->mode) {
-        case SYNC_MODE_BRD_ONLY:
+        case CRYPTO_SYNC_MODE_API_ONLY:
             // NODE: For BRD_ONLY the BRD endpoint is a GETH node.  Hence lesTransactionErrorPreface,
             if (NULL != errorMessage) {
                 BREthereumTransactionErrorType type = lookupTransactionErrorType (lesTransactionErrorPreface, errorMessage);
@@ -710,9 +710,9 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
                 status = transactionStatusCreateErrored (TRANSACTION_ERROR_UNKNOWN, transactionGetErrorName(TRANSACTION_ERROR_UNKNOWN));
             break;
 
-        case SYNC_MODE_BRD_WITH_P2P_SEND:
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND:
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             // TODO: Is this anything besides PENDING?
             // Is this even called outside of BRD_ONLY?  If so, why did BRD_ONLY have assert(0)?
             break;

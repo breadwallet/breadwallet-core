@@ -1,0 +1,22 @@
+ext {
+    javaMainSrcDir              = projectDir.absolutePath + "/src/main/java"
+
+    javaTestSrcDir              = projectDir.absolutePath + "/src/commonTest/java"
+
+    cppSqliteSrcDir             = projectDir.absolutePath + "/src/main/cpp/core/vendor/sqlite3"
+
+    cppCryptoSrcDirs            = [projectDir.absolutePath + "/src/main/cpp/core/bcash",
+                                   projectDir.absolutePath + "/src/main/cpp/core/bitcoin",
+                                   projectDir.absolutePath + "/src/main/cpp/core/crypto",
+                                   projectDir.absolutePath + "/src/main/cpp/core/ethereum",
+                                   projectDir.absolutePath + "/src/main/cpp/core/generic",
+                                   projectDir.absolutePath + "/src/main/cpp/core/ripple",
+                                   projectDir.absolutePath + "/src/main/cpp/core/support"]
+
+    cppCryptoIncDirs            = cppCryptoSrcDirs +
+                                  [projectDir.absolutePath + "/src/main/cpp/core/include",
+                                   projectDir.absolutePath + "/src/main/cpp/core",
+                                   projectDir.absolutePath + "/src/main/cpp/core/vendor/secp256k1"]
+
+    cmakeCMakeListsFile         = projectDir.absolutePath + "/CMakeLists.txt"
+}

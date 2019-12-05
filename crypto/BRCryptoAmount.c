@@ -15,11 +15,10 @@
 #include <math.h>
 #include <string.h>
 
+#include "BRCryptoAmount.h"
+
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilMath.h"
-
-static void
-cryptoAmountRelease (BRCryptoAmount amount);
 
 struct BRCryptoAmountRecord {
     BRCryptoUnit unit;
@@ -143,6 +142,11 @@ extern BRCryptoBoolean
 cryptoAmountIsCompatible (BRCryptoAmount a1,
                           BRCryptoAmount a2) {
     return cryptoUnitIsCompatible (a1->unit, a2->unit);
+}
+
+extern BRCryptoBoolean
+cryptoAmountIsZero (BRCryptoAmount amount) {
+    return AS_CRYPTO_BOOLEAN (eqUInt256 (amount->value, UINT256_ZERO));
 }
 
 static BRCryptoComparison

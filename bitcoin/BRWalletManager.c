@@ -980,11 +980,11 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
-                    BRSyncMode mode,
+                    BRCryptoSyncMode mode,
                     const char *baseStoragePath,
                     uint64_t blockHeight,
                     uint64_t confirmationsUntilFinal) {
-    assert (mode == SYNC_MODE_BRD_ONLY || SYNC_MODE_P2P_ONLY);
+    assert (mode == CRYPTO_SYNC_MODE_API_ONLY || CRYPTO_SYNC_MODE_P2P_ONLY);
 
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
     if (NULL == bwm) {
@@ -1248,21 +1248,21 @@ BRWalletManagerWipe (const BRChainParams *params,
 
 extern void
 BRWalletManagerScan (BRWalletManager manager) {
-    BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
+    BRWalletManagerScanToDepth (manager, CRYPTO_SYNC_DEPTH_FROM_CREATION);
 }
 
 extern void
 BRWalletManagerScanToDepth (BRWalletManager manager,
-                            BRSyncDepth depth) {
+                            BRCryptoSyncDepth depth) {
     // The BRSyncManager has no safe way to get transactions (BRWalletTransactions isn't safe as one of
     // the returned transactions could be deleted at any moment). To work around that fact, and the fact
     // that the BRWalletManager needs to know the block height of the last confirmed send when the mode
-    // is SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND, get the last transaction up front (if available).
+    // is CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND, get the last transaction up front (if available).
 
     pthread_mutex_lock (&manager->lock);
 
     BRTransaction *lastConfirmedSendTxn = NULL;
-    if (SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND == depth) {
+    if (CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND == depth) {
         uint64_t lastBlockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
         uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
         BRTransactionWithState txnWithState = BRWalletManagerFindTransactionWithLastConfirmedSend (manager,
@@ -1278,7 +1278,7 @@ BRWalletManagerScanToDepth (BRWalletManager manager,
 }
 
 extern void
-BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
+BRWalletManagerSetMode (BRWalletManager manager, BRCryptoSyncMode mode) {
     pthread_mutex_lock (&manager->lock);
     if (mode != manager->mode) {
         // get the sync manager values that need to be preserved on mode change
@@ -1334,10 +1334,10 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
     pthread_mutex_unlock (&manager->lock);
 }
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 BRWalletManagerGetMode (BRWalletManager manager) {
     pthread_mutex_lock (&manager->lock);
-    BRSyncMode mode = manager->mode;
+    BRCryptoSyncMode mode = manager->mode;
     pthread_mutex_unlock (&manager->lock);
     return mode;
 }
@@ -1763,7 +1763,7 @@ bwmHandleTxDeleted (BRWalletManager manager,
         bwmSignalWalletManagerEvent(manager,
                                     (BRWalletManagerEvent) {
                                         BITCOIN_WALLET_MANAGER_SYNC_RECOMMENDED,
-                                        { .syncRecommended = { SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND } }
+                                        { .syncRecommended = { CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND } }
                                     });
     }
 }
@@ -1816,9 +1816,24 @@ _BRWalletManagerSyncEvent(void * context,
         }
         case SYNC_MANAGER_SET_PEERS: {
             // filesystem changes are NOT queued; they are acted upon immediately
-            fileServiceReplace (bwm->fileService, fileServiceTypePeers,
-                                (const void **) event.u.peers.peers,
-                                event.u.peers.count);
+            if (0 == event.u.peers.count) {
+                // no peers to set, just do a clear
+                fileServiceClear (bwm->fileService, fileServiceTypePeers);
+            } else {
+                // fileServiceReplace expects an array of pointers to entities, instead of an array of
+                // structures so let's do the conversion here
+                BRPeer **peers = calloc (event.u.peers.count,
+                                         sizeof(BRPeer *));
+
+                for (size_t i = 0; i < event.u.peers.count; i++) {
+                    peers[i] = &event.u.peers.peers[i];
+                }
+
+                fileServiceReplace (bwm->fileService, fileServiceTypePeers,
+                                    (const void **) peers,
+                                    event.u.peers.count);
+                free (peers);
+            }
             break;
         }
         case SYNC_MANAGER_ADD_PEERS: {

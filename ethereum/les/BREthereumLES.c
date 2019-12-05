@@ -1047,6 +1047,7 @@ lesHandleSelectError (BREthereumLES les,
     }
 }
 
+#if !defined (LES_BOOTSTRAP_LCL_ONLY)
 static void
 lesSeedQueryAll (BREthereumLES les) {
     // Create nodes from our network seeds.
@@ -1074,6 +1075,7 @@ lesSeedQueryAllThreaded (BREthereumLES les) {
     pthread_create (&thread, &attr, (ThreadRoutine) lesSeedQueryAll, les);
     pthread_attr_destroy(&attr);
 }
+#endif
 
 static void
 lesThreadBootstrapSeeds (BREthereumLES les) {
