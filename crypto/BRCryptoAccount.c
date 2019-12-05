@@ -51,7 +51,9 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
     size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
     char  *phrase    = calloc (phraseLen, 1);
 
-    assert (phraseLen == BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy)));
+    // xor to avoid needing an additional variable to perform assert
+    phraseLen ^= BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy));
+    assert (0 == phraseLen);
 
     return phrase;
 }
