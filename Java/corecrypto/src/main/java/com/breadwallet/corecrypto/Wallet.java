@@ -156,12 +156,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private void estimateLimit(boolean asMaximum,
                                com.breadwallet.crypto.Address target, com.breadwallet.crypto.NetworkFee fee,
                                CompletionHandler<com.breadwallet.crypto.Amount, LimitEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
+
         NetworkFee cryptoFee = NetworkFee.from(fee);
         BRCryptoNetworkFee coreFee = cryptoFee.getCoreBRCryptoNetworkFee();
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
 
         // This `amount` is in the `unit` of `wallet`
-        BRCryptoWallet.EstimateLimitResult result = core.estimateLimit(asMaximum, coreAddress, coreFee);
+        BRCryptoWalletManager.EstimateLimitResult result = coreManager.estimateLimit(core, asMaximum, coreAddress, coreFee);
         if (result.amount == null) {
             // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
             callbackCoordinator.completeLimitEstimateWithError(handler, new LimitEstimationInsufficientFundsError());
