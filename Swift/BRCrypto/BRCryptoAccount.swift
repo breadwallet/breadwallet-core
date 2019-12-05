@@ -10,6 +10,7 @@
 //
 import Foundation // Data
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 ///
@@ -97,7 +98,7 @@ public final class Account {
         precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return (asUTF8String (cryptoAccountGeneratePaperKey (&words)), Date())
     }
@@ -115,7 +116,7 @@ public final class Account {
         precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return CRYPTO_TRUE == cryptoAccountValidatePaperKey (phrase, &words)
     }

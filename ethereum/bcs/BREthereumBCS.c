@@ -176,7 +176,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRSyncMode mode,
+           BRCryptoSyncMode mode,
            OwnershipGiven BRSetOf(BREthereumNodeConfig) peers,
            OwnershipGiven BRSetOf(BREthereumBlock) blocks,
            OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
@@ -269,11 +269,11 @@ bcsCreate (BREthereumNetwork network,
     BREthereumBoolean discoverNodes = ETHEREUM_BOOLEAN_FALSE;
 #else
     // There is no need to discover nodes if we are in BRD_ONLY mode.
-    BREthereumBoolean discoverNodes = AS_ETHEREUM_BOOLEAN (mode != SYNC_MODE_BRD_ONLY);
+    BREthereumBoolean discoverNodes = AS_ETHEREUM_BOOLEAN (mode != CRYPTO_SYNC_MODE_API_ONLY);
 #endif
 
-    BREthereumBoolean handleSync = AS_ETHEREUM_BOOLEAN (SYNC_MODE_P2P_ONLY == mode ||
-                                                        SYNC_MODE_P2P_WITH_BRD_SYNC == mode);
+    BREthereumBoolean handleSync = AS_ETHEREUM_BOOLEAN (CRYPTO_SYNC_MODE_P2P_ONLY == mode ||
+                                                        CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == mode);
 
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
@@ -380,11 +380,11 @@ bcsSyncRange (BREthereumBCS bcs,
     uint64_t blockNumberStartAdjusted;
 
     switch (bcs->mode) {
-        case SYNC_MODE_BRD_ONLY:
-        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case CRYPTO_SYNC_MODE_API_ONLY:
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND:
             assert (0);
 
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
             //
             // For a PRIME_WITH_ENDPOINT sync we rely 100% on the BRD backend to provide any and
             // all blocks of interest - which is any block involving `address` in a transaction
@@ -399,7 +399,7 @@ bcsSyncRange (BREthereumBCS bcs,
             blockNumberStartAdjusted = maximum (blockNumberStart, blockNumberStop - SYNC_LINEAR_LIMIT + 1);
             break;
 
-        case SYNC_MODE_P2P_ONLY:
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
             //
             // For a FULL_BLOCKCHAIN sync we run our 'N-Ary Search on Account Changes' algorithm
             // which has a (current) weakness on 'ERC20 transfers w/ address as target'.  So, we
@@ -423,7 +423,7 @@ bcsSyncRange (BREthereumBCS bcs,
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
-    assert (SYNC_MODE_P2P_ONLY == bcs->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == bcs->mode);
+    assert (CRYPTO_SYNC_MODE_P2P_ONLY == bcs->mode || CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == bcs->mode);
 
     // Stop a sync that is currently in progress.
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsSyncInProgress(bcs)))
@@ -444,7 +444,7 @@ bcsSyncInProgress (BREthereumBCS bcs) {
 extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction) {
-    assert (SYNC_MODE_BRD_ONLY != bcs->mode);
+    assert (CRYPTO_SYNC_MODE_API_ONLY != bcs->mode);
     bcsSignalSubmitTransaction (bcs, transactionCopy (transaction));
 }
 
@@ -453,7 +453,7 @@ bcsSendTransactionRequest (BREthereumBCS bcs,
                            BREthereumHash transactionHash,
                            uint64_t blockNumber,
                            uint64_t blockTransactionIndex) {
-    assert (SYNC_MODE_P2P_ONLY == bcs->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == bcs->mode);
+    assert (CRYPTO_SYNC_MODE_P2P_ONLY == bcs->mode || CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == bcs->mode);
     // There is a transaction in `blockNumber` - get the block header and 'flow through' the logic
     // to find the suspected transaction.
     lesProvideBlockHeaders (bcs->les,
@@ -468,7 +468,7 @@ bcsSendLogRequest (BREthereumBCS bcs,
                    BREthereumHash transactionHash,
                    uint64_t blockNumber,
                    uint64_t blockTransactionIndex) {
-    assert (SYNC_MODE_P2P_ONLY == bcs->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == bcs->mode);
+    assert (CRYPTO_SYNC_MODE_P2P_ONLY == bcs->mode || CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == bcs->mode);
     // There is a log in `blockNumber` - get the block header and 'flow through' the logic to find
     // the suspected log.
     lesProvideBlockHeaders (bcs->les,
@@ -483,7 +483,7 @@ bcsReportInterestingBlocks (BREthereumBCS bcs,
                             // interest
                             // request id
                             BRArrayOf(uint64_t) blockNumbers) {
-    assert (SYNC_MODE_P2P_ONLY == bcs->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == bcs->mode);
+    assert (CRYPTO_SYNC_MODE_P2P_ONLY == bcs->mode || CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC == bcs->mode);
     eth_log ("BCS", "Report Interesting Blocks: %zu", array_count(blockNumbers));
     for (size_t index = 0; index < array_count(blockNumbers); index++)
         lesProvideBlockHeaders (bcs->les,
@@ -625,7 +625,7 @@ bcsHandleStatus (BREthereumBCS bcs,
                  BREthereumHash headHash,
                  uint64_t headNumber) {
     // If we are not a P2P_* node, we won't handle announcements
-    if (SYNC_MODE_BRD_ONLY == bcs->mode || SYNC_MODE_BRD_WITH_P2P_SEND == bcs->mode) {
+    if (CRYPTO_SYNC_MODE_API_ONLY == bcs->mode || CRYPTO_SYNC_MODE_API_WITH_P2P_SEND == bcs->mode) {
 #if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Status %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
@@ -651,7 +651,7 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
     // If we are not a P2P_* node, we won't handle announcements
-    if (SYNC_MODE_BRD_ONLY == bcs->mode || SYNC_MODE_BRD_WITH_P2P_SEND == bcs->mode) {
+    if (CRYPTO_SYNC_MODE_API_ONLY == bcs->mode || CRYPTO_SYNC_MODE_API_WITH_P2P_SEND == bcs->mode) {
 #if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Block %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,

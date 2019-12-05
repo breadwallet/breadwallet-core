@@ -23,28 +23,31 @@
 //  THE SOFTWARE.
 
 #include "support/BRCrypto.h"
-#include "BRBloomFilter.h"
-#include "BRMerkleBlock.h"
-#include "BRWallet.h"
-#include "BRKey.h"
-#include "BRBIP38Key.h"
-#include "BRKeyECIES.h"
-#include "BRAddress.h"
-#include "BRBase58.h"
-#include "BRBech32.h"
-#include "BRBIP39Mnemonic.h"
-#include "BRBIP39WordsEn.h"
-#include "BRPeer.h"
-#include "BRPeerManager.h"
-#include "BRChainParams.h"
+#include "support/BRInt.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "support/BRKey.h"
+#include "support/BRKeyECIES.h"
+#include "support/BRAddress.h"
+#include "support/BRBase58.h"
+#include "support/BRBech32.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRBIP39WordsEn.h"
+
 #include "bcash/BRBCashParams.h"
 #include "bcash/BRBCashAddr.h"
-#include "BRPaymentProtocol.h"
-#include "BRInt.h"
-#include "BRArray.h"
-#include "BRSet.h"
-#include "BRTransaction.h"
-#include "BRWalletManager.h"
+
+#include "bitcoin/BRBloomFilter.h"
+#include "bitcoin/BRMerkleBlock.h"
+#include "bitcoin/BRWallet.h"
+#include "bitcoin/BRBIP38Key.h"
+#include "bitcoin/BRPeer.h"
+#include "bitcoin/BRPeerManager.h"
+#include "bitcoin/BRChainParams.h"
+#include "bitcoin/BRPaymentProtocol.h"
+#include "bitcoin/BRTransaction.h"
+#include "bitcoin/BRWalletManager.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2464,7 +2467,7 @@ int BRWalletTests()
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
 
-    if (BRWalletAllAddrs(w, NULL, 0) != SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL + 1)
+    if (BRWalletAllAddrs(w, NULL, 0) != SEQUENCE_GAP_LIMIT_EXTERNAL_EXTENDED + SEQUENCE_GAP_LIMIT_INTERNAL_EXTENDED + 1)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletAllAddrs() test\n", __func__);
     
     UInt256 hash = tx->txHash;
@@ -2514,20 +2517,32 @@ int BRWalletTests()
     printf("                                    ");
     BRWalletFree(w);
 
-    int64_t amt;
+    int64_t amt, bal, fee;
     
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
     w = BRWalletNew(BRMainNetParams->addrParams, &tx, 1, mpk);
+    bal = BRWalletBalance(w);
+
+    if (740000 != bal)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletBalance() test\n", __func__);
+
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRWalletSetFeePerKb(w, 65000);
     amt = BRWalletMaxOutputAmount(w);
     tx = BRWalletCreateTransaction(w, amt, addr.s);
     
     if (BRWalletAmountSentByTx(w, tx) - BRWalletFeeForTx(w, tx) != amt || BRWalletAmountReceivedFromTx(w, tx) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletMaxOutputAmount() test 1\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletMaxOutputAmount() test\n", __func__);
+
+    fee = BRWalletFeeForTxAmount (w, amt);
+    if (amt + fee != bal)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmount() test 3\n", __func__);
+
+    if (fee != BRWalletFeeForTxAmountWithFeePerKb (w, 65000, amt))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmountWithFeePerKb() test\n", __func__);
 
     BRTransactionFree(tx);
     BRWalletFree(w);

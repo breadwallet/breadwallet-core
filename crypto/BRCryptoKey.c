@@ -41,14 +41,13 @@
     "cry" \
 })
 
-static void
-cryptoKeyRelease (BRCryptoKey key);
-
 struct BRCryptoKeyRecord {
     BRKey core;
     BRAddressParams coreAddressParams;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoKey, cryptoKey);
 
 static BRCryptoKey
 cryptoKeyCreateInternal (BRKey core, BRAddressParams params) {
@@ -351,5 +350,3 @@ cryptoKeyProvidePublicKey (BRCryptoKey key, int useCompressed, int compressed) {
     if (useCompressed) BRKeySetCompressed (&key->core, compressed);
     BRKeyPubKey (&key->core, NULL, 0);
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoKey, cryptoKey);

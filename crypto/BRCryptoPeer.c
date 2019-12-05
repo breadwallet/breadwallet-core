@@ -9,13 +9,9 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <arpa/inet.h>
+#include "support/BRArray.h"
 #include "support/BRInt.h"
 #include "BRCryptoPeer.h"
-
-
-/** Forward Declarations */
-static void
-cryptoPeerRelease (BRCryptoPeer peer);
 
 struct BRCryptoPeerRecord {
     BRCryptoNetwork network;

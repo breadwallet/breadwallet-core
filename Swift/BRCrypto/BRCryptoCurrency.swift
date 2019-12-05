@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 /// A currency is a medium for exchange.

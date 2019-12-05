@@ -8,37 +8,8 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRCryptoAddress.h"
-#include "BRCryptoPrivate.h"
-
-#include "bcash/BRBCashAddr.h"
-#include "support/BRAddress.h"
-#include "ethereum/BREthereum.h"
-
-static void
-cryptoAddressRelease (BRCryptoAddress address);
-
-struct BRCryptoAddressRecord {
-    BRCryptoBlockChainType type;
-    union {
-        /// A BTC or BCH address
-        struct {
-            // `true` if BTC; `false` if `BCH`
-            BRCryptoBoolean isBitcoinAddr;
-
-            /// The 'bitcoin/' address.  For BTC, addr.s is the string; for BCH, addr.s is
-            /// encoded in a 'BCH' specific way.
-            BRAddress addr;
-        } btc;
-
-        /// A ETH address
-        BREthereumAddress eth;
-
-        /// A GEN address
-        BRGenericAddress gen;
-    } u;
-    BRCryptoRef ref;
-};
+#include "BRCryptoAddressP.h"
+#include "BRCryptoNetworkP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 

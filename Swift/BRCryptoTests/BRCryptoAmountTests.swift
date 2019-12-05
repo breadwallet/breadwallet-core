@@ -225,6 +225,7 @@ class BRCryptoAmountTests: XCTestCase {
         }
 
     func testAmountETH () {
+        var result: String! = nil
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
@@ -251,27 +252,27 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertNotNil(a4!.double (as: ETH_GWEI))
         XCTAssertEqual(123.12345678, a4!.double (as: ETH_GWEI)!)
 
-
-        let a5 = Amount.create(string: "1.234567891234567891", negative: false, unit: ETH_ETHER)
+        // Avoid a 'exact double' representation error:
+        //    was 1.234567891234567891, now: 1.234567891234567936
+        let a5 = Amount.create(string: "1.234567891234567936", negative: false, unit: ETH_ETHER)
         XCTAssertNotNil(a5)
         XCTAssertNotNil (a5?.double(as: ETH_WEI))
-        XCTAssertEqual(1234567891234567891, a5?.double(as: ETH_WEI)!)
+        XCTAssertEqual(1234567891234567936, a5?.double(as: ETH_WEI)!)
+        XCTAssertEqual("1234567891234567936", a5?.string (base: 10, preface: ""))
         // Lost precision - last 5 digits
-        if #available(iOS 13, *) {
-            XCTAssertEqual("wei 1,234,567,891,234,568,000", a5?.string(as: ETH_WEI)!)
-        }
-        else {
-            XCTAssertEqual("wei1,234,567,891,234,570,000", a5?.string(as: ETH_WEI)!)
-        }
+        if #available(iOS 13, *) { result = "wei 1,234,567,891,234,568,000" }
+        else { result = "wei1,234,567,891,234,570,000" }
+        XCTAssertEqual(result, a5?.string(as: ETH_WEI)!)
 
-        XCTAssertEqual("1234567891234567891", a5?.string (base: 10, preface: ""))
         XCTAssertEqual("1000000000000000000", Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 10, preface: ""))
         // String (1000000000000000000, radix:16, uppercase: true) -> DE0B6B3A7640000
         XCTAssertEqual("0xDE0B6B3A7640000".lowercased(), Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 16, preface: "0x"))
 
         let a6 = Amount.create(string: "123000000000000000000.0", negative: false, unit: ETH_WEI)
         XCTAssertNotNil(a6)
-        XCTAssertEqual("wei123,000,000,000,000,000,000", a6?.string(as: ETH_WEI)!)
+        if #available(iOS 13, *) { result = "wei 123,000,000,000,000,000,000" }
+        else { result = "wei123,000,000,000,000,000,000" }
+        XCTAssertEqual(result, a6?.string(as: ETH_WEI)!)
 
         let a6Double = a6?.double (as: ETH_WEI)
         XCTAssertEqual(a6Double, 1.23e20)
@@ -279,8 +280,11 @@ class BRCryptoAmountTests: XCTestCase {
         let a7 = Amount.create(string: "123456789012345678.0", negative: false, unit: ETH_WEI)
         XCTAssertNotNil(a7)
         XCTAssertEqual   ("123456789012345678",         a7?.string(base: 10, preface: ""))
-        XCTAssertEqual   ("wei123,456,789,012,346,000", a7?.string(as: ETH_WEI)!)
-        XCTAssertNotEqual("wei123,456,789,012,345,678", a7?.string(as: ETH_WEI)!)
+        // Note: a DIFFERENT VALUE between iOS 13
+        if #available(iOS 13, *) { result = "wei 123,456,789,012,345,680" }
+        else { result = "wei123,456,789,012,346,000" }
+        XCTAssertEqual   (result, a7?.string(as: ETH_WEI)!)
+//        XCTAssertNotEqual("wei123,456,789,012,345,678", a7?.string(as: ETH_WEI)!)
 
         let a7Double = a7?.double(as: ETH_WEI)
         XCTAssertEqual(a7Double, 1.2345678901234568e17)

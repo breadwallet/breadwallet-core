@@ -9,22 +9,26 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <assert.h>
-#include <pthread.h>
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
+
 #include "BRCryptoPrivate.h"
+#include "BRCryptoAccountP.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletP.h"
+
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "BRCryptoWalletManagerPrivate.h"
+#include "BRCryptoWalletManagerP.h"
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 #include "support/BRFileService.h"
-
-static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
 static void
 cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
@@ -49,13 +53,13 @@ cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type) {
             assert (0); // if you are hitting this, use cryptoWalletManagerStateDisconnectedInit!
             return (BRCryptoWalletManagerState) {
                 CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
-                { .disconnected = { BRDisconnectReasonUnknown() } }
+                { .disconnected = { cryptoWalletManagerDisconnectReasonUnknown() } }
             };
     }
 }
 
 private_extern BRCryptoWalletManagerState
-cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason) {
+cryptoWalletManagerStateDisconnectedInit(BRCryptoWalletManagerDisconnectReason reason) {
     return (BRCryptoWalletManagerState) {
         CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
         { .disconnected = { reason } }
@@ -143,7 +147,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoCWMClient client,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
-                           BRSyncMode mode,
+                           BRCryptoSyncMode mode,
                            BRCryptoAddressScheme scheme,
                            const char *path) {
 
@@ -249,7 +253,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 break; }
 
             // ... and create the primary wallet
-            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerGetPrimaryWallet (cwm->u.gen));
+            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, genManagerGetPrimaryWallet (cwm->u.gen));
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
@@ -356,7 +360,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     free (cwm);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
     // Stop the specific cwm type, if it exists.
     switch (cwm->type) {
@@ -386,7 +390,7 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
 }
 
 extern void
-cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
+cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRCryptoSyncMode mode) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             BRWalletManagerSetMode (cwm->u.btc, mode);
@@ -395,7 +399,7 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
             ewmUpdateMode (cwm->u.eth, mode);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (SYNC_MODE_BRD_ONLY == mode);
+            assert (CRYPTO_SYNC_MODE_API_ONLY == mode);
             break;
         default:
             assert (0);
@@ -403,7 +407,7 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
     }
 }
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
@@ -411,10 +415,10 @@ cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
         case BLOCK_CHAIN_TYPE_ETH:
             return ewmGetMode (cwm->u.eth);
         case BLOCK_CHAIN_TYPE_GEN:
-            return SYNC_MODE_BRD_ONLY;
+            return CRYPTO_SYNC_MODE_API_ONLY;
         default:
             assert (0);
-            return SYNC_MODE_BRD_ONLY;
+            return CRYPTO_SYNC_MODE_API_ONLY;
 
     }
 }
@@ -555,7 +559,7 @@ cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
     return r;
 }
 
-private_extern void
+extern void
 cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
     pthread_mutex_lock (&cwm->lock);
@@ -565,7 +569,7 @@ cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
     pthread_mutex_unlock (&cwm->lock);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
 
@@ -700,7 +704,7 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
 
 extern void
 cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
-                                BRSyncDepth depth) {
+                                BRCryptoSyncDepth depth) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             BRWalletManagerScanToDepth (cwm->u.btc, depth);
@@ -731,7 +735,7 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
                                                     generic.u.included.timestamp,
                                                     cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis));
         case GENERIC_TRANSFER_STATE_ERRORED:
-            return cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown());
+            return cryptoTransferStateErroredInit (cryptoTransferSubmitErrorUnknown());
         case GENERIC_TRANSFER_STATE_DELETED:
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SIGNED);
     }
@@ -1486,4 +1490,113 @@ cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
         return (BRCryptoWalletMigratorStatus) {
             CRYPTO_WALLET_MIGRATOR_SUCCESS
         };
+}
+
+/// MARK: Disconnect Reason
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonRequested(void) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_REQUESTED
+    };
+}
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonUnknown(void) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_UNKNOWN
+    };
+}
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonPosix(int errnum) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+cryptoWalletManagerDisconnectReasonGetMessage(BRCryptoWalletManagerDisconnectReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Stopped Reason
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonComplete(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_COMPLETE
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonRequested(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_REQUESTED
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonUnknown(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_UNKNOWN
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonPosix(int errnum) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+cryptoSyncStoppedReasonGetMessage(BRCryptoSyncStoppedReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case CRYPTO_SYNC_STOPPED_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Mode
+
+extern const char *
+cryptoSyncModeString (BRCryptoSyncMode m) {
+    switch (m) {
+        case CRYPTO_SYNC_MODE_API_ONLY:
+        return "CRYPTO_SYNC_MODE_API_ONLY";
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND:
+        return "CRYPTO_SYNC_MODE_API_WITH_P2P_SEND";
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        return "CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC";
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
+        return "CRYPTO_SYNC_MODE_P2P_ONLY";
+    }
 }

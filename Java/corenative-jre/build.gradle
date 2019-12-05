@@ -1,0 +1,215 @@
+apply plugin: 'c'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+
+import java.nio.file.Paths
+
+def projectRoot = projectDir.absolutePath
+def projectResMainDir = Paths.get(projectRoot, 'build', 'native', 'cryptoMain').toAbsolutePath().toString()
+def projectResTestDir = Paths.get(projectRoot, 'build', 'native', 'cryptoTest').toAbsolutePath().toString()
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+static def jnaOsFromGradle(os) {
+    if (os == "osx") {
+        return 'darwin'
+    } else if (os == "linux") {
+        return os
+    }
+    assert false, 'Invalid OS: ' + os
+}
+
+static def jnaArchFromGradle(arch) {
+    if (arch == 'x86-64') {
+        return 'amd64'
+    } else if (arch == 'x86') {
+        return arch
+    }
+    assert false, 'Invalid ARCH: ' + arch
+}
+
+// JNA attempts to load libraries from the classpath using the logic outlined
+// at https://github.com/java-native-access/jna/blob/master/src/com/sun/jna/Platform.java.
+// To take advantage of that behaviour, package our libraries in the correct directory.
+static def jnaResourceFromGradle(os, arch) {
+    def jos = jnaOsFromGradle(os)
+    def jarch = jnaArchFromGradle(arch)
+
+    if (os == "osx") {
+        return 'darwin'
+    } else {
+        return "${jos}-${jarch}"
+    }
+}
+
+model {
+    toolChains {
+        clang(Clang)
+    }
+    platforms {
+        // x86 is deprecated on macOS; only support x86-64
+        darwin {
+            operatingSystem "osx"
+            architecture "x86_64"
+        }
+        linux32 {
+            operatingSystem "linux"
+            architecture "x86"
+        }
+        linux64 {
+            operatingSystem "linux"
+            architecture "x86_64"
+        }
+    }
+    components {
+        sqlite3(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDir project(':corenative').cppSqliteSrcDir
+                        include "sqlite3.c"
+                    }
+                }
+            }
+            binaries {
+                binaries.all {
+                    // TODO(fix): Do we want to use this approach (config.h)?
+                    cCompiler.define "_HAVE_SQLITE_CONFIG_H"
+                }
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+        corecrypto(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDirs project(':corenative').cppCryptoSrcDirs
+                        include "**/*.c"
+                        exclude "**/test*.c"
+                    }
+                }
+            }
+            binaries {
+                binaries.all {
+                    project(':corenative').cppCryptoIncDirs.forEach {
+                        cCompiler.args "-I$it"
+                    }
+
+                    lib library: 'sqlite3', linkage: 'static'
+                }
+                withType(SharedLibraryBinarySpec) {
+                    def target = targetPlatform.name
+                    def os = targetPlatform.operatingSystem.name
+                    def arch = targetPlatform.architecture.name
+                    def jnaDir = jnaResourceFromGradle(os, arch)
+
+                    if (os == "osx") {
+                        linker.args '-framework', 'Security'
+                        linker.args '-lresolv'
+                    }
+
+                    // Add a task to copy the resulting library file to the JAR's resources
+                    task "copyMainBinaryToLibs${target}"(type: Copy, dependsOn: tasks) {
+                        from sharedLibraryFile
+                        into file(Paths.get(projectResMainDir, jnaDir))
+                    }
+                    processResources.dependsOn("copyMainBinaryToLibs${target}")
+                }
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+        // Add a second target for the test version of the crypto library. This looks like it is
+        // needed because we can't change the source set based on build type...
+        corecryptoWithTests(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDirs project(':corenative').cppCryptoSrcDirs
+                        include "**/*.c"
+                        // note the missing 'exclude' here; we WANT the test source
+                    }
+                }
+            }
+            binaries {
+                binaries.all {
+                    project(':corenative').cppCryptoIncDirs.forEach {
+                        cCompiler.args "-I$it"
+                    }
+
+                    cCompiler.define "DEBUG"
+                    cCompiler.define "BITCOIN_DEBUG"
+
+                    lib library: 'sqlite3', linkage: 'static'
+                }
+                withType(SharedLibraryBinarySpec) {
+                    def target = targetPlatform.name
+                    def os = targetPlatform.operatingSystem.name
+                    def arch = targetPlatform.architecture.name
+                    def jnaDir = jnaResourceFromGradle(os, arch)
+
+                    if (os == "osx") {
+                        linker.args '-framework', 'Security'
+                        linker.args '-lresolv'
+                    }
+
+                    // Add a task to copy the resulting library file to the JAR's resources
+                    task "copyTestBinaryToLibs${target}"(type: Copy, dependsOn: tasks) {
+                        from sharedLibraryFile
+                        into file(Paths.get(projectResTestDir, jnaDir))
+                    }
+
+                    processTestResources.dependsOn("copyTestBinaryToLibs${target}")
+                }
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+    }
+    tasks {
+        buildAllExecutables(Task) {
+            dependsOn $.binaries.findAll { it.buildable }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [project(':corenative').javaMainSrcDir]
+        }
+        resources {
+            srcDirs = [file(projectResMainDir)]
+        }
+    }
+    // use the same source set as the main target but package in the cryptoWithTests library instead
+    test {
+        java {
+            srcDirs = [project(':corenative').javaTestSrcDir]
+        }
+        resources {
+            srcDirs = [file(projectResTestDir)]
+        }
+    }
+}
+
+dependencies {
+    api deps.jnaJre
+
+    implementation deps.guavaJre
+
+    testImplementation deps.junit
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}

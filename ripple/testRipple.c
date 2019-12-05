@@ -12,15 +12,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "BRRipple.h"
-#include "BRRippleBase58.h"
-#include "BRRippleFeeBasis.h"
-#include "BRCrypto.h"
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
-#include "BRKey.h"
-#include "testRippleTxList1.h"
-#include "testRippleTxList2.h"
+#include "support/BRKey.h"
+#include "ripple/BRRipple.h"
+#include "ripple/BRRippleBase58.h"
+#include "ripple/testRippleTxList1.h"
+#include "ripple/testRippleTxList2.h"
 
 int debug_log = 0;
 

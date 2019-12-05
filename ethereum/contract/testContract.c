@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "BREthereumContract.h"
-#include "BREthereumToken.h"
+#include "ethereum/contract/BREthereumContract.h"
+#include "ethereum/contract/BREthereumToken.h"
 
 #if defined (BITCOIN_TESTNET)
 const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet

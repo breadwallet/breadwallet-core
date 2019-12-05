@@ -1,25 +1,28 @@
 module BRCryptoC [system] [extern_c] {
-    header "../../crypto/BRCryptoStatus.h"
-    header "../../crypto/BRCryptoHash.h"
-    header "../../crypto/BRCryptoCurrency.h"
-    header "../../crypto/BRCryptoUnit.h"
-    header "../../crypto/BRCryptoAmount.h"
-    header "../../crypto/BRCryptoAccount.h"
-    header "../../crypto/BRCryptoCipher.h"
-    header "../../crypto/BRCryptoCoder.h"
-    header "../../crypto/BRCryptoHasher.h"
-    header "../../crypto/BRCryptoKey.h"
-    header "../../crypto/BRCryptoSigner.h"
-    header "../../crypto/BRCryptoAddress.h"
-    header "../../crypto/BRCryptoFeeBasis.h"
-    header "../../crypto/BRCryptoNetwork.h"
-    header "../../crypto/BRCryptoPeer.h"
-    header "../../crypto/BRCryptoTransfer.h"
-    header "../../crypto/BRCryptoPayment.h"
-    header "../../crypto/BRCryptoWallet.h"
-    header "../../crypto/BRCryptoWalletManager.h"
+    header "../../include/BRCryptoStatus.h"
+    header "../../include/BRCryptoHash.h"
+    header "../../include/BRCryptoAccount.h"
+    header "../../include/BRCryptoCurrency.h"
+    header "../../include/BRCryptoUnit.h"
+    header "../../include/BRCryptoAmount.h"
+    header "../../include/BRCryptoFeeBasis.h"
+    header "../../include/BRCryptoKey.h"
+    header "../../include/BRCryptoAddress.h"
+    header "../../include/BRCryptoNetwork.h"
+    header "../../include/BRCryptoPeer.h"
+    header "../../include/BRCryptoTransfer.h"
+    header "../../include/BRCryptoPayment.h"
+    header "../../include/BRCryptoWallet.h"
+    header "../../include/BRCryptoWalletManager.h"
 
-    header "../../crypto/BRCryptoPrivate.h"
+    // Support
+    header "../../include/BRCryptoCipher.h"
+    header "../../include/BRCryptoCoder.h"
+    header "../../include/BRCryptoHasher.h"
+    header "../../include/BRCryptoSigner.h"
 
-    export * // size_t, free()
+    // This should disappear, at some point.
+    explicit module Impl {
+        header "../../crypto/BRCryptoPrivate.h"
+    }
 }
