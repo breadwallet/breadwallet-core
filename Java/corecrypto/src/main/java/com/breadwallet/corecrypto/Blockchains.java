@@ -91,14 +91,14 @@ final class Blockchains {
             "Ξ"
     );
 
-    private static CurrencyDenomination XRP_DROP = new CurrencyDenomination(
+    private static CurrencyDenomination XRP_DROP = CurrencyDenomination.create(
             "drop",
             "drop",
             UnsignedInteger.valueOf(0),
             "drop"
     );
 
-    private static CurrencyDenomination XRP_RIPPLE = new CurrencyDenomination(
+    private static CurrencyDenomination XRP_RIPPLE = CurrencyDenomination.create(
             "xrp",
             "xrp",
             UnsignedInteger.valueOf(6),
@@ -174,7 +174,7 @@ final class Blockchains {
             makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
     );
 
-    private static Currency CURRENCY_XRP_MAINNET = new Currency(
+    private static Currency CURRENCY_XRP_MAINNET = Currency.create(
             "ripple-mainnet:__native__",
             "Ripple",
             "xrp",
@@ -244,7 +244,7 @@ final class Blockchains {
             makeCurrencyDemominationsErc20("brd", UnsignedInteger.valueOf(18))
     );
 
-    private static Currency CURRENCY_XRP_TESTNET = new Currency(
+    private static Currency CURRENCY_XRP_TESTNET = Currency.create(
             "ripple-testnet:__native__",
             "Ripple Testnet",
             "xrp",
@@ -343,7 +343,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_XRP_MAINNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_XRP_MAINNET = Blockchain.create(
             "ripple-mainnet",
             "Ripple Mainnet",
             "testnet",
@@ -351,7 +351,7 @@ final class Blockchains {
             "ripple-mainnet:__native__",
             UnsignedLong.valueOf(50000000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "10",
                             "1m",
                             UnsignedLong.valueOf(60 * 1000)
@@ -413,7 +413,7 @@ final class Blockchains {
             UnsignedInteger.valueOf(6)
     );
 
-    private static Blockchain BLOCKCHAIN_XRP_TESTNET = new Blockchain(
+    private static Blockchain BLOCKCHAIN_XRP_TESTNET = Blockchain.create(
             "ripple-testnet",
             "Ripple Testnet",
             "testnet",
@@ -421,7 +421,7 @@ final class Blockchains {
             "ripple-testnet:__native__",
             UnsignedLong.valueOf(50000000),
             ImmutableList.of(
-                    new BlockchainFee(
+                    BlockchainFee.create(
                             "10",
                             "1m",
                             UnsignedLong.valueOf(60 * 1000)
