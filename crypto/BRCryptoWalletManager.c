@@ -1016,14 +1016,37 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            assert (0);
-
-            *needEstimate = CRYPTO_FALSE; // TODO: True
+            // TODO: Probably, unfortunately, the need for an estimate is likely currency dependent.
+            *needEstimate = CRYPTO_FALSE;
 
             if (CRYPTO_FALSE == asMaximum)
                 amount = createUInt256(0);
             else {
-                amount = createUInt256(0);
+                int negative = 0, overflow = 0;
+
+                // Get the balance
+                UInt256 balance = genWalletGetBalance (wallet->u.gen);
+
+                // Get the pricePerCostFactor for the (network) fee.
+                BRCryptoAmount pricePerCostFactor = cryptoNetworkFeeGetPricePerCostFactor (fee);
+                
+                // Get a feeBasis using some sketchy defaults
+                BRGenericAddress address   = genWalletGetAddress (wallet->u.gen);
+                BRGenericFeeBasis feeBasis = genWalletEstimateTransferFee (wallet->u.gen,
+                                                                           address,
+                                                                           balance,
+                                                                           cryptoAmountGetValue(pricePerCostFactor));
+
+                // Finally, compute the fee.
+                UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
+                assert (!overflow);
+
+                amount = subUInt256_Negative (balance, fee, &negative);
+                if (negative) amount = UINT256_ZERO;
+
+                genAddressRelease(address);
+                cryptoAmountGive(pricePerCostFactor);
+
             }
             break;
         }
