@@ -69,6 +69,8 @@ extern "C" {
             struct {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
+                // This is not assuredly the including block's timestamp; it is the transaction's
+                // timestamp which varies depending on how the transaction was discovered.
                 uint64_t timestamp;
                 BRCryptoAmount fee;
             } included;
