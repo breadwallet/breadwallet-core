@@ -237,7 +237,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoTransferTake(Pointer obj);
     public static native void cryptoTransferGive(Pointer obj);
 
-    public static native Pointer BRCryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError error);
+    public static native Pointer cryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError error);
 
     // crypto/BRCryptoUnit.h
     public static native Pointer cryptoUnitGetUids(Pointer unit);
