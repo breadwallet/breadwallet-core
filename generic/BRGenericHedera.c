@@ -189,8 +189,7 @@ static void
 genericHederaWalletAddTransfer (BRGenericWalletRef wallet,
                                 BRGenericTransferRef transfer) {
     // TODO - I don't think it is used
-    assert(0);
-    //hederaWalletAddTransfer ((BRHederaWallet) wallet, (BRHederaTransaction) transfer);
+    hederaWalletAddTransfer ((BRHederaWallet) wallet, (BRHederaTransaction) transfer);
 }
 
 static BRGenericTransferRef
@@ -271,7 +270,7 @@ genericHederaWalletManagerGetAPISyncType (void) {
 // MARK: - Generic Handlers
 
 struct BRGenericHandersRecord genericHederaHandlersRecord = {
-    "xrp",
+    "hbar",
     { // Network
     },
 

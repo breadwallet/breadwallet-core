@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include "BRCryptoAccountP.h"
 #include "generic/BRGenericRipple.h"
+#include "generic/BRGenericHedera.h"
 
 static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
 
@@ -18,6 +19,7 @@ static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
 
 static void _accounts_init (void) {
     genHandlersInstall (genericRippleHandlers);
+    genHandlersInstall (genericHederaHandlers);
     // ...
 }
 
@@ -72,6 +74,7 @@ static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
                              BREthereumAccount eth,
                              BRGenericAccount xrp,
+                             BRGenericAccount hedera,
                              uint64_t timestamp,
                              const char * uids) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
@@ -79,6 +82,7 @@ cryptoAccountCreateInternal (BRMasterPubKey btc,
     account->btc = btc;
     account->eth = eth;
     account->xrp = xrp;
+    account->hedera = hedera;
     account->uids = strdup (uids);
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
@@ -95,6 +99,7 @@ cryptoAccountCreateFromSeedInternal (UInt512 seed,
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
                                         createAccountWithBIP32Seed(seed),
                                         genAccountCreate (genericRippleHandlers->type, seed),
+                                        genAccountCreate (genericHederaHandlers->type, seed),
                                         timestamp,
                                         uids);
 }
@@ -192,8 +197,18 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
 
     BRGenericAccount xrp = genAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
     assert (NULL != xrp);
+    BYTES_PTR_INCR_AND_CHECK (xrpSize); // Move the pointer to then end of the XRP account
 
-    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp, uids);
+    // TODO (CORE-694) Use the version number to determine if we can load in the Hedera account
+
+    // Hedera
+    // size_t hederaSize = UInt32GetBE(bytesPtr);
+    // BYTES_PTR_INCR_AND_CHECK (szSize);
+    // BYTES_PTR_INCR_AND_CHECK (hederaSize); // Move the pointer to the end of the Hedera account
+    BRGenericAccount hedera = NULL; //genAccountCreateWithSerialization (genericHederaHandlers->type, bytesPtr, hederaSize);
+    // assert (NULL != hedera);
+
+    return cryptoAccountCreateInternal (mpk, eth, xrp, hedera, timestamp, uids);
 #undef BYTES_PTR_INCR_AND_CHECK
 }
 
@@ -201,6 +216,7 @@ static void
 cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);
     genAccountRelease(account->xrp);
+    genAccountRelease(account->hedera);
 
     free (account->uids);
     memset (account, 0, sizeof(*account));
@@ -244,11 +260,16 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     size_t   xrpSize = 0;
     uint8_t *xrpBytes = genAccountGetSerialization (account->xrp, &xrpSize);
 
+    // Hedera
+    size_t   hederaSize = 0;
+    uint8_t *hederaBytes = genAccountGetSerialization (account->hedera, &hederaSize);
+
     // Overall size - summing all factors.
     *bytesCount = (chkSize + szSize + verSize + tsSize
                    + (szSize + mpkSize)
                    + (szSize + ethSize)
-                   + (szSize + xrpSize));
+                   + (szSize + xrpSize)
+                   + (szSize + hederaSize));
     uint8_t *bytes = calloc (1, *bytesCount);
     uint8_t *bytesPtr = bytes;
 
@@ -289,6 +310,13 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
 
     memcpy (bytesPtr, xrpBytes, xrpSize);
     bytesPtr += xrpSize;
+
+    // Hedera
+    UInt32SetBE (bytesPtr, (uint32_t) hederaSize);
+    bytesPtr += szSize;
+
+    memcpy (bytesPtr, hederaBytes, hederaSize);
+    bytesPtr += hederaSize;
 
     // Avoid static analysis warning
     (void) bytesPtr;
@@ -371,7 +399,7 @@ private_extern BRGenericAccount
 cryptoAccountAsGEN (BRCryptoAccount account,
                     const char *type) {
     if (genAccountHasType (account->xrp, type)) return account->xrp;
-
+    if (genAccountHasType (account->hedera, type)) return account->hedera;
     return NULL;
 }
 

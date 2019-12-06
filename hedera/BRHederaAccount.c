@@ -22,6 +22,10 @@ extern BRHederaAccount hederaAccountCreateWithSeed (UInt512 seed)
     // From the secret get the public key
     account->publicKey = hederaKeyGetPublicKey(privateKey);
 
+    // TOTO - Hard code the address for now - until someone calls
+    // the hederaAccountSetAddress function
+    account->address = hederaAddressCreateFromString("0.0.16395");
+
     return account;
 }
 

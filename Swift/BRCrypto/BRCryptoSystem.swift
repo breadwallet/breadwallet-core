@@ -68,6 +68,9 @@ public final class System {
         (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
          blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
         confirmationsUntilFinal: 1),
+        (id: "hedera-mainnet", name: "Hedera", network: "mainnet", isMainnet: true,  currency: "hedera-mainnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "500000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+        confirmationsUntilFinal: 1),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
@@ -82,6 +85,9 @@ public final class System {
         (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
          blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 1),
+        (id: "hedera-testnet", name: "Hedera", network: "testnet", isMainnet: false,  currency: "hedera-testnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "500000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+        confirmationsUntilFinal: 1),
     ]
 
     private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
@@ -129,6 +135,10 @@ public final class System {
          address: nil, verified: true,
          demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
                          (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+        (id: "hedera-mainnet:__native__", name: "Hedera", code: "hbar", type: "native", blockchainID: "hedera-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "tinybar", code: "thbar", decimals: 0, symbol: "thbar"),
+                         (name: "hbar",  code: "hbar",  decimals: 9, symbol: "hbar")]),
 
         // Testnet
         (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
@@ -155,6 +165,11 @@ public final class System {
          address: nil, verified: true,
          demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
                          (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+
+        (id: "hedera-testnet:__native__", name: "Hedera", code: "hbar", type: "native", blockchainID: "hedera-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "tinybar", code: "thbar", decimals: 0, symbol: "thbar"),
+                         (name: "hbar",  code: "hbar",  decimals: 9, symbol: "hbar")]),
     ]
 
     ///
@@ -166,10 +181,12 @@ public final class System {
         "bitcoincash-mainnet": [.btcLegacy],
         "ethereum-mainnet":     [.ethDefault],
         "ripple-mainnet":       [.genDefault],
+        "hedera-mainnet":       [.genDefault],
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-        "ripple-testnet":       [.genDefault]
+        "ripple-testnet":       [.genDefault],
+        "hedera-testnet":       [.genDefault]
     ]
 
     static let defaultAddressSchemeMap: [String:AddressScheme] = [
@@ -177,10 +194,12 @@ public final class System {
         "bitcoincash-mainnet": .btcLegacy,
         "ethereum-mainnet":     .ethDefault,
         "ripple-mainnet":       .genDefault,
+        "hedera-mainnet":       .genDefault,
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-        "ripple-testnet":       .genDefault
+        "ripple-testnet":       .genDefault,
+        "hedera-testnet":       .genDefault
     ]
 
     ///
@@ -241,10 +260,12 @@ public final class System {
         "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
         "ripple-mainnet":       [.api_only],
+        "hedera-mainnet":       [.api_only],
         "bitcoin-testnet":      [.api_only, .p2p_only],
         "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-        "ripple-testnet":       [.api_only]
+        "ripple-testnet":       [.api_only],
+        "hedera-testnet":       [.api_only]
     ]
 
     ///
@@ -255,10 +276,12 @@ public final class System {
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
         "ripple-mainnet":       .api_only,
+        "hedera-mainnet":       .api_only,
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
-        "ripple-testnet":       .api_only
+        "ripple-testnet":       .api_only,
+        "hedera-testnet":       .api_only
     ]
 
 

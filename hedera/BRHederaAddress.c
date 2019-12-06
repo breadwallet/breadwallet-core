@@ -62,23 +62,15 @@ extern char * hederaAddressAsString (BRHederaAddress address)
 
 static bool hederaStringIsValid (const char * input)
 {
-    const char * largestInt64Number = "9223372036854775807";
-    bool valid = false;
-    char * testInput = strdup(input);
-    char * shard = strtok(testInput, ".");
-    if (shard && strlen(shard) <= 19 && strcmp(shard, largestInt64Number) <= 0) {
-        char * realm = strtok(NULL, ".");
-        if (realm && strlen(realm) <= 19 && strcmp(realm, largestInt64Number) <= 0) {
-            char * account = strtok(NULL, ".");
-            if (account && strlen(account) <= 19 && strcmp(account, largestInt64Number) <= 0) {
-                // Now we have all 3 values
-                valid = true;
-            }
-        }
+    //const char * largestInt64Number = "9223372036854775807";
+    int64_t shard = -1;
+    int64_t realm = -1;
+    int64_t account = -1;
+    sscanf(input, "%lld.%lld.%lld", &shard, &realm, &account);
+    if (shard >= 0 && realm >= 0 && account >= 0) {
+        return true;
     }
-
-    free (testInput);
-    return valid;
+    return false;
 }
 
 BRHederaAddress hederaAddressStringToAddress(const char* input)

@@ -33,6 +33,8 @@ hederaWalletCreate (BRHederaAccount account)
     array_new(wallet->nodes, 10);
     array_add(wallet->nodes, hederaAddressCreateFromString("0.0.3"));
 
+    array_new(wallet->transactions, 0);
+
     // Add a default fee basis
     wallet->feeBasis.costFactor = 1;
     wallet->feeBasis.pricePerCostFactor = 500000;
