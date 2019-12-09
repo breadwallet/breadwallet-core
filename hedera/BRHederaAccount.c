@@ -32,8 +32,13 @@ extern BRHederaAccount hederaAccountCreateWithSeed (UInt512 seed)
 extern BRHederaAccount
 hederaAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount)
 {
-    // TODO - parse the bytes to create an account
-    return NULL;
+    // For Hedera this should be 24 bytes for the address and 32 for the public key
+    assert(bytes);
+    assert(bytesCount == 56);
+    BRHederaAccount account = calloc(1, sizeof(struct BRHederaAccountRecord));
+    account->address = hederaAddressCreateFromBytes(bytes, 24);
+    memcpy(account->publicKey.pubKey, bytes + 24, 32);
+    return account;
 }
 
 extern void hederaAccountFree (BRHederaAccount account)
@@ -71,11 +76,22 @@ extern uint8_t *hederaAccountGetSerialization (BRHederaAccount account, size_t *
     assert (NULL != bytesCount);
     assert (NULL != account);
 
-    *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
-    uint8_t *bytes = calloc (1, *bytesCount);
-    // TODO - since we cannot generate the account string from the public key
-    // who stores it?
-    BRKeyPubKey(&account->publicKey, bytes, *bytesCount);
+    size_t pubKeySize = 32; // ed25519 public key
+
+    // Serialize the account address and find out the size
+    size_t sizeOfAddress = 0;
+    uint8_t * address = hederaAddressSerialize(account->address, &sizeOfAddress);
+
+    // Create the buffer to hold the full account serialized bytes
+    *bytesCount = pubKeySize + sizeOfAddress;
+    uint8_t * bytes = calloc(1, *bytesCount);
+
+    // Copy the address
+    memcpy(bytes, address, sizeOfAddress);
+    free(address);
+
+    // Hedera public key are ed25519 - always 32 bytes
+    memcpy(bytes + sizeOfAddress, account->publicKey.pubKey, 32);
     return bytes;
 }
 

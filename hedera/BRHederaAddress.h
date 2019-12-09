@@ -91,6 +91,26 @@ extern BRHederaAddress hederaAddressClone (BRHederaAddress address);
 extern int // 1 if equal
 hederaAddressEqual (BRHederaAddress a1, BRHederaAddress a2);
 
+/**
+ * Serialize an Hedera account
+ *
+ * @param address           the hedera address to serialize
+ * @param sizeOfBytes   pointer to size_t to hold size of serialized bytes
+ *
+ * @return bytes       pointer to buffer holding serialized bytes
+ */
+extern uint8_t * hederaAddressSerialize (BRHederaAddress address, size_t * sizeOfBytes);
+
+/**
+* Create an Hedera account from a byte stream
+*
+* @param bytes              bytes serialized by hederAddressSerialize
+* @param sizeOfBytes   the size of the byte array
+*
+* @return address          pointer to an Heder address
+*/
+extern BRHederaAddress hederaAddressCreateFromBytes (uint8_t * bytes, size_t sizeOfBytes);
+
 #ifdef __cplusplus
 }
 #endif

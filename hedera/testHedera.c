@@ -288,6 +288,34 @@ static void accountStringTest(const char * userName) {
     hederaAccountFree (account);
 }
 
+static void accountSerializeTest(const char * userName) {
+    struct account_info accountInfo = find_account (userName);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, accountInfo.paper_key, NULL); // no passphrase
+    BRHederaAccount account = hederaAccountCreateWithSeed (seed);
+    BRHederaAddress address = hederaAddressCreateFromString (accountInfo.account_string);
+    BRKey publicKey = hederaAccountGetPublicKey(account);
+    hederaAccountSetAddress (account, address);
+
+    // Serialize
+    size_t bytesCount = 0;
+    uint8_t * accountBytes = hederaAccountGetSerialization(account, &bytesCount);
+
+    // Create a new account from serialization
+    BRHederaAccount accountCopy = hederaAccountCreateWithSerialization(accountBytes, bytesCount);
+    assert(accountCopy);
+    BRHederaAddress addressCopy = hederaAccountGetAddress(accountCopy);
+    assert(hederaAddressEqual(address, addressCopy));
+    BRKey publicKeyCopy = hederaAccountGetPublicKey(accountCopy);
+    assert(memcmp(publicKey.pubKey, publicKeyCopy.pubKey, 32) == 0);
+
+    // Cleanup
+    hederaAddressFree (address);
+    hederaAddressFree (addressCopy);
+    hederaAccountFree (account);
+    hederaAccountFree (accountCopy);
+}
+
 static void addressEqualTests()
 {
     BRHederaAddress a1 = hederaAddressCreateFromString("0.0.1000000");
@@ -346,6 +374,21 @@ static void addressFeeTests()
     hederaAddressFree(address);
 }
 
+static void addressSerializeTests()
+{
+    // Check a max int64 account number
+    BRHederaAddress address1 = hederaAddressCreateFromString("0.0.100000");
+    size_t sizeOfBytes = 0;
+    uint8_t * bytes = hederaAddressSerialize(address1, &sizeOfBytes);
+
+    BRHederaAddress address2 = hederaAddressCreateFromBytes(bytes, sizeOfBytes);
+    assert(hederaAddressEqual(address1, address2));
+
+    free(bytes);
+    hederaAddressFree(address1);
+    hederaAddressFree(address2);
+}
+
 static void addressValueTests() {
     BRHederaAddress address = hederaAddressCreateFromString("0.0.0");
     assert(0 == hederaAddressGetShard (address));
@@ -367,12 +410,16 @@ static void addressValueTests() {
     assert(9223372036854775807 == hederaAddressGetAccount (address));
     hederaAddressFree (address);
 
-    // Check when the number (string) is too long
-    address = hederaAddressCreateFromString("0.0.9223372036854775807999");
-    assert(address == NULL);
-
     // Check when the number is the the correct length but is greater than max int64
     address = hederaAddressCreateFromString("0.0.9993372036854775807");
+    assert(address == NULL);
+
+    // Check when the number is too long to be an in64
+    address = hederaAddressCreateFromString("0.0.999337203685477580711111");
+    assert(address == NULL);
+
+    // Check when the string is invalid
+    address = hederaAddressCreateFromString("-1.-1.-1");
     assert(address == NULL);
 
     // Check when the string is invalid
@@ -450,6 +497,7 @@ static void address_tests() {
     addressValueTests();
     addressFeeTests();
     addressCloneTests();
+    addressSerializeTests();
 }
 
 static void account_tests() {
@@ -458,6 +506,8 @@ static void account_tests() {
     hederaAccountCheckPublicKey("choose");
 
     accountStringTest("patient");
+
+    accountSerializeTest("patient");
 }
 
 static void wallet_tests()
