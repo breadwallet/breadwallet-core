@@ -292,7 +292,8 @@ genWalletGetBalance (BRGenericWallet wallet) {
 
 extern BRGenericAddress
 genWalletGetAddress (BRGenericWallet wid) {
-    return NULL;
+    return genAddressAllocAndInit (wid->type,
+                                   wid->handlers.getAddress (wid->ref, 1));
 }
 
 extern int
