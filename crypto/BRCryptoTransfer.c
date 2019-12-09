@@ -652,6 +652,10 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
+    // This does not compare the properties of `t1` to `t2`, just the 'id-ness'.  If the properties
+    // are compared, one needs to be careful about the BRTransaction's timestamp.  Two transactions
+    // with an identical hash can have different timestamps depending on how the transaction
+    // is identified.  Specifically P2P and API found transactions *will* have different timestamps.
     return t1->u.btc.tid == t2->u.btc.tid;
 }
 
