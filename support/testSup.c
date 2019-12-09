@@ -255,7 +255,7 @@ supMainDisconnect (SupMain main) {
         supWorkerDisconnect (main->workers[index], 1);
     
     printf ("Main (%p): Disconnect Self\n", main);
-    if (NULL != main->thread) {
+    if (PTHREAD_NULL != main->thread) {
         pthread_cond_signal(&main->cond);
         pthread_mutex_unlock (&main->lock);
         pthread_join(main->thread, NULL);

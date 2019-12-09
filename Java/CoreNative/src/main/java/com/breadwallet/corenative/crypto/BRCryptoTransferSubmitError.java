@@ -110,7 +110,7 @@ public class BRCryptoTransferSubmitError extends Structure {
     }
 
     public Optional<String> getMessage() {
-        Pointer ptr = CryptoLibraryDirect.BRCryptoTransferSubmitErrorGetMessage(this);
+        Pointer ptr = CryptoLibraryDirect.cryptoTransferSubmitErrorGetMessage(this);
         try {
             return Optional.fromNullable(
                     ptr

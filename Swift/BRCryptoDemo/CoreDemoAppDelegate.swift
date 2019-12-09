@@ -301,6 +301,7 @@ extension UIApplication {
 
                     let mainnet = (accountSpecification.network == "mainnet")
 
+                    app.accountSpecification = accountSpecification
                     app.account = Account.createFrom (phrase: accountSpecification.paperKey,
                                                       timestamp: accountSpecification.timestamp,
                                                       uids: "WalletID: \(accountSpecification.identifier)")
