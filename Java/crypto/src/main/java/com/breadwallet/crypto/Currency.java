@@ -13,10 +13,6 @@ import com.google.common.base.Optional;
 
 public interface Currency {
 
-    String CODE_AS_BTC = "btc";
-    String CODE_AS_BCH = "bch";
-    String CODE_AS_ETH = "eth";
-
     String getUids();
 
     String getName();

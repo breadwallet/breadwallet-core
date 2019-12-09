@@ -33,62 +33,6 @@ import static com.google.common.base.Preconditions.checkState;
 final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
-    static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
-                          Map<Currency, NetworkAssociation> associations,
-                          List<NetworkFee> fees, UnsignedInteger confirmationsUntilFinal) {
-        BRCryptoNetwork core;
-
-        String code = currency.getCode();
-        switch (code) {
-            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
-                core = BRCryptoNetwork.createAsBtc(uids, name, isMainnet);
-
-                break;
-            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
-                core = BRCryptoNetwork.createAsBch(uids, name, isMainnet);
-
-                break;
-            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
-                Optional<BRCryptoNetwork> optional = BRCryptoNetwork.createAsEth(uids, name, isMainnet);
-                if (optional.isPresent()) {
-                    core = optional.get();
-                } else {
-                    throw new IllegalArgumentException("Unsupported ETH network");
-                }
-
-                break;
-            default:
-                core = BRCryptoNetwork.createAsGen(uids, name, currency.getCoreBRCryptoCurrency(), isMainnet);
-                break;
-        }
-
-        core.setHeight(height);
-        core.setCurrency(currency.getCoreBRCryptoCurrency());
-
-        for (Map.Entry<Currency, NetworkAssociation> entry: associations.entrySet()) {
-            Currency associationCurrency = entry.getKey();
-            NetworkAssociation association = entry.getValue();
-
-            core.addCurrency(associationCurrency.getCoreBRCryptoCurrency(),
-                    association.getBaseUnit().getCoreBRCryptoUnit(),
-                    association.getDefaultUnit().getCoreBRCryptoUnit());
-
-            for (Unit unit: association.getUnits()) {
-                core.addCurrencyUnit(associationCurrency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
-            }
-        }
-
-        checkState(!fees.isEmpty());
-        for (NetworkFee fee: fees) {
-            core.addFee(fee.getCoreBRCryptoNetworkFee());
-        }
-
-        core.setConfirmationsUntilFinal(confirmationsUntilFinal);
-
-        return Network.create(core);
-    }
-
-    /* package */
     static Network create(BRCryptoNetwork core) {
         Network network = new Network(core);
         ReferenceCleaner.register(network, core::give);

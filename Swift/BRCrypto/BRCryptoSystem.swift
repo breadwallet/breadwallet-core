@@ -54,248 +54,6 @@ public final class System {
     /// We define default blockchains but these are wholly insufficient given that the
     /// specfication includes `blockHeight` (which can never be correct).
 
-    static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
-        // Mainnet
-        (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 595000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 600000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-//        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
-//         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-//        confirmationsUntilFinal: 1),
-
-        // Testnet
-        (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 1325000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-//        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
-//         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-//         confirmationsUntilFinal: 1),
-    ]
-
-    private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
-        return "\(blockchainID):\(address)"
-    }
-
-    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
-        let name = code.uppercased()
-        let code = code.lowercased()
-
-        return [
-            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
-            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
-        ]
-    }
-
-    static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
-        // Mainnet
-        (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
-
-        (id: "bitcoincash-mainnet:__native__", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoincash-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",      code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Cash", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
-
-        (id: "ethereum-mainnet:__native__", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
-
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
-         address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
-
-//        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
-//         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
-
-//        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-
-        // Testnet
-        (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",         code: "sat",         decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Testnet", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
-
-        (id: "bitcoincash-testnet:__native__", name: "Bitcoin Cash Testnet", code: "bch", type: "native", blockchainID: "bitcoincash-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",              code: "sat",          decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Cash Testnet", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
-
-        (id: "ethereum-ropsten:__native__", name: "Ethereum Ropsten", code: "eth", type: "native", blockchainID: "ethereum-ropsten",
-         address: nil, verified: true,
-         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
-
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
-         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
-
-//        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-    ]
-
-    ///
-    /// Address Scheme
-    ///
-
-    static let supportedAddressSchemesMap: [String:[AddressScheme]] = [
-        "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
-        "bitcoincash-mainnet": [.btcLegacy],
-        "ethereum-mainnet":     [.ethDefault],
-//        "ripple-mainnet":       [.genDefault],
-        "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
-        "bitcoincash-testnet":  [.btcLegacy],
-        "ethereum-ropsten":     [.ethDefault],
-//        "ripple-testnet":       [.genDefault]
-    ]
-
-    static let defaultAddressSchemeMap: [String:AddressScheme] = [
-        "bitcoin-mainnet":      .btcSegwit,
-        "bitcoincash-mainnet": .btcLegacy,
-        "ethereum-mainnet":     .ethDefault,
-//        "ripple-mainnet":       .genDefault,
-        "bitcoin-testnet":      .btcSegwit,
-        "bitcoincash-testnet":  .btcLegacy,
-        "ethereum-ropsten":     .ethDefault,
-//        "ripple-testnet":       .genDefault
-    ]
-
-    ///
-    /// Return the AddressSchemes support for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: An array of AddressScheme
-    ///
-    public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
-        return System.supportedAddressSchemesMap[network.uids] ?? [.genDefault]
-    }
-
-    ///
-    /// Check if `network` supports `scheme`
-    ///
-    /// - Parameters:
-    ///   - network: the network
-    ///   - scheme: the scheme
-    ///
-    /// - Returns: If supported `true`; otherwise `false`.
-    ///
-    public func supportsAddressScheme (network: Network, _ scheme: AddressScheme) -> Bool {
-        return supportedAddressSchemes(network: network).contains (scheme)
-    }
-
-    ///
-    /// Return the default AddressScheme for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: The default AddressScheme
-    ///
-    public func defaultAddressScheme (network: Network) -> AddressScheme {
-        return System.defaultAddressSchemeMap[network.uids] ?? .genDefault
-    }
-
-    ///
-    /// Wallet Manager Modes
-    ///
-    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
-    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
-    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
-    /// BCH is not at the moment)
-    ///
-    /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
-    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
-    /// selecting another mode if available.
-    ///
-    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
-    /// distribution in the wild might be out of date with the current BDB support.  That can mean
-    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
-    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
-    /// destructive.
-    ///
-    static let supportedModesMap: [String:[WalletManagerMode]] = [
-        "bitcoin-mainnet":      [.api_only, .p2p_only],
-        "bitcoincash-mainnet":  [.api_only, .p2p_only],
-        "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-mainnet":       [.api_only],
-        "bitcoin-testnet":      [.api_only, .p2p_only],
-        "bitcoincash-testnet":  [.api_only, .p2p_only],
-        "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-testnet":       [.api_only]
-    ]
-
-    ///
-    /// The default Modes
-    ///
-    static let defaultModesMap: [String:WalletManagerMode] = [
-        "bitcoin-mainnet":      .p2p_only,
-        "bitcoincash-mainnet":  .p2p_only,
-        "ethereum-mainnet":     .api_only,
-//        "ripple-mainnet":       .api_only,
-        "bitcoin-testnet":      .p2p_only,
-        "bitcoincash-testnet":  .p2p_only,
-        "ethereum-ropsten":     .api_only,
-//        "ripple-testnet":       .api_only
-    ]
-
-
-    /// Return the WalletManagerModes supported by `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: an aray of WalletManagerMode
-    ///
-    public func supportedModes (network: Network) -> [WalletManagerMode] {
-        return System.supportedModesMap[network.uids] ?? [.api_only]
-    }
-
-    ///
-    /// Check if `network` supports `mode`
-    ///
-    /// - Parameters:
-    ///   - network: the network
-    ///   - mode: the mode
-    ///
-    /// - Returns: If supported `true`; otherwise `false`
-    ///
-    public func supportsMode (network: Network, _ mode: WalletManagerMode) -> Bool {
-        return supportedModes (network: network).contains (mode)
-    }
-
-    ///
-    /// Return the default WalletManagerMode for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: the default mode
-    ///
-    public func defaultMode (network: Network) -> WalletManagerMode {
-        return System.defaultModesMap[network.uids] ?? .api_only
-    }
-
     ///
     /// Add `network` to `networks`
     ///
@@ -356,8 +114,8 @@ public final class System {
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme,
                                      currencies: Set<Currency>) -> Bool {
-        precondition (supportsMode(network: network, mode))
-        precondition (supportsAddressScheme(network: network, addressScheme))
+        precondition (network.supportsMode(mode))
+        precondition (network.supportsAddressScheme(addressScheme))
 
         guard let manager = WalletManager (system: self,
                                            callbackCoordinator: callbackCoordinator,
@@ -649,6 +407,20 @@ public final class System {
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
         }
 
+        func initializeBuiltinNetworks (_ onMainnet: Bool) -> [Network] {
+            // Get the builtin networks
+            var builtinCoresCount: Int = 0
+            let builtinCores = cryptoNetworkInstallBuiltins (&builtinCoresCount)!
+            defer { cryptoMemoryFree (builtinCores) }
+
+            return builtinCores
+                .withMemoryRebound (to: BRCryptoNetwork.self, capacity: builtinCoresCount) {
+                    Array (UnsafeBufferPointer (start: $0, count: builtinCoresCount))
+            }
+            .filter { (onMainnet ? CRYPTO_TRUE : CRYPTO_FALSE) == cryptoNetworkIsMainnet ($0) }
+            .map { Network (core: $0, take: false) }
+        }
+
         // Query for blockchains on the system.queue - thus system.configure() returns instantly
         // and only System (and other types of) Events allow access to networds, wallets, etc.
         self.queue.async {
@@ -662,6 +434,9 @@ public final class System {
 
             var discoveredNetworks:[Network] = []
 
+            let builtinNetworks = initializeBuiltinNetworks (self.onMainnet)
+
+            #if false
             // query blockchains
             self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
                 // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
@@ -810,12 +585,41 @@ public final class System {
 
             // Wait on the group - indicates that all models+currencies have entered and left.
             blockchainsGroup.wait()
+            #else
+            self.listenerQueue.async {
+                builtinNetworks.forEach { (network:Network) in
+                     // Save the network
+                     self.networks.append (network)
+
+                     // Announce NetworkEvent.created...
+                     self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+
+                     // Announce SystemEvent.networkAdded - this will likely be handled with
+                     // system.createWalletManager(network:...) which will then announce
+                     // numerous events as wallets are created.
+                     self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+
+                     // Keep a running total of discovered networks
+                     discoveredNetworks.append(network)
+                 }
+            }
+            #endif
 
             // Mark the completion.
             self.listenerQueue.async {
                 self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
             }
         }
+    }
+
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
     }
 
     ///
@@ -2007,9 +1811,9 @@ extension System {
         guard migrateRequired (network: network)
             else { throw MigrateError.invalid }
 
-        switch network.currency.code.lowercased() {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
             try migrateStorageAsBTC(network: network,
                                     transactionBlobs: transactionBlobs,
                                     blockBlobs: blockBlobs,
@@ -2117,9 +1921,13 @@ extension System {
     /// - Returns: The currency code or nil
     ///
     public func migrateRequired (network: Network) -> Bool {
-        let code = network.currency.code.lowercased()
-        return code == Currency.codeAsBTC
-            || code == Currency.codeAsBCH
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
+            return true
+        default:
+            return false
+        }
     }
 
     /// Testing
@@ -2137,9 +1945,9 @@ extension System {
         guard migrateRequired(network: network)
             else { return nil }
 
-        switch network.currency.code.lowercased() {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
             var blockHeight: UInt32 = 0
             var timestamp:   UInt32 = 0
             var bytesCount:  size_t = 0

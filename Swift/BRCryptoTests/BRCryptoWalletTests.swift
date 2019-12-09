@@ -187,7 +187,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
                 }
             }]
 
-        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .bc == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }

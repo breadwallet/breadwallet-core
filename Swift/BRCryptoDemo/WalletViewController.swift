@@ -115,7 +115,7 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
 
     func addAlertAction (alert: UIAlertController, _ canDisable: Bool, _ action: UIAlertAction) {
         if canDisable {
-            action.isEnabled = (Currency.codeAsBTC == wallet.manager.network.currency.code)
+            action.isEnabled = ("btc" == wallet.manager.network.currency.code)
         }
         alert.addAction(action);
     }

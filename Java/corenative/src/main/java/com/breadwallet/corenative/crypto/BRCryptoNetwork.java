@@ -94,6 +94,14 @@ public class BRCryptoNetwork extends PointerType {
         super(address);
     }
 
+    public BRCryptoNetworkCanonicalType getCanonicalType () {
+        Pointer thisPtr = this.getPointer();
+
+        return CryptoLibraryDirect.cryptoNetworkGetCanonicalType(
+                thisPtr
+        );
+    }
+
     public BRCryptoCurrency getCurrency() {
         Pointer thisPtr = this.getPointer();
 

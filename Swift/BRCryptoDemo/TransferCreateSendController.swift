@@ -31,11 +31,13 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     }
 
     var isEthCurrency: Bool {
-        return wallet.currency.code.lowercased() == Currency.codeAsETH
+        return NetworkType.eth == wallet.manager.network.type
     }
     var isBitCurrency: Bool {
-        return wallet.currency.code.lowercased() == Currency.codeAsBTC ||
-            wallet.currency.code.lowercased() == Currency.codeAsBCH
+        switch wallet.manager.network.type {
+        case .btc, .bch: return true
+        default: return false
+        }
     }
 
     var isTokCurrency: Bool {

@@ -4,6 +4,9 @@
 //
 //  Created by Ed Gamble on 11/27/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BRCryptoSync_h
 #define BRCryptoSync_h
@@ -52,6 +55,12 @@ extern "C" {
 
     /// MARK: Sync Mode
 
+    ///
+    /// The modes supported for syncing of a wallet's transactions.  These are the supported modes
+    /// but they are not necessarily available for any individual WalletKit execution.
+    /// Specifically, the API_ONLY mode may be supported but if the backend services are not
+    /// accessible, such as if a device is in 'airplane mode', then API_ONLY will not be available.
+    ///
     typedef enum {
         /**
          * Use the BRD backend for all Core blockchain state.  The BRD backend includes a 'submit
@@ -77,6 +86,8 @@ extern "C" {
          */
         CRYPTO_SYNC_MODE_P2P_ONLY
     } BRCryptoSyncMode;
+
+#define NUMBER_OF_SYNC_MODES    (1 + CRYPTO_SYNC_MODE_P2P_ONLY)
 
     extern const char *
     cryptoSyncModeString (BRCryptoSyncMode m);

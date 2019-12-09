@@ -47,7 +47,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     public var mode: WalletManagerMode {
         get { return WalletManagerMode (core: cryptoWalletManagerGetMode (core)) }
         set {
-            assert (system.supportsMode(network: network, newValue))
+            assert (network.supportsMode(newValue))
             cryptoWalletManagerSetMode (core, newValue.core)
         }
     }
@@ -159,7 +159,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     public var addressScheme: AddressScheme {
         get { return AddressScheme (core: cryptoWalletManagerGetAddressScheme (core)) }
         set {
-            assert (system.supportsAddressScheme(network: network, newValue))
+            assert (network.supportsAddressScheme(newValue))
             cryptoWalletManagerSetAddressScheme (core, newValue.core)
         }
     }
@@ -388,8 +388,8 @@ public final class WalletSweeper {
             return
         }
 
-        switch wallet.currency.code {
-        case Currency.codeAsBTC:
+        switch cryptoNetworkGetCanonicalType (wallet.manager.network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC:
             // handle as BTC, creating the underlying BRCryptoWalletSweeper and initializing it
             // using the BlockchainDB
             createAsBtc(wallet: wallet,

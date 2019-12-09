@@ -321,7 +321,7 @@ class MigrateSystemListener: SystemListener {
         case .networkAdded(let network):
             // Network of interest
             if system.onMainnet == network.isMainnet
-                && network.currency.code == Currency.codeAsBTC
+                && network.currency.code == "btc"
                 && nil == migratedNetwork {
 
                 migratedNetwork = network
