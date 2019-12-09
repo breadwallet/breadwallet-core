@@ -29,9 +29,10 @@ checksumFletcher16 (const uint8_t *data, size_t count);
 static void
 randomBytes (void *bytes, size_t bytesCount);
 
-// Version 1: BTC (w/ BCH), ETH
-// Version 2: BTC (w/ BCH), ETH, XRP
-#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
+// Version 1: BTC (w/ BCH), ETH, XRP
+// Version 2: XRP is enabled?
+// Version 3: adding Hedera
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  3
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
@@ -197,16 +198,13 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
 
     BRGenericAccount xrp = genAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
     assert (NULL != xrp);
-    BYTES_PTR_INCR_AND_CHECK (xrpSize); // Move the pointer to then end of the XRP account
-
-    // TODO (CORE-694) Use the version number to determine if we can load in the Hedera account
 
     // Hedera
-    // size_t hederaSize = UInt32GetBE(bytesPtr);
-    // BYTES_PTR_INCR_AND_CHECK (szSize);
-    // BYTES_PTR_INCR_AND_CHECK (hederaSize); // Move the pointer to the end of the Hedera account
-    BRGenericAccount hedera = NULL; //genAccountCreateWithSerialization (genericHederaHandlers->type, bytesPtr, hederaSize);
-    // assert (NULL != hedera);
+    BYTES_PTR_INCR_AND_CHECK (xrpSize); // Move the pointer to past the previous account (XRP)
+    size_t hederaSize = UInt32GetBE(bytesPtr);
+    BYTES_PTR_INCR_AND_CHECK (szSize);
+    BRGenericAccount hedera = genAccountCreateWithSerialization (genericHederaHandlers->type, bytesPtr, hederaSize);
+    assert (NULL != hedera);
 
     return cryptoAccountCreateInternal (mpk, eth, xrp, hedera, timestamp, uids);
 #undef BYTES_PTR_INCR_AND_CHECK

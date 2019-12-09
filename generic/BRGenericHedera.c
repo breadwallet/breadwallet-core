@@ -236,16 +236,12 @@ genericHederaWalletManagerRecoverTransfer (const char *hash,
     if (NULL != fee) sscanf(fee,    "%llu", &feeHbar);
     BRHederaAddress toAddress   = hederaAddressCreateFromString(to);
     BRHederaAddress fromAddress = hederaAddressCreateFromString(from);
-    // Convert the hash string to bytes
-    BRHederaTransactionHash txId;
-    decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
-
+    // Convert the hash string to bytes. If it is coming from Blockset it will
+    // be a string lenght of 96 bytes. If being loaded in from local storage it
+    // will only be 64 bytes.
     BRHederaTransactionHash txHash;
-    memset(txHash.bytes, 0x00, sizeof(txHash.bytes));
-    if (hash != NULL) {
-        assert(96 == strlen(hash));
-        decodeHex(txHash.bytes, sizeof(txHash.bytes), hash, strlen(hash));
-    }
+    size_t stringLength = strlen(hash);
+    decodeHex(txHash.bytes, stringLength / 2, hash, stringLength);
 
     BRHederaTransaction transfer = hederaTransactionCreate(fromAddress, toAddress, amountHbar,
                                                            feeHbar, NULL, txHash, timestamp, blockHeight);
