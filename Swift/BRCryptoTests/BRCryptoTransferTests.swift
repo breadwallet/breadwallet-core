@@ -67,6 +67,14 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
 
     func knownTransferResultsByModeStrangely (mode: WalletManagerMode) -> [TransferResult] {
         return [
+            //
+            // This transfer result has a different `timestamp` depending on `mode`.  When the
+            // `mode` is .p2p_only, the P2P code sets the timestamp as the average of the previous
+            // block's timestamp and the current block's timestamp.  In .api_only, the transaction
+            // timestamp is set as the block's timestamp.  Note: in .p2p_only the transaction's
+            // timestamp will be again different if it identified in the process of being included
+            // in the blockchain.
+            //
             TransferResult (target: true,
                             address: "mzjmRwzABk67iPSrLys1ACDdGkuLcS6WQ4",
                             confirmation: TransferConfirmation (blockNumber: 1574853,
