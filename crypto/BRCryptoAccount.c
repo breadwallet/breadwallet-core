@@ -30,8 +30,9 @@ static void
 randomBytes (void *bytes, size_t bytesCount);
 
 // Version 1: BTC (w/ BCH), ETH, XRP
-// Version 2: adding Hedera
-#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
+// Version 2: XRP is enabled?
+// Version 3: adding Hedera
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  3
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
