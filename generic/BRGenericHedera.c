@@ -172,6 +172,13 @@ genericHederaWalletGetBalance (BRGenericWalletRef wallet) {
     return createUInt256 (hederaWalletGetBalance ((BRHederaWallet) wallet));
 }
 
+static BRGenericAddressRef
+genericHederaGetAddress (BRGenericWalletRef wallet, int asSource) {
+    return (BRGenericAddressRef) (asSource
+                                  ? hederaWalletGetSourceAddress ((BRHederaWallet) wallet)
+                                  : hederaWalletGetTargetAddress ((BRHederaWallet) wallet));
+}
+
 static int
 genericHederaWalletHasAddress (BRGenericWalletRef wallet,
                                BRGenericAddressRef address) {
@@ -237,11 +244,19 @@ genericHederaWalletManagerRecoverTransfer (const char *hash,
     BRHederaAddress toAddress   = hederaAddressCreateFromString(to);
     BRHederaAddress fromAddress = hederaAddressCreateFromString(from);
     // Convert the hash string to bytes. If it is coming from Blockset it will
-    // be a string lenght of 96 bytes. If being loaded in from local storage it
+    // be a string length of 96 bytes. If being loaded in from local storage it
     // will only be 64 bytes.
     BRHederaTransactionHash txHash;
     size_t stringLength = strlen(hash);
-    decodeHex(txHash.bytes, stringLength / 2, hash, stringLength);
+    uint8_t hashBytes[stringLength/2];
+    decodeHex(hashBytes, sizeof(hashBytes), hash, stringLength);
+
+    if (stringLength > 64) {
+        // Rehash the longer Hedera hash to 32 bytes
+        BRSHA256(txHash.bytes, hashBytes, sizeof(hashBytes));
+    } else {
+        memcmp(txHash.bytes, hashBytes, sizeof(txHash.bytes));
+    }
 
     BRHederaTransaction transfer = hederaTransactionCreate(fromAddress, toAddress, amountHbar,
                                                            feeHbar, NULL, txHash, timestamp, blockHeight);
@@ -303,6 +318,7 @@ struct BRGenericHandersRecord genericHederaHandlersRecord = {
         genericHederaWalletCreate,
         genericHederaWalletFree,
         genericHederaWalletGetBalance,
+        genericHederaGetAddress,
         genericHederaWalletHasAddress,
         genericHederaWalletHasTransfer,
         genericHederaWalletAddTransfer,
