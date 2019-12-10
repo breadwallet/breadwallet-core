@@ -69,9 +69,6 @@ extern "C" {
 
     typedef void *BRCryptoNetworkListener;
 
-    extern BRCryptoBlockChainType
-    cryptoNetworkGetType (BRCryptoNetwork network);
-
     extern const char *
     cryptoNetworkGetUids (BRCryptoNetwork network);
 

@@ -10,6 +10,7 @@
 #define BRCryptoFeeBasisP_h
 
 #include "BRCryptoFeeBasis.h"
+#include "BRCryptoBaseP.h"
 
 #include "ethereum/BREthereum.h"
 #include "generic/BRGeneric.h"
@@ -34,6 +35,9 @@ struct BRCryptoFeeBasisRecord {
     BRCryptoUnit unit;
     BRCryptoRef ref;
 };
+
+private_extern BRCryptoBlockChainType
+cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis);
 
  private_extern uint64_t
  cryptoFeeBasisAsBTC (BRCryptoFeeBasis feeBasis);

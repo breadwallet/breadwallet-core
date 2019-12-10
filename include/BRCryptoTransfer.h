@@ -124,10 +124,6 @@ extern "C" {
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
 
-
-    extern BRCryptoBlockChainType
-    cryptoTransferGetType (BRCryptoTransfer transfer);
-
     /**
      * Returns the transfer's source address
      *

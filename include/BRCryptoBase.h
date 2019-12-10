@@ -44,14 +44,6 @@ extern "C" {
 
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
-
-    // Private-ish
-    typedef enum {
-        BLOCK_CHAIN_TYPE_BTC,
-        BLOCK_CHAIN_TYPE_ETH,
-        BLOCK_CHAIN_TYPE_GEN
-    } BRCryptoBlockChainType;
-
     // Only for use in Swift/Java
     typedef size_t BRCryptoCount;
 

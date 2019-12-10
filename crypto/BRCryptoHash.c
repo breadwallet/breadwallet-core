@@ -10,6 +10,8 @@
 //
 
 #include "BRCryptoHash.h"
+#include "BRCryptoBaseP.h"
+
 #include "support/BRInt.h"
 #include "ethereum/base/BREthereumHash.h"
 #include "ethereum/util/BRUtilHex.h"

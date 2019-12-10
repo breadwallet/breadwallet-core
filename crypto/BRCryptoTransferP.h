@@ -14,6 +14,7 @@
 #include <pthread.h>
 
 #include "BRCryptoTransfer.h"
+#include "BRCryptoBaseP.h"
 
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRTransaction.h"
@@ -76,7 +77,8 @@ struct BRCryptoTransferRecord {
     BRCryptoRef ref;
 };
 
-/// MARK: Transfer
+private_extern BRCryptoBlockChainType
+cryptoTransferGetType (BRCryptoTransfer transfer);
 
 private_extern void
 cryptoTransferSetState (BRCryptoTransfer transfer,
