@@ -198,17 +198,6 @@ extern "C" {
     extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
 
-    /**
-     * Estimate the wallet's maximum or minimun transfer amount.
-     */
-    extern BRCryptoAmount
-    cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
-                               BRCryptoBoolean asMaximum,
-                               BRCryptoAddress target,
-                               BRCryptoNetworkFee fee,
-                               BRCryptoBoolean *needEstimate,
-                               BRCryptoBoolean *isZeroIfInsuffientFunds);
-
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoAmount pricePerCostFactor,

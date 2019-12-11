@@ -151,41 +151,7 @@ public class BRCryptoWallet extends PointerType {
         ).transform(BRCryptoTransfer::new);
     }
 
-    public static class EstimateLimitResult {
-
-        public @Nullable BRCryptoAmount amount;
-        public boolean needFeeEstimate;
-        public boolean isZeroIfInsuffientFunds;
-
-        EstimateLimitResult(@Nullable BRCryptoAmount amount, boolean needFeeEstimate, boolean isZeroIfInsuffientFunds) {
-            this.amount = amount;
-            this.needFeeEstimate = needFeeEstimate;
-            this.isZeroIfInsuffientFunds = isZeroIfInsuffientFunds;
-        }
-    }
-
-    public EstimateLimitResult estimateLimit(boolean asMaximum, BRCryptoAddress coreAddress, BRCryptoNetworkFee coreFee) {
-        Pointer thisPtr = this.getPointer();
-
-        IntByReference needFeeEstimateRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        IntByReference isZeroIfInsuffientFundsRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        Optional<BRCryptoAmount> maybeAmount = Optional.fromNullable(CryptoLibraryDirect.cryptoWalletEstimateLimit(
-                thisPtr,
-                asMaximum ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
-                coreAddress.getPointer(),
-                coreFee.getPointer(),
-                needFeeEstimateRef,
-                isZeroIfInsuffientFundsRef
-        )).transform(BRCryptoAmount::new);
-
-        return new EstimateLimitResult(
-                maybeAmount.orNull(),
-                needFeeEstimateRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE,
-                isZeroIfInsuffientFundsRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE
-        );
-    }
-
-    public BRCryptoWallet take() {
+     public BRCryptoWallet take() {
         Pointer thisPtr = this.getPointer();
 
         return new BRCryptoWallet(CryptoLibraryDirect.cryptoWalletTake(thisPtr));
