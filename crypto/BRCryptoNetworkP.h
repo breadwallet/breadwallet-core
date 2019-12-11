@@ -13,7 +13,7 @@
 
 #include <pthread.h>
 
-#include "BRCryptoBase.h"
+#include "BRCryptoBaseP.h"
 #include "BRCryptoNetwork.h"
 
 #include "bitcoin/BRChainParams.h"
@@ -90,6 +90,8 @@ struct BRCryptoNetworkRecord {
     BRCryptoRef ref;
 };
 
+private_extern BRCryptoBlockChainType
+cryptoNetworkGetType (BRCryptoNetwork network);
 
  private_extern void
  cryptoNetworkAnnounce (BRCryptoNetwork network);

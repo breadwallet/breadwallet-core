@@ -21,9 +21,6 @@ extern "C" {
 
     typedef struct BRCryptoFeeBasisRecord *BRCryptoFeeBasis;
 
-    extern BRCryptoBlockChainType
-    cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis);
-
     extern BRCryptoAmount
     cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
 

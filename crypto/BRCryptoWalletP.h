@@ -13,8 +13,8 @@
 
 #include <pthread.h>
 
-#include "BRCryptoBase.h"
 #include "BRCryptoWallet.h"
+#include "BRCryptoBaseP.h"
 
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
