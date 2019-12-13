@@ -9,14 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <pthread.h>
-
-#include "BRCryptoAccount.h"
-#include "BRCryptoPrivate.h"
-
-#include "support/BRBIP32Sequence.h"
-#include "support/BRBIP39Mnemonic.h"
-#include "support/BRKey.h"
-#include "ethereum/BREthereum.h"
+#include "BRCryptoAccountP.h"
 #include "generic/BRGenericRipple.h"
 
 static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
@@ -37,20 +30,6 @@ randomBytes (void *bytes, size_t bytesCount);
 // Version 1: BTC (w/ BCH), ETH
 // Version 2: BTC (w/ BCH), ETH, XRP
 #define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
-
-static void
-cryptoAccountRelease (BRCryptoAccount account);
-
-struct BRCryptoAccountRecord {
-    BRMasterPubKey btc;
-    BREthereumAccount eth;
-    BRGenericAccount xrp;
-    // ...
-
-    char *uids;
-    uint64_t timestamp;
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
@@ -74,7 +53,9 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
     size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
     char  *phrase    = calloc (phraseLen, 1);
 
-    assert (phraseLen == BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy)));
+    // xor to avoid needing an additional variable to perform assert
+    phraseLen ^= BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy));
+    assert (0 == phraseLen);
 
     return phrase;
 }

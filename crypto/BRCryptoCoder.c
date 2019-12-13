@@ -16,13 +16,12 @@
 #include "ethereum/util/BRUtilHex.h"
 #include "support/BRBase58.h"
 
-static void
-cryptoCoderRelease (BRCryptoCoder coder);
-
 struct BRCryptoCoderRecord {
     BRCryptoCoderType type;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCoder, cryptoCoder);
 
 extern BRCryptoCoder
 cryptoCoderCreate(BRCryptoCoderType type) {
@@ -198,5 +197,3 @@ cryptoCoderDecode (BRCryptoCoder coder,
 
     return result;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCoder, cryptoCoder);

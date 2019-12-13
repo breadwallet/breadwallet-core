@@ -23,6 +23,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         DispatchQueue.main.async {
             self.wallets = []
             self.detailViewController.map{ $0.reset() }
+            self.navigationItem.title = "Wallets (\(UIApplication.paperKey.components(separatedBy: " ").first!))"
             self.tableView.reloadData()
         }
     }
@@ -30,6 +31,7 @@ class SummaryViewController: UITableViewController, WalletListener {
     func update () {
         DispatchQueue.main.async {
             self.wallets = UIApplication.sharedSystem.wallets
+            self.navigationItem.title = "Wallets (\(UIApplication.paperKey.components(separatedBy: " ").first!))"
             self.tableView.reloadData()
         }
     }
@@ -45,6 +47,8 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     override func viewWillAppear (_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationItem.title = "Wallets (\(UIApplication.paperKey.components(separatedBy: " ").first!))"
+
 
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (walletListener: self)

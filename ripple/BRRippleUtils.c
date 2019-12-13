@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 
-uint8_t char2int(char input)
+static uint8_t char2int(char input)
 {
     if(input >= '0' && input <= '9')
         return input - '0';
@@ -29,7 +29,7 @@ uint8_t char2int(char input)
     return 0;
 }
     
-void hex2bin(const char* src, uint8_t * target)
+static void hex2bin(const char* src, uint8_t * target)
 {
     while(*src && src[1])
     {

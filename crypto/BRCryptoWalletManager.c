@@ -9,22 +9,26 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <assert.h>
-#include <pthread.h>
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
 #include "BRCryptoKey.h"
+
 #include "BRCryptoPrivate.h"
+#include "BRCryptoAccountP.h"
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoFeeBasisP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoWalletP.h"
+
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
-#include "BRCryptoWalletManagerPrivate.h"
+#include "BRCryptoWalletManagerP.h"
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 #include "support/BRFileService.h"
-
-static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
 static void
 cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
@@ -49,13 +53,13 @@ cryptoWalletManagerStateInit(BRCryptoWalletManagerStateType type) {
             assert (0); // if you are hitting this, use cryptoWalletManagerStateDisconnectedInit!
             return (BRCryptoWalletManagerState) {
                 CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
-                { .disconnected = { BRDisconnectReasonUnknown() } }
+                { .disconnected = { cryptoWalletManagerDisconnectReasonUnknown() } }
             };
     }
 }
 
 private_extern BRCryptoWalletManagerState
-cryptoWalletManagerStateDisconnectedInit(BRDisconnectReason reason) {
+cryptoWalletManagerStateDisconnectedInit(BRCryptoWalletManagerDisconnectReason reason) {
     return (BRCryptoWalletManagerState) {
         CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
         { .disconnected = { reason } }
@@ -143,7 +147,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoCWMClient client,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
-                           BRSyncMode mode,
+                           BRCryptoSyncMode mode,
                            BRCryptoAddressScheme scheme,
                            const char *path) {
 
@@ -249,7 +253,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 break; }
 
             // ... and create the primary wallet
-            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, genManagerGetPrimaryWallet (cwm->u.gen));
+            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, genManagerGetPrimaryWallet (cwm->u.gen));
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
@@ -356,7 +360,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     free (cwm);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerStop (BRCryptoWalletManager cwm) {
     // Stop the specific cwm type, if it exists.
     switch (cwm->type) {
@@ -386,7 +390,7 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
 }
 
 extern void
-cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
+cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRCryptoSyncMode mode) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             BRWalletManagerSetMode (cwm->u.btc, mode);
@@ -395,7 +399,7 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
             ewmUpdateMode (cwm->u.eth, mode);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (SYNC_MODE_BRD_ONLY == mode);
+            assert (CRYPTO_SYNC_MODE_API_ONLY == mode);
             break;
         default:
             assert (0);
@@ -403,7 +407,7 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
     }
 }
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
@@ -411,10 +415,10 @@ cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
         case BLOCK_CHAIN_TYPE_ETH:
             return ewmGetMode (cwm->u.eth);
         case BLOCK_CHAIN_TYPE_GEN:
-            return SYNC_MODE_BRD_ONLY;
+            return CRYPTO_SYNC_MODE_API_ONLY;
         default:
             assert (0);
-            return SYNC_MODE_BRD_ONLY;
+            return CRYPTO_SYNC_MODE_API_ONLY;
 
     }
 }
@@ -555,7 +559,7 @@ cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
     return r;
 }
 
-private_extern void
+extern void
 cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
     pthread_mutex_lock (&cwm->lock);
@@ -565,7 +569,7 @@ cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
     pthread_mutex_unlock (&cwm->lock);
 }
 
-private_extern void
+extern void
 cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
 
@@ -700,7 +704,7 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
 
 extern void
 cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
-                                BRSyncDepth depth) {
+                                BRCryptoSyncDepth depth) {
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             BRWalletManagerScanToDepth (cwm->u.btc, depth);
@@ -731,7 +735,7 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
                                                     generic.u.included.timestamp,
                                                     cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis));
         case GENERIC_TRANSFER_STATE_ERRORED:
-            return cryptoTransferStateErroredInit (BRTransferSubmitErrorUnknown());
+            return cryptoTransferStateErroredInit (cryptoTransferSubmitErrorUnknown());
         case GENERIC_TRANSFER_STATE_DELETED:
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SIGNED);
     }
@@ -946,6 +950,114 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
         }
     }
 }
+
+extern BRCryptoAmount
+cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet  wallet,
+                                  BRCryptoBoolean asMaximum,
+                                  BRCryptoAddress target,
+                                  BRCryptoNetworkFee fee,
+                                  BRCryptoBoolean *needEstimate,
+                                  BRCryptoBoolean *isZeroIfInsuffientFunds) {
+    assert (NULL != needEstimate && NULL != isZeroIfInsuffientFunds);
+
+    UInt256 amount = UINT256_ZERO;
+    BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
+
+    // By default, we don't need an estimate
+    *needEstimate = CRYPTO_FALSE;
+
+    // By default, zero does not indicate insufficient funds
+    *isZeroIfInsuffientFunds = CRYPTO_FALSE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = wallet->u.btc.wid;
+
+            // Amount may be zero if insufficient fees
+            *isZeroIfInsuffientFunds = CRYPTO_TRUE;
+
+            uint64_t balance     = BRWalletBalance (wid);
+            uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
+                                    ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
+                                    : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
+            uint64_t fee         = (amountInSAT > 0
+                                    ? BRWalletFeeForTxAmountWithFeePerKb (wid, feePerKB, amountInSAT)
+                                    : 0);
+
+//            if (CRYPTO_TRUE == asMaximum)
+//                assert (balance == amountInSAT + fee);
+
+            if (amountInSAT + fee > balance)
+                amountInSAT = 0;
+
+            amount = createUInt256(amountInSAT);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid = wallet->u.eth.wid;
+
+            // We always need an estimate as we do not know the fees.
+            *needEstimate = CRYPTO_TRUE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
+
+                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
+                          ? amountGetEther(ethAmount).valueInWEI
+                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            // TODO: Probably, unfortunately, the need for an estimate is likely currency dependent.
+            *needEstimate = CRYPTO_FALSE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                int negative = 0, overflow = 0;
+
+                // Get the balance
+                UInt256 balance = genWalletGetBalance (wallet->u.gen);
+
+                // Get the pricePerCostFactor for the (network) fee.
+                BRCryptoAmount pricePerCostFactor = cryptoNetworkFeeGetPricePerCostFactor (fee);
+                
+                // Get a feeBasis using some sketchy defaults
+                BRGenericAddress address   = genWalletGetAddress (wallet->u.gen);
+                BRGenericFeeBasis feeBasis = genWalletEstimateTransferFee (wallet->u.gen,
+                                                                           address,
+                                                                           balance,
+                                                                           cryptoAmountGetValue(pricePerCostFactor));
+
+                // Finally, compute the fee.
+                UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
+                assert (!overflow);
+
+                amount = subUInt256_Negative (balance, fee, &negative);
+                if (negative) amount = UINT256_ZERO;
+
+                genAddressRelease(address);
+                cryptoAmountGive(pricePerCostFactor);
+
+            }
+            break;
+        }
+    }
+
+    return cryptoAmountCreateInternal (unit,
+                                       CRYPTO_FALSE,
+                                       amount,
+                                       0);
+}
+
 
 extern void
 cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
@@ -1486,4 +1598,113 @@ cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
         return (BRCryptoWalletMigratorStatus) {
             CRYPTO_WALLET_MIGRATOR_SUCCESS
         };
+}
+
+/// MARK: Disconnect Reason
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonRequested(void) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_REQUESTED
+    };
+}
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonUnknown(void) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_UNKNOWN
+    };
+}
+
+extern BRCryptoWalletManagerDisconnectReason
+cryptoWalletManagerDisconnectReasonPosix(int errnum) {
+    return (BRCryptoWalletManagerDisconnectReason) {
+        CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+cryptoWalletManagerDisconnectReasonGetMessage(BRCryptoWalletManagerDisconnectReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Stopped Reason
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonComplete(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_COMPLETE
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonRequested(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_REQUESTED
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonUnknown(void) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_UNKNOWN
+    };
+}
+
+extern BRCryptoSyncStoppedReason
+cryptoSyncStoppedReasonPosix(int errnum) {
+    return (BRCryptoSyncStoppedReason) {
+        CRYPTO_SYNC_STOPPED_REASON_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+cryptoSyncStoppedReasonGetMessage(BRCryptoSyncStoppedReason *reason) {
+    char *message = NULL;
+
+    switch (reason->type) {
+        case CRYPTO_SYNC_STOPPED_REASON_POSIX: {
+            if (NULL != (message = strerror (reason->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
+}
+
+/// MARK: Sync Mode
+
+extern const char *
+cryptoSyncModeString (BRCryptoSyncMode m) {
+    switch (m) {
+        case CRYPTO_SYNC_MODE_API_ONLY:
+        return "CRYPTO_SYNC_MODE_API_ONLY";
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND:
+        return "CRYPTO_SYNC_MODE_API_WITH_P2P_SEND";
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:
+        return "CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC";
+        case CRYPTO_SYNC_MODE_P2P_ONLY:
+        return "CRYPTO_SYNC_MODE_P2P_ONLY";
+    }
 }

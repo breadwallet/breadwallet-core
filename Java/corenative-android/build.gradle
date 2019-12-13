@@ -1,0 +1,80 @@
+apply plugin: 'com.android.library'
+apply plugin: 'digital.wup.android-maven-publish'
+
+android {
+    compileSdkVersion androidConfig.compileSdkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        versionCode 1
+        versionName version
+
+        minSdkVersion androidConfig.minSdkVersion
+        targetSdkVersion androidConfig.targetSdkVersion
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild.cmake.arguments "-DANDROID_STL=none", "-DANDROID_TOOLCHAIN=clang"
+        ndk.abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled false
+        }
+    }
+
+    lintOptions {
+        quiet false
+        explainIssues true
+        abortOnError true
+        ignoreWarnings false
+        checkReleaseBuilds false
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDirs = [project(':corenative').javaMainSrcDir]
+            }
+
+        }
+        androidTest {
+            java {
+                srcDirs = [project(':corenative').javaTestSrcDir]
+            }
+        }
+    }
+
+    externalNativeBuild.cmake.path project(':corenative').cmakeCMakeListsFile
+}
+
+dependencies {
+    api deps.jnaAndroid
+
+    implementation deps.guavaAndroid
+
+    testImplementation deps.junit
+
+    androidTestImplementation deps.androidTestRunner
+    androidTestImplementation deps.androidTestEspresso
+}
+
+publishing {
+    publications {
+        mavenAar(MavenPublication) {
+            from components.android
+        }
+    }
+}

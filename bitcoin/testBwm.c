@@ -17,12 +17,12 @@
 #include "bcash/BRBCashParams.h"
 #include "bitcoin/BRChainParams.h"
 
-#include "BRArray.h"
-#include "BRBIP39Mnemonic.h"
-#include "BRPeerManager.h"
-#include "BRTransaction.h"
-#include "BRWallet.h"
-#include "BRWalletManager.h"
+#include "support/BRArray.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "bitcoin/BRPeerManager.h"
+#include "bitcoin/BRTransaction.h"
+#include "bitcoin/BRWallet.h"
+#include "bitcoin/BRWalletManager.h"
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -101,7 +101,7 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
         _testWalletManagerEventCallback
     };
 
-    BRSyncMode mode = SYNC_MODE_P2P_ONLY;
+    BRCryptoSyncMode mode = CRYPTO_SYNC_MODE_P2P_ONLY;
 
     BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0, 6);
 
@@ -393,11 +393,11 @@ _testBRWalletManagerSwapThread (void *context) {
     BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
     while (!state->kill) {
         switch (BRWalletManagerGetMode (state->manager)) {
-            case SYNC_MODE_BRD_ONLY:
-                BRWalletManagerSetMode (state->manager, SYNC_MODE_P2P_ONLY);
+            case CRYPTO_SYNC_MODE_API_ONLY:
+                BRWalletManagerSetMode (state->manager, CRYPTO_SYNC_MODE_P2P_ONLY);
                 break;
-            case SYNC_MODE_P2P_ONLY:
-                BRWalletManagerSetMode (state->manager, SYNC_MODE_BRD_ONLY);
+            case CRYPTO_SYNC_MODE_P2P_ONLY:
+                BRWalletManagerSetMode (state->manager, CRYPTO_SYNC_MODE_API_ONLY);
                 break;
             default:
                 break;
@@ -545,7 +545,7 @@ BRRunTestWalletManagerSyncTestTeardown (BRRunTestWalletManagerSyncState *state) 
 }
 
 static BRWalletManager
-BRRunTestWalletManagerSyncBwmSetup (BRSyncMode mode,
+BRRunTestWalletManagerSyncBwmSetup (BRCryptoSyncMode mode,
                                     BRWalletManagerClientContext context,
                                     const char *paperKey,
                                     const char *storagePath,
@@ -574,7 +574,7 @@ BRRunTestWalletManagerSyncBwmSetup (BRSyncMode mode,
 
 static int
 BRRunTestWalletManagerSyncForMode (const char *testName,
-                                   BRSyncMode mode,
+                                   BRCryptoSyncMode mode,
                                    const char *paperKey,
                                    const char *storagePath,
                                    uint32_t earliestKeyTime,
@@ -585,7 +585,7 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
     printf("%s testing BRWalletManager events for %s mode, %u epoch, %" PRIu64 " height on \"%s:%s\" with %s as storage...\n",
            testName,
-           BRSyncModeString (mode),
+           cryptoSyncModeString (mode),
            earliestKeyTime,
            blockHeight,
            isBTC ? "btc": "bch",
@@ -943,9 +943,9 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
     }
 
     printf("Testing BRWalletManager threading...\n");
-    if (mode == SYNC_MODE_P2P_ONLY) {
+    if (mode == CRYPTO_SYNC_MODE_P2P_ONLY) {
         // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
-        fprintf(stderr, "***WARNING*** %s:%d: BRWalletManager threading test is disabled for SYNC_MODE_P2P_ONLY\n", testName, __LINE__);
+        fprintf(stderr, "***WARNING*** %s:%d: BRWalletManager threading test is disabled for CRYPTO_SYNC_MODE_P2P_ONLY\n", testName, __LINE__);
 
     } else {
         // Test setup
@@ -1010,8 +1010,8 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
 
 static int
 BRRunTestWalletManagerSyncAllModes (const char *testName,
-                                    BRSyncMode primaryMode,
-                                    BRSyncMode secondaryMode,
+                                    BRCryptoSyncMode primaryMode,
+                                    BRCryptoSyncMode secondaryMode,
                                     const char *paperKey,
                                     const char *storagePath,
                                     uint32_t earliestKeyTime,
@@ -1022,8 +1022,8 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
     printf("%s testing BRWalletManager events for %s -> %s modes, %u epoch, %" PRIu64 " height on \"%s:%s\" with %s as storage...\n",
            testName,
-           BRSyncModeString (primaryMode),
-           BRSyncModeString (secondaryMode),
+           cryptoSyncModeString (primaryMode),
+           cryptoSyncModeString (secondaryMode),
            earliestKeyTime,
            blockHeight,
            isBTC ? "btc": "bch",
@@ -1139,7 +1139,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
     }
 
     printf("Testing BRWalletManager mode swap threading...\n");
-    if (primaryMode == SYNC_MODE_P2P_ONLY || secondaryMode == SYNC_MODE_P2P_ONLY) {
+    if (primaryMode == CRYPTO_SYNC_MODE_P2P_ONLY || secondaryMode == CRYPTO_SYNC_MODE_P2P_ONLY) {
         // TODO(fix): There is a thread-related issue in BRPeerManager/BRPeer where we have a use after free; re-enable once that is fixed
         fprintf(stderr, "***WARNING*** %s:%d: BRWalletManager mode swap threading test is disabled\n", testName, __LINE__);
 
@@ -1216,7 +1216,7 @@ extern int BRRunTestWalletManagerSyncStress (const char *paperKey,
 
     {
         success = BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncP2P",
-                                                    SYNC_MODE_P2P_ONLY,
+                                                    CRYPTO_SYNC_MODE_P2P_ONLY,
                                                     paperKey,
                                                     storagePath,
                                                     earliestKeyTime,
@@ -1231,7 +1231,7 @@ extern int BRRunTestWalletManagerSyncStress (const char *paperKey,
 
     {
         success = BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncBRD",
-                                                    SYNC_MODE_BRD_ONLY,
+                                                    CRYPTO_SYNC_MODE_API_ONLY,
                                                     paperKey,
                                                     storagePath,
                                                     earliestKeyTime,
@@ -1246,8 +1246,8 @@ extern int BRRunTestWalletManagerSyncStress (const char *paperKey,
 
     {
         success = BRRunTestWalletManagerSyncAllModes("BRRunTestWalletManagerSyncP2PtoBRD",
-                                                     SYNC_MODE_P2P_ONLY,
-                                                     SYNC_MODE_BRD_ONLY,
+                                                     CRYPTO_SYNC_MODE_P2P_ONLY,
+                                                     CRYPTO_SYNC_MODE_API_ONLY,
                                                      paperKey,
                                                      storagePath,
                                                      earliestKeyTime,
@@ -1262,8 +1262,8 @@ extern int BRRunTestWalletManagerSyncStress (const char *paperKey,
 
     {
         success = BRRunTestWalletManagerSyncAllModes("BRRunTestWalletManagerSyncBRDtoP2P",
-                                                     SYNC_MODE_BRD_ONLY,
-                                                     SYNC_MODE_P2P_ONLY,
+                                                     CRYPTO_SYNC_MODE_API_ONLY,
+                                                     CRYPTO_SYNC_MODE_P2P_ONLY,
                                                      paperKey,
                                                      storagePath,
                                                      earliestKeyTime,

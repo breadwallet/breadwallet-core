@@ -29,7 +29,7 @@ typedef struct BRTransactionWithStateStruct *BRTransactionWithState;
 struct BRWalletManagerStruct {
 
     /** The mode */
-    BRSyncMode mode;
+    BRCryptoSyncMode mode;
 
     /** The wallet */
     BRWallet *wallet;
