@@ -240,12 +240,13 @@ public final class Wallet: Equatable {
         var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
 
         // This `amount` is in the `unit` of `wallet`
-        guard let amount = cryptoWalletEstimateLimit (self.core,
-                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                                      target.core,
-                                                      fee.core,
-                                                      &needFeeEstimate,
-                                                      &isZeroIfInsuffientFunds)
+        guard let amount = cryptoWalletManagerEstimateLimit (self.manager.core,
+                                                             self.core,
+                                                             (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                             target.core,
+                                                             fee.core,
+                                                             &needFeeEstimate,
+                                                             &isZeroIfInsuffientFunds)
             .map ({ Amount (core: $0, take: false)})
             else {
                 // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
