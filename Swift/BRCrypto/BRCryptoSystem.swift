@@ -65,9 +65,9 @@ public final class System {
         (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
-         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-        confirmationsUntilFinal: 1),
+//        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
+//         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+//        confirmationsUntilFinal: 1),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
@@ -79,9 +79,9 @@ public final class System {
         (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
-         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 1),
+//        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
+//         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+//         confirmationsUntilFinal: 1),
     ]
 
     private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
@@ -125,10 +125,10 @@ public final class System {
 //         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
 //                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
-        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+//        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+//         address: nil, verified: true,
+//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
         // Testnet
         (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
@@ -151,10 +151,10 @@ public final class System {
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
          demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
-        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+//        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+//         address: nil, verified: true,
+//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
     ]
 
     ///
@@ -165,22 +165,22 @@ public final class System {
         "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-mainnet": [.btcLegacy],
         "ethereum-mainnet":     [.ethDefault],
-        "ripple-mainnet":       [.genDefault],
+//        "ripple-mainnet":       [.genDefault],
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-        "ripple-testnet":       [.genDefault]
+//        "ripple-testnet":       [.genDefault]
     ]
 
     static let defaultAddressSchemeMap: [String:AddressScheme] = [
         "bitcoin-mainnet":      .btcSegwit,
         "bitcoincash-mainnet": .btcLegacy,
         "ethereum-mainnet":     .ethDefault,
-        "ripple-mainnet":       .genDefault,
+//        "ripple-mainnet":       .genDefault,
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-        "ripple-testnet":       .genDefault
+//        "ripple-testnet":       .genDefault
     ]
 
     ///
@@ -240,11 +240,11 @@ public final class System {
         "bitcoin-mainnet":      [.api_only, .p2p_only],
         "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-        "ripple-mainnet":       [.api_only],
+//        "ripple-mainnet":       [.api_only],
         "bitcoin-testnet":      [.api_only, .p2p_only],
         "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-        "ripple-testnet":       [.api_only]
+//        "ripple-testnet":       [.api_only]
     ]
 
     ///
@@ -254,11 +254,11 @@ public final class System {
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
-        "ripple-mainnet":       .api_only,
+//        "ripple-mainnet":       .api_only,
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
-        "ripple-testnet":       .api_only
+//        "ripple-testnet":       .api_only
     ]
 
 

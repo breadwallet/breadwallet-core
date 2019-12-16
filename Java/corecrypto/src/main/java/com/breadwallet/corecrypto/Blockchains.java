@@ -479,13 +479,13 @@ final class Blockchains {
         builder.put("bitcoin-mainnet", AddressScheme.BTC_LEGACY);
         builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
+//        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
 
         builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
         builder.put("bitcoin-testnet", AddressScheme.BTC_LEGACY);
         builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
+//        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
         SUPPORTED_ADDRESS_SCHEMES = builder.build();
     }
 
@@ -497,12 +497,12 @@ final class Blockchains {
         builder.put("bitcoin-mainnet", AddressScheme.BTC_SEGWIT);
         builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
+//        builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
 
         builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
         builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
-        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
+//        builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
         DEFAULT_ADDRESS_SCHEMES = builder.build();
     }
 
