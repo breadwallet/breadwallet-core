@@ -294,7 +294,7 @@ public enum TransferSubmitError: Equatable, Error {
         case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRCryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
+                          message: cryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
         default: self = .unknown; preconditionFailure()
         }
     }
@@ -322,6 +322,7 @@ public enum TransferState {
     case deleted
 
     internal init (core: BRCryptoTransferState) {
+        defer {  var mutableCore = core; cryptoTransferStateRelease (&mutableCore) }
         switch core.type {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
         case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed
@@ -330,7 +331,9 @@ public enum TransferState {
             confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
-                                                fee: core.u.included.fee.map { Amount (core: $0, take: false) }))
+                                                fee: core.u.included.feeBasis
+                                                    .map { cryptoFeeBasisGetFee ($0) }
+                                                    .map { Amount (core: $0, take: false) }))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; preconditionFailure()

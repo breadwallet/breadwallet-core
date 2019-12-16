@@ -39,10 +39,10 @@ extern "C" {
     } BRCryptoTransferSubmitError;
 
     extern BRCryptoTransferSubmitError
-    BRCryptoTransferSubmitErrorUnknown(void);
+    cryptoTransferSubmitErrorUnknown(void);
 
     extern BRCryptoTransferSubmitError
-    BRCryptoTransferSubmitErrorPosix(int errnum);
+    cryptoTransferSubmitErrorPosix(int errnum);
 
     /**
      * Return a descriptive message as to why the error occurred.
@@ -50,7 +50,7 @@ extern "C" {
      *@return the detailed reason as a string or NULL
      */
     extern char *
-    BRCryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError *e);
+    cryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError *e);
 
     /// MARK: - Transfer State
 
@@ -72,7 +72,7 @@ extern "C" {
                 // This is not assuredly the including block's timestamp; it is the transaction's
                 // timestamp which varies depending on how the transaction was discovered.
                 uint64_t timestamp;
-                BRCryptoAmount fee;
+                BRCryptoFeeBasis feeBasis;
             } included;
 
             struct {
@@ -88,7 +88,7 @@ extern "C" {
     cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                      uint64_t transactionIndex,
                                      uint64_t timestamp,
-                                     BRCryptoAmount fee);
+                                     BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoTransferState
     cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error);
@@ -166,6 +166,16 @@ extern "C" {
      */
     extern BRCryptoAmount
     cryptoTransferGetAmountDirected (BRCryptoTransfer transfer);
+
+    /**
+     * Returns the transfers amount after considering the direction and fee
+     *
+     * @param transfer the transfer
+     *
+     * @return the signed, net amoount
+     */
+    extern BRCryptoAmount
+    cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer);
 
     /**
      * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different

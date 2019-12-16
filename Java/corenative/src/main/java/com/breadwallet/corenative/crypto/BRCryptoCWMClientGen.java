@@ -39,6 +39,15 @@ public class BRCryptoCWMClientGen extends Structure {
                       long endBlockNumber);
     }
 
+    public interface BRCryptoCWMGenGetTransfersCallback extends Callback {
+        void callback(Pointer context,
+                      Pointer manager,
+                      Pointer callbackState,
+                      String address,
+                      long begBlockNumber,
+                      long endBlockNumber);
+    }
+
     public interface BRCryptoCWMGenSubmitTransactionCallback extends Callback {
         void callback(Pointer context,
                       Pointer manager,
@@ -95,6 +104,32 @@ public class BRCryptoCWMClientGen extends Structure {
         }
     }
 
+    public interface GetTransfersCallback extends BRCryptoCWMGenGetTransfersCallback {
+        void handle(Cookie context,
+                    BRCryptoWalletManager manager,
+                    BRCryptoCWMClientCallbackState callbackState,
+                    String address,
+                    long begBlockNumber,
+                    long endBlockNumber);
+
+        @Override
+        default void callback(Pointer context,
+                              Pointer manager,
+                              Pointer callbackState,
+                              String address,
+                              long begBlockNumber,
+                              long endBlockNumber) {
+            handle(
+                    new Cookie(context),
+                    new BRCryptoWalletManager(manager),
+                    new BRCryptoCWMClientCallbackState(callbackState),
+                    address,
+                    begBlockNumber,
+                    endBlockNumber
+            );
+        }
+    }
+
     public interface SubmitTransactionCallback extends BRCryptoCWMGenSubmitTransactionCallback {
         void handle(Cookie context,
                     BRCryptoWalletManager manager,
@@ -125,6 +160,7 @@ public class BRCryptoCWMClientGen extends Structure {
 
     public BRCryptoCWMGenGetBlockNumberCallback funcGetBlockNumber;
     public BRCryptoCWMGenGetTransactionsCallback funcGetTransactions;
+    public BRCryptoCWMGenGetTransfersCallback funGetTransfers;
     public BRCryptoCWMGenSubmitTransactionCallback funcSubmitTransaction;
 
     public BRCryptoCWMClientGen() {
@@ -137,14 +173,16 @@ public class BRCryptoCWMClientGen extends Structure {
 
     public BRCryptoCWMClientGen(GetBlockNumberCallback funcGetBlockNumber,
                                 GetTransactionsCallback funcGetTransactions,
+                                GetTransfersCallback funGetTransfers,
                                 SubmitTransactionCallback funcSubmitTransaction) {
         super();
         this.funcGetBlockNumber = funcGetBlockNumber;
         this.funcGetTransactions = funcGetTransactions;
+        this.funGetTransfers = funGetTransfers;
         this.funcSubmitTransaction = funcSubmitTransaction;
     }
     protected List<String> getFieldOrder() {
-        return Arrays.asList("funcGetBlockNumber", "funcGetTransactions", "funcSubmitTransaction");
+        return Arrays.asList("funcGetBlockNumber", "funcGetTransactions", "funGetTransfers", "funcSubmitTransaction");
     }
 
 
@@ -152,6 +190,7 @@ public class BRCryptoCWMClientGen extends Structure {
         ByValue other = new ByValue();
         other.funcGetBlockNumber = this.funcGetBlockNumber;
         other.funcGetTransactions = this.funcGetTransactions;
+        other.funGetTransfers = this.funGetTransfers;
         other.funcSubmitTransaction = this.funcSubmitTransaction;
         return other;
     }

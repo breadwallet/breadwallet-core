@@ -9,12 +9,22 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRCryptoAddressP.h"
+#include "BRCryptoNetworkP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 static void
 cryptoAddressRelease (BRCryptoAddress address) {
-    // TODO: btc, eth, gen ?
+    switch (address->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            genAddressRelease (address->u.gen);
+            break;
+    }
+
     memset (address, 0, sizeof(*address));
     free (address);
 }
@@ -45,11 +55,9 @@ cryptoAddressCreateAsBTC (BRAddress btc, BRCryptoBoolean isBitcoinAddr) {
 }
 
 private_extern BRCryptoAddress
-cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
-                          BRGenericAddress aid) { // TODO: BRGenericAddress - ownership given?
+cryptoAddressCreateAsGEN (OwnershipGiven BRGenericAddress gen) {
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_GEN);
-    address->u.gen.gwm = gwm;
-    address->u.gen.aid = aid;
+    address->u.gen = gen;
     return address;
 }
 
@@ -76,11 +84,10 @@ cryptoAddressAsETH (BRCryptoAddress address) {
 private_extern BRGenericAddress
 cryptoAddressAsGEN (BRCryptoAddress address) {
     assert (BLOCK_CHAIN_TYPE_GEN == address->type);
-    return address->u.gen.aid;
+    return address->u.gen;
 }
 
-
-private_extern BRCryptoAddress
+static BRCryptoAddress
 cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddress) {
     assert (btcAddress);
 
@@ -89,7 +96,7 @@ cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddre
             : NULL);
 }
 
-private_extern BRCryptoAddress
+static BRCryptoAddress
 cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress) {
     assert (bchAddress);
 
@@ -99,7 +106,7 @@ cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddre
             : NULL);
 }
 
-private_extern BRCryptoAddress
+static BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     assert (ethAddress);
     BRCryptoAddress address = NULL;
@@ -110,10 +117,32 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     return address;
 }
 
-private_extern BRCryptoAddress
-cryptoAddressCreateFromStringAsGEN (const char *ethAddress) {
-    assert (0);
-    return NULL;
+static BRCryptoAddress
+cryptoAddressCreateFromStringAsGEN (BRGenericNetwork network, const char *string) {
+    BRGenericAddress address = genAddressCreate (genNetworkGetType(network), string);
+    return (NULL != address
+            ? cryptoAddressCreateAsGEN (address)
+            : NULL);
+}
+
+extern BRCryptoAddress
+cryptoAddressCreateFromString (BRCryptoNetwork network,
+                               const char *string) {
+    switch (cryptoNetworkGetType(network)) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            const BRChainParams *params = cryptoNetworkAsBTC (network);
+            return (BRChainParamsIsBitcoin (params)
+                    ? cryptoAddressCreateFromStringAsBTC (params->addrParams, string)
+                    : cryptoAddressCreateFromStringAsBCH (params->addrParams, string));
+        }
+        case BLOCK_CHAIN_TYPE_ETH:
+            return cryptoAddressCreateFromStringAsETH (string);
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericNetwork gen = cryptoNetworkAsGEN (network);
+            return cryptoAddressCreateFromStringAsGEN (gen, string);
+        }
+    }
 }
 
 extern char *
@@ -130,7 +159,7 @@ cryptoAddressAsString (BRCryptoAddress address) {
         case BLOCK_CHAIN_TYPE_ETH:
             return addressGetEncodedString(address->u.eth, 1);
         case BLOCK_CHAIN_TYPE_GEN:
-            return gwmAddressAsString (address->u.gen.gwm, address->u.gen.aid);
+            return genAddressAsString (address->u.gen);
     }
 }
 
@@ -143,5 +172,6 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
                                 ? (0 == strcmp (a1->u.btc.addr.s, a2->u.btc.addr.s) && a1->u.btc.isBitcoinAddr == a2->u.btc.isBitcoinAddr)
                                 : ( a1->type == BLOCK_CHAIN_TYPE_ETH
                                    ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
-                                   : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));
+                                   : genAddressEqual (a1->u.gen, a2->u.gen)))));
 }
+

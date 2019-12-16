@@ -29,22 +29,22 @@ public class BRCryptoTransferState extends Structure {
             public long blockNumber;
             public long transactionIndex;
             public long timestamp;
-            public BRCryptoAmount fee;
+            public BRCryptoFeeBasis feeBasis;
 
             public included_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "fee");
+                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis");
             }
 
-            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoAmount fee) {
+            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis) {
                 super();
                 this.blockNumber = blockNumber;
                 this.transactionIndex = transactionIndex;
                 this.timestamp = timestamp;
-                this.fee = fee;
+                this.feeBasis = feeBasis;
             }
 
             public included_struct(Pointer peer) {

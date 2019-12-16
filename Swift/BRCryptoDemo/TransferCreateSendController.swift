@@ -80,6 +80,17 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         // Pass the selected object to the new view controller.
     }
     */
+    private func submitTransferFailed (_ message: String) {
+        let alert = UIAlertController (title: "Submit Transfer",
+                                       message: "Failed to submit transfer - \(message)",
+                                       preferredStyle: UIAlertController.Style.alert)
+        alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
+            self.dismiss(animated: true) {}
+        })
+
+        self.present (alert, animated: true) {}
+    }
+
     @IBAction func submit(_ sender: UIBarButtonItem) {
         print ("APP: TCC: Want to submit")
         let value = amount()
@@ -90,37 +101,19 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
-                else {
-                    let alert = UIAlertController (title: "Submit Transfer",
-                                                   message: "Failed to create transfer - invalid target address",
-                                                   preferredStyle: UIAlertController.Style.alert)
-                    alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
-                        self.dismiss(animated: true) {}
-                    })
-
-                    self.present (alert, animated: true) {}
-                    return
-            }
+                else { self.submitTransferFailed("invalid target address"); return }
 
             let unit = self.wallet.unit
             let amount = Amount.create (double: Double(value), unit: unit)
             print ("APP: TVV: Submit \(self.isBitCurrency ? "BTC/BCH" : "ETH") Amount: \(amount)");
 
-            // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
+            guard let transferFeeBasis = self.feeBasis
+                else { self.submitTransferFailed ("no fee basis"); return }
+
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             estimatedFeeBasis: self.feeBasis!)
-                else {
-                    let alert = UIAlertController (title: "Submit Transfer",
-                                               message: "Failed to create transfer - balance too low?",
-                                               preferredStyle: UIAlertController.Style.alert)
-                    alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
-                        self.dismiss(animated: true) {}
-                    })
-
-                    self.present (alert, animated: true) {}
-                    return
-            }
+                                                             estimatedFeeBasis: transferFeeBasis)
+                else { self.submitTransferFailed("balance too low?"); return }
 
             // Will generate a WalletEvent.transferSubmitted (transfer, success)
             self.wallet.manager.submit (transfer: transfer,

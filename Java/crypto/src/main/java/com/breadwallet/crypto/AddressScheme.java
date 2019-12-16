@@ -7,6 +7,13 @@
  */
 package com.breadwallet.crypto;
 
+/**
+ * An AddressScheme determines the from of wallet-generated address.  For example, a Bitcoin wallet
+ * can have a 'Segwit/BECH32' address scheme or a 'Legacy' address scheme.  The address, which is
+ * ultimately a sequence of bytes, gets formatted as a string based on the scheme.
+ *
+ * The WalletManager holds an array of AddressSchemes as well as the preferred AddressScheme.
+ */
 public enum  AddressScheme {
     BTC_LEGACY,
     BTC_SEGWIT,

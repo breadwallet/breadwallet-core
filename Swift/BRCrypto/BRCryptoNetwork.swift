@@ -176,29 +176,27 @@ public final class Network: CustomStringConvertible {
 
         switch currency.code.lowercased() {
         case Currency.codeAsBTC:
-            let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
-            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
 
         case Currency.codeAsBCH:
-            let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
-            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
+            core = cryptoNetworkCreateAsBCH (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
 
         case Currency.codeAsETH:
             if uids.contains("mainnet") {
-                core = cryptoNetworkCreateAsETH (uids, name, 1, ethereumMainnet)
+                core = cryptoNetworkCreateAsETHForMainnet (uids, name)
             }
             else if uids.contains("testnet") || uids.contains("ropsten") {
-                core = cryptoNetworkCreateAsETH (uids, name, 3, ethereumTestnet)
+                core = cryptoNetworkCreateAsETHForTestnet (uids, name)
             }
             else if uids.contains ("rinkeby") {
-                core = cryptoNetworkCreateAsETH (uids, name, 4, ethereumRinkeby)
+                core = cryptoNetworkCreateAsETHForRinkeby (uids, name)
             }
             else {
                 preconditionFailure()
             }
 
         default:
-            core = cryptoNetworkCreateAsGEN (uids, name, (isMainnet ? 1 : 0))
+            core = cryptoNetworkCreateAsGEN (uids, name, currency.core, (isMainnet ? 1 : 0))
             break
         }
 
@@ -235,10 +233,9 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkGive (core)
     }
 
-    /// TODO: Should use the network's/manager's default address scheme
+    @available(*, deprecated, message: "Replace with Address.create(string:network:)")
     public func addressFor (_ string: String) -> Address? {
-        return cryptoNetworkCreateAddressFromString (core, string)
-            .map { Address (core: $0, take: false) }
+        return Address.create (string: string, network: self)
     }
 }
 

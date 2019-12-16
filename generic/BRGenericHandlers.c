@@ -22,18 +22,20 @@ static void _handlers_init (void) {
 }
 
 extern void
-genericHandlersInstall (const BRGenericHandlers handlers) {
+genHandlersInstall (const BRGenericHandlers handlers) {
     pthread_once (&_handlers_once, _handlers_init);
     array_add (arrayOfHandlers, handlers);
 
 }
 
 extern const BRGenericHandlers
-genericHandlerLookup (const char *type) {
+genHandlerLookup (const char *type) {
     pthread_once (&_handlers_once, _handlers_init);
     for (size_t index = 0; index < array_count(arrayOfHandlers); index++)
         if (0 == strcmp (type, arrayOfHandlers[index]->type))
             return arrayOfHandlers[index];
+
+    assert(0);
     return NULL;
 }
 

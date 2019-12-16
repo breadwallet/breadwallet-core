@@ -151,7 +151,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
-            Optional<? extends Address> target = network.addressFor(addressStr);
+            Optional<? extends Address> target = Address.create(addressStr, network);
             if (!target.isPresent()) {
                 showError("Invalid target address");
                 return;
@@ -211,7 +211,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
     private void updateFee() {
         String addressStr = receiverView.getText().toString();
-        Optional<? extends Address> target = network.addressFor(addressStr);
+        Optional<? extends Address> target = Address.create(addressStr, network);
         if (!target.isPresent()) {
             return;
         }
@@ -255,7 +255,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
     private void updateView(int progress, CharSequence receiver) {
         Amount amount = calculateValue(progress);
-        Optional<? extends Address> target = network.addressFor(receiver.toString());
+        Optional<? extends Address> target = Address.create(receiver.toString(), network);
 
         amountMinView.setText(minValue.toStringAsUnit(baseUnit).or(""));
         amountMaxView.setText(maxValue.toStringAsUnit(baseUnit).or(""));

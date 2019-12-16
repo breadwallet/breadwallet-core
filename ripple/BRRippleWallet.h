@@ -13,6 +13,7 @@
 
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
+#include "BRRippleTransfer.h"
 
 //
 // Wallet
@@ -46,7 +47,7 @@ rippleWalletFree (BRRippleWallet wallet);
  *
  * @return address  ripple address associated with this account
  */
-extern BRRippleAddress
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
 rippleWalletGetSourceAddress (BRRippleWallet wallet);
 
 
@@ -59,8 +60,12 @@ rippleWalletGetSourceAddress (BRRippleWallet wallet);
  *
  * @return address  ripple address associated with this account
  */
-extern BRRippleAddress
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
 rippleWalletGetTargetAddress (BRRippleWallet wallet);
+
+extern int
+rippleWalletHasAddress (BRRippleWallet wallet,
+                        BRRippleAddress address);
 
 /**
  * Return the ripple balance for this wallet
@@ -92,7 +97,7 @@ rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance);
  * @return void
  */
 extern void
-rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasis);
+rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleFeeBasis feeBasis);
 
 /**
  * Get the ripple default fee basis that is stored with this wallet
@@ -101,7 +106,11 @@ rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasi
  *
  * @return feeBasis  the default base fee that has been set for this wallet
  */
-extern BRRippleUnitDrops
+extern BRRippleFeeBasis
 rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
+
+extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer transfer);
+
+extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer);
 
 #endif

@@ -65,8 +65,9 @@ public final class System {
         (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+        confirmationsUntilFinal: 1),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
@@ -78,8 +79,9 @@ public final class System {
         (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
+         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+         confirmationsUntilFinal: 1),
     ]
 
     private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
@@ -123,10 +125,10 @@ public final class System {
 //         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
 //                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
-//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
         // Testnet
         (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
@@ -149,10 +151,10 @@ public final class System {
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
          demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
-//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-//         address: nil, verified: true,
-//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
     ]
 
     ///
@@ -167,7 +169,7 @@ public final class System {
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-//        "ripple-testnet":       [.genDefault]
+        "ripple-testnet":       [.genDefault]
     ]
 
     static let defaultAddressSchemeMap: [String:AddressScheme] = [
@@ -178,7 +180,7 @@ public final class System {
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-//        "ripple-testnet":       .genDefault
+        "ripple-testnet":       .genDefault
     ]
 
     ///
@@ -238,9 +240,11 @@ public final class System {
         "bitcoin-mainnet":      [.api_only, .p2p_only],
         "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
+        "ripple-mainnet":       [.api_only],
         "bitcoin-testnet":      [.api_only, .p2p_only],
         "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
+        "ripple-testnet":       [.api_only]
     ]
 
     ///
@@ -250,9 +254,11 @@ public final class System {
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
+        "ripple-mainnet":       .api_only,
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
+        "ripple-testnet":       .api_only
     ]
 
 
@@ -1321,6 +1327,8 @@ extension System {
                     transferEvent = TransferEvent.created
 
                 case CRYPTO_TRANSFER_EVENT_CHANGED:
+                    // The event.u.state.{old,new} references to BRCryptoTransferState are 'passed'
+                    // to the TransferState initializer.
                     transferEvent = TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
                                                            new: TransferState.init (core: event.u.state.new))
 
@@ -1713,6 +1721,65 @@ extension System {
 }
 
 extension System {
+    private static func mergeTransfers (_ transfers: [BlockChainDB.Model.Transfer], with address: String)
+        -> [(transfer: BlockChainDB.Model.Transfer, fee: String?)] {
+            // Only consider transfers w/ `address`
+            var transfers = transfers.filter { address == $0.source || address == $0.target }
+
+            // Note for later: all transfers have a unique id
+
+            let partition = transfers.partition { "__fee__" != $0.target }
+            switch (0..<partition).count {
+            case 0:
+                // There is no "__fee__" entry
+                return transfers[partition...]
+                    .map { (transfer: $0, fee: nil) }
+
+            case 1:
+                // There is a single "__fee__" entry
+                let transferWithFee = transfers[..<partition][0]
+
+                // We may or may not have a non-fee transfer matching `transferWithFee`.  We
+                // may or may not have more than one non-fee transfers matching `transferWithFee`
+
+                // Find the first of the non-fee transfers matching `transferWithFee`
+                let transferMatchingFee = transfers[partition...]
+                    .first {
+                        $0.transactionId == transferWithFee.transactionId &&
+                            $0.source == transferWithFee.source
+                }
+
+                // We must have a transferMatchingFee; if we don't add one
+                let transfers = transfers[partition...] +
+                    (nil != transferMatchingFee
+                        ? []
+                        : [(id: transferWithFee.id,
+                            source: transferWithFee.source,
+                            target: "unknown",
+                            amountValue: "0",
+                            amountCurrency: transferWithFee.amountCurrency,
+                            acknowledgements: transferWithFee.acknowledgements,
+                            index: transferWithFee.index,
+                            transactionId: transferWithFee.transactionId,
+                            blockchainId: transferWithFee.blockchainId)])
+
+                // Hold the Id for the transfer that we'll add a fee to.
+                let transferForFeeId = transferMatchingFee.map { $0.id } ?? transferWithFee.id
+
+                // Map transfers adding the fee to the `transferforFeeId`
+                return transfers
+                    .map { (transfer: $0,
+                            fee: ($0.id == transferForFeeId ? transferWithFee.amountValue : nil))
+                }
+
+            default:
+                // There is more than one "__fee__" entry
+                precondition(false)
+            }
+    }
+}
+
+extension System {
     internal var clientGEN: BRCryptoCWMClientGEN {
         return BRCryptoCWMClientGEN (
             funcGetBlockNumber: { (context, cwm, sid) in
@@ -1765,6 +1832,44 @@ extension System {
                                                         cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
                                                     failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
 
+                }},
+
+            funcGetTransfers: { (context, cwm, sid, address, begBlockNumber, endBlockNumber) in
+                precondition (nil != context  && nil != cwm)
+
+                guard let (system, manager) = System.systemExtract (context, cwm)
+                    else { print ("SYS: GEN: GetTransfers: Missed {cwm}"); return }
+                print ("SYS: GEN: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+                let accountAddress = asUTF8String(address!)
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                               addresses: [accountAddress],
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
+                                               includeRaw: false) {
+                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                                defer { cryptoWalletManagerGive(cwm) }
+                                                res.resolve(
+                                                    success: {
+                                                        $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
+                                                            let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
+                                                            let height    = transaction.blockHeight ?? 0
+
+                                                            System.mergeTransfers (transaction.transfers, with: accountAddress)
+                                                                .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
+                                                                    let (transfer, fee) = arg
+                                                                    cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                                                                  transfer.id,
+                                                                                                  transfer.source,
+                                                                                                  transfer.target,
+                                                                                                  transfer.amountValue,
+                                                                                                  transfer.amountCurrency,
+                                                                                                  fee,
+                                                                                                  timestamp,
+                                                                                                  height)
+                                                            }
+                                                        }
+                                                        cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
+                                                    failure: { (_) in cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in

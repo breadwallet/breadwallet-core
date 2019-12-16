@@ -21,7 +21,7 @@
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
-#include "generic/BRGenericWalletManager.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +34,7 @@ struct BRCryptoWalletManagerRecord {
     union {
         BRWalletManager btc;
         BREthereumEWM eth;
-        BRGenericWalletManager gen;
+        BRGenericManager gen;
     } u;
 
     BRCryptoCWMListener listener;
@@ -97,7 +97,7 @@ cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
 
 private_extern BRCryptoBoolean
 cryptoWalletManagerHasGEN (BRCryptoWalletManager manager,
-                           BRGenericWalletManager gwm);
+                           BRGenericManager gwm);
 
 private_extern BRCryptoWallet
 cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager manager,
@@ -122,6 +122,12 @@ cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                       BRGenericTransfer transferGeneric);
+
+private_extern void
+cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
+                                        BRCryptoWallet wallet,
+                                        BRCryptoTransfer transfer,
+                                        BRGenericTransferState newGenericState);
 
 #ifdef __cplusplus
 }

@@ -12,8 +12,9 @@
 #define BRRipple_private_structs_h
 
 #include <stdbool.h>
-#include "BRRippleBase.h"
 #include "BRKey.h"
+#include "BRRippleBase.h"
+#include "BRRippleTransaction.h"
 
 // A structure to hold some bytes and a length
 typedef struct _vl_bytes {
@@ -102,5 +103,16 @@ inline static BRRippleMemoNode * memoListAdd(BRRippleField * field)
     }
     return newNode;
 }
+
+struct BRRippleTransferRecord {
+    BRRippleAddress sourceAddress;
+    BRRippleAddress targetAddress;
+    BRRippleUnitDrops amount;
+    BRRippleUnitDrops fee;
+    BRRippleTransactionHash transactionId;
+    uint64_t timestamp;
+    uint64_t blockHeight;
+    BRRippleTransaction transaction;
+};
 
 #endif
