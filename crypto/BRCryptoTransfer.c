@@ -238,7 +238,7 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     free (transfer);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoTransferGetType (BRCryptoTransfer transfer) {
     return transfer->type;
 }

@@ -224,7 +224,7 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     free (network);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoNetworkGetType (BRCryptoNetwork network) {
     return network->type;
 }

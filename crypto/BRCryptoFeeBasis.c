@@ -73,7 +73,7 @@ cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
     free (feeBasis);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis) {
     return feeBasis->type;
 }
