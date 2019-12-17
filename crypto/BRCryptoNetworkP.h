@@ -19,6 +19,7 @@
 #include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,32 +61,21 @@ typedef struct {
 
 struct BRCryptoNetworkRecord {
     pthread_mutex_t lock;
-
+    
     char *uids;
     char *name;
     BRCryptoBlockChainHeight height;
     BRCryptoCurrency currency;
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
     BRArrayOf(BRCryptoNetworkFee) fees;
-
+    
     uint32_t confirmationsUntilFinal;
-
+    
     BRCryptoBlockChainType type;
     union {
-        struct {
-            uint8_t forkId;
-            const BRChainParams *params;
-        } btc;
-
-        struct {
-            uint32_t chainId;
-            BREthereumNetwork net;
-        } eth;
-
-        struct {
-            // TODO: TBD
-            uint8_t mainnet;
-        } gen;
+        const BRChainParams *btc;
+        BREthereumNetwork eth;
+        BRGenericNetwork gen;
     } u;
     BRCryptoRef ref;
 };
@@ -134,25 +124,8 @@ cryptoNetworkGetType (BRCryptoNetwork network);
  private_extern const BRChainParams *
  cryptoNetworkAsBTC (BRCryptoNetwork network);
 
- private_extern void *
+ private_extern BRGenericNetwork
  cryptoNetworkAsGEN (BRCryptoNetwork network);
-
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsBTC (const char *uids,
-                           const char *name,
-                           uint8_t forkId,
-                           const BRChainParams *params);
-
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsETH (const char *uids,
-                           const char *name,
-                           uint32_t chainId,
-                           BREthereumNetwork net);
-
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsGEN (const char *uids,
-                           const char *name,
-                           uint8_t isMainnet);
 
  private_extern BRCryptoBlockChainType
  cryptoNetworkGetBlockChainType (BRCryptoNetwork network);

@@ -27,10 +27,7 @@ struct BRCryptoFeeBasisRecord {
             uint32_t sizeInByte;
         } btc;
         BREthereumFeeBasis eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericFeeBasis bid;
-        } gen;
+        BRGenericFeeBasis gen;
     } u;
     BRCryptoUnit unit;
     BRCryptoRef ref;
@@ -60,7 +57,6 @@ cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis);
 
  private_extern BRCryptoFeeBasis
  cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
-                            BRGenericWalletManager gwm,
                             OwnershipGiven BRGenericFeeBasis bid);
 
 #ifdef __cplusplus

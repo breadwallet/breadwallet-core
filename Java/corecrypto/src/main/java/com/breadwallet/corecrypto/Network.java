@@ -58,7 +58,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
                 break;
             default:
-                core = BRCryptoNetwork.createAsGen(uids, name, isMainnet);
+                core = BRCryptoNetwork.createAsGen(uids, name, currency.getCoreBRCryptoCurrency(), isMainnet);
                 break;
         }
 
@@ -266,7 +266,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Address> addressFor(String address) {
-        return core.addressFor(address).transform(Address::create);
+        return Address.create(address, this);
     }
 
     @Override

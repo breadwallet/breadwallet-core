@@ -88,6 +88,7 @@ import com.breadwallet.crypto.migration.PeerBlob;
 import com.breadwallet.crypto.migration.TransactionBlob;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
@@ -168,6 +169,7 @@ final class System implements com.breadwallet.crypto.System {
     private static final BRCryptoCWMClientGen CWM_CLIENT_GEN = new BRCryptoCWMClientGen(
             System::genGetBlockNumber,
             System::genGetTransactions,
+            System::genGetTransfers,
             System::genSubmitTransaction
     );
 
@@ -2436,6 +2438,161 @@ final class System implements com.breadwallet.crypto.System {
                 coreWalletManager.give();
             }
         });
+    }
+
+    private static void genGetTransfers(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,
+                                           String address, long begBlockNumber, long endBlockNumber) {
+        EXECUTOR_CLIENT.execute(() -> {
+            try {
+                UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
+                UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
+
+                Log.log(Level.FINE, String.format("BRCryptoCWMGenGetTransfersCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
+
+                Optional<System> optSystem = getSystem(context);
+                if (optSystem.isPresent()) {
+                    System system = optSystem.get();
+
+                    Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+                    if (optWalletManager.isPresent()) {
+                        WalletManager walletManager = optWalletManager.get();
+
+                        system.query.getTransactions(walletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
+                                endBlockNumberUnsigned, false,
+                                false, new CompletionHandler<List<Transaction>, QueryError>() {
+                                    @Override
+                                    public void handleData(List<Transaction> transactions) {
+                                        Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback received transfers");
+                                        List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> merged;
+
+                                        for (Transaction transaction : transactions) {
+                                            UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+                                            UnsignedLong timestamp = transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
+
+                                            merged = System.mergeTransfers(transaction, address);
+                                            for (ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String> o: merged) {
+                                                Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback  announcing " + o.o1.getId());
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState,
+                                                        transaction.getHash(),
+                                                        o.o1.getId(),
+                                                        o.o1.getFromAddress().orNull(),
+                                                        o.o1.getToAddress().orNull(),
+                                                        o.o1.getAmount().getAmount(),
+                                                        o.o1.getAmount().getCurrencyId(),
+                                                        o.o2,
+                                                        timestamp,
+                                                        blockHeight);
+                                            }
+                                        }
+
+                                        Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback : complete");
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, true);
+                                    }
+
+                                    @Override
+                                    public void handleError(QueryError error) {
+                                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback  received an error, completing with failure", error);
+                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersComplete(callbackState, false);
+                                    }
+                                });
+
+                    } else {
+                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing manager");
+                        coreWalletManager.announceGetTransfersComplete(callbackState, false);
+                    }
+
+                } else {
+                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing system");
+                    coreWalletManager.announceGetTransfersComplete(callbackState, false);
+                }
+            } finally {
+                coreWalletManager.give();
+            }
+        });
+    }
+
+    private static class ObjectPair<T1, T2> {
+        final T1 o1;
+        final T2 o2;
+
+        ObjectPair (T1 o1, T2 o2) {
+            this.o1 = o1;
+            this.o2 = o2;
+        }
+    }
+
+    private static List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> mergeTransfers(Transaction transaction, String address) {
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfers;
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfersWithFee;
+        List<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer> transfersWithoutFee;
+        List<ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String>> transfersMerged;
+        com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transferWithFee;
+
+        // Only consider transfers w/ `address`
+        transfers = new ArrayList<>(Collections2.filter(transaction.getTransfers(), t -> address.equals(t.getFromAddress().orNull()) || address.equals(t.getToAddress().orNull())));
+
+        // Note for later: all transfers have a unique id
+
+        transfersWithFee = new ArrayList<>(Collections2.filter(transfers, t -> "__fee__".equals(t.getToAddress().orNull())));
+        transfersWithoutFee = new ArrayList<>(Collections2.filter(transfers, t -> !"__fee__".equals(t.getToAddress().orNull())));
+
+        // Get the transferWithFee if we have one
+        checkState(transfersWithFee.size() <= 1);
+        transferWithFee = transfersWithFee.isEmpty() ? null : transfersWithFee.get(0);
+
+        transfersMerged = new ArrayList<>(transfers.size());
+
+        // There is no "__fee__" entry
+        if (transferWithFee == null) {
+            // Announce transfers with no fee
+            for (com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transfer: transfers) {
+                transfersMerged.add(new ObjectPair<>(transfer, null));
+            }
+
+        // There is a single "__fee__" entry, due to `checkState(transfersWithFee.size() <= 1)` above
+        } else {
+            // We may or may not have a non-fee transfer matching `transferWithFee`.  We
+            // may or may not have more than one non-fee transfers matching `transferWithFee`
+
+            // Find the first of the non-fee transfers matching `transferWithFee`
+            com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transferMatchingFee = null;
+            for (com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transfer: transfersWithoutFee) {
+                if (transferWithFee.getTransactionId().equals(transfer.getTransactionId()) &&
+                    transferWithFee.getFromAddress().equals(transfer.getFromAddress())) {
+                    transferMatchingFee = transfer;
+                    break;
+                }
+            }
+
+            // We must have a transferMatchingFee; if we don't add one
+            transfers = new ArrayList<>(transfersWithoutFee);
+            if (null == transferMatchingFee) {
+                transfers.add(
+                        com.breadwallet.crypto.blockchaindb.models.bdb.Transfer.create(
+                                transferWithFee.getId(),
+                                transferWithFee.getBlockchainId(),
+                                transferWithFee.getIndex(),
+                                transferWithFee.getAmount(),
+                                transferWithFee.getMeta(),
+                                transferWithFee.getFromAddress().orNull(),
+                                "unknown",
+                                "0",
+                                transferWithFee.getAcknowledgements().orNull())
+                );
+            }
+
+            // Hold the Id for the transfer that we'll add a fee to.
+            String transferForFeeId = transferMatchingFee != null ? transferMatchingFee.getId() : transferWithFee.getId();
+
+            // Announce transfers adding the fee to the `transferforFeeId`
+            for (com.breadwallet.crypto.blockchaindb.models.bdb.Transfer transfer: transfers) {
+                String fee = transfer.getId().equals(transferForFeeId) ? transferWithFee.getAmount().getAmount() : null;
+
+                transfersMerged.add(new ObjectPair<>(transfer, fee));
+            }
+        }
+
+        return transfersMerged;
     }
 
     private static void genSubmitTransaction(Cookie context, BRCryptoWalletManager coreWalletManager, BRCryptoCWMClientCallbackState callbackState,

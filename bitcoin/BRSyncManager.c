@@ -1098,7 +1098,7 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
                                     SYNC_MANAGER_TXN_SUBMIT_FAILED,
-                                    { .submitFailed = {transaction, BRCryptoTransferSubmitErrorPosix (ENOTCONN) } },
+                                    { .submitFailed = {transaction, cryptoTransferSubmitErrorPosix (ENOTCONN) } },
                                 });
     }
 }
@@ -1165,7 +1165,7 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                             (error ?
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_FAILED,
-                                 { .submitFailed = { txn, BRCryptoTransferSubmitErrorPosix (error) } },
+                                 { .submitFailed = { txn, cryptoTransferSubmitErrorPosix (error) } },
                              } :
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_SUCCEEDED,
@@ -2079,7 +2079,7 @@ _BRPeerSyncManagerTxPublished (void *info,
                              (BRSyncManagerEvent) {
                                  SYNC_MANAGER_TXN_SUBMIT_FAILED,
                                  { .submitFailed = {
-                                     transaction, BRCryptoTransferSubmitErrorPosix (error) }
+                                     transaction, cryptoTransferSubmitErrorPosix (error) }
                                  },
                              } :
                              (BRSyncManagerEvent) {

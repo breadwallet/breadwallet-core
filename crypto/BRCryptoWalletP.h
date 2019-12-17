@@ -42,14 +42,14 @@ struct BRCryptoWalletRecord {
             BREthereumWallet wid;
         } eth;
 
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericWallet wid;
-        } gen;
+        // The GEN wallet is owned by the GEN Manager!
+        BRGenericWallet gen;
     } u;
 
     BRCryptoWalletState state;
-    BRCryptoUnit unit;  // baseUnit
+
+    BRCryptoUnit unit;
+    BRCryptoUnit unitForFee;
 
     //
     // Do we hold transfers here?  The BRWallet and the BREthereumWallet already hold transfers.
@@ -62,8 +62,6 @@ struct BRCryptoWalletRecord {
     //
     BRArrayOf (BRCryptoTransfer) transfers;
 
-    //
-    BRCryptoUnit unitForFee;
     BRCryptoRef ref;
 };
 
@@ -100,7 +98,6 @@ cryptoWalletCreateAsETH (BRCryptoUnit unit,
 private_extern BRCryptoWallet
 cryptoWalletCreateAsGEN (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
-                         BRGenericWalletManager gwm,
                          BRGenericWallet wid);
 
 private_extern BRCryptoTransfer

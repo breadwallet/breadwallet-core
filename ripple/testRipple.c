@@ -42,17 +42,34 @@ void hex2bin(const char* src, uint8_t * target)
     }
 }
 
+static void checkRippleAddress(BRRippleAccount account, uint8_t * expected_bytes, const char * expectedRippleAddress)
+{
+    BRRippleAddress address = rippleAccountGetAddress(account);
+    BRRippleAddress expectedAddress = rippleAddressCreateFromBytes(expected_bytes, 20);
+    assert(1 == rippleAddressEqual(address, expectedAddress));
+    if (expectedRippleAddress) {
+        char * rippleAddress = rippleAddressAsString (address);
+        assert(strcmp(rippleAddress, expectedRippleAddress) == 0);
+        free (rippleAddress);
+    }
+    rippleAddressFree (expectedAddress);
+    rippleAddressFree (address);
+}
+
 static BRRippleAccount createTestRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
 {
     BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleAddress address = rippleAccountGetAddress(account);
     
     // Get the string ripple address
     if (expected_account_address) {
-        char rippleAddress[36];
-        rippleAccountGetAddressString(account, rippleAddress, 36);
+        char * rippleAddress = rippleAddressAsString(address);
         assert(0 == strcmp(expected_account_address, rippleAddress));
+        free (rippleAddress);
     }
+
+    rippleAddressFree(address);
     return account;
 }
 
@@ -65,19 +82,22 @@ testRippleTransaction (void /* ... */) {
         0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
     uint8_t destBytes[] = { 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6,
         0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
-    BRRippleAddress sourceAddress;
-    BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, sourceBytes, 20);
-    memcpy(targetAddress.bytes, destBytes, 20);
+    BRRippleAddress sourceAddress = rippleAddressCreateFromBytes(sourceBytes, 20);
+    BRRippleAddress targetAddress = rippleAddressCreateFromBytes(destBytes, 20);
     
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
-    rippleAccountFree(account);
-    rippleTransactionFree(transaction);
+    rippleAddressFree (sourceAddress);
+    rippleAddressFree (targetAddress);
+    rippleAccountFree (account);
+    rippleTransactionFree (transaction);
 }
 
 static void
@@ -89,15 +109,16 @@ testRippleTransactionGetters (void /* ... */) {
         0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
     uint8_t destBytes[] = { 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6,
         0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
-    BRRippleAddress sourceAddress;
-    BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, sourceBytes, 20);
-    memcpy(targetAddress.bytes, destBytes, 20);
+    BRRippleAddress sourceAddress = rippleAddressCreateFromBytes(sourceBytes, 20);
+    BRRippleAddress targetAddress = rippleAddressCreateFromBytes(destBytes, 20);
     
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 10;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, feeBasis);
     assert(transaction);
 
     uint64_t fee = rippleTransactionGetFee(transaction);
@@ -116,16 +137,20 @@ testRippleTransactionGetters (void /* ... */) {
     assert(0 == sequence);
 
     BRRippleAddress source = rippleTransactionGetSource(transaction);
-    assert(0 == memcmp(source.bytes, sourceAddress.bytes, 20));
+    assert(1 == rippleAddressEqual(source, sourceAddress));
 
     BRRippleAddress target = rippleTransactionGetTarget(transaction);
-    assert(0 == memcmp(target.bytes, targetAddress.bytes, 20));
+    assert(1 == rippleAddressEqual(target, targetAddress));
     
-    BRRippleFeeBasis feeBasis = rippleTransactionGetFeeBasis(transaction);
-    assert(feeBasis == 10);
+    BRRippleFeeBasis actualFeeBasis = rippleTransactionGetFeeBasis(transaction);
+    assert(actualFeeBasis.pricePerCostFactor == 10);
 
-    rippleAccountFree(account);
-    rippleTransactionFree(transaction);
+    rippleAddressFree (sourceAddress);
+    rippleAddressFree (targetAddress);
+    rippleAddressFree (source);
+    rippleAddressFree (target);
+    rippleAccountFree (account);
+    rippleTransactionFree (transaction);
 }
 
 static void
@@ -143,15 +168,18 @@ testCreateRippleAccountWithPaperKey (void /* ... */) {
     assert(account);
 
     // Get the 20 bytes that were created for the account
+    BRRippleAddress expectedAddress = rippleAddressCreateFromBytes(expected_bytes, 20);
     BRRippleAddress address = rippleAccountGetAddress(account);
-    assert(0 == memcmp(address.bytes, expected_bytes, 20));
+    assert(1 == rippleAddressEqual(address, expectedAddress));
 
     // Get the ripple address string and compare
-    char rippleAddress[36];
-    rippleAccountGetAddressString(account, rippleAddress, 36);
+    char * rippleAddress = rippleAddressAsString(address);
     assert(0 == strcmp(rippleAddress, expected_ripple_address));
 
-    rippleAccountFree(account);
+    free (rippleAddress);
+    rippleAddressFree (expectedAddress);
+    rippleAddressFree (address);
+    rippleAccountFree (account);
 }
 
 static void
@@ -167,14 +195,16 @@ testCreateRippleAccountWithSeed (void /* ... */) {
 
     // If we pass the expected_accountid_string to this function it will validate for us
     BRRippleAccount account = rippleAccountCreateWithSeed(seed);
+    BRRippleAddress address = rippleAccountGetAddress(account);
     assert(account);
 
     // Get the ripple address string and compare
-    char rippleAddress[36];
-    rippleAccountGetAddressString(account, rippleAddress, 36);
+    char * rippleAddress = rippleAddressAsString (address);
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
 
-    rippleAccountFree(account);
+    free (rippleAddress);
+    rippleAddressFree (address);
+    rippleAccountFree (account);
 }
 
 static void
@@ -202,24 +232,30 @@ testCreateRippleAccountWithKey (void /* ... */) {
     BRKeyPubKey(&key, &key.pubKey, 33);
 
     // If we pass the expected_accountid_string to this function it will validate for us
-    BRRippleAccount account = rippleAccountCreateWithKey(key);
+    BRRippleAccount account = rippleAccountCreateWithKey (key);
+    BRRippleAddress address = rippleAccountGetAddress (account);
     assert(account);
 
     // Get the 20 bytes that were created for the account
-    char rippleAddress[36];
-    rippleAccountGetAddressString(account, rippleAddress, 36);
+    char * rippleAddress = rippleAddressAsString (address);
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
+    free (rippleAddress);
+    rippleAddressFree (address);
 
     // Now create the account with a public key instead of private
     BRKey publicKey = rippleAccountGetPublicKey(account);
     BRRippleAccount account2 = rippleAccountCreateWithKey(publicKey);
-    char rippleAddress2[36];
-    rippleAccountGetAddressString(account2, rippleAddress2, 36);
-    assert(0 == strcmp(rippleAddress2, expected_accountid_string));
+    address = rippleAccountGetAddress(account2);
+    rippleAddress = rippleAddressAsString (address);
+    assert(0 == strcmp(rippleAddress, expected_accountid_string));
+    free (rippleAddress);
+    rippleAddressFree(address);
 
     rippleAccountFree(account);
     rippleAccountFree(account2);
 }
+
+
 
 static void
 testCreateRippleAccountWithSerializedAccount (void /* ... */) {
@@ -234,15 +270,8 @@ testCreateRippleAccountWithSerializedAccount (void /* ... */) {
     // Create the account using the paper key
     BRRippleAccount account = rippleAccountCreate(paper_key);
     assert(account);
-    
-    // Get the 20 bytes that were created for the account
-    BRRippleAddress address = rippleAccountGetAddress(account);
-    assert(0 == memcmp(address.bytes, expected_bytes, 20));
-    
-    // Get the ripple address string and compare
-    char rippleAddress[36];
-    rippleAccountGetAddressString(account, rippleAddress, 36);
-    assert(0 == strcmp(rippleAddress, expected_ripple_address));
+
+    checkRippleAddress(account, expected_bytes, expected_ripple_address);
 
     // Serialize the account
     size_t bytesCount = 0;
@@ -253,9 +282,7 @@ testCreateRippleAccountWithSerializedAccount (void /* ... */) {
     // Create a new account with the serialized bytes
     BRRippleAccount account2 = rippleAccountCreateWithSerialization(serializedAccount, bytesCount);
     assert(account2);
-    char rippleAddress2[36];
-    rippleAccountGetAddressString(account2, rippleAddress2, 36);
-    assert(0 == strcmp(rippleAddress2, expected_ripple_address));
+    checkRippleAddress(account2, expected_bytes, expected_ripple_address);
     
     rippleAccountFree(account);
     rippleAccountFree(account2);
@@ -265,14 +292,6 @@ testCreateRippleAccountWithSerializedAccount (void /* ... */) {
 static void getAccountInfo(const char* paper_key, const char* ripple_address) {
     BRRippleAccount account = createTestRippleAccount(paper_key, ripple_address);
     assert(account);
-    
-    // Get the 20 bytes that were created for the account
-    BRRippleAddress address = rippleAccountGetAddress(account);
-    for(int i = 0; i < 20; i++) {
-        if (i == 0) printf("ACCOUNT ID:\n");
-        printf("%02X", address.bytes[i]);
-        if (i == 19) printf("\n");
-    }
 
     BRKey publicKey = rippleAccountGetPublicKey(account);
     for(int i = 0; i < 33; i++) {
@@ -300,17 +319,18 @@ testSerializeWithSignature () {
     BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     BRRippleAddress address = rippleAccountGetAddress(account);
-    char rippleAddress[36];
-    rippleAccountGetAddressString(account, rippleAddress, 36);
+    char * rippleAddress = rippleAddressAsString(address);
     if (debug_log) printf("%s\n", rippleAddress);
 
-    BRRippleAddress sourceAddress;
-    BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, address.bytes, 20);
-    memcpy(targetAddress.bytes, destBytes, 20);
+    BRRippleAddress targetAddress = rippleAddressCreateFromBytes(destBytes, 20);
 
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 10;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(address, targetAddress, 1000000, feeBasis);
     assert(transaction);
+    rippleAddressFree (address);
+    rippleAddressFree (targetAddress);
 
     uint32_t sequence_number = 25;
 
@@ -323,7 +343,9 @@ testSerializeWithSignature () {
     rippleAccountSetSequence(account, sequence_number);
 
     // Serialize and sign
-    size_t s_size = rippleAccountSignTransaction(account, transaction, paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL);
+    size_t s_size = rippleAccountSignTransaction(account, transaction, seed);
     size_t signed_size;
     uint8_t *signed_bytes = rippleTransactionSerialize(transaction, &signed_size);
     assert(s_size == signed_size);
@@ -405,14 +427,20 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
     // Validate the source address
     uint8_t expectedSource[20];
     hex2bin("0A000DC76DC6E5843BDBE06A274E90C8A6B4AC2C", expectedSource);
+    BRRippleAddress expectedAddress = rippleAddressCreateFromBytes(expectedSource, 20);
     BRRippleAddress source = rippleTransactionGetSource(transaction);
-    assert(0 == memcmp(source.bytes, expectedSource, 20));
+    assert(1 == rippleAddressEqual(source, expectedAddress));
+    rippleAddressFree(expectedAddress);
+    rippleAddressFree(source);
     
     // Validate the destination address
     uint8_t expectedTarget[20];
     hex2bin("AF6553EE2CDCA165AB0375A3EFB0C7650EA55350", expectedTarget);
+    expectedAddress = rippleAddressCreateFromBytes(expectedTarget, 20);
     BRRippleAddress destination = rippleTransactionGetTarget(transaction);
-    assert(0 == memcmp(destination.bytes, expectedTarget, 20));
+    assert(1 == rippleAddressEqual(destination, expectedAddress));
+    rippleAddressFree(expectedAddress);
+    rippleAddressFree(destination);
     
     // Public key from the tx_blob
     uint8_t expectedPubKey[33];
@@ -582,10 +610,11 @@ static void testWalletValues()
     assert(balance == expected_balance);
 
     BRRippleFeeBasis feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
-    assert(0 == feeBasis);
-    rippleWalletSetDefaultFeeBasis(wallet, 10);
-    feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
-    assert(10 == feeBasis);
+    assert(0 == feeBasis.pricePerCostFactor);
+    feeBasis.pricePerCostFactor = 10;
+    rippleWalletSetDefaultFeeBasis(wallet, feeBasis);
+    BRRippleFeeBasis newFeeBasis = rippleWalletGetDefaultFeeBasis(wallet);
+    assert(10 == newFeeBasis.pricePerCostFactor);
 
     rippleWalletFree(wallet);
 }
@@ -601,11 +630,15 @@ static void testWalletAddress()
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
 
     BRRippleAddress sourceAddress = rippleWalletGetSourceAddress(wallet);
-    assert(0 == memcmp(accountBytes, sourceAddress.bytes, 20));
+    BRRippleAddress accountAddress = rippleAddressCreateFromBytes(accountBytes, 20);
+    assert(1 == rippleAddressEqual(sourceAddress, accountAddress));
 
     BRRippleAddress targetAddress = rippleWalletGetTargetAddress(wallet);
-    assert(0 == memcmp(accountBytes, targetAddress.bytes, 20));
+    assert(1 == rippleAddressEqual(targetAddress, accountAddress));
 
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(accountAddress);
+    rippleAddressFree(targetAddress);
     rippleWalletFree(wallet);
 }
 
@@ -615,26 +648,29 @@ static void testRippleAddressCreate()
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
     const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
     
-    BRRippleAddress address = rippleAddressCreate(ripple_address);
-    assert(0 == memcmp(expected_bytes, address.bytes, 20));
+    BRRippleAddress address = rippleAddressCreateFromString(ripple_address);
+    BRRippleAddress expectedAddress = rippleAddressCreateFromBytes(expected_bytes, 20);
+    assert(1 == rippleAddressEqual(address, expectedAddress));
+    rippleAddressFree(address);
+    rippleAddressFree(expectedAddress);
 }
 
 static void testRippleAddressEqual()
 {
-    uint8_t address_input[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+    uint8_t address_input_true[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+    uint8_t address_input_false[] = { 0x00, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
 
-    BRRippleAddress a1;
-    BRRippleAddress a2;
-    memcpy(a1.bytes, address_input, 20);
-    a2 = a1;
-    int result = rippleAddressEqual(a1, a2);
-    assert(1 == result);
+    BRRippleAddress a1 = rippleAddressCreateFromBytes(address_input_true, 20);
+    BRRippleAddress a2 = rippleAddressClone(a1);
+    assert(1 == rippleAddressEqual(a1, a2));
 
-    // Modify a2
-    a2.bytes[0] = 0xFF;
-    result = rippleAddressEqual(a1, a2);
-    assert(0 == result);
+    BRRippleAddress a3 = rippleAddressCreateFromBytes(address_input_false, 20);
+    assert(0 == rippleAddressEqual(a1, a3));
+    rippleAddressFree(a1);
+    rippleAddressFree(a2);
+    rippleAddressFree(a3);
 }
 
 static void
@@ -651,11 +687,18 @@ testTransactionId (void /* ... */) {
 
     BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
     BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
-    BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(targetAddress);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
-    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, source_paper_key, NULL);
+    rippleAccountSignTransaction(sourceAccount, transaction, seed);
 
     // Compare the transaction hash
     const char * expected_hash = "0422880D4F88A7DE9A586D536119CAD2DEBFEACDAEA850E10A8E7155FF8DB2C6";
@@ -690,6 +733,39 @@ testTransactionId (void /* ... */) {
     free(signedBytes);
 }
 
+void testRippleAddressUnknown() {
+    BRRippleAddress address = rippleAddressCreateFromString("unknown");
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "unknown") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
+void testRippleAddressInvalid() {
+    BRRippleAddress address = rippleAddressCreateFromString(""); // Empty string
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "unknown") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
+void testRippleAddressFee() {
+    BRRippleAddress address = rippleAddressCreateFromString("__fee__"); // Empty string
+    assert(address);
+
+    char * addressString = rippleAddressAsString(address);
+    assert (strcmp(addressString, "__fee__") == 0);
+    free (addressString);
+
+    rippleAddressFree(address);
+}
+
 void rippleAccountTests()
 {
     testCreateRippleAccountWithPaperKey();
@@ -698,6 +774,9 @@ void rippleAccountTests()
     testCreateRippleAccountWithSerializedAccount();
     testRippleAddressCreate();
     testRippleAddressEqual();
+    testRippleAddressUnknown();
+    testRippleAddressInvalid();
+    testRippleAddressFee();
 }
 
 void rippleTransactionTests()
@@ -785,11 +864,18 @@ createSubmittableTransaction (void /* ... */) {
 
     BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
     BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+    BRRippleFeeBasis feeBasis;
+    feeBasis.pricePerCostFactor = 12;
+    feeBasis.costFactor = 1;
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
+    rippleAddressFree(sourceAddress);
+    rippleAddressFree(targetAddress);
 
     // Serialize and sign
     rippleAccountSetSequence(sourceAccount, 2);
-    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, source_paper_key, NULL);
+    rippleAccountSignTransaction(sourceAccount, transaction, seed);
 
     // Sign the transaction
     size_t signedBytesSize = 0;

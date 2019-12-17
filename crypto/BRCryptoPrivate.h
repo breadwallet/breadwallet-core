@@ -96,18 +96,29 @@ cryptoAccountAddressAsETH (BRCryptoAccount account);
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *uids,
                           const char *name,
-                          uint8_t forkId,
-                          const BRChainParams *params);
+                          BRCryptoBoolean isMainnet);
 
 private_extern BRCryptoNetwork
-cryptoNetworkCreateAsETH (const char *uids,
+cryptoNetworkCreateAsBCH (const char *uids,
                           const char *name,
-                          uint32_t chainId,
-                          BREthereumNetwork net);
+                          BRCryptoBoolean isMainnet);
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForMainnet (const char *uids,
+                                    const char *name);
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForTestnet (const char *uids,
+                                    const char *name);
+
+private_extern BRCryptoNetwork
+cryptoNetworkCreateAsETHForRinkeby (const char *uids,
+                                    const char *name);
 
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsGEN (const char *uids,
                           const char *name,
+                          BRCryptoCurrency currency,
                           uint8_t isMainnet);
 
 /// MARK: - Payment

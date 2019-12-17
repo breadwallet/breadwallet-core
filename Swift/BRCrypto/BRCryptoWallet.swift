@@ -240,12 +240,13 @@ public final class Wallet: Equatable {
         var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
 
         // This `amount` is in the `unit` of `wallet`
-        guard let amount = cryptoWalletEstimateLimit (self.core,
-                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                                      target.core,
-                                                      fee.core,
-                                                      &needFeeEstimate,
-                                                      &isZeroIfInsuffientFunds)
+        guard let amount = cryptoWalletManagerEstimateLimit (self.manager.core,
+                                                             self.core,
+                                                             (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                             target.core,
+                                                             fee.core,
+                                                             &needFeeEstimate,
+                                                             &isZeroIfInsuffientFunds)
             .map ({ Amount (core: $0, take: false)})
             else {
                 // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
@@ -432,29 +433,33 @@ public final class Wallet: Equatable {
                              amount: Amount,
                              fee: NetworkFee,
                              completion: @escaping Wallet.EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasis (self.core,
-                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                      target.core,
-                                      amount.core,
-                                      fee.core)
+        // 'Redirect' up to the 'manager'
+        cryptoWalletManagerEstimateFeeBasis (self.manager.core,
+                                             self.core,
+                                             callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                             target.core,
+                                             amount.core,
+                                             fee.core)
     }
-
+    
     internal func estimateFee (sweeper: WalletSweeper,
                                fee: NetworkFee,
                                completion: @escaping EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
-                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                   sweeper.core,
-                                                   fee.core)
+        cryptoWalletManagerEstimateFeeBasisForWalletSweep (self.manager.core,
+                                                           self.core,
+                                                           callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                           sweeper.core,
+                                                           fee.core)
     }
-
+    
     internal func estimateFee (request: PaymentProtocolRequest,
                                fee: NetworkFee,
                                completion: @escaping EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
-                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                              request.core,
-                                                              fee.core)
+        cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (self.manager.core,
+                                                                      self.core,
+                                                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                                      request.core,
+                                                                      fee.core)
     }
 
     public enum FeeEstimationError: Error {

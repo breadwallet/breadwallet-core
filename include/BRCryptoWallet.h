@@ -198,46 +198,6 @@ extern "C" {
     extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
 
-    /**
-     * Estimate the wallet's maximum or minimun transfer amount.
-     */
-    extern BRCryptoAmount
-    cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
-                               BRCryptoBoolean asMaximum,
-                               BRCryptoAddress target,
-                               BRCryptoNetworkFee fee,
-                               BRCryptoBoolean *needEstimate,
-                               BRCryptoBoolean *isZeroIfInsuffientFunds);
-
-    /**
-     * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
-     * represented in the wallet's fee currency.
-     *
-     * @param wallet the wallet
-     * @param amount the amount to transfer
-     * @param feeBasis the fee basis for the transfer
-     *
-     * @return the fee
-     */
-    extern void
-    cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
-                                  BRCryptoCookie cookie,
-                                  BRCryptoAddress target,
-                                  BRCryptoAmount  amount,
-                                  BRCryptoNetworkFee fee);
-
-    extern void
-    cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
-                                                BRCryptoCookie cookie,
-                                                BRCryptoWalletSweeper sweeper,
-                                                BRCryptoNetworkFee fee);
-
-    extern void
-    cryptoWalletEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWallet wallet,
-                                                           BRCryptoCookie cookie,
-                                                           BRCryptoPaymentProtocolRequest request,
-                                                           BRCryptoNetworkFee fee);
-
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoAmount pricePerCostFactor,
