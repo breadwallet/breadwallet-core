@@ -268,19 +268,6 @@ public class BlockChainDB {
                     confirmationsUntilFinal: confirmationsUntilFinal)
         }
 
-        static internal func updateBlockchainModelHeight (model: Model.Blockchain, height: UInt64) -> Model.Blockchain {
-            guard nil == model.blockHeight else { return model }
-
-            return (id: model.id,
-                    name: model.name,
-                    network: model.network,
-                    isMainnet: model.isMainnet,
-                    currency: model.currency,
-                    blockHeight: height,
-                    feeEstimates: model.feeEstimates,
-                    confirmationsUntilFinal: model.confirmationsUntilFinal)
-        }
-
         /// Currency & CurrencyDenomination
 
         public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)

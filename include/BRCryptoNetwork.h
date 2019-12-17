@@ -238,6 +238,11 @@ extern "C" {
     extern BRCryptoCurrency
     cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
                                      const char *uids);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForIssuer (BRCryptoNetwork network,
+                                       const char *issuer);
+
     /**
      * Returns the number of units for network's `currency`.  This is the index exclusive limit to
      * be used in `cryptoNetworkGetUnitAt()`.
@@ -312,10 +317,16 @@ extern "C" {
     cryptoNetworkSupportsSyncMode (BRCryptoNetwork network,
                                    BRCryptoSyncMode scheme);
 
+    extern BRCryptoBoolean
+    cryptoNetworkRequiresMigration (BRCryptoNetwork network);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 
     extern BRCryptoNetwork *
     cryptoNetworkInstallBuiltins (size_t *networksCount);
+
+    extern BRCryptoNetwork
+    cryptoNetworkFindBuiltin (const char *uids);
 
 #ifdef __cplusplus
 }

@@ -355,31 +355,7 @@ public final class System {
         managers.forEach { $0.setNetworkReachable(isNetworkReachable) }
     }
 
-    private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
-                                            remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
-        // We ONLY support built-in blockchains; but the remotes have some
-        // needed values - specifically the network fees.
-
-        // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never have
-        // more than `builtin` but might have less.
-        let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
-
-        // Augment `remote` to include all `builtin`.
-        return supportedRemote.unionOf(builtin) { $0.id }
-            // Keep all the `remote` data as valid BUT ensure there is a blockHeight
-            .map { (rbc) in
-                // If we have a block height, then no update is required.
-                guard nil == rbc.blockHeight else { return rbc }
-
-                // By construction we have a builtin blockchain
-                let bbc = builtin.first (where: { $0.id == rbc.id })! // ! => must have
-
-                // The builtin blockchain as a blockHeight; the remote does not -> update it.
-                return BlockChainDB.Model.updateBlockchainModelHeight (model: rbc, height: bbc.blockHeight!)
-        }
-    }
-
-    ///
+     ///
     /// Configure the system.  This will query various BRD services, notably the BlockChainDB, to
     /// establish the available networks (aka blockchains) and their currencies.  For each
     /// `Network` there will be `SystemEvent` which can be used by the App to create a
@@ -407,20 +383,6 @@ public final class System {
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
         }
 
-        func initializeBuiltinNetworks (_ onMainnet: Bool) -> [Network] {
-            // Get the builtin networks
-            var builtinCoresCount: Int = 0
-            let builtinCores = cryptoNetworkInstallBuiltins (&builtinCoresCount)!
-            defer { cryptoMemoryFree (builtinCores) }
-
-            return builtinCores
-                .withMemoryRebound (to: BRCryptoNetwork.self, capacity: builtinCoresCount) {
-                    Array (UnsafeBufferPointer (start: $0, count: builtinCoresCount))
-            }
-            .filter { (onMainnet ? CRYPTO_TRUE : CRYPTO_FALSE) == cryptoNetworkIsMainnet ($0) }
-            .map { Network (core: $0, take: false) }
-        }
-
         // Query for blockchains on the system.queue - thus system.configure() returns instantly
         // and only System (and other types of) Events allow access to networds, wallets, etc.
         self.queue.async {
@@ -432,75 +394,104 @@ public final class System {
             // currencies are processed
             let blockchainsGroup = DispatchGroup ()
 
+            // The 'discovered networks' will all be announced at once.
             var discoveredNetworks:[Network] = []
 
-            let builtinNetworks = initializeBuiltinNetworks (self.onMainnet)
+            func announceNetwork (_ network: Network) {
+                // Save the network
+                 self.networks.append (network)
 
-            #if false
-            // query blockchains
-            self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
-                // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-                let blockChainModelsSupported = System.supportedBlockchains
-                    .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
+                 self.listenerQueue.async {
+                     // Announce NetworkEvent.created...
+                     self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
 
-                // Get the remote block chains, some of these will be unsupported (have a nil
-                // blockHeight).  We don't filter unsupported block chains because the BDB provides
-                // valid network fee data.  We'll merge 'supported' and 'remote'
-                let blockChainModelsRemote = blockchainResult
-                    .getWithRecovery { (ignore) in return [] }
+                     // Announce SystemEvent.networkAdded - this will likely be handled with
+                     // system.createWalletManager(network:...) which will then announce
+                     // numerous events as wallets are created.
+                     self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                 }
 
-                let blockChainModels =
-                    self.configureMergeBlockchains (builtin: blockChainModelsSupported,
-                                                    remote: blockChainModelsRemote)
+                 // Keep a running total of discovered networks
+                 discoveredNetworks.append(network)
+            }
+
+            // The 'supported networks' will be the built-in networks matching 'onMainnet'
+            let supportedNetworks = Network.installBuiltins()
+                .filter { self.onMainnet == $0.isMainnet}
+
+            // Query for blockchains.
+            self.query.getBlockchains (mainnet: self.onMainnet) {
+                (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+                // If there was a QueryError then we are done
+                if case let .failure (error) = blockchainResult {
+                    // TODO: Handle a Query Error appropriately.  Must recover/retry
+                    print ("SYS: CONFIGURE: Missed Blockchains Query: \(error)")
+                    supportedNetworks.forEach { announceNetwork($0) }
+                    return // from getBlockchains
+                }
+                
+                // Only consider blockchain models that correspond to supported networks
+                let supportedModels = blockchainResult.getWithRecovery { (ignore) in return [] }
+                    .filter { (model) in supportedNetworks.contains { model.id == $0.uids } }
 
                 // If there are no models, then we are done (and disappointed).
-                guard !blockChainModels.isEmpty
-                    else { blockchainsSemaphore.signal(); return }
+                guard !supportedModels.isEmpty
+                    else {
+                        print ("SYS: CONFIGURE: No Blockchains Found")
+                        supportedNetworks.forEach { announceNetwork($0) }
+                        return
+                }
 
                 // Enter the group once for each model; we'll leave as each currency is processed.
-                // when all have left, self.queue will unblock
-                blockChainModels.forEach { (ignore) in blockchainsGroup.enter() }
+                // When all have left, self.queue will unblock (see blockchainsGroup.wait() below).
+                supportedModels.forEach { (ignore) in blockchainsGroup.enter() }
 
                 // Signal the dispatch semaphore, the self.queue will now start blocking
                 // on the dispatch group.
                 blockchainsSemaphore.signal()
 
                 // Handle each blockchain Model - there will be at least one model
-                blockChainModels
+                supportedModels
                     .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
+
                         // query currencies
-                        self.query.getCurrencies (blockchainId: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+                        self.query.getCurrencies (blockchainId: blockchainModel.id) {
+                            (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+
                             // We get one `currencyResult` per blockchain.  If we leave the group
                             // upon completion of this block, we'll match the `enter` calls.
-                            defer { blockchainsGroup.leave() }
+                            defer {
+                                blockchainsGroup.leave()
+                            }
 
-                            // Find applicable defaults by `blockchainID`
-                            let defaults = System.defaultCurrencies
-                                .filter { $0.blockchainID == blockchainModel.id }
+                            // Do process a network that we've added already.
+                            guard nil == self.networkBy (uids: blockchainModel.id)
+                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(blockchainModel.name)"); return }
 
-                            // Find applicable application currencies by `blockchainID`
-                            let apps = applicationCurrencies
-                                .filter { $0.blockchainID == blockchainModel.id }
+                            // Get the built-in network
+                            guard let network = supportedNetworks.first (where: { blockchainModel.id == $0.uids })
+                                else { print ("SYS: CONFIGURE: Missed network for model: \(blockchainModel.id)"); return }
 
-                            // Merge in `defaults` with the result; but, on error, use apps
-                            let currencyModels = currencyResult
-                                // On success, always merge `default` INTO the result.  We merge
-                                // into `result` to always bias to the blockchainDB result.
-                                .map { $0.unionOf (defaults) { $0.id }}
+                            if let blockHeight = blockchainModel.blockHeight {
+                                cryptoNetworkSetHeight (network.core, blockHeight)
+                            }
+                            
+                            // If there was a QueryError, then we are done
+                            if case let .failure(error) = currencyResult {
+                                print ("SYS: CONFIGURE: Missed Currencies Query (\(blockchainModel.id)): \(error)")
+                                // Continue on to use the applicationCurrencies
+                             }
 
-                                // On error, use `apps` merged INTO defaults.  We merge into
-                                // `defaults` to ensure that we get BTC, BCH, ETH, BRD and that
-                                // they are correct (don't rely on the App).
-                                .getWithRecovery { (_) in return defaults.unionOf(apps) { $0.id } }
-
-                            var associations: [Currency : Network.Association] = [:]
-
-                            // Update associations
-                            currencyModels
+                            currencyResult.getWithRecovery { (ignore) in
+                                return applicationCurrencies
+                                    .filter { $0.blockchainID == blockchainModel.id }
+                            }
                                 // TODO: Only needed if getCurrencies returns the wrong stuff.
                                 .filter { $0.blockchainID == blockchainModel.id }
                                 .filter { $0.verified }
                                 .forEach { (currencyModel: BlockChainDB.Model.Currency) in
+
                                     // Create the currency
                                     let currency = Currency (uids: currencyModel.id,
                                                              name: currencyModel.name,
@@ -522,18 +513,20 @@ public final class System {
                                     let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
                                     let defaultUnit = units.first { $0.decimals == maximumDecimals }!
 
-                                    // Update associations
-                                    associations[currency] = Network.Association (baseUnit: baseUnit,
-                                                                                  defaultUnit: defaultUnit,
-                                                                                  units: Set<Unit>(units))
+                                    // Add the currency - this will not replace an existing currency
+                                    // Note, a builtin network *always* has a native currency at
+                                    // least which is set as the network's currency.
+                                    network.addCurrency (currency, baseUnit: baseUnit, defaultUnit: defaultUnit)
+
+                                    // Add the units - this will not replace an existing unti
+                                    units.forEach { network.addUnitFor (currency: currency, unit: $0) }
                             }
 
-                            // the default currency
-                            guard let currency = associations.keys.first (where: { $0.uids == blockchainModel.currency.lowercased() }),
-                                let feeUnit = associations[currency]?.baseUnit
-                                else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)) on '\(blockchainModel.network)': defaultUnit"); return }
+                            // The feeUnit is always the network currency's base unit
+                            guard let feeUnit = network.baseUnitFor (currency: network.currency)
+                                else { return }
 
-                            // the network fees
+                            // Extract the network fees from the blockchainModel
                             let fees = blockchainModel.feeEstimates
                                 // Well, quietly ignore a fee if we can't parse the amount.
                                 .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
@@ -547,65 +540,22 @@ public final class System {
                             guard !fees.isEmpty
                                 else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
 
-                            // Do not add a network that we've added already.
-                            guard nil == self.networkBy (uids: blockchainModel.id)
-                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(blockchainModel.name)"); return }
+                            // Update the network's fees.
+                            network.fees = fees
 
-                            // define the network
-                            let network = Network (uids: blockchainModel.id,
-                                                   name: blockchainModel.name,
-                                                   isMainnet: blockchainModel.isMainnet,
-                                                   currency: currency,
-                                                   height: blockchainModel.blockHeight!,
-                                                   associations: associations,
-                                                   fees: fees,
-                                                   confirmationsUntilFinal: blockchainModel.confirmationsUntilFinal)
-
-                            // Save the network
-                            self.networks.append (network)
-
-                            self.listenerQueue.async {
-                                // Announce NetworkEvent.created...
-                                self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
-
-                                // Announce SystemEvent.networkAdded - this will likely be handled with
-                                // system.createWalletManager(network:...) which will then announce
-                                // numerous events as wallets are created.
-                                self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
-                            }
-
-                            // Keep a running total of discovered networks
-                            discoveredNetworks.append(network)
+                            // Finally, announce the network
+                            announceNetwork(network)
                         }
                 }
             }
-
+            
             // Wait on the semaphore - indicates that the DispatchGroup is 'active'
             blockchainsSemaphore.wait()
 
             // Wait on the group - indicates that all models+currencies have entered and left.
             blockchainsGroup.wait()
-            #else
-            self.listenerQueue.async {
-                builtinNetworks.forEach { (network:Network) in
-                     // Save the network
-                     self.networks.append (network)
 
-                     // Announce NetworkEvent.created...
-                     self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
-
-                     // Announce SystemEvent.networkAdded - this will likely be handled with
-                     // system.createWalletManager(network:...) which will then announce
-                     // numerous events as wallets are created.
-                     self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
-
-                     // Keep a running total of discovered networks
-                     discoveredNetworks.append(network)
-                 }
-            }
-            #endif
-
-            // Mark the completion.
+            // Always announce the discoveredNetworks on competion of `getBlockchains`
             self.listenerQueue.async {
                 self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
             }

@@ -69,14 +69,14 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertTrue  (manager.wallets.contains(manager.primaryWallet))
         XCTAssertTrue  (network.fees.contains(manager.defaultNetworkFee))
 
-        XCTAssertTrue  (system.supportedModes(network: network).contains(manager.mode))
-        XCTAssertEqual (system.defaultAddressScheme(network: network), manager.addressScheme)
+        XCTAssertTrue  (network.supportedModes.contains(manager.mode))
+        XCTAssertEqual (network.defaultAddressScheme, manager.addressScheme)
 
-        let otherAddressScheme = system.supportedAddressSchemes(network: network).first { $0 != manager.addressScheme }!
+        let otherAddressScheme = network.supportedAddressSchemes.first { $0 != manager.addressScheme }!
         manager.addressScheme = otherAddressScheme
         XCTAssertEqual (otherAddressScheme, manager.addressScheme)
-        manager.addressScheme = system.defaultAddressScheme(network: network)
-        XCTAssertEqual (system.defaultAddressScheme(network: network), manager.addressScheme)
+        manager.addressScheme = network.defaultAddressScheme
+        XCTAssertEqual (network.defaultAddressScheme, manager.addressScheme)
 
         XCTAssertNotNil (manager.baseUnit)
         XCTAssertNotNil (manager.defaultUnit)
@@ -339,8 +339,8 @@ class MigrateSystemListener: SystemListener {
 
                 // Wallet Manager
                 let _ = system.createWalletManager (network: network,
-                                                    mode: system.defaultMode(network: network),
-                                                    addressScheme: system.defaultAddressScheme(network: network),
+                                                    mode: network.defaultMode,
+                                                    addressScheme: network.defaultAddressScheme,
                                                     currencies: Set<Currency>())
             }
 

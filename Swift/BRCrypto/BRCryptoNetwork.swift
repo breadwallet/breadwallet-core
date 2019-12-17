@@ -33,7 +33,7 @@ public final class Network: CustomStringConvertible {
 
     /// The current height of the blockChain network.  On a reorganization, this might go backwards.
     /// (No guarantee that this monotonically increases)
-    public var height: UInt64 {
+    public internal(set) var height: UInt64 {
         get { return cryptoNetworkGetHeight (core) }
         set { cryptoNetworkSetHeight (core, newValue) }
     }
@@ -84,11 +84,6 @@ public final class Network: CustomStringConvertible {
     public func createPeer (address: String, port: UInt16, publicKey: String?) -> NetworkPeer? {
         return NetworkPeer (network: core, address: address, port: port, publicKey: publicKey)
     }
-
-    //    public func createPeer (serialization: Data) -> NetworkPeer? {
-    //        return NetworkPeer (network: core, serialization: serialization)
-    //    }
-
 
     // Address Schemes
 
@@ -178,18 +173,20 @@ public final class Network: CustomStringConvertible {
     public let currency: Currency
 
     /// All currencies - at least those we are handling/interested-in.
-    public let currencies: Set<Currency>
+    public var currencies: Set<Currency> {
+        Set ((0..<cryptoNetworkGetCurrencyCount(core))
+            .map { cryptoNetworkGetCurrencyAt (core, $0) }
+            .map { Currency (core: $0, take: false)})
+    }
 
     public func currencyBy (code: String) -> Currency? {
-        return currencies.first { $0.code == code } // sloppily
+        return cryptoNetworkGetCurrencyForCode (core, code)
+            .map { Currency (core: $0, take: false) }
     }
 
     public func currencyBy (issuer: String) -> Currency? {
-        let issuerLowercased = issuer.lowercased()
-        return currencies.first {
-            // Not the best way to compare - but avoid Foundation
-            $0.issuer.map { $0.lowercased() == issuerLowercased } ?? false
-        }
+        return cryptoNetworkGetCurrencyForIssuer (core, issuer)
+            .map { Currency (core: $0, take: false) }
     }
 
     public func hasCurrency(_ currency: Currency) -> Bool {
@@ -220,10 +217,20 @@ public final class Network: CustomStringConvertible {
         return unitsFor (currency: currency)?.contains(unit)
     }
 
-    public struct Association {
-        let baseUnit: Unit
-        let defaultUnit: Unit
-        let units: Set<Unit>
+    internal func addCurrency (_ currency: Currency, baseUnit: Unit, defaultUnit: Unit) {
+        precondition (baseUnit.hasCurrency(currency))
+        precondition (defaultUnit.hasCurrency(currency))
+        if !hasCurrency(currency) {
+            cryptoNetworkAddCurrency (core, currency.core, baseUnit.core, defaultUnit.core)
+        }
+    }
+    
+    internal func addUnitFor (currency: Currency, unit: Unit) {
+        precondition (hasCurrency(currency))
+        precondition (unit.hasCurrency(currency))
+        if !hasUnitFor(currency: currency, unit: unit)! { // 'bang' is safe here
+            cryptoNetworkAddCurrencyUnit (core, currency.core, unit.core)
+        }
     }
 
     internal init (core: BRCryptoNetwork, take: Bool) {
@@ -233,9 +240,23 @@ public final class Network: CustomStringConvertible {
         self.isMainnet  = (CRYPTO_TRUE == cryptoNetworkIsMainnet (core))
         self.type       = NetworkType (core: cryptoNetworkGetCanonicalType(core))
         self.currency   = Currency (core: cryptoNetworkGetCurrency(core), take: false)
-        self.currencies = Set ((0..<cryptoNetworkGetCurrencyCount(core))
-            .map { cryptoNetworkGetCurrencyAt (core, $0) }
-            .map { Currency (core: $0, take: false)})
+    }
+
+    internal static func findBuiltin (uids: String) -> Network? {
+        return cryptoNetworkFindBuiltin(uids)
+            .map { Network (core: $0, take: false) }
+    }
+
+    internal static func installBuiltins () -> [Network] {
+        var builtinCoresCount: Int = 0
+        let builtinCores = cryptoNetworkInstallBuiltins (&builtinCoresCount)!
+        defer { cryptoMemoryFree (builtinCores) }
+
+        return builtinCores
+            .withMemoryRebound (to: BRCryptoNetwork.self, capacity: builtinCoresCount) {
+                Array (UnsafeBufferPointer (start: $0, count: builtinCoresCount))
+        }
+        .map { Network (core: $0, take: false) }
     }
 
     public var description: String {
@@ -410,13 +431,6 @@ public final class NetworkPeer: Equatable {
     /// The public key
     public let publicKey: String?
 
-//    /// The serialization to allow reconstructing this peer
-//    public var serialization: Data {
-//        var bytesCount: Int = 0
-//        let bytes = cryptoPeerSerialize(core, &bytesCount)
-//        return Data (bytes: bytes!, count: bytesCount)
-//    }
-
     internal init (core: BRCryptoPeer, take: Bool) {
         self.core = (take ? cryptoPeerTake (core) : core)
         self.network = Network (core: cryptoPeerGetNetwork (core), take: false)
@@ -436,14 +450,6 @@ public final class NetworkPeer: Equatable {
     deinit {
         cryptoPeerGive (core)
     }
-
-//    internal convenience init? (network: BRCryptoNetwork, serialization: Data) {
-//        var bytes = [UInt8](serialization)
-//        guard let core = cryptoPeerCreateFromSerialization (network, &bytes, bytes.count)
-//            else { return nil }
-//
-//        self.init (core: core, take: false)
-//    }
 
     public static func == (lhs: NetworkPeer, rhs: NetworkPeer) -> Bool {
         return CRYPTO_TRUE == cryptoPeerIsIdentical (lhs.core, rhs.core)

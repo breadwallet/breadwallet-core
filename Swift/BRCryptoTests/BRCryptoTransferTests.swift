@@ -301,9 +301,6 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
 
     
     func testTransferConfirmation () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
-        //let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-
         let confirmation = TransferConfirmation (blockNumber: 1,
                                                  transactionIndex: 2,
                                                  timestamp: 3,

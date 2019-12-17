@@ -354,6 +354,21 @@ cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
     return currency;
 }
 
+extern BRCryptoCurrency
+cryptoNetworkGetCurrencyForIssuer (BRCryptoNetwork network,
+                                   const char *issuer) {
+    BRCryptoCurrency currency = NULL;
+    pthread_mutex_lock (&network->lock);
+    for (size_t index = 0; index < array_count(network->associations); index++) {
+        const char *i = cryptoCurrencyGetIssuer(network->associations[index].currency);
+        if (NULL != i && 0 == strcasecmp (issuer, i)) {
+            currency = cryptoCurrencyTake (network->associations[index].currency);
+            break;
+        }
+    }
+    pthread_mutex_unlock (&network->lock);
+    return currency;
+}
 
 private_extern BRCryptoCurrency
 cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
@@ -378,7 +393,7 @@ cryptoNetworkLookupCurrency (BRCryptoNetwork network,
                              BRCryptoCurrency currency) {
     // lock is not held for this static method; caller must hold it
     for (size_t index = 0; index < array_count(network->associations); index++) {
-        if (currency == network->associations[index].currency) {
+        if (CRYPTO_TRUE == cryptoCurrencyIsIdentical (currency, network->associations[index].currency)) {
             return &network->associations[index];
         }
     }
@@ -562,6 +577,12 @@ cryptoNetworkSupportsSyncMode (BRCryptoNetwork network,
         if (mode == network->syncModes[index])
             return CRYPTO_TRUE;
     return CRYPTO_FALSE;
+}
+
+extern BRCryptoBoolean
+cryptoNetworkRequiresMigration (BRCryptoNetwork network) {
+    return (CRYPTO_NETWORK_TYPE_BTC == network->canonicalType ||
+            CRYPTO_NETWORK_TYPE_BCH == network->canonicalType);
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
@@ -819,5 +840,21 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
     }
 
     return networks;
+}
+
+extern BRCryptoNetwork
+cryptoNetworkFindBuiltin (const char *uids) {
+    size_t networksCount = 0;
+    BRCryptoNetwork *networks = cryptoNetworkInstallBuiltins (&networksCount);
+    BRCryptoNetwork network = NULL;
+
+    for (size_t index = 0; index < networksCount; index++) {
+        if (NULL == network && 0 == strcmp (uids, networks[index]->uids))
+            network = cryptoNetworkTake (networks[index]);
+        cryptoNetworkGive(networks[index]);
+    }
+    free (networks);
+
+    return network;
 }
 

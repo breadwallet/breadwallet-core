@@ -361,11 +361,10 @@ extension UIApplication {
 
 extension Network {
     var scheme: String? {
-        switch self.currency.code {
-        case "btc": return "bitcoin"
-        case "bch": return "bitcoincash" // bchtest
-        case "eth": return "ethereum"
-        default: return nil
+        switch type {
+        case .btc: return "bitcoin"
+        case .bch: return (isMainnet ? "bitcoincash" : "bchtest")
+        case .eth: return "ethereum"
         }
     }
 }
