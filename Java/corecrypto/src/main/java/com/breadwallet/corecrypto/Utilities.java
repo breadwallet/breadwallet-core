@@ -8,6 +8,8 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
+import com.breadwallet.corenative.crypto.BRCryptoNetwork;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkCanonicalType;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolError;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolType;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
@@ -19,6 +21,7 @@ import com.breadwallet.corenative.crypto.BRCryptoSyncDepth;
 import com.breadwallet.corenative.crypto.BRCryptoSyncMode;
 import com.breadwallet.corenative.crypto.BRCryptoSyncStoppedReason;
 import com.breadwallet.crypto.AddressScheme;
+import com.breadwallet.crypto.NetworkType;
 import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -162,6 +165,26 @@ final class Utilities {
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");
+        }
+    }
+
+    /* package */
+    static BRCryptoNetworkCanonicalType networkTypeToCrypto(NetworkType type) {
+        switch (type) {
+            case BTC: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_BTC;
+            case BCH: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_BCH;
+            case ETH: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_ETH;
+            default: throw new IllegalArgumentException("Unsupported type");
+        }
+    }
+
+    /* package */
+    static NetworkType networkTypeFromCrypto(BRCryptoNetworkCanonicalType type) {
+        switch (type) {
+            case CRYPTO_NETWORK_TYPE_BTC: return NetworkType.BTC;
+            case CRYPTO_NETWORK_TYPE_BCH: return NetworkType.BCH;
+            case CRYPTO_NETWORK_TYPE_ETH: return NetworkType.ETH;
+            default: throw new IllegalArgumentException("Unsupported type");
         }
     }
 

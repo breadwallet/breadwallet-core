@@ -25,6 +25,7 @@ import com.breadwallet.crypto.Cipher;
 import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Key;
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.NetworkType;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
@@ -89,7 +90,7 @@ public class SystemAIT {
         assertTrue(system.getNetworks().size() >= 1);
 
         Network network = null;
-        for (Network n: system.getNetworks()) if (n.getCurrency().getCode().equals("eth") && !n.isMainnet()) network = n;
+        for (Network n: system.getNetworks()) if (NetworkType.ETH == n.getType() && !n.isMainnet()) network = n;
         assertNotNull(network);
 
         assertTrue(network.getCurrencyByCode("eth").isPresent());
