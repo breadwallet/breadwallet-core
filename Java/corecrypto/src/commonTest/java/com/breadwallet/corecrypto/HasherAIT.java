@@ -7,12 +7,14 @@
  */
 package com.breadwallet.corecrypto;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertArrayEquals;
 
+@Ignore
 public class HasherAIT {
 
     @Test

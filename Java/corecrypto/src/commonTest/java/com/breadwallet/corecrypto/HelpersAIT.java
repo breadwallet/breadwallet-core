@@ -23,6 +23,7 @@ import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncProgressEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent;
 import com.google.common.base.Optional;
 import com.google.common.io.Files;
@@ -327,6 +328,18 @@ class HelpersAIT {
                 }
             }
             return managers;
+        }
+
+        /* package */
+        float getSyncProgress() {
+            float progress = 0.0f;
+            for (CryptoEvent event: events) {
+                if (event.event instanceof WalletManagerSyncProgressEvent) {
+                    WalletManagerSyncProgressEvent e = (WalletManagerSyncProgressEvent) event.event;
+                    progress = e.getPercentComplete();
+                }
+            }
+            return progress;
         }
     }
 
@@ -945,7 +958,7 @@ class HelpersAIT {
             "erase",
             "erode",
             "erosion",
-            "error",
+            "syncError",
             "erupt",
             "escape",
             "essay",

@@ -12,6 +12,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
+@Ignore
 public class AddressAIT {
 
     @Test

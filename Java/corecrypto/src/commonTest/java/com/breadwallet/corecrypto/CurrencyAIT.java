@@ -12,9 +12,11 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+@Ignore
 public class CurrencyAIT {
 
     @Before

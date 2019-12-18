@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import com.google.common.base.Optional;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ import java.util.Date;
 
 import static org.junit.Assert.*;
 
+@Ignore
 public class AccountAIT {
 
     @Test
