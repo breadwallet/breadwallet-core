@@ -406,6 +406,13 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
+    public String toString() {
+        return "Wallet{" +
+                "currency=" + getName() +
+                '}';
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(core);
     }

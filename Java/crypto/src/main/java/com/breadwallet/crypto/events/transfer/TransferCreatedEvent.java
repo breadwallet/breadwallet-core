@@ -13,4 +13,9 @@ public final class TransferCreatedEvent implements TranferEvent {
     public <T> T accept(TransferEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "TransferCreatedEvent{}";
+    }
 }

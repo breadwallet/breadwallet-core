@@ -31,4 +31,12 @@ public final class TransferChangedEvent implements TranferEvent {
     public <T> T accept(TransferEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "TransferChangedEvent{" +
+                "oldState=" + oldState +
+                ", newState=" + newState +
+                '}';
+    }
 }

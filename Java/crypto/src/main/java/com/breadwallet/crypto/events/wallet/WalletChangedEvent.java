@@ -31,4 +31,12 @@ public final class WalletChangedEvent implements WalletEvent {
     public <T> T accept(WalletEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "WalletChangedEvent{" +
+                "oldState=" + oldState +
+                ", newState=" + newState +
+                '}';
+    }
 }

@@ -13,4 +13,9 @@ public class SystemCreatedEvent implements SystemEvent {
     public <T> T accept(SystemEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "SystemCreatedEvent{}";
+    }
 }

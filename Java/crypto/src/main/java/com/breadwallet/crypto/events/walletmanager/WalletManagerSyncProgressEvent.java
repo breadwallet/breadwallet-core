@@ -37,4 +37,12 @@ public final class WalletManagerSyncProgressEvent implements WalletManagerEvent 
     public <T> T accept(WalletManagerEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "WalletManagerSyncProgressEvent{" +
+                "percentComplete=" + percentComplete +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 }

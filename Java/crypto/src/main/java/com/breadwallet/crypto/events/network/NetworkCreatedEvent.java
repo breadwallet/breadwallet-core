@@ -13,4 +13,9 @@ public final class NetworkCreatedEvent implements NetworkEvent {
     public <T> T accept(NetworkEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "NetworkCreatedEvent{}";
+    }
 }

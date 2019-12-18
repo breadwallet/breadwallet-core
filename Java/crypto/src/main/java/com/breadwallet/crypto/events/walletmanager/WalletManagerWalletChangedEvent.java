@@ -26,4 +26,10 @@ public final class WalletManagerWalletChangedEvent implements WalletManagerEvent
         return visitor.visit(this);
     }
 
+    @Override
+    public String toString() {
+        return "WalletManagerWalletChangedEvent{" +
+                "wallet=" + wallet +
+                '}';
+    }
 }

@@ -25,4 +25,11 @@ public final class WalletManagerSyncStoppedEvent implements WalletManagerEvent {
     public <T> T accept(WalletManagerEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "WalletManagerSyncStoppedEvent{" +
+                "reason=" + reason +
+                '}';
+    }
 }

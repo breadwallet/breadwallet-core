@@ -28,4 +28,11 @@ public final class SystemDiscoveredNetworksEvent implements SystemEvent {
     public <T> T accept(SystemEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "SystemDiscoveredNetworksEvent{" +
+                "networks=" + networks +
+                '}';
+    }
 }

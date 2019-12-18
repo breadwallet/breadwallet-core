@@ -13,4 +13,9 @@ public final class NetworkFeesUpdatedEvent implements NetworkEvent {
     public <T> T accept(NetworkEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "NetworkFeesUpdatedEvent{}";
+    }
 }

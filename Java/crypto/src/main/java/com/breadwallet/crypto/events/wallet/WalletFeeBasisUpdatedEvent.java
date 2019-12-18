@@ -25,4 +25,11 @@ public final class WalletFeeBasisUpdatedEvent implements WalletEvent {
     public <T> T accept(WalletEventVisitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "WalletFeeBasisUpdatedEvent{" +
+                "feeBasis=" + feeBasis +
+                '}';
+    }
 }
