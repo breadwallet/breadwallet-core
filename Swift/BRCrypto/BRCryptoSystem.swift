@@ -1920,54 +1920,18 @@ extension System {
 
 extension BRCryptoTransferEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
-        case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoTransferEventTypeString(self))
     }
 }
 
 extension BRCryptoWalletEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_WALLET_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:     return "Transfer Added"
-        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:   return "Transfer Changed"
-        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: return "Transfer Submitted"
-        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:   return "Transfer Deleted"
-
-        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
-        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
-        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
-
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoWalletEventTypeString (self))
     }
 }
 
 extension BRCryptoWalletManagerEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_WALLET_MANAGER_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_MANAGER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:   return "Wallet Added"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: return "Wallet Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: return "Wallet Deleted"
-
-        // wallet: added, ...
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:   return "Sync Started"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoWalletManagerEventTypeString (self))
     }
 }
