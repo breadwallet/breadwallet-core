@@ -20,6 +20,21 @@
 
 #include <stdbool.h>
 
+/// MARK: - Network Canonical Type
+
+extern const char *
+cryptoNetworkCanonicalTypeString (BRCryptoNetworkCanonicalType type) {
+    static const char *strings[NUMBER_OF_NETWORK_TYPES] = {
+        "CRYPTO_NETWORK_TYPE_BTC",
+        "CRYPTO_NETWORK_TYPE_BCH",
+        "CRYPTO_NETWORK_TYPE_ETH",
+        // "Ripple",
+        // "Hedera"
+    };
+    assert (type < NUMBER_OF_NETWORK_TYPES);
+    return strings[type];
+}
+
 /// MARK: - Network Fee
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee)

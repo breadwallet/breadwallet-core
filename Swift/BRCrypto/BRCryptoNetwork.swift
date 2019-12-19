@@ -322,14 +322,7 @@ public enum NetworkType: CustomStringConvertible {
     }
 
     public var description: String {
-        switch self {
-            case .btc: return "Bitcoin"
-            case .bch: return "Bitcoin Cash"
-            case .eth: return "Ethereum"
-//        case .xrp: return "Ripple"
-//        case .hbar: return "Hedera"
-
-        }
+        return asUTF8String (cryptoNetworkCanonicalTypeString (core))
     }
 }
 

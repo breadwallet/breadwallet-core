@@ -33,16 +33,15 @@ extern "C" {
         CRYPTO_NETWORK_TYPE_BTC,
         CRYPTO_NETWORK_TYPE_BCH,
         CRYPTO_NETWORK_TYPE_ETH,
-#if defined (NEED_XRP)
-        CRYPTO_NETWORK_TYPE_XRP,
-#endif
+        // CRYPTO_NETWORK_TYPE_XRP,
+        // CRYPTO_NETWORK_TYPE_HBAR,
+        // CRYPTO_NETWORK_TYPE_XLM,
     } BRCryptoNetworkCanonicalType;
 
-#if defined (NEED_XRP)
-#  define NUMBER_OF_NETWORK_TYPES    (1 + CRYPTO_NETWORK_TYPE_XRP)
-#else
 #  define NUMBER_OF_NETWORK_TYPES    (1 + CRYPTO_NETWORK_TYPE_ETH)
-#endif
+
+    extern const char *
+    cryptoNetworkCanonicalTypeString (BRCryptoNetworkCanonicalType type);
 
     /// MARK: - (Network) Address Scheme
 

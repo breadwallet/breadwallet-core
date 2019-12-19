@@ -20,6 +20,24 @@
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
 
+/// MARK: - Transfer State Type
+
+extern const char *
+cryptoTransferStateTypeString (BRCryptoTransferStateType type) {
+    static const char *strings[] = {
+        "CRYPTO_TRANSFER_STATE_CREATED",
+        "CRYPTO_TRANSFER_STATE_SIGNED",
+        "CRYPTO_TRANSFER_STATE_SUBMITTED",
+        "CRYPTO_TRANSFER_STATE_INCLUDED",
+        "CRYPTO_TRANSFER_STATE_ERRORED",
+        "CRYPTO_TRANSFER_STATE_DELETED",
+    };
+    assert (CRYPTO_TRANSFER_EVENT_CREATED <= type && type <= CRYPTO_TRANSFER_STATE_DELETED);
+    return strings[type];
+}
+
+/// MARK: Transfer
+
 static BRCryptoTransferDirection
 cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
 

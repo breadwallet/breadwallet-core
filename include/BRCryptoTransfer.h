@@ -63,6 +63,9 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferStateType;
 
+    extern const char *
+    cryptoTransferStateTypeString (BRCryptoTransferStateType type);
+
     typedef struct {
         BRCryptoTransferStateType type;
         union {
