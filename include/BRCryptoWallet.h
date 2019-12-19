@@ -50,7 +50,7 @@ extern "C" {
     } BRCryptoWalletEventType;
 
     extern const char *
-    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
+    cryptoWalletEventTypeString (BRCryptoWalletEventType t);
 
     typedef struct {
         BRCryptoWalletEventType type;

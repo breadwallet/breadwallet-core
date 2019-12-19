@@ -635,7 +635,7 @@ cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2) {
 }
 
 extern const char *
-BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
+cryptoWalletEventTypeString (BRCryptoWalletEventType t) {
     switch (t) {
         case CRYPTO_WALLET_EVENT_CREATED:
         return "CRYPTO_WALLET_EVENT_CREATED";

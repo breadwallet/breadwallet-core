@@ -1378,7 +1378,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
 }
 
 extern const char *
-BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
+cryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
     switch (t) {
         case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
         return "CRYPTO_WALLET_MANAGER_EVENT_CREATED";
