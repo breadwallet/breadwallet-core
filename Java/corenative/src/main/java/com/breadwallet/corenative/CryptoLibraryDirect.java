@@ -263,6 +263,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletGetTransfers(Pointer wallet, SizeTByReference count);
     public static native int cryptoWalletHasTransfer(Pointer wallet, Pointer transfer);
     public static native Pointer cryptoWalletGetAddress(Pointer wallet, int addressScheme);
+    public static native int cryptoWalletHasAddress(Pointer wallet, Pointer address);
     public static native Pointer cryptoWalletGetUnit(Pointer wallet);
     public static native Pointer cryptoWalletGetUnitForFee(Pointer wallet);
     public static native Pointer cryptoWalletGetCurrency(Pointer wallet);

@@ -89,16 +89,17 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoWalletState.fromCore(CryptoLibraryDirect.cryptoWalletGetState(thisPtr));
     }
 
-    public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
+    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
         Pointer thisPtr = this.getPointer();
 
         return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
-    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
-        Pointer thisPtr = this.getPointer();
-
-        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
+    public boolean containsAddress(BRCryptoAddress address) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasAddress(
+                this.getPointer(),
+                address.getPointer()
+        );
     }
 
     public Optional<BRCryptoFeeBasis> createTransferFeeBasis(BRCryptoAmount pricePerCostFactor, double costFactor) {

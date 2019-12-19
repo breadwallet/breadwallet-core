@@ -20,7 +20,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
-import com.breadwallet.crypto.errors.FeeEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.errors.LimitEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationServiceFailureError;
@@ -378,8 +377,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
-    public Address getSource() {
-        return Address.create(core.getSourceAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
+    public boolean containsAddress(com.breadwallet.crypto.Address address) {
+        return core.containsAddress(Address.from(address).getCoreBRCryptoAddress());
     }
 
     @Override
