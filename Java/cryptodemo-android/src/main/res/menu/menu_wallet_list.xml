@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <item android:id="@+id/action_connect"
+        android:title="Connect"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_disconnect"
+        android:title="Disconnect"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_sync"
+        android:title="Sync"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_add_wallet"
+        android:title="Add Wallet"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
+
+    <item android:id="@+id/action_update_fees"
+        android:title="Update Fees"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_wipe"
+        android:title="Wipe"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
+
+</menu>

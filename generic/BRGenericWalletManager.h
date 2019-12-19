@@ -124,6 +124,10 @@ extern "C" {
                         uint8_t *bytes,
                         size_t   bytesCount);
 
+    extern void
+    gwmWipe (const char *type,
+             const char *storagePath);
+
 #ifdef __cplusplus
 }
 #endif

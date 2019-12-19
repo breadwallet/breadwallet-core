@@ -9,14 +9,11 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include "BRCryptoUnit.h"
-#include "BRCryptoPrivate.h"
+#include "support/BRArray.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-static void
-cryptoUnitRelease (BRCryptoUnit unit);
 
 struct BRCryptoUnitRecord {
     BRCryptoCurrency currency;
@@ -45,7 +42,7 @@ cryptoUnitCreateInternal (BRCryptoCurrency currency,
     return unit;
 }
 
-private_extern BRCryptoUnit
+extern BRCryptoUnit
 cryptoUnitCreateAsBase (BRCryptoCurrency currency,
                         const char *uids,
                         const char *name,
@@ -58,7 +55,7 @@ cryptoUnitCreateAsBase (BRCryptoCurrency currency,
     return unit;
 }
 
-private_extern BRCryptoUnit
+extern BRCryptoUnit
 cryptoUnitCreate (BRCryptoCurrency currency,
                   const char *uids,
                   const char *name,
@@ -81,6 +78,8 @@ cryptoUnitRelease (BRCryptoUnit unit) {
     free (unit->uids);
     free (unit->name);
     free (unit->symbol);
+
+    memset (unit, 0, sizeof(*unit));
     free (unit);
 }
 

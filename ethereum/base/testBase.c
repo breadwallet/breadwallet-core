@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "support/BRCrypto.h"
-#include "BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 
 static void
 runEtherParseTests () {

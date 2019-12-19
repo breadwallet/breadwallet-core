@@ -10,6 +10,7 @@
 //
 import Foundation  // Data, DispatchQueue
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 /// System (a singleton)
@@ -85,6 +86,16 @@ public final class System {
         return "\(blockchainID):\(address)"
     }
 
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
+    }
+
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
         (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
@@ -103,15 +114,14 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: [(name: "BRD Token INT", code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD Token",     code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
 //         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
+//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
 //         address: nil, verified: true,
@@ -135,10 +145,9 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
 //         address: nil, verified: true,
@@ -227,13 +236,11 @@ public final class System {
     ///
     static let supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.api_only, .p2p_only],
-        "bitcoincash-mainnet":  [.p2p_only],
+        "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-mainnet":       [],
         "bitcoin-testnet":      [.api_only, .p2p_only],
-        "bitcoincash-testnet":  [.p2p_only],
+        "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-//        "ripple-testnet":       []
     ]
 
     ///
@@ -243,11 +250,9 @@ public final class System {
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
-//        "ripple-mainnet":       [],
         "bitcoin-testnet":      .p2p_only,
         "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
-//        "ripple-testnet":       []
     ]
 
 
@@ -365,6 +370,22 @@ public final class System {
         return true
     }
 
+    ///
+    /// Remove (aka 'wipe') the persistent storage associated with `network` at `path`.  This should
+    /// be used solely to recover from a failure of `createWalletManager`.  A failure to create
+    /// a wallet manager is most likely due to corruption of the persistently stored data and the
+    /// only way to recover is to wipe that data.
+    ///
+    /// - Parameters:
+    ///   - network: network to wipe data for
+    ///
+    public func wipe (network: Network) {
+        // Racy - but if there is no wallet manager for `network`... then
+        if !managers.contains { network == $0.network } {
+            cryptoWalletManagerWipe (network.core, path);
+        }
+    }
+
     // Wallets - derived as a 'flatMap' of the managers' wallets.
     public var wallets: [Wallet] {
         return managers.flatMap { $0.wallets }
@@ -470,7 +491,7 @@ public final class System {
     public func announce (transaction id: String, data: [String: Any]) {
         print ("SYS: Announce: \(id)")
     }
-
+    #if false
     internal func updateSubscribedWallets () {
         let currencyKeyValues = wallets.map { ($0.currency.code, [$0.source.description]) }
         let wallet = (id: account.uids,
@@ -479,7 +500,7 @@ public final class System {
             print ("SYS: SubscribedWallets: \(res)")
         }
     }
-
+    #endif
     /// MARK: - Network Fees
 
     ////
@@ -611,8 +632,8 @@ public final class System {
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
-            let symb = "\(currency.code.uppercased())I"
-            let name = "\(currency.code.uppercased())_INTEGER"
+            let symb = "\(currency.code)I".lowercased()
+            let name = "\(currency.code) INT".uppercased()
             let uids = "\(currency.uids):\(name)"
             return Unit (currency: currency, uids: uids, name: name, symbol: symb)
         }
@@ -796,10 +817,12 @@ public final class System {
     /// not provide its own currency model.
     ///
     public static func asBlockChainDBModelCurrency (uids: String, name: String, code: String, type: String, decimals: UInt8) -> BlockChainDB.Model.Currency? {
-        guard "ERC20" == type || "NATIVE" == type else { return nil }
+        // convert to lowercase to match up with built-in blockchains
+        let type = type.lowercased()
+        guard "erc20" == type || "native" == type else { return nil }
         return uids.firstIndex(of: ":")
             .map {
-                let code         = code.uppercased()
+                let code         = code.lowercased()
                 let blockchainID = uids.prefix(upTo: $0).description
                 let address      = uids.suffix(from: uids.index (after: $0)).description
 
@@ -810,16 +833,7 @@ public final class System {
                         blockchainID: blockchainID,
                         address: (address != "__native__" ? address : nil),
                         verified: true,
-                        demoninations: [
-                            (name: "\(code)_INTEGER",
-                                code: "\(code)_INTEGER",
-                                decimals: 0,
-                                symbol: "\(code)I"),   // BRDI -> BaseUnit
-
-                            (name: code,
-                             code: code,
-                             decimals: decimals,
-                             symbol: code)])       //  BRD -> DefaultUnit
+                        demoninations: System.makeCurrencyDemominationsERC20 (code, decimals: decimals))
         }
     }
 
@@ -991,7 +1005,10 @@ public final class System {
     /// Remove (aka 'wipe') the persistent storage associated with any and all systems located
     /// within `atPath` except for a specified array of systems to preserve.  Generally, this
     /// function should be called on startup after all systems have been created.  When called at
-    ///  that time, any 'left over' systems will have their persistent storeage wiped.
+    /// that time, any 'left over' systems will have their persistent storeage wiped.
+    ///
+    /// - Note: This function will perform no action if `atPath` does not exist or is
+    ///         not a directory.
     ///
     /// - Parameter atPath: the file system path where system data is persistently stored
     /// - Parameter systems: the array of systems that shouldn not have their data wiped.
@@ -1061,7 +1078,7 @@ public typealias SystemEventHandler = (System, SystemEvent) -> Void
 ///
 /// A SystemCallbackCoordinator coordinates callbacks for non-event based announcement interfaces.
 ///
-public final class SystemCallbackCoordinator {
+internal final class SystemCallbackCoordinator {
     enum Handler {
         case walletFeeEstimate (Wallet.EstimateFeeHandler)
     }
@@ -1197,7 +1214,7 @@ extension System {
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     walletManagerEvent = WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value)
 
-                default: precondition(false)
+                default: preconditionFailure()
                 }
 
                 walletManagerEvent.map { (event) in
@@ -1275,7 +1292,7 @@ extension System {
                         let feeError = Wallet.FeeEstimationError.fromStatus(event.u.feeBasisEstimated.status)
                         system.callbackCoordinator.handleWalletFeeEstimateFailure (cookie, error: feeError)
                     }
-                default: precondition (false)
+                default: preconditionFailure()
                 }
 
                 walletEvent.map { (event) in
@@ -1310,7 +1327,7 @@ extension System {
                 case CRYPTO_TRANSFER_EVENT_DELETED:
                     transferEvent = TransferEvent.deleted
 
-                default: precondition(false)
+                default: preconditionFailure()
                 }
 
                 transferEvent.map { (event) in
@@ -1327,13 +1344,25 @@ extension System {
 }
 
 extension System {
+    private static func cleanup (_ message: String,
+                                 cwm: BRCryptoWalletManager? = nil,
+                                 wid: BRCryptoWallet? = nil,
+                                 tid: BRCryptoTransfer? = nil) -> Void {
+        print (message)
+        cwm.map { cryptoWalletManagerGive ($0) }
+        wid.map { cryptoWalletGive ($0) }
+        tid.map { cryptoTransferGive ($0) }
+    }
+}
+
+extension System {
     internal var clientBTC: BRCryptoCWMClientBTC {
         return BRCryptoCWMClientBTC (
             funcGetBlockNumber: { (context, cwm, sid) in
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup("SYS: BTC: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetBlockNumber")
 
                 manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
@@ -1347,7 +1376,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: GetTransactions: Missed {cwm}"); return }
+                    else { System.cleanup ("SYS: BTC: GetTransactions: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
                 var cAddresses = addresses!
@@ -1359,8 +1388,8 @@ extension System {
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: addresses,
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
+                                               begBlockNumber: (begBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : begBlockNumber),
+                                               endBlockNumber: (endBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : endBlockNumber),
                                                includeRaw: true) {
                                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                                 defer { cryptoWalletManagerGive (cwm!) }
@@ -1391,7 +1420,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: BTC: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: BTC: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: SubmitTransaction")
 
                 let hash = asUTF8String (hashAsHex!)
@@ -1401,7 +1430,9 @@ extension System {
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                        failure: { (e) in
+                            print ("SYS: BTC: SubmitTransaction: Error: \(e)")
+                            cwmAnnounceSubmitTransferFailure (cwm, sid) })
                 }
         })
     }
@@ -1414,11 +1445,11 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetEtherBalance: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address = asUTF8String (address!)
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {network, address}", cwm: cwm); return }
 
                 manager.query.getBalanceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1432,12 +1463,12 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTokenBalance: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address  = asUTF8String (address!)
-                let contract = asUTF8String (contract!)
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String),
+                    let contract = contract.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {network, address, contract}", cwm: cwm); return }
 
                 manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1451,10 +1482,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetGasPrice: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetGasPrice: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetGasPrice: Missed {network}", cwm: cwm); return }
 
                 manager.query.getGasPriceAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1468,13 +1499,13 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: EstimateGas: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {cwm}", cwm: cwm); return }
 
                 guard let price = price.map (asUTF8String)
-                    else { print ("SYS: ETH: EstimateGas: Missed {price}"); return }
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {price}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: EstimateGas: Missed {network}", cwm: cwm); return }
 
                 manager.query.getGasEstimateAsETH (network: network,
                                                    from:   asUTF8String(from!),
@@ -1492,10 +1523,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {network}", cwm: cwm); return }
 
                 manager.query.submitTransactionAsETH (network: network,
                                                       transaction: asUTF8String(transaction!)) {
@@ -1510,10 +1541,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTransactions: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {network}", cwm: cwm); return }
 
                 manager.query.getTransactionsAsETH (network: network,
                                                     address: asUTF8String (address!),
@@ -1550,10 +1581,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetLogs: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {network}", cwm: cwm); return }
 
                 manager.query.getLogsAsETH (network: network,
                                             contract: contract.map { asUTF8String($0) },
@@ -1568,7 +1599,7 @@ extension System {
                                                         lgs.forEach { (log: BlockChainDB.ETH.Log) in
                                                             let topicsCount = Int32 (log.topics.count)
                                                             var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
-                                                            defer { topics.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
+                                                            defer { topics.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
 
                                                             cwmAnnounceGetLogsItem (cwm, sid,
                                                                                     log.hash,
@@ -1590,10 +1621,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetBlocks: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetBlocks: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetBlocks: Missed {network}", cwm: cwm); return }
 
                 manager.query.getBlocksAsETH (network: network,
                                               address: asUTF8String(address!),
@@ -1617,7 +1648,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetTokens: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetTokens: Missed {cwm}", cwm: cwm); return }
 
                 manager.query.getTokensAsETH () {
                     (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
@@ -1641,10 +1672,10 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {network}", cwm: cwm); return }
 
                 manager.query.getBlockNumberAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
@@ -1665,15 +1696,13 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: ETH: GetNonce: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {cwm}", cwm: cwm); return }
 
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                guard let network = network.map (asUTF8String),
+                    let address = address.map (asUTF8String)
+                    else { System.cleanup  ("SYS: ETH: GetNonce: Missed {network, address}", cwm: cwm); return }
 
-                guard let address = address.map (asUTF8String)
-                    else { print ("SYS: ETH: GetNonce: Missed {address}"); return }
-
-                 manager.query.getNonceAsETH (network: network, address: address) {
+                manager.query.getNonceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
@@ -1690,7 +1719,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: GetBlockNumber: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: GetBlockNumber")
 
                 manager.query.getBlockchain (blockchainId: manager.network.uids) {
@@ -1705,13 +1734,13 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: GetTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: GetTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: [asUTF8String(address!)],
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
+                                               begBlockNumber: (begBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : begBlockNumber),
+                                               endBlockNumber: (endBlockNumber == BLOCK_HEIGHT_UNBOUND ? nil : endBlockNumber),
                                                includeRaw: true) {
                                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                                 defer { cryptoWalletManagerGive(cwm) }
@@ -1742,7 +1771,7 @@ extension System {
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { print ("SYS: GEN: SubmitTransaction: Missed {cwm}"); return }
+                    else { System.cleanup  ("SYS: GEN: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GEN: SubmitTransaction")
 
                 let hash = asUTF8String (hashAsHex!)
@@ -2010,7 +2039,7 @@ extension System {
             var timestamp:   UInt32 = 0
             var bytesCount:  size_t = 0
             var bytes: UnsafeMutablePointer<UInt8>? = nil
-            defer { if nil != bytes { free(bytes) }}
+            defer { if nil != bytes { cryptoMemoryFree (bytes) }}
 
             cryptoTransferExtractBlobAsBTC (transfer.core,
                                             &bytes, &bytesCount,

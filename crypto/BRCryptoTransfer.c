@@ -8,73 +8,20 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include <pthread.h>
+#include "BRCryptoTransferP.h"
 
-#include "BRCryptoTransfer.h"
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoFeeBasisP.h"
 
 #include "support/BRAddress.h"
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
 
-/**
- *
- */
-typedef struct {
-    uint64_t blockNumber;
-    uint64_t transactionIndex;
-    uint64_t timestamp;
-    BRCryptoAmount fee; // ouch; => cant be a struct
-} BRCryptoTransferConfirmation;
-
-static void
-cryptoTransferRelease (BRCryptoTransfer transfer);
-
-struct BRCryptoTransferRecord {
-    pthread_mutex_t lock;
-
-    BRCryptoBlockChainType type;
-    union {
-        struct {
-            BRTransaction *tid;
-            uint64_t fee;
-            uint64_t send;
-            uint64_t recv;
-        } btc;
-        struct {
-            BREthereumEWM ewm;
-            BREthereumTransfer tid;
-            BREthereumAddress accountAddress;
-        } eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericTransfer tid;
-        } gen;
-    } u;
-
-    BRCryptoAddress sourceAddress;
-    BRCryptoAddress targetAddress;
-    BRCryptoTransferState state;
-
-    /// The amount's unit.
-    BRCryptoUnit unit;
-
-    /// The fee's unit
-    BRCryptoUnit unitForFee;
-
-    /// The feeBasis.  We must include this here for at least the case of BTC where the fees
-    /// encoded into the BTC-wire-transaction are based on the BRWalletFeePerKB value at the time
-    /// that the transaction is created.  Sometime later, when the feeBasis is needed we can't
-    /// go to the BTC wallet and expect the FeePerKB to be unchanged.
-
-    /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
-    BRCryptoFeeBasis feeBasisEstimated;
-    BRCryptoFeeBasis feeBasisConfirmed;
-
-    BRCryptoRef ref;
-};
+static BRCryptoTransferDirection
+cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer)
 
@@ -120,11 +67,16 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
     transfer->u.btc.recv = BRWalletAmountReceivedFromTx (wid, tid);
     transfer->u.btc.send = BRWalletAmountSentByTx (wid, tid);
 
+    BRCryptoTransferDirection direction = cryptoTransferDirectionFromBTC (transfer->u.btc.send,
+                                                                          transfer->u.btc.recv,
+                                                                          transfer->u.btc.fee);
+
     {
         size_t     inputsCount = tid->inCount;
         BRTxInput *inputs      = tid->inputs;
 
-        int inputsContain = (UINT64_MAX != transfer->u.btc.fee ? 1 : 0);
+        // If we receive the transfer, then we won't be the source address.
+        int inputsContain = (CRYPTO_TRANSFER_RECEIVED != direction);
 
         for (size_t index = 0; index < inputsCount; index++) {
             size_t addressSize = BRTxInputAddress (&inputs[index], NULL, 0, addressParams);
@@ -148,7 +100,8 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         size_t      outputsCount = tid->outCount;
         BRTxOutput *outputs      = tid->outputs;
 
-        int outputsContain = (UINT64_MAX == transfer->u.btc.fee ? 1 : 0);
+        // If we sent the transfer, then we won't be the target address.
+        int outputsContain = (CRYPTO_TRANSFER_SENT != direction);
 
         for (size_t index = 0; index < outputsCount; index++) {
             size_t addressSize = BRTxOutputAddress (&outputs[index], NULL, 0, addressParams);
@@ -276,7 +229,7 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     free (transfer);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoTransferGetType (BRCryptoTransfer transfer) {
     return transfer->type;
 }
@@ -489,26 +442,27 @@ cryptoTransferSetState (BRCryptoTransfer transfer,
     cryptoTransferStateRelease (&oldState);
 }
 
+static BRCryptoTransferDirection
+cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee) {
+    if (UINT64_MAX == fee) fee = 0;
+
+    return (0 == send
+            ? CRYPTO_TRANSFER_RECEIVED
+            : ((send - fee) == recv
+               ? CRYPTO_TRANSFER_RECOVERED
+               : ((send - fee) > recv
+                  ? CRYPTO_TRANSFER_SENT
+                  : CRYPTO_TRANSFER_RECEIVED)));
+}
+
 extern BRCryptoTransferDirection
 cryptoTransferGetDirection (BRCryptoTransfer transfer) {
     switch (transfer->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            uint64_t fee = transfer->u.btc.fee;
-            if (UINT64_MAX == fee) fee = 0;
+        case BLOCK_CHAIN_TYPE_BTC:
+            return cryptoTransferDirectionFromBTC (transfer->u.btc.send,
+                                                   transfer->u.btc.recv,
+                                                   transfer->u.btc.fee);
 
-            uint64_t send = transfer->u.btc.send;
-            uint64_t recv = transfer->u.btc.recv;
-
-            if (0 == send) {
-                return CRYPTO_TRANSFER_RECEIVED;
-            } else if ((send - fee) == recv) {
-                return CRYPTO_TRANSFER_RECOVERED;
-            } else if ((send - fee) > recv) {
-                return CRYPTO_TRANSFER_SENT;
-            }
-
-            return CRYPTO_TRANSFER_RECEIVED;
-        }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM      ewm = transfer->u.eth.ewm;
             BREthereumTransfer tid = transfer->u.eth.tid;
@@ -698,6 +652,10 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
+    // This does not compare the properties of `t1` to `t2`, just the 'id-ness'.  If the properties
+    // are compared, one needs to be careful about the BRTransaction's timestamp.  Two transactions
+    // with an identical hash can have different timestamps depending on how the transaction
+    // is identified.  Specifically P2P and API found transactions *will* have different timestamps.
     return t1->u.btc.tid == t2->u.btc.tid;
 }
 
@@ -720,7 +678,82 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
-private_extern void
+extern BRCryptoComparison
+cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2) {
+    // early bail when comparing the same transfer
+    if (CRYPTO_TRUE == cryptoTransferEqual (transfer1, transfer2)) {
+        return CRYPTO_COMPARE_EQ;
+    }
+
+    // The algorithm below is captured in the cryptoTransferCompare declaration
+    // comments; any changes to this routine must be reflected in that comment
+    // and vice versa).
+    //
+    // The algorithm includes timestamp as a differentiator despite the fact that
+    // timestamp is likely derived from the block. Thus, an occurrence where timestamp
+    // is different while block value is the same is unlikely. Regardless, this check
+    // is included to handle cases where that assumption does not hold.
+    //
+    // Another reason to include timestamp is if this function were used to order
+    // transfers across different wallets. While not anticipated to be a common use
+    // case, there is not enough information available in the transfer object to
+    // preclude it from happening. Checking on the `type` field is insufficient
+    // given that GEN will handle multiple cases. While block number and transaction
+    // index are meaningless comparables between wallets, ordering by timestamp
+    // does provide some value.
+
+    BRCryptoComparison compareValue;
+    BRCryptoTransferState state1 = cryptoTransferGetState (transfer1);
+    BRCryptoTransferState state2 = cryptoTransferGetState (transfer2);
+
+    // neither transfer is included
+    if (state1.type != CRYPTO_TRANSFER_STATE_INCLUDED &&
+        state2.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // we don't have anything to sort on other than identity
+        compareValue = (uintptr_t) transfer1 > (uintptr_t) transfer2 ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // transfer1 is NOT included (and transfer2 is)
+    } else if (state1.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // return "greater than" for transfer1
+        compareValue = CRYPTO_COMPARE_GT;
+
+    // transfer2 is NOT included (and transfer1 is)
+    } else if (state2.type != CRYPTO_TRANSFER_STATE_INCLUDED) {
+        // return "lesser than" for transfer1
+        compareValue = CRYPTO_COMPARE_LT;
+
+    // both are included, check if the timestamp differs
+    } else if (state1.u.included.timestamp != state2.u.included.timestamp) {
+        // return based on the greater timestamp
+        compareValue = state1.u.included.timestamp > state2.u.included.timestamp ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp, check if the block differs
+    } else if (state1.u.included.blockNumber != state2.u.included.blockNumber) {
+        // return based on the greater block number
+        compareValue = state1.u.included.blockNumber > state2.u.included.blockNumber ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp and block, check if the index differs
+    } else if (state1.u.included.transactionIndex != state2.u.included.transactionIndex) {
+        // return based on the greater index
+        compareValue = state1.u.included.transactionIndex > state2.u.included.transactionIndex ?
+            CRYPTO_COMPARE_GT : CRYPTO_COMPARE_LT;
+
+    // both are included and have the same timestamp, block and index
+    } else {
+        // we are out of differentiators, return "equal"
+        compareValue = CRYPTO_COMPARE_EQ;
+    }
+
+    // clean up on the way out
+    cryptoTransferStateRelease (&state1);
+    cryptoTransferStateRelease (&state2);
+    return compareValue;
+}
+
+extern void
 cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
                                 uint8_t **bytes,
                                 size_t   *bytesCount,
@@ -759,7 +792,7 @@ cryptoTransferStateInit (BRCryptoTransferStateType type) {
             assert (0); // if you are hitting this, use cryptoTransferStateErroredInit!
             return (BRCryptoTransferState) {
                 CRYPTO_TRANSFER_STATE_ERRORED,
-                { .errored = { BRTransferSubmitErrorUnknown() }}
+                { .errored = { BRCryptoTransferSubmitErrorUnknown() }}
             };
         }
     }
@@ -777,7 +810,7 @@ cryptoTransferStateIncludedInit (uint64_t blockNumber,
 }
 
 extern BRCryptoTransferState
-cryptoTransferStateErroredInit (BRTransferSubmitError error) {
+cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error) {
     return (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_ERRORED,
         { .errored = { error }}
@@ -824,6 +857,8 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
             break;
         }
     }
+
+    memset (state, 0, sizeof(*state));
 }
 
 extern const char *
@@ -839,4 +874,43 @@ BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
         return "CRYPTO_TRANSFER_EVENT_DELETED";
     }
     return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}
+
+
+/// MARK: Transaction Submission Error
+
+// TODO(fix): This should be moved to a more appropriate file (BRTransfer.c/h?)
+
+extern BRCryptoTransferSubmitError
+BRCryptoTransferSubmitErrorUnknown(void) {
+    return (BRCryptoTransferSubmitError) {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN
+    };
+}
+
+extern BRCryptoTransferSubmitError
+BRCryptoTransferSubmitErrorPosix(int errnum) {
+    return (BRCryptoTransferSubmitError) {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX,
+        { .posix = { errnum } }
+    };
+}
+
+extern char *
+BRCryptoTransferSubmitErrorGetMessage (BRCryptoTransferSubmitError *e) {
+    char *message = NULL;
+
+    switch (e->type) {
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX: {
+            if (NULL != (message = strerror (e->u.posix.errnum))) {
+                message = strdup (message);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return message;
 }

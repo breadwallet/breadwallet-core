@@ -112,7 +112,14 @@ class CoreDemoListener: SystemListener {
                                                           mode: mode,
                                                           addressScheme: scheme,
                                                           currencies: currencies)
-                if !success { UIApplication.doError(network: network) }
+                if !success {
+                    system.wipe (network: network)
+                    let successRetry = system.createWalletManager (network: network,
+                                                                   mode: mode,
+                                                                   addressScheme: scheme,
+                                                                   currencies: currencies)
+                    if !successRetry { UIApplication.doError(network: network) }
+                }
             }
 
         case .managerAdded (let manager):

@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <string.h>
 #include "ethereum/util/BRUtil.h"
-#include "BRRlp.h"
+#include "ethereum/rlp/BRRlp.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {

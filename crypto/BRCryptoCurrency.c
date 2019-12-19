@@ -10,11 +10,9 @@
 
 #include "BRCryptoCurrency.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
-static void
-cryptoCurrencyRelease (BRCryptoCurrency currency);
 
 struct BRCryptoCurrencyRecord {
     char *uids;
@@ -27,7 +25,7 @@ struct BRCryptoCurrencyRecord {
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
 
-/* private */ extern BRCryptoCurrency
+extern BRCryptoCurrency
 cryptoCurrencyCreate (const char *uids,
                       const char *name,
                       const char *code,
@@ -52,6 +50,8 @@ cryptoCurrencyRelease (BRCryptoCurrency currency) {
     free (currency->name);
     free (currency->uids);
     if (NULL != currency->issuer) free (currency->issuer);
+
+    memset (currency, 0, sizeof(*currency));
     free (currency);
 }
 

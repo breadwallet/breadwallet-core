@@ -18,7 +18,9 @@
 #include "BRPeer.h"
 #include "BRWallet.h"
 #include "support/BRBase.h"
-#include "support/BRSyncMode.h"
+
+#include "BRCryptoTransfer.h"
+#include "BRCryptoWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,14 +91,14 @@ typedef struct {
             size_t count;
         } peers;
         struct {
-            BRSyncTimestamp timestamp;
-            BRSyncPercentComplete percentComplete;
+            BRCryptoSyncTimestamp timestamp;
+            BRCryptoSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            BRSyncStoppedReason reason;
+            BRCryptoSyncStoppedReason reason;
         } syncStopped;
         struct {
-            BRDisconnectReason reason;
+            BRCryptoWalletManagerDisconnectReason reason;
         } disconnected;
         struct {
             uint64_t value;
@@ -106,7 +108,7 @@ typedef struct {
         } submitSucceeded;
         struct {
             BRTransaction *transaction;
-            BRTransferSubmitError error;
+            BRCryptoTransferSubmitError error;
         } submitFailed;
     } u;
 } BRSyncManagerEvent;
@@ -132,7 +134,7 @@ typedef void
  *    into the BRSyncManager MUST NOT occur in a callback.
  */
 extern BRSyncManager
-BRSyncManagerNewForMode(BRSyncMode mode,
+BRSyncManagerNewForMode(BRCryptoSyncMode mode,
                         BRSyncManagerEventContext eventContext,
                         BRSyncManagerEventCallback eventCallback,
                         BRSyncManagerClientContext clientContext,
@@ -177,7 +179,7 @@ BRSyncManagerDisconnect(BRSyncManager manager);
 
 extern void
 BRSyncManagerScanToDepth(BRSyncManager manager,
-                         BRSyncDepth depth,
+                         BRCryptoSyncDepth depth,
                          OwnershipKept BRTransaction *lastConfirmedSend);
 
 extern void

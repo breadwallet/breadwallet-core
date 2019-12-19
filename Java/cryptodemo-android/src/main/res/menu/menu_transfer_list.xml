@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <item android:id="@+id/action_connect"
+        android:title="Connect"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_connect_with_peer"
+        android:title="Connect with Peer"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_disconnect"
+        android:title="Disconnect"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_sync"
+        android:title="Sync To Depth"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText"/>
+
+    <item android:id="@+id/action_toggle_mode"
+        android:title="Change Mode"
+        app:showAsAction="never"
+        tools:ignore="HardcodedText" />
+
+</menu>

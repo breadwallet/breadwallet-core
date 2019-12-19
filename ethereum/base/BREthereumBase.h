@@ -14,7 +14,6 @@
 #include "support/BRArray.h"
 #include "support/BRBase.h"
 #include "support/BRSet.h"
-#include "support/BRSyncMode.h"
 #include "ethereum/util/BRUtil.h"
 #include "ethereum/rlp/BRRlp.h"
 

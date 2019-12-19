@@ -179,7 +179,7 @@ public enum TransferDirection: Equatable {
         case CRYPTO_TRANSFER_SENT:      self = .sent
         case CRYPTO_TRANSFER_RECEIVED:  self = .received
         case CRYPTO_TRANSFER_RECOVERED: self = .recovered
-        default: self = .sent;  precondition(false)
+        default: self = .sent;  preconditionFailure()
         }
     }
 
@@ -287,15 +287,24 @@ public enum TransferSubmitError: Equatable, Error {
     case unknown
     case posix(errno: Int32, message: String?)
 
-    internal init (core: BRTransferSubmitError) {
+    internal init (core: BRCryptoTransferSubmitError) {
         switch core.type {
-        case TRANSFER_SUBMIT_ERROR_UNKNOWN:
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN:
             self = .unknown
-        case TRANSFER_SUBMIT_ERROR_POSIX:
+        case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
-        default: self = .unknown; precondition(false)
+                          message: BRCryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
+        default: self = .unknown; preconditionFailure()
+        }
+    }
+}
+
+extension TransferSubmitError: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .unknown: return ".unknwon"
+        case let .posix(errno, message): return ".posix(\(errno):\(message ?? ""))"
         }
     }
 }
@@ -324,7 +333,7 @@ public enum TransferState {
                                                 fee: core.u.included.fee.map { Amount (core: $0, take: false) }))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
-        default: /* ignore this */ self = .pending; precondition(false)
+        default: /* ignore this */ self = .pending; preconditionFailure()
         }
     }
 }
@@ -339,7 +348,7 @@ extension TransferState: CustomStringConvertible {
         case .submitted: return "Submitted"
         case .pending:   return "Pending"
         case .included:  return "Included"
-        case .failed:    return "Failed"
+        case .failed (let error): return "Failed (\(error))"
         case .deleted:   return "Deleted"
         }
     }

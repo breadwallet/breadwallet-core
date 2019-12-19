@@ -9,14 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <pthread.h>
-
-#include "BRCryptoAccount.h"
-#include "BRCryptoPrivate.h"
-
-#include "support/BRBIP32Sequence.h"
-#include "support/BRBIP39Mnemonic.h"
-#include "support/BRKey.h"
-#include "ethereum/BREthereum.h"
+#include "BRCryptoAccountP.h"
 #include "generic/BRGenericRipple.h"
 
 static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
@@ -35,19 +28,6 @@ static void
 randomBytes (void *bytes, size_t bytesCount);
 
 #define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
-
-static void
-cryptoAccountRelease (BRCryptoAccount account);
-
-struct BRCryptoAccountRecord {
-    BRMasterPubKey btc;
-    BREthereumAccount eth;
-    BRGenericAccount xrp;
-    // ...
-
-    uint64_t timestamp;
-    BRCryptoRef ref;
-};
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
@@ -71,7 +51,9 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
     size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
     char  *phrase    = calloc (phraseLen, 1);
 
-    assert (phraseLen == BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy)));
+    // xor to avoid needing an additional variable to perform assert
+    phraseLen ^= BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy));
+    assert (0 == phraseLen);
 
     return phrase;
 }
@@ -90,12 +72,14 @@ static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
                              BREthereumAccount eth,
                              BRGenericAccount xrp,
-                             uint64_t timestamp) {
+                             uint64_t timestamp,
+                             const char * uids) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = btc;
     account->eth = eth;
     account->xrp = xrp;
+    account->uids = strdup (uids);
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -104,18 +88,20 @@ cryptoAccountCreateInternal (BRMasterPubKey btc,
 }
 static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
-                                     uint64_t timestamp) {
+                                     uint64_t timestamp,
+                                     const char *uids) {
     pthread_once (&_accounts_once, _accounts_init);
 
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
                                         createAccountWithBIP32Seed(seed),
                                         gwmAccountCreate (genericRippleHandlers->type, seed),
-                                        timestamp);
+                                        timestamp,
+                                        uids);
 }
 
 extern BRCryptoAccount
-cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
-    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp);
+cryptoAccountCreate (const char *phrase, uint64_t timestamp, const char *uids) {
+    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp, uids);
 }
 
 
@@ -132,7 +118,7 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
  * @return An Account, or NULL.
  */
 extern BRCryptoAccount
-cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
+cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids) {
     pthread_once (&_accounts_once, _accounts_init);
 
     uint8_t *bytesPtr = (uint8_t *) bytes;
@@ -207,7 +193,7 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     BRGenericAccount xrp = gwmAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
     assert (NULL != xrp);
 
-    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp);
+    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp, uids);
 #undef BYTES_PTR_INCR_AND_CHECK
 }
 
@@ -216,6 +202,7 @@ cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);
     gwmAccountRelease(account->xrp);
 
+    memset (account, 0, sizeof(*account));
     free (account);
 }
 
@@ -367,6 +354,11 @@ cryptoAccountGetFileSystemIdentifier (BRCryptoAccount account) {
 
     // Take the first 32 characters.
     return strndup(u256hex(hash), 32);
+}
+
+extern const char *
+cryptoAccountGetUids (BRCryptoAccount account) {
+    return account->uids;
 }
 
 private_extern BREthereumAccount

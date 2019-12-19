@@ -1,0 +1,39 @@
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [project(':corecrypto').javaMainSrcDir]
+        }
+    }
+    test {
+        java {
+            srcDirs = [project(':corecrypto').javaTestSrcDir]
+        }
+    }
+}
+
+dependencies {
+    api project(':crypto')
+
+    implementation project(':corenative-jre')
+    implementation deps.guavaJre
+    implementation deps.androidAppCompatV7
+    implementation deps.jacksonAnnotations
+    implementation deps.jacksonCore
+    implementation deps.jacksonDatabind
+
+    testImplementation deps.junit
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}

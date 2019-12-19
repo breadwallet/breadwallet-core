@@ -10,6 +10,7 @@
 //
 import Foundation // Data
 import BRCryptoC
+import BRCryptoC.Impl
 
 ///
 ///
@@ -18,7 +19,9 @@ public final class Account {
     let core: BRCryptoAccount
 
     // A 'globally unique' ID String for account.  For BlockchainDB this will be the 'walletId'
-    let uids: String
+    public var uids: String {
+        return asUTF8String (cryptoAccountGetUids (core))
+    }
 
     public var timestamp: Date {
         return Date.init(timeIntervalSince1970: TimeInterval (cryptoAccountGetTimestamp (core)))
@@ -38,9 +41,8 @@ public final class Account {
         return CRYPTO_TRUE == cryptoAccountValidateSerialization (core, &bytes, bytes.count)
     }
 
-    internal init (core: BRCryptoAccount, uids: String, take: Bool) {
+    internal init (core: BRCryptoAccount, take: Bool) {
         self.core = take ? cryptoAccountTake(core) : core
-        self.uids = uids
     }
 
     internal var fileSystemIdentifier: String {
@@ -61,8 +63,8 @@ public final class Account {
     ///
     public static func createFrom (phrase: String, timestamp: Date, uids: String) -> Account? {
         let timestampAsInt = UInt64 (timestamp.timeIntervalSince1970)
-        return cryptoAccountCreate (phrase, timestampAsInt)
-            .map { Account (core: $0, uids: uids, take: false) }
+        return cryptoAccountCreate (phrase, timestampAsInt, uids)
+            .map { Account (core: $0, take: false) }
     }
 
     ///
@@ -79,8 +81,8 @@ public final class Account {
     ///
     public static func createFrom (serialization: Data, uids: String) -> Account? {
         var bytes = [UInt8](serialization)
-        return cryptoAccountCreateFromSerialization (&bytes, bytes.count)
-            .map { Account (core: $0, uids: uids, take: false) }
+        return cryptoAccountCreateFromSerialization (&bytes, bytes.count, uids)
+            .map { Account (core: $0, take: false) }
     }
 
     ///
@@ -96,7 +98,7 @@ public final class Account {
         precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return (asUTF8String (cryptoAccountGeneratePaperKey (&words)), Date())
     }
@@ -114,7 +116,7 @@ public final class Account {
         precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
-        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+        defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return CRYPTO_TRUE == cryptoAccountValidatePaperKey (phrase, &words)
     }

@@ -8,6 +8,9 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "BRCryptoKey.h"
 #include "BRKey.h"
 #include "BRBIP39Mnemonic.h"
@@ -38,14 +41,13 @@
     "cry" \
 })
 
-static void
-cryptoKeyRelease (BRCryptoKey key);
-
 struct BRCryptoKeyRecord {
     BRKey core;
     BRAddressParams coreAddressParams;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoKey, cryptoKey);
 
 static BRCryptoKey
 cryptoKeyCreateInternal (BRKey core, BRAddressParams params) {
@@ -348,5 +350,3 @@ cryptoKeyProvidePublicKey (BRCryptoKey key, int useCompressed, int compressed) {
     if (useCompressed) BRKeySetCompressed (&key->core, compressed);
     BRKeyPubKey (&key->core, NULL, 0);
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoKey, cryptoKey);

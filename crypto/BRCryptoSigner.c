@@ -8,16 +8,19 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRCryptoSigner.h"
-#include "support/BRCrypto.h"
+#include <assert.h>
+#include <stdlib.h>
 
-static void
-cryptoSignerRelease (BRCryptoSigner signer);
+#include "BRCryptoSigner.h"
+#include "BRCryptoPrivate.h"
+#include "support/BRCrypto.h"
 
 struct BRCryptoSignerRecord {
     BRCryptoSignerType type;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoSigner, cryptoSigner);
 
 extern BRCryptoSigner
 cryptoSignerCreate(BRCryptoSignerType type) {
@@ -166,5 +169,3 @@ cryptoSignerRecover (BRCryptoSigner signer,
 
     return key;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoSigner, cryptoSigner);

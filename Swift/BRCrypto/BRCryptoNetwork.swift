@@ -9,7 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
-//import Foundation // Data
+import BRCryptoC.Impl
 
 ///
 /// A Blockchain Network.  Networks are created based from a cross-product of block chain and
@@ -39,9 +39,9 @@ public final class Network: CustomStringConvertible {
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
     public internal(set) var fees: [NetworkFee] {
         get {
-            var count: size_t = 0
+            var count: BRCryptoCount = 0
             let ptr = cryptoNetworkGetNetworkFees(core, &count);
-            defer { if let p = ptr { free (p) } }
+            defer { if let p = ptr { cryptoMemoryFree (p) } }
 
             let items = ptr?.withMemoryRebound(to: BRCryptoNetworkFee.self, capacity: count) {
                 Array(UnsafeBufferPointer (start: $0, count: count))
@@ -194,7 +194,7 @@ public final class Network: CustomStringConvertible {
                 core = cryptoNetworkCreateAsETH (uids, name, 4, ethereumRinkeby)
             }
             else {
-                precondition (false)
+                preconditionFailure()
             }
 
         default:

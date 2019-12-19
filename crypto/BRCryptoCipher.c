@@ -8,14 +8,16 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "BRCryptoCipher.h"
+#include "BRCryptoPrivate.h"
 #include "BRCryptoKey.h"
+
 #include "support/BRBase.h"
 #include "support/BRCrypto.h"
 #include "support/BRKeyECIES.h"
-
-static void
-cryptoCipherRelease (BRCryptoCipher cipher);
 
 struct BRCryptoCipherRecord {
     BRCryptoCipherType type;
@@ -42,6 +44,8 @@ struct BRCryptoCipherRecord {
 
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCipher, cryptoCipher);
 
 static BRCryptoCipher
 cryptoCipherCreateInternal(BRCryptoCipherType type) {
@@ -247,7 +251,7 @@ cryptoCipherEncrypt (BRCryptoCipher cipher,
 
 extern size_t
 cryptoCipherDecryptLength (BRCryptoCipher cipher,
-                           const char *src,
+                           const uint8_t *src,
                            size_t srcLen) {
     // - src CAN be NULL, if srcLen is 0
     if (NULL == src && 0 != srcLen) {
@@ -299,7 +303,7 @@ extern BRCryptoBoolean
 cryptoCipherDecrypt (BRCryptoCipher cipher,
                      uint8_t *dst,
                      size_t dstLen,
-                     const char *src,
+                     const uint8_t *src,
                      size_t srcLen) {
     // - src CAN be NULL, if srcLen is 0
     // - dst MUST be non-NULL and sufficiently sized
@@ -355,4 +359,147 @@ cryptoCipherDecrypt (BRCryptoCipher cipher,
     return result;
 }
 
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCipher, cryptoCipher);
+static size_t
+cryptoCipherDecryptForMigrateLength (BRCryptoCipher cipher,
+                                     const uint8_t *src,
+                                     size_t srcLen) {
+    // - src CAN be NULL, if srcLen is 0
+    if (NULL == src && 0 != srcLen) {
+        assert (0);
+        return 0;
+    }
+
+    size_t length = 0;
+
+    switch (cipher->type) {
+        case CRYPTO_CIPHER_CHACHA20_POLY1305: {
+            BRKey *coreKey  = cryptoKeyGetCore (cipher->u.chacha20.key);
+
+            uint8_t pubKeyBytes[65];
+            size_t pubKeyLen = BRKeyPubKey (coreKey, pubKeyBytes, sizeof(pubKeyBytes));
+            if (0 == pubKeyLen || pubKeyLen > sizeof(pubKeyBytes)) break;
+
+            UInt256 secret;
+            BRSHA256 (&secret, &pubKeyBytes[1], pubKeyLen - 1);
+            length = BRChacha20Poly1305AEADDecrypt (NULL,
+                                                    0,
+                                                    &secret,
+                                                    cipher->u.chacha20.nonce,
+                                                    src,
+                                                    srcLen,
+                                                    cipher->u.chacha20.ad,
+                                                    cipher->u.chacha20.adLen);
+            secret = UINT256_ZERO; (void) &secret;
+            break;
+        }
+        default: {
+            // for an unsupported algorithm, assert
+            assert (0);
+            break;
+        }
+    }
+
+    return length;
+}
+
+static BRCryptoBoolean
+cryptoCipherDecryptForMigrate (BRCryptoCipher cipher,
+                               uint8_t *dst,
+                               size_t dstLen,
+                               const uint8_t *src,
+                               size_t srcLen) {
+    // - src CAN be NULL, if srcLen is 0
+    // - dst MUST be non-NULL and sufficiently sized
+    if ((NULL == src && 0 != srcLen) ||
+        NULL == dst || dstLen < cryptoCipherDecryptLength (cipher, src, srcLen)) {
+        assert (0);
+        return CRYPTO_FALSE;
+    }
+
+    BRCryptoBoolean result = CRYPTO_FALSE;
+
+    switch (cipher->type) {
+        case CRYPTO_CIPHER_CHACHA20_POLY1305: {
+            BRKey *coreKey  = cryptoKeyGetCore (cipher->u.chacha20.key);
+
+            uint8_t pubKeyBytes[65];
+            size_t pubKeyLen = BRKeyPubKey (coreKey, pubKeyBytes, sizeof(pubKeyBytes));
+            if (0 == pubKeyLen || pubKeyLen > sizeof(pubKeyBytes)) break;
+
+            UInt256 secret;
+            BRSHA256 (&secret, &pubKeyBytes[1], pubKeyLen - 1);
+            result = AS_CRYPTO_BOOLEAN (BRChacha20Poly1305AEADDecrypt (dst,
+                                                                       dstLen,
+                                                                       &secret,
+                                                                       cipher->u.chacha20.nonce,
+                                                                       src,
+                                                                       srcLen,
+                                                                       cipher->u.chacha20.ad,
+                                                                       cipher->u.chacha20.adLen));
+            secret = UINT256_ZERO; (void) &secret;
+            break;
+        }
+        default: {
+            // for an unsupported algorithm, assert
+            assert (0);
+            break;
+        }
+    }
+
+    return result;
+}
+
+extern BRCryptoBoolean
+cryptoCipherMigrateBRCoreKeyCiphertext (BRCryptoCipher cipher,
+                                        uint8_t *migratedCiphertext,
+                                        size_t migratedCiphertextLen,
+                                        const uint8_t *originalCiphertext,
+                                        size_t originalCiphertextLen) {
+    // calculate the length of the plaintext using the modified decryption routine
+    size_t plaintextLen = cryptoCipherDecryptForMigrateLength (cipher,
+                                                               originalCiphertext,
+                                                               originalCiphertextLen);
+    if (0 == plaintextLen) {
+        return CRYPTO_FALSE;
+    }
+
+    // allocate the plaintext buffer
+    uint8_t *plaintext = (uint8_t *) malloc (plaintextLen);
+    if (NULL == plaintext) {
+        return CRYPTO_FALSE;
+    }
+
+    // decrypt the original ciphertext using the modified decryption routine
+    BRCryptoBoolean decryptResult = cryptoCipherDecryptForMigrate (cipher,
+                                                                   plaintext,
+                                                                   plaintextLen,
+                                                                   originalCiphertext,
+                                                                   originalCiphertextLen);
+    if (CRYPTO_TRUE != decryptResult) {
+        memset (plaintext, 0, plaintextLen);
+        free (plaintext);
+        return CRYPTO_FALSE;
+    }
+
+    // calculate the length of the migrated ciphertext using the current encryption routine
+    if (migratedCiphertextLen < cryptoCipherEncryptLength (cipher,
+                                                           plaintext,
+                                                           plaintextLen)) {
+        memset (plaintext, 0, plaintextLen);
+        free (plaintext);
+        return CRYPTO_FALSE;
+    }
+
+    // encrypt the plaintext using the current encryption routine
+    BRCryptoBoolean encryptResult = cryptoCipherEncrypt (cipher,
+                                                         migratedCiphertext,
+                                                         migratedCiphertextLen,
+                                                         plaintext,
+                                                         plaintextLen);
+
+    // release the cipher and plaintext memory
+    memset (plaintext, 0, plaintextLen);
+    free (plaintext);
+
+    return encryptResult;
+}

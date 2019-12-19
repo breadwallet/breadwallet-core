@@ -8,16 +8,18 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "BRCryptoHasher.h"
 #include "support/BRCrypto.h"
-
-static void
-cryptoHasherRelease (BRCryptoHasher hasher);
 
 struct BRCryptoHasherRecord {
     BRCryptoHasherType type;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);
 
 extern BRCryptoHasher
 cryptoHasherCreate(BRCryptoHasherType type) {
@@ -188,5 +190,3 @@ cryptoHasherHash (BRCryptoHasher hasher,
 
     return result;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);

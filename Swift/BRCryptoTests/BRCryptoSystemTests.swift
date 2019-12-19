@@ -87,20 +87,21 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (network)
 
         XCTAssertNotNil (network.currencyBy(code: "eth"))
-        XCTAssertNotNil (network.currencyBy(code: "FOO"))
+        XCTAssertNotNil (network.currencyBy(code: "foo"))
+        XCTAssertNil    (network.currencyBy(code: "FOO"))
 
-        let fooCurrency = network.currencyBy(code: "FOO")!
-        XCTAssertEqual("ERC20",  fooCurrency.type)
-        
+        let fooCurrency = network.currencyBy(code: "foo")!
+        XCTAssertEqual("erc20",  fooCurrency.type)
+
         guard let fooDef = network.defaultUnitFor(currency: fooCurrency)
             else { XCTAssertTrue (false); return }
         XCTAssertEqual(10, fooDef.decimals)
-        XCTAssertEqual("FOO", fooDef.symbol)
+        XCTAssertEqual("foo", fooDef.symbol)
 
         guard let fooBase = network.baseUnitFor(currency: fooCurrency)
             else { XCTAssertTrue (false); return }
         XCTAssertEqual (0, fooBase.decimals)
-        XCTAssertEqual ("FOOI", fooBase.symbol)
+        XCTAssertEqual ("fooi", fooBase.symbol)
     }
 
     func testSystemModes () {

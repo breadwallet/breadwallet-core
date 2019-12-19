@@ -96,7 +96,7 @@ public enum AddressScheme: Equatable, CustomStringConvertible {
         case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT:  self = .btcSegwit
         case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: self = .ethDefault
         case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: self = .genDefault
-        default: self = .genDefault;  precondition(false)
+        default: self = .genDefault;  preconditionFailure()
         }
     }
 

@@ -39,6 +39,8 @@ class CoreTests: XCTestCase {
     }
     var paperKey: String! = nil
 
+    var uids: String = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96"
+
     var isMainnet = true
     var isBTC: Int32! = 1
 
@@ -159,7 +161,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBTC() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -175,7 +177,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkBCH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 500_000), (false, 1_500_000),]
@@ -191,7 +193,7 @@ class CoreTests: XCTestCase {
     }
 
     func testCryptoWithAccountAndNetworkETH() {
-        let account = cryptoAccountCreate(paperKey, 0)
+        let account = cryptoAccountCreate(paperKey, 0, uids)
         defer { cryptoAccountGive (account) }
 
         let configurations: [(Bool, UInt64)] = [(true, 8_000_000), (false, 4_500_000),]
@@ -367,7 +369,7 @@ class CoreTests: XCTestCase {
     /// - Throws: something
     ///
     func testEthereumSyncStorage () throws {
-        let mode = SYNC_MODE_P2P_ONLY;
+        let mode = CRYPTO_SYNC_MODE_P2P_ONLY;
         let timestamp : UInt64 = 0
 
         let network = (isMainnet ? ethereumMainnet : ethereumTestnet)
@@ -384,12 +386,9 @@ class CoreTests: XCTestCase {
         BRRunTestsSync (paperKey, isBTC, (isMainnet ? 1 : 0));
     }
 
-    /// Run 25 simultaneous bitcoin syncs using the provided paperKeys and random keys after
-    /// that.
-    ///
-    func testBitcoinSyncMany () {
+    func runBitcoinSyncMany (_ count: Int) {
         let group = DispatchGroup.init()
-        for i in 1...25 {
+        for i in 1...count {
             DispatchQueue.init(label: "Sync \(i)")
                 .async {
                     group.enter()
@@ -401,12 +400,28 @@ class CoreTests: XCTestCase {
         group.wait()
     }
 
+
+    /// Run 25 simultaneous bitcoin syncs using the provided paperKeys and random keys after that.
+    func testBitcoinSyncMany () {
+        runBitcoinSyncMany(25)
+    }
+
+    func testBitcoinSyncAll () {
+        for useBTC in [false, true] {
+            for useMainnet in [false, true] {
+                self.isBTC = useBTC ? 1 : 0
+                self.isMainnet = useMainnet
+                runBitcoinSyncMany (10)
+            }
+        }
+    }
+
     ///
     /// Run a bitcoin sync using the (new) BRWalletManager which encapsulates BRWallet and
     /// BRPeerManager with 'save' callbacks using the file system.
     ///
     func testBitcoinWalletManagerSync () {
-        print ("ETH: TST: Core Dir: \(coreDataDir!)")
+        print ("BTC: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, (isMainnet ? 1 : 0));

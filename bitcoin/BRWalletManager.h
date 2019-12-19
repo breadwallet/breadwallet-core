@@ -13,13 +13,15 @@
 #define BRWalletManager_h
 
 #include <stdio.h>
-#include "BRSyncMode.h"
 #include "BRFileService.h"
 #include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
 #include "BRWallet.h"
+
+#include "BRCryptoTransfer.h"
+#include "BRCryptoWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,16 +107,14 @@ typedef enum {
 
     /**
      * For P2P and API, this event occurs once a transaction has been added to a
-     * wallet (via BRWalletRegisterTransaction). Transactions are added when they have
-     * been relayed by the P2P network or synced via BlockchainDB.
+     * wallet (via BRWalletRegisterTransaction).
      */
     BITCOIN_TRANSACTION_ADDED,
 
     /**
-     * For P2P, this event occurs once a transaction has been marked as CONFIRMED/UNCONFIRMED
-     * by the P2P network.
-     *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For P2P and API, this event occurs once a transaction has been added to a vallet
+     * (via BRWalletRegisterTransaction) or once it has been marked as CONFIRMED or
+     * UNCONFIRMED (via BRWalletUpdateTransactions).
      */
     BITCOIN_TRANSACTION_UPDATED,
 
@@ -123,7 +123,7 @@ typedef enum {
      * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
      * being visible in the mempools of any of connected P2P peers.
      *
-     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     * For API, this event does not occur at present.
      */
     BITCOIN_TRANSACTION_DELETED,
 } BRTransactionEventType;
@@ -175,7 +175,7 @@ typedef struct {
 
         struct {
             BRTransaction *transaction;
-            BRTransferSubmitError error;
+            BRCryptoTransferSubmitError error;
         } submitFailed;
 
         struct {
@@ -220,17 +220,17 @@ typedef struct {
     BRWalletManagerEventType type;
     union {
         struct {
-            BRSyncTimestamp timestamp;
-            BRSyncPercentComplete percentComplete;
+            BRCryptoSyncTimestamp timestamp;
+            BRCryptoSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
-            BRSyncStoppedReason reason;
+            BRCryptoSyncStoppedReason reason;
         } syncStopped;
         struct {
-            BRSyncDepth depth;
+            BRCryptoSyncDepth depth;
         } syncRecommended;
         struct {
-            BRDisconnectReason reason;
+            BRCryptoWalletManagerDisconnectReason reason;
         } disconnected;
         struct {
             uint64_t value;
@@ -269,7 +269,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
-                    BRSyncMode mode,
+                    BRCryptoSyncMode mode,
                     const char *storagePath,
                     uint64_t blockHeight,
                     uint64_t confirmationsUntilFinal);
@@ -298,12 +298,12 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 extern void
-BRWalletManagerScanToDepth (BRWalletManager manager, BRSyncDepth depth);
+BRWalletManagerScanToDepth (BRWalletManager manager, BRCryptoSyncDepth depth);
 
 extern void
-BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+BRWalletManagerSetMode (BRWalletManager manager, BRCryptoSyncMode mode);
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 BRWalletManagerGetMode (BRWalletManager manager);
 
 extern void
@@ -415,6 +415,10 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
                                         const char **transactions,
                                         const char **blocks,
                                         const char **peers);
+
+extern void
+BRWalletManagerWipe (const BRChainParams *params,
+                     const char *baseStoragePath);
 
 //
 // Mark: Wallet Sweeper
