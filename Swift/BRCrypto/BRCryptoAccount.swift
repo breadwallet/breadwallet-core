@@ -36,6 +36,11 @@ public final class Account {
         return Data (bytes: bytes!, count: bytesCount)
     }
 
+    ///
+    /// Validate that `serialization` is for this account.
+    ///
+    /// - Parameter serialization: the serialization data
+    ///
     public func validate (serialization: Data) -> Bool {
         var bytes = [UInt8](serialization)
         return CRYPTO_TRUE == cryptoAccountValidateSerialization (core, &bytes, bytes.count)
