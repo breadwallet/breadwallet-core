@@ -757,8 +757,6 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                               networkSpec->name);;
 
         BRCryptoCurrency currency = NULL;
-        BRCryptoUnit unitBase = NULL;
-        BRCryptoUnit unitDefault = NULL;
         BRArrayOf(BRCryptoUnit) units;
         array_new (units, 5);
 
@@ -774,6 +772,9 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                  currencySpec->code,
                                                  currencySpec->type,
                                                  currencySpec->address);
+
+                BRCryptoUnit unitBase    = NULL;
+                BRCryptoUnit unitDefault = NULL;
 
                 // Create the units
                 for (size_t unitIndex = 0; unitIndex < NUMBER_OF_UNITS; unitIndex++) {
@@ -814,15 +815,16 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
         }
 
         // Create the Network Fees
+        BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (network, cryptoNetworkGetCurrency(network));
         for (size_t networkFeeIndex = 0; networkFeeIndex < NUMBER_OF_FEES; networkFeeIndex++) {
             struct NetworkFeeSpecification *networkFeeSpec = &networkFeeSpecifications[networkFeeIndex];
             if (0 == strcmp (networkSpec->networkId, networkFeeSpec->networkId)) {
                 BRCryptoAmount pricePerCostFactor = cryptoAmountCreateString (networkFeeSpec->amount,
                                                                               CRYPTO_FALSE,
-                                                                              unitBase);
+                                                                              feeUnit);
                 BRCryptoNetworkFee fee = cryptoNetworkFeeCreate (networkFeeSpec->confirmationTimeInMilliseconds,
                                                                  pricePerCostFactor,
-                                                                 unitBase);
+                                                                 feeUnit);
                 array_add (fees, fee);
             }
         }
