@@ -39,13 +39,9 @@ import static com.google.common.base.Preconditions.checkState;
 final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
-    static Network findBuiltin (String uids) {
-        BRCryptoNetwork core = BRCryptoNetwork.findBuiltin(uids);
-        if (core == null) {
-            return null;
-        }
-
-        return Network.create(core);
+    static Optional<Network> findBuiltin (String uids) {
+        return BRCryptoNetwork.findBuiltin(uids)
+                .transform(Network::create);
     }
 
     static List<Network> installBuiltins () {
@@ -242,9 +238,27 @@ final class Network implements com.breadwallet.crypto.Network {
     public void addCurrency(com.breadwallet.crypto.Currency currency,
                             com.breadwallet.crypto.Unit baseUnit,
                             com.breadwallet.crypto.Unit defaultUnit) {
+        checkState (baseUnit.hasCurrency(currency));
+        checkState (defaultUnit.hasCurrency(currency));
+        if (!this.hasCurrency(currency)) {
+            getCoreBRCryptoNetwork().addCurrency (
+                    Currency.from(currency).getCoreBRCryptoCurrency(),
+                    Unit.from(baseUnit).getCoreBRCryptoUnit(),
+                    Unit.from(defaultUnit).getCoreBRCryptoUnit()
+            );
+        }
     }
 
-    public void addUnitFor(com.breadwallet.crypto.Currency currency, com.breadwallet.crypto.Unit unit) {
+    public void addUnitFor(com.breadwallet.crypto.Currency currency,
+                           com.breadwallet.crypto.Unit unit) {
+        checkState (unit.hasCurrency(currency));
+        checkState (this.hasCurrency(currency));
+        if (!this.hasUnitFor (currency, unit).isPresent()) {
+            getCoreBRCryptoNetwork().addCurrencyUnit(
+                    Currency.from(currency).getCoreBRCryptoCurrency(),
+                    Unit.from(unit).getCoreBRCryptoUnit()
+            );
+        }
     }
 
     @Override

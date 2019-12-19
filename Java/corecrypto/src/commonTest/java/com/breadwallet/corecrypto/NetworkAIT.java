@@ -27,24 +27,24 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkBtc() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native", null);
+        Currency btc = Currency.create("bitcoin-mainnet:__native__", "Bitcoin", "btc", "native", null);
 
-        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
+        Unit satoshi_btc = Unit.create(btc, "sat", "Satoshi", "SAT");
+        Unit btc_btc = Unit.create(btc, "btc", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
-        Network network = Network.findBuiltin("bitcoin-mainnet");
+        Network network = Network.findBuiltin("bitcoin-mainnet").get();
 
         assertEquals(network.getUids(), "bitcoin-mainnet");
         assertEquals(network.getName(), "Bitcoin");
         assertTrue(network.isMainnet());
-        assertEquals(network.getHeight(), UnsignedLong.valueOf(100000));
 
-        network.setHeight(UnsignedLong.valueOf(2 * 100000));
-        assertEquals(network.getHeight(), UnsignedLong.valueOf(2 * 100000));
+        UnsignedLong newheight = network.getHeight().times(UnsignedLong.valueOf(2));
+        network.setHeight(newheight);
+        assertEquals(network.getHeight(), newheight);
 
         assertEquals(network.getCurrency(), btc);
         assertTrue(network.hasCurrency(btc));
-        assertTrue(network.getCurrencyByCode("BTC").transform(input -> input.equals(btc)).or(false));
+        assertTrue(network.getCurrencyByCode("btc").transform(input -> input.equals(btc)).or(false));
         assertFalse(network.getCurrencyByIssuer("btc").isPresent());
 
         assertTrue(network.baseUnitFor(btc).transform(c -> c.equals(satoshi_btc)).or(false));
@@ -54,7 +54,7 @@ public class NetworkAIT {
         assertTrue(network.hasUnitFor(btc, btc_btc).or(false));
         assertTrue(network.hasUnitFor(btc, satoshi_btc).or(false));
 
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
+        Currency eth = Currency.create("ethereum-mainnet:__native__", "Ethereum", "eth", "native", null);
 
         Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
 
@@ -69,26 +69,25 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkEth() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "ETH", "native", null);
+        Currency eth = Currency.create("ethereum-mainnet:__native__", "Ethereum", "ETH", "native", null);
 
-        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
+        Unit wei_eth = Unit.create(eth, "wei", "WEI", "wei");
+        Unit gwei_eth = Unit.create(eth, "gwei", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
+        Unit ether_eth = Unit.create(eth, "eth", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
-        Currency brd = Currency.create("BRD", "BRD Token", "brd", "erc20", "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6");
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
+        Currency brd = Currency.create("ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", "BRD Token", "brd", "erc20", "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6");
+        Currency btc = Currency.create("bitcoin-mainnet:__native__", "Bitcoin", "btc", "native", null);
 
-        NetworkFee fee1 = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
-        NetworkFee fee2 = NetworkFee.create(UnsignedLong.valueOf(500), Amount.create(3.0, gwei_eth));
+        NetworkFee fee1 = NetworkFee.create(UnsignedLong.valueOf(1 * 60 * 1000), Amount.create(2.0, gwei_eth));
 
-        Network network = Network.findBuiltin("ethereum-mainnet");
+        Network network = Network.findBuiltin("ethereum-mainnet").get();
 
-        assertEquals("ethereum-name", network.toString());
+        assertEquals("Ethereum", network.toString());
         assertTrue(network.hasCurrency(eth));
         assertTrue(network.hasCurrency(brd));
         assertFalse(network.hasCurrency(btc));
 
-        assertTrue(network.getCurrencyByCode("ETH").isPresent());
+        assertTrue(network.getCurrencyByCode("eth").isPresent());
         assertTrue(network.getCurrencyByCode("brd").isPresent());
 
         assertTrue(network.getCurrencyByIssuer("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6").isPresent());

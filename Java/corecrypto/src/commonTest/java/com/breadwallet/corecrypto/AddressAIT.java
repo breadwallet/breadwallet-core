@@ -27,7 +27,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsEthOnMainnet() {
-        Network network = Network.findBuiltin("ethereum-mainnet");
+        Network network = Network.findBuiltin("ethereum-mainnet").get();
 
         Optional<Address> oe1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe1.isPresent());
@@ -54,7 +54,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtcOnMainnet() {
-        Network network = Network.findBuiltin("bitcoin-mainnet");
+        Network network = Network.findBuiltin("bitcoin-mainnet").get();
 
         Optional<Address> ob1 = Address.create("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network);
         assertTrue(ob1.isPresent());
@@ -67,7 +67,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBchOnMainnet() {
-        Network network = Network.findBuiltin("bitcoincash-mainnet");
+        Network network = Network.findBuiltin("bitcoincash-mainnet").get();
 
         Optional<Address> ob1 = Address.create("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network);
         assertTrue(ob1.isPresent());
@@ -88,12 +88,12 @@ public class AddressAIT {
         //
         // BTC
         //
-        Network network_btc = Network.findBuiltin("bitcoin-mainnet");
+        Network network_btc = Network.findBuiltin("bitcoin-mainnet").get();
 
         //
         // ETH
         //
-        Network network_eth = Network.findBuiltin("ethereum-mainnet");
+        Network network_eth = Network.findBuiltin("ethereum-mainnet").get();
 
         Address e1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network_eth).get();
         Address b1 = Address.create("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network_btc).get();
@@ -104,7 +104,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsEthOnTestnet() {
-        Network network = Network.findBuiltin("ethereum-ropsten");
+        Network network = Network.findBuiltin("ethereum-ropsten").get();
 
         Optional<Address> oe1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe1.isPresent());
@@ -131,7 +131,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtcOnTestnet() {
-        Network network = Network.findBuiltin("bitcoin-testnet");
+        Network network = Network.findBuiltin("bitcoin-testnet").get();
 
         Optional<Address> ob1 = Address.create("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", network);
         assertTrue(ob1.isPresent());
@@ -143,7 +143,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBchOnTestnet() {
-         Network network = Network.findBuiltin("bitcoincash-mainnet");
+        Network network = Network.findBuiltin("bitcoincash-testnet").get();
 
         Optional<Address> ob1 = Address.create("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", network);
         assertTrue(ob1.isPresent());
@@ -163,12 +163,12 @@ public class AddressAIT {
         //
         // BTC
         //
-        Network network_btc = Network.findBuiltin("bitcoin-testnet");
+        Network network_btc = Network.findBuiltin("bitcoin-testnet").get();
 
         //
         // ETH
         //
-        Network network_eth = Network.findBuiltin("ethereum-ropsten");
+        Network network_eth = Network.findBuiltin("ethereum-ropsten").get();
 
         Address e1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network_eth).get();
         Address b1 = Address.create("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", network_btc).get();

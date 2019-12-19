@@ -131,8 +131,9 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         }
 
         registerCurrencyCodes = [
-            "zla",
-            "adt"]
+//            "zla",
+//            "adt"
+        ]
 
         print ("APP: CurrenciesToMode  : \(currencyCodesToMode!)")
 

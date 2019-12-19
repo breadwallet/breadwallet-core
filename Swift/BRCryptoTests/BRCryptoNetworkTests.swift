@@ -52,7 +52,7 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_BTC)     ?? false)
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_SATOSHI) ?? false)
 
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
+        let eth = Currency (uids: "ethereum-mainnet:__native__", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
 
         XCTAssertFalse (network.hasCurrency(eth))
@@ -77,10 +77,10 @@ class BRCryptoNetworkTests: XCTestCase {
         let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "eth", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
 
         let brd = Currency (uids: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", name: "BRD Token", code: "brd", type: "erc20", issuer: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6")
-        let brd_brdi = BRCrypto.Unit (currency: brd, uids: "BRDI", name: "BRD Token INT", symbol: "BRDI")
-        let brd_brd  = BRCrypto.Unit (currency: brd, uids: "BRD",  name: "BRD Token",     symbol: "BRD", base: brd_brdi, decimals: 18)
+        // let brd_brdi = BRCrypto.Unit (currency: brd, uids: "BRDI", name: "BRD Token INT", symbol: "BRDI")
+        // let brd_brd  = BRCrypto.Unit (currency: brd, uids: "BRD",  name: "BRD Token",     symbol: "BRD", base: brd_brdi, decimals: 18)
 
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let btc = Currency (uids: "bitcoin-mainnet:__native__",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
         let fee1 = NetworkFee (timeIntervalInMilliseconds: 1 * 60 * 1000,
                                pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))

@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.CryptoLibraryIndirect;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
@@ -25,10 +24,11 @@ import java.util.List;
 
 public class BRCryptoNetwork extends PointerType {
 
-    public static BRCryptoNetwork findBuiltin (String uids) {
+    public static Optional<BRCryptoNetwork> findBuiltin (String uids) {
         Pointer builtin = CryptoLibraryDirect.cryptoNetworkFindBuiltin (uids);
-        if (null == builtin) throw new RuntimeException("Missed builtin: " + uids);
-        return new BRCryptoNetwork(builtin);
+        return (null == builtin
+                ? Optional.absent()
+                : Optional.of (new BRCryptoNetwork(builtin)));
     }
 
     public static List<BRCryptoNetwork> installBuiltins () {
