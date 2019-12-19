@@ -874,7 +874,7 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
 }
 
 extern const char *
-BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+cryptoTransferEventTypeString (BRCryptoTransferEventType t) {
     switch (t) {
         case CRYPTO_TRANSFER_EVENT_CREATED:
         return "CRYPTO_TRANSFER_EVENT_CREATED";

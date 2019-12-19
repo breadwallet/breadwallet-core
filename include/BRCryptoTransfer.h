@@ -106,7 +106,7 @@ extern "C" {
     } BRCryptoTransferEventType;
 
     extern const char *
-    BRCryptoTransferEventTypeString (BRCryptoTransferEventType t);
+    cryptoTransferEventTypeString (BRCryptoTransferEventType t);
 
     typedef struct {
         BRCryptoTransferEventType type;
