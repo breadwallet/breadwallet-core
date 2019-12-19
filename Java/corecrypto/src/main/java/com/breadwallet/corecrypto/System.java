@@ -409,8 +409,8 @@ final class System implements com.breadwallet.crypto.System {
                                        WalletManagerMode mode,
                                        AddressScheme scheme,
                                        Set<com.breadwallet.crypto.Currency> currencies) {
-        checkState(supportsWalletManagerMode(network, mode));
-        checkState(supportsAddressScheme(network, scheme));
+        checkState(network.supportsWalletManagerMode(mode));
+        checkState(network.supportsAddressScheme(scheme));
 
         Optional<WalletManager> maybeWalletManager = WalletManager.create(
                 cwmListener,
@@ -587,41 +587,8 @@ final class System implements com.breadwallet.crypto.System {
     // Miscellaneous
 
     @Override
-    public AddressScheme getDefaultAddressScheme(com.breadwallet.crypto.Network network) {
-        return Blockchains.DEFAULT_ADDRESS_SCHEMES.getOrDefault(network.getUids(), AddressScheme.GEN_DEFAULT);
-    }
-
-    @Override
-    public List<AddressScheme> getSupportedAddressSchemes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<AddressScheme> supported = Blockchains.SUPPORTED_ADDRESS_SCHEMES.get(network.getUids());
-        return supported.isEmpty() ? Collections.singletonList(AddressScheme.GEN_DEFAULT) : supported.asList();
-    }
-
-    @Override
-    public boolean supportsAddressScheme(com.breadwallet.crypto.Network network, AddressScheme addressScheme) {
-        return getSupportedAddressSchemes(network).contains(addressScheme);
-    }
-
-    @Override
-    public WalletManagerMode getDefaultWalletManagerMode(com.breadwallet.crypto.Network network) {
-        return Blockchains.DEFAULT_MODES.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
-    }
-
-    @Override
-    public List<WalletManagerMode> getSupportedWalletManagerModes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<WalletManagerMode> supported = Blockchains.SUPPORTED_MODES.get(network.getUids());
-        return supported.isEmpty() ? Collections.singletonList(WalletManagerMode.API_ONLY) : supported.asList();
-    }
-
-    @Override
-    public boolean supportsWalletManagerMode(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
-        return getSupportedWalletManagerModes(network).contains(mode);
-    }
-
-    @Override
     public boolean migrateRequired(com.breadwallet.crypto.Network network) {
-        String code = network.getCurrency().getCode().toLowerCase(Locale.ROOT);
-        return Currency.CODE_AS_BCH.equals(code) || Currency.CODE_AS_BTC.equals(code);
+        return network.requiresMigration();
     }
 
     @Override
@@ -633,14 +600,7 @@ final class System implements com.breadwallet.crypto.System {
             throw new MigrateInvalidError();
         }
 
-        switch (network.getCurrency().getCode().toLowerCase(Locale.ROOT)) {
-            case Currency.CODE_AS_BTC:
-            case Currency.CODE_AS_BCH:
-                migrateStorageAsBtc(network, transactionBlobs, blockBlobs, peerBlobs);
-                break;
-            default:
-                throw new MigrateInvalidError();
-        }
+         migrateStorageAsBtc(network, transactionBlobs, blockBlobs, peerBlobs);
     }
 
     private void migrateStorageAsBtc (com.breadwallet.crypto.Network network,

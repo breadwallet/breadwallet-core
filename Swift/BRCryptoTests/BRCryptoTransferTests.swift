@@ -200,7 +200,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
                 }
             }]
 
-        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .bch == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
@@ -301,9 +301,6 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
 
     
     func testTransferConfirmation () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
-        //let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-
         let confirmation = TransferConfirmation (blockNumber: 1,
                                                  transactionIndex: 2,
                                                  timestamp: 3,

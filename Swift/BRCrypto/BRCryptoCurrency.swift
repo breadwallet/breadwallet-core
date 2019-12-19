@@ -70,9 +70,4 @@ public final class Currency: Hashable {
     public func hash (into hasher: inout Hasher) {
         hasher.combine (uids)
     }
-
-    /// Used to map Currency -> Built-In-Blockchain-Network
-    public static let codeAsBTC = "btc"
-    public static let codeAsBCH = "bch"
-    public static let codeAsETH = "eth"
 }

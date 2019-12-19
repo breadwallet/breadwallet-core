@@ -136,10 +136,10 @@ public class CoreSystemListener implements SystemListener {
         }
 
         if (isMainnet == network.isMainnet() && isNetworkNeeded) {
-            WalletManagerMode mode = system.supportsWalletManagerMode(network, preferredMode) ?
-                    preferredMode : system.getDefaultWalletManagerMode(network);
+            WalletManagerMode mode = network.supportsWalletManagerMode(preferredMode) ?
+                    preferredMode : network.getDefaultWalletManagerMode();
 
-            AddressScheme addressScheme = system.getDefaultAddressScheme(network);
+            AddressScheme addressScheme = network.getDefaultAddressScheme();
             Log.log(Level.FINE, String.format("Creating %s WalletManager with %s and %s", network, mode, addressScheme));
             boolean success = system.createWalletManager(network, mode, addressScheme, Collections.emptySet());
             if (!success) {

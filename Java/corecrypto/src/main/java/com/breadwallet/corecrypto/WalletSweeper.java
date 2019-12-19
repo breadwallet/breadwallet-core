@@ -54,12 +54,9 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
             return;
         }
 
-        // construct a sweeper and populate it
-        if (Currency.CODE_AS_BTC.equals(wallet.getCurrency().getCode())) {
-            WalletSweeper.createAsBtc(manager, wallet, key).initAsBtc(bdb, completion);
-        } else {
-            throw new IllegalArgumentException("Unsupported wallet");
-        }
+        // Well, this is implied by 'validateSupported', I think.  And, there is
+        // no other 'createAsXYZ' function.  When there is, we'll need something more.
+        WalletSweeper.createAsBtc(manager, wallet, key).initAsBtc(bdb, completion);
     }
 
     private static WalletSweeperError statusToError(BRCryptoWalletSweeperStatus status) {

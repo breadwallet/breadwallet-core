@@ -10,6 +10,7 @@ package com.breadwallet.corenative;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbacks;
+import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
@@ -135,8 +136,19 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoNetworkGetNetworkFees(Pointer network, SizeTByReference count);
     public static native Pointer cryptoNetworkTake(Pointer obj);
     public static native void cryptoNetworkGive(Pointer obj);
+    public static native int cryptoNetworkGetCanonicalType(Pointer obj);
+    public static native int cryptoNetworkGetDefaultAddressScheme(Pointer network);
+    public static native Pointer cryptoNetworkGetSupportedAddressSchemes(Pointer network, SizeTByReference count);
+    public static native boolean cryptoNetworkSupportsAddressScheme(Pointer network, int scheme);
+    public static native int cryptoNetworkGetDefaultSyncMode(Pointer network);
+    public static native Pointer cryptoNetworkGetSupportedSyncModes(Pointer network, SizeTByReference count);
+    public static native boolean cryptoNetworkSupportsSyncMode(Pointer network, int mode);
+    public static native boolean cryptoNetworkRequiresMigration(Pointer network);
 
-    // crypto/BRCryptoNetwork.h (BRCryptoNetworkFee)
+    public static native Pointer cryptoNetworkInstallBuiltins(SizeTByReference count);
+    public static native Pointer cryptoNetworkFindBuiltin(String uids);
+
+        // crypto/BRCryptoNetwork.h (BRCryptoNetworkFee)
     public static native long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(Pointer fee);
     public static native Pointer cryptoNetworkFeeGetPricePerCostFactor(Pointer fee);
     public static native int cryptoNetworkFeeEqual(Pointer fee, Pointer other);
@@ -205,12 +217,6 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoNetworkFeeCreate(long timeInternalInMilliseconds, Pointer pricePerCostFactor, Pointer pricePerCostFactorUnit);
 
     // crypto/BRCryptoPrivate.h (BRCryptoNetwork)
-    public static native Pointer cryptoNetworkCreateAsBTC(String uids, String name, int isMainnet);
-    public static native Pointer cryptoNetworkCreateAsBCH(String uids, String name, int isMainnet);
-    public static native Pointer cryptoNetworkCreateAsETHForMainnet(String uids, String name);
-    public static native Pointer cryptoNetworkCreateAsETHForTestnet(String uids, String name);
-    public static native Pointer cryptoNetworkCreateAsETHForRinkeby(String uids, String name);
-    public static native Pointer cryptoNetworkCreateAsGEN(String uids, String name, Pointer currency, byte isMainnet);
     public static native void cryptoNetworkSetHeight(Pointer network, long height);
     public static native void cryptoNetworkSetCurrency(Pointer network, Pointer currency);
     public static native void cryptoNetworkAddCurrency(Pointer network, Pointer currency, Pointer baseUnit, Pointer defaultUnit);

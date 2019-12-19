@@ -85,7 +85,7 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
         confCountLabel.text = transfer.confirmations?.description ?? ""
 
-        if (Currency.codeAsETH != wallet.currency.code) {
+        if ("eth" != wallet.currency.code) {
             nonceTitleLabel.isHidden = true
             nonceLabel.isHidden = true;
         }
