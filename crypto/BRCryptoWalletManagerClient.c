@@ -12,13 +12,12 @@
 #include <math.h>  // round()
 
 #include "BRCryptoBase.h"
-#include "BRCryptoStatus.h"
+#include "BRCryptoStatusP.h"
 #include "BRCryptoNetworkP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoWalletP.h"
-
-#include "BRCryptoPrivate.h" // cryptoStatusFromETH
 
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"

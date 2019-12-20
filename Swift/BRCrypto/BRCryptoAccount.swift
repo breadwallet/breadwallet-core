@@ -10,7 +10,6 @@
 //
 import Foundation // Data
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 ///
@@ -124,10 +123,5 @@ public final class Account {
         defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return CRYPTO_TRUE == cryptoAccountValidatePaperKey (phrase, &words)
-    }
-    
-    // Test Only
-    internal var addressAsETH: String {
-        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }

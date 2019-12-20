@@ -9,8 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
-import BRCryptoC.Impl
-
 
 ///
 /// A unit of measure for a currency.  There can be multiple units for a given currency (analogous

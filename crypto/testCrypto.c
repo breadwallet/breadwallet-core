@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "BRCryptoPrivate.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoWallet.h"

@@ -170,14 +170,3 @@ extension Array where Element:MatchableEvent {
         return match (selfIndex: 0, matchers, matchIndex: 0, matchRequired: !matchers.isEmpty)
     }
 }
-
-///
-/// CustomDebugStringConvertible
-///
-
-extension Amount: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        let value = self.integerRaw
-        return "Amount: {\(value.u64.3), \(value.u64.2), \(value.u64.1), \(value.u64.0)}: \(unit.name)"
-    }
-}

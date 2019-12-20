@@ -13,12 +13,13 @@
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoAmount.h"
 
+#include "BRCryptoAmountP.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoNetworkP.h"
-
-#include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
+#include "BRCryptoPaymentP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 

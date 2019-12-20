@@ -9,7 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// A Blockchain Network.  Networks are created based from a cross-product of block chain and

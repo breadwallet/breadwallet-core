@@ -10,7 +10,6 @@
 //
 import Foundation  // Data, DispatchQueue
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// System (a singleton)

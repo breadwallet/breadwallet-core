@@ -11,14 +11,16 @@
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoUnit.h"
 #include "BRCryptoAddressP.h"
-
-#include "BRCryptoPrivate.h"
+#include "BRCryptoAmountP.h"
 
 #include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
 
 #include <stdbool.h>
+
+private_extern BRArrayOf(BRCryptoUnit)
+cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units);
 
 /// MARK: - Network Canonical Type
 

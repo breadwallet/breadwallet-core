@@ -11,7 +11,7 @@
 #include <math.h>
 
 #include "BRCryptoFeeBasisP.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoAmountP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis)
 
