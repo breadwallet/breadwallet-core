@@ -786,7 +786,7 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                                unitSpec->code,
                                                                unitSpec->name,
                                                                unitSpec->symbol);
-                            array_add (units, unitBase);
+                            array_add (units, cryptoUnitTake (unitBase));
                         }
                         else {
                             BRCryptoUnit unit = cryptoUnitCreate (currency,
@@ -808,14 +808,20 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
 
                 cryptoNetworkAddCurrency (network, currency, unitBase, unitDefault);
 
-                for (size_t unitIndex = 0; unitIndex < array_count(units); unitIndex++)
+                for (size_t unitIndex = 0; unitIndex < array_count(units); unitIndex++) {
                     cryptoNetworkAddCurrencyUnit (network, currency, units[unitIndex]);
+                    cryptoUnitGive (units[unitIndex]);
+                }
                 array_clear (units);
+
+                cryptoUnitGive(unitBase);
+                cryptoUnitGive(unitDefault);
+                cryptoCurrencyGive(currency);
             }
         }
 
         // Create the Network Fees
-        BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (network, cryptoNetworkGetCurrency(network));
+        BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (network, network->currency);
         for (size_t networkFeeIndex = 0; networkFeeIndex < NUMBER_OF_FEES; networkFeeIndex++) {
             struct NetworkFeeSpecification *networkFeeSpec = &networkFeeSpecifications[networkFeeIndex];
             if (0 == strcmp (networkSpec->networkId, networkFeeSpec->networkId)) {
@@ -826,10 +832,15 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                                  pricePerCostFactor,
                                                                  feeUnit);
                 array_add (fees, fee);
+
+                cryptoAmountGive(pricePerCostFactor);
             }
         }
+        cryptoUnitGive(feeUnit);
 
         cryptoNetworkSetNetworkFees (network, fees, array_count(fees));
+        for (size_t index = 0; index < array_count(fees); index++)
+            cryptoNetworkFeeGive (fees[index]);
         array_free(fees);
 
         // Fill out the Address Schemes
