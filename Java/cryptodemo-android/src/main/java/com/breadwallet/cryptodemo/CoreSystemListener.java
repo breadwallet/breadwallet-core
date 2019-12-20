@@ -154,7 +154,7 @@ public class CoreSystemListener implements SystemListener {
     }
 
     private void logWalletAddresses(Wallet wallet) {
-        Log.log(Level.FINE, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
+        Log.log(Level.FINE, String.format("Wallet (target) addresses: %s", wallet.getTarget()));
     }
 
     private void logDiscoveredCurrencies(List<Network> networks) {

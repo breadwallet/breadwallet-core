@@ -83,7 +83,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
                                                                     ? 1565974068
                                                                     : 1565974410),
                                                                 fee: nil),
-                            hash: "f6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
+                            hash: "0xf6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
                             amount: UInt64(1000000))
         ]
     }
@@ -159,6 +159,14 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (wallet.transferBy(hash: transfer.hash!))
         XCTAssertNotNil (wallet.transferBy(core: transfer.core))
 
+        transfers.forEach {
+            if let address = (transfer.direction == TransferDirection.received
+                ? $0.target
+                : $0.source) {
+                XCTAssertTrue (wallet.hasAddress (address))
+            }
+            else { XCTAssertTrue(false) }
+        }
         // Events
 
         XCTAssertTrue (listener.checkSystemEventsCommonlyWith (network: network,

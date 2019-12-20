@@ -249,7 +249,7 @@ class CryptoTestSystemListener: SystemListener {
     var walletExpectation  = XCTestExpectation (description: "ManagerExpectation")
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        print ("TST: Wallet Event: \(event)")
+        print ("TST: Wallet (\(wallet.name)) Event: \(event)")
         walletEvents.append(event)
         walletHandlers.forEach { $0 (system, manager, wallet, event) }
     }
