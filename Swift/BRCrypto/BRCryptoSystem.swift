@@ -1816,12 +1816,12 @@ extension System {
             var hashes = blob.hashes.flatMap { $0 }  // [[UInt8 ...] ...] => [UInt8 ... ...]
             let hashesCount = blob.hashes.count
 
-            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
-            let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
-            let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
+            let hash: BRCryptoData32 = blob.hash.withUnsafeBytes { $0.load (as: BRCryptoData32.self) }
+            let merkleRoot: BRCryptoData32 = blob.merkleRoot.withUnsafeBytes { $0.load (as: BRCryptoData32.self) }
+            let prevBlock:  BRCryptoData32 = blob.prevBlock.withUnsafeBytes  { $0.load (as: BRCryptoData32.self) }
 
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
-                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
+                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: BRCryptoData32.self)
                 let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
                                                                    hash,
                                                                    blob.height,

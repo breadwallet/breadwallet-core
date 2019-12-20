@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
-import com.breadwallet.corenative.support.UInt256;
 import com.google.common.base.Optional;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;

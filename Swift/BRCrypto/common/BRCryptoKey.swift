@@ -154,7 +154,7 @@ public final class Key {
         return asUTF8String (cryptoKeyEncodePublic (self.core), true)
     }
 
-    public var secret: UInt256 {
+    public var secret: BRCryptoSecret {
         return cryptoKeyGetSecret (self.core)
     }
     
@@ -189,7 +189,7 @@ public final class Key {
     ///
     /// - Parameter secret: the secret
     ///
-    internal convenience init (secret: UInt256) {
+    internal convenience init (secret: BRCryptoSecret) {
         self.init (core: cryptoKeyCreateFromSecret (secret))
     }
 

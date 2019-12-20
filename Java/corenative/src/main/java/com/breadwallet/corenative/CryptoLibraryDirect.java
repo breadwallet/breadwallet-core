@@ -16,7 +16,7 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerDisconnectReason;
 import com.breadwallet.corenative.crypto.BRCryptoSyncStoppedReason;
 import com.breadwallet.corenative.crypto.BRCryptoTransferSubmitError;
-import com.breadwallet.corenative.support.UInt256;
+import com.breadwallet.corenative.support.BRCryptoSecret;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Native;
@@ -106,14 +106,14 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoKeyCreateForPigeon(Pointer key, byte[] nonce, SizeT nonceCount);
     public static native Pointer cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
     public static native Pointer cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
-    public static native Pointer cryptoKeyCreateFromSecret(UInt256.ByValue secret);
+    public static native Pointer cryptoKeyCreateFromSecret(BRCryptoSecret.ByValue secret);
     public static native void cryptoKeyProvidePublicKey(Pointer key, int useCompressed, int compressed);
     public static native int cryptoKeyHasSecret(Pointer key);
     public static native int cryptoKeyPublicMatch(Pointer key, Pointer other);
     public static native int cryptoKeySecretMatch(Pointer key, Pointer other);
     public static native Pointer cryptoKeyEncodePrivate(Pointer key);
     public static native Pointer cryptoKeyEncodePublic(Pointer key);
-    public static native UInt256.ByValue cryptoKeyGetSecret(Pointer key);
+    public static native BRCryptoSecret.ByValue cryptoKeyGetSecret(Pointer key);
     public static native void cryptoKeyGive(Pointer key);
 
     // crypto/BRCryptoNetwork.h
