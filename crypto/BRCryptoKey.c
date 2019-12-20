@@ -80,13 +80,13 @@ cryptoKeyCreateFromKey (BRKey *key) {
 }
 
 extern BRCryptoKey
-cryptoKeyCreateFromSecret (UInt256 secret) {
+cryptoKeyCreateFromSecret (BRCryptoSecret secret) {
     BRKey core;
-    BRKeySetSecret (&core, &secret, 1);
+    BRKeySetSecret (&core, (UInt256*) secret.data, 1);
     BRCryptoKey result = cryptoKeyCreateInternal (core, CRYPTO_ADDRESS_PARAMS);
 
     BRKeyClean(&core);
-    secret = UINT256_ZERO;
+    memset (secret.data, 0, sizeof(secret.data));
 
     return result;
 }
@@ -320,9 +320,11 @@ cryptoKeyEncodePublic (BRCryptoKey key) {
     return encodeHexCreate (NULL, encoded, encodedLength);
 }
 
-extern UInt256
+extern BRCryptoSecret
 cryptoKeyGetSecret (BRCryptoKey key) {
-    return key->core.secret;
+    BRCryptoSecret secret;
+    memcpy (secret.data, key->core.secret.u8, sizeof (secret.data));
+    return secret;
 }
 
 extern int

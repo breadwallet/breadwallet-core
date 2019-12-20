@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdatomic.h>
+#include <memory.h>
 
 // temporary
 
@@ -58,7 +59,25 @@ extern "C" {
 #define BLOCK_HEIGHT_UNBOUND       (UINT64_MAX)
 #endif
 
-    /// MARK: Reference Counting
+    /// MARK: - Data32 / Data16
+
+    typedef struct {
+        uint8_t data[256/8];
+    } BRCryptoData32;
+
+    static inline void cryptoData32Clear (BRCryptoData32 *data32) {
+        memset (data32, 0, sizeof (BRCryptoData32));
+    }
+
+    typedef struct {
+        uint8_t data[128/8];
+    } BRCryptoData16;
+
+    static inline void cryptoData16Clear (BRCryptoData16 *data16) {
+        memset (data16, 0, sizeof (BRCryptoData16));
+    }
+
+    /// MARK: - Reference Counting
 
     typedef struct {
         _Atomic(unsigned int) count;
