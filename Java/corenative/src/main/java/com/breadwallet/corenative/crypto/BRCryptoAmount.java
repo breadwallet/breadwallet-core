@@ -134,14 +134,12 @@ public class BRCryptoAmount extends PointerType {
     public String toStringWithBase(int base, String preface) {
         Pointer thisPtr = this.getPointer();
 
-        UInt256.ByValue value = CryptoLibraryDirect.cryptoAmountGetValue(thisPtr);
-        Pointer ptr = CryptoLibraryDirect.coerceStringPrefaced(value, base, preface);
+        Pointer ptr = CryptoLibraryDirect.cryptoAmountGetStringPrefaced(thisPtr, base, preface);
         try {
             return ptr.getString(0, "UTF-8");
         } finally {
             Native.free(Pointer.nativeValue(ptr));
         }
-
     }
 
     public void give() {
