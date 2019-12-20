@@ -418,6 +418,11 @@
 		3C115A062354E8810075ACDA /* BRGenericClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRGenericClient.h; sourceTree = "<group>"; };
 		3C115A072354E8810075ACDA /* BRGenericClient.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRGenericClient.c; sourceTree = "<group>"; };
 		3C115A0A2354EB580075ACDA /* BRGenericPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRGenericPrivate.h; sourceTree = "<group>"; };
+		3C13DEE123AC5EC400A16E5C /* BRCryptoStatusP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatusP.h; sourceTree = "<group>"; };
+		3C13DEE223AC5F9700A16E5C /* BRCryptoPaymentP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoPaymentP.h; sourceTree = "<group>"; };
+		3C13DEE323AC609700A16E5C /* BRCryptoAmountP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoAmountP.h; sourceTree = "<group>"; };
+		3C13DEE423AC618900A16E5C /* BRCryptoHashP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoHashP.h; sourceTree = "<group>"; };
+		3C13DEE523AC67C500A16E5C /* BRCryptoKeyP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoKeyP.h; sourceTree = "<group>"; };
 		3C18F8AF21950746006F738F /* BRCryptoDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BRCryptoDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C18F8B121950746006F738F /* CoreDemoAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoAppDelegate.swift; sourceTree = "<group>"; };
 		3C18F8B821950746006F738F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -649,7 +654,6 @@
 		3C97E24422416AB1003FD88F /* BRCryptoAmount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoAmount.c; sourceTree = "<group>"; };
 		3C97E255224170B9003FD88F /* BRCryptoAccount.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoAccount.c; sourceTree = "<group>"; };
 		3C97E259224170EC003FD88F /* BRCryptoAddress.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoAddress.c; sourceTree = "<group>"; };
-		3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoPrivate.h; sourceTree = "<group>"; };
 		3C97E25E2243E589003FD88F /* BRCryptoAccountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoAccountTests.swift; sourceTree = "<group>"; };
 		3C97E2602243E5EE003FD88F /* BRCryptoNetworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoNetworkTests.swift; sourceTree = "<group>"; };
 		3C97E268224996C2003FD88F /* BRCryptoSystemTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoSystemTests.swift; sourceTree = "<group>"; };
@@ -1398,14 +1402,17 @@
 		3C97E2322241656B003FD88F /* crypto */ = {
 			isa = PBXGroup;
 			children = (
-				3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */,
 				3C8380A4239EC00600CC3674 /* BRCryptoConfig.h */,
 				3C8380A523A0381800CC3674 /* BRCryptoBaseP.h */,
+				3C13DEE123AC5EC400A16E5C /* BRCryptoStatusP.h */,
 				3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */,
+				3C13DEE423AC618900A16E5C /* BRCryptoHashP.h */,
 				3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */,
 				3C97E2332241658E003FD88F /* BRCryptoCurrency.c */,
 				3C97E24022416AB1003FD88F /* BRCryptoUnit.c */,
+				3C13DEE323AC609700A16E5C /* BRCryptoAmountP.h */,
 				3C97E24422416AB1003FD88F /* BRCryptoAmount.c */,
+				3C13DEE523AC67C500A16E5C /* BRCryptoKeyP.h */,
 				3C1D1F2422F0F1740028B20C /* BRCryptoKey.c */,
 				3C4520A0238896F800F98290 /* BRCryptoAccountP.h */,
 				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
@@ -1418,6 +1425,7 @@
 				3C2318EF23319424007A3EC1 /* BRCryptoPeer.c */,
 				3C45209C2388913400F98290 /* BRCryptoTransferP.h */,
 				3C97E23B22416AB1003FD88F /* BRCryptoTransfer.c */,
+				3C13DEE223AC5F9700A16E5C /* BRCryptoPaymentP.h */,
 				CEF5E0ED2315C166009EF3C0 /* BRCryptoPayment.c */,
 				3C45209E2388942B00F98290 /* BRCryptoWalletP.h */,
 				3C97E23A22416AB1003FD88F /* BRCryptoWallet.c */,

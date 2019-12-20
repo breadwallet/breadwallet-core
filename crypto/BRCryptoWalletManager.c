@@ -12,15 +12,16 @@
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
-#include "BRCryptoKey.h"
 
-#include "BRCryptoPrivate.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoAccountP.h"
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoAddressP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoWalletP.h"
+#include "BRCryptoPaymentP.h"
 
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"

@@ -175,6 +175,11 @@ extern "C" {
     cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                                BRCryptoBoolean *overflow);
 
+    extern char *
+    cryptoAmountGetStringPrefaced (BRCryptoAmount amount,
+                                   int base,
+                                   const char *preface);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 #ifdef __cplusplus

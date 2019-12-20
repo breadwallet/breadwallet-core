@@ -12,8 +12,7 @@
 #include <stdlib.h>
 
 #include "BRCryptoCipher.h"
-#include "BRCryptoPrivate.h"
-#include "BRCryptoKey.h"
+#include "BRCryptoKeyP.h"
 
 #include "support/BRBase.h"
 #include "support/BRCrypto.h"
