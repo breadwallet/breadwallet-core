@@ -10,7 +10,6 @@ package com.breadwallet.corenative;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbacks;
-import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
@@ -72,7 +71,7 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoAmountNegate(Pointer amount);
     public static native Pointer cryptoAmountConvertToUnit(Pointer amount, Pointer unit);
     public static native double cryptoAmountGetDouble(Pointer amount, Pointer unit, IntByReference overflow);
-    public static native UInt256.ByValue cryptoAmountGetValue(Pointer amount);
+    public static native Pointer cryptoAmountGetStringPrefaced (Pointer amount, int base, String preface);
     public static native void cryptoAmountGive(Pointer obj);
 
     // crypto/BRCryptoCurrency.h
@@ -413,17 +412,6 @@ public final class CryptoLibraryDirect {
     public static native int cryptoSignerSign(Pointer signer, Pointer key, byte[] signature, SizeT signatureLen, byte[] digest, SizeT digestLen);
     public static native Pointer cryptoSignerRecover(Pointer signer, byte[] digest, SizeT digestLen, byte[] signature, SizeT signatureLen);
     public static native void cryptoSignerGive(Pointer signer);
-
-    //
-    // Support
-    //
-
-    //
-    // Ethereum
-    //
-
-    // ethereum/util/BRUtilMath.h
-    public static native Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 
     static {
         Native.register(CryptoLibraryDirect.class, CryptoLibrary.LIBRARY);
