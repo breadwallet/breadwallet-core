@@ -850,6 +850,7 @@
 				3CF66B1022AAE45400C1E9BB /* BRCryptoCurrency.swift */,
 				3CF66B0F22AAE45400C1E9BB /* BRCryptoUnit.swift */,
 				3CF66B0C22AAE45400C1E9BB /* BRCryptoAmount.swift */,
+				3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */,
 				3CF66B0D22AAE45400C1E9BB /* BRCryptoAccount.swift */,
 				3CF66B0922AAE45300C1E9BB /* BRCryptoNetwork.swift */,
 				3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */,
@@ -1468,7 +1469,6 @@
 			children = (
 				3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */,
 				3C0EAE192191145A000577A6 /* BRSupport.swift */,
-				3CF7683322E5F6DB0007BBDA /* BRCryptoKey.swift */,
 				3C915B0822E0B66400AAD000 /* BRCryptoHasher.swift */,
 				3C915B0A22E0B6B000AAD000 /* BRCryptoCoder.swift */,
 				3C915B0C22E0B98D00AAD000 /* BRCryptoCipher.swift */,
