@@ -429,33 +429,26 @@ public final class System {
                     supportedNetworks.forEach { announceNetwork($0) }
                     return // from getBlockchains
                 }
-                
-                // Only consider blockchain models that correspond to supported networks
-                let supportedModels = blockchainResult.getWithRecovery { (ignore) in return [] }
-                    .filter { (model) in supportedNetworks.contains { model.id == $0.uids } }
 
-                // If there are no models, then we are done (and disappointed).
-                guard !supportedModels.isEmpty
-                    else {
-                        print ("SYS: CONFIGURE: No Blockchains Found")
-                        supportedNetworks.forEach { announceNetwork($0) }
-                        return
-                }
+                // Make a map from of the supported models
+                let blockchainModelsMap = Dictionary (uniqueKeysWithValues:
+                    blockchainResult.getWithRecovery { (ignore) in return [] }
+                        .map { ($0.id, $0) })
 
                 // Enter the group once for each model; we'll leave as each currency is processed.
                 // When all have left, self.queue will unblock (see blockchainsGroup.wait() below).
-                supportedModels.forEach { (ignore) in blockchainsGroup.enter() }
+                supportedNetworks.forEach { (ignore) in blockchainsGroup.enter() }
 
                 // Signal the dispatch semaphore, the self.queue will now start blocking
                 // on the dispatch group.
                 blockchainsSemaphore.signal()
 
-                // Handle each blockchain Model - there will be at least one model
-                supportedModels
-                    .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
+                // Handle each network
+                supportedNetworks
+                    .forEach { (network: Network) in
 
-                        // query currencies
-                        self.query.getCurrencies (blockchainId: blockchainModel.id) {
+                        // query currencies based on the (Network <==> BlockchainMode) id
+                        self.query.getCurrencies (blockchainId: network.uids) {
                             (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
 
                             // We get one `currencyResult` per blockchain.  If we leave the group
@@ -464,30 +457,26 @@ public final class System {
                                 blockchainsGroup.leave()
                             }
 
-                            // Do process a network that we've added already.
-                            guard nil == self.networkBy (uids: blockchainModel.id)
-                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(blockchainModel.name)"); return }
+                            // Don't process a network that we've added already.
+                            guard nil == self.networkBy (uids: network.uids)
+                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(network.name)"); return }
 
                             // Get the built-in network
-                            guard let network = supportedNetworks.first (where: { blockchainModel.id == $0.uids })
-                                else { print ("SYS: CONFIGURE: Missed network for model: \(blockchainModel.id)"); return }
+//                            guard let network = supportedNetworks.first (where: { network.uids == $0.uids })
+//                                else { print ("SYS: CONFIGURE: Missed network for model: \(network.uids)"); return }
 
-                            if let blockHeight = blockchainModel.blockHeight {
-                                cryptoNetworkSetHeight (network.core, blockHeight)
-                            }
-                            
                             // If there was a QueryError, then we are done
                             if case let .failure(error) = currencyResult {
-                                print ("SYS: CONFIGURE: Missed Currencies Query (\(blockchainModel.id)): \(error)")
+                                print ("SYS: CONFIGURE: Missed Currencies Query (\(network.uids)): \(error)")
                                 // Continue on to use the applicationCurrencies
                              }
 
                             currencyResult.getWithRecovery { (ignore) in
                                 return applicationCurrencies
-                                    .filter { $0.blockchainID == blockchainModel.id }
+                                    .filter { $0.blockchainID == network.uids }
                             }
                                 // TODO: Only needed if getCurrencies returns the wrong stuff.
-                                .filter { $0.blockchainID == blockchainModel.id }
+                                .filter { $0.blockchainID == network.uids }
                                 .filter { $0.verified }
                                 .forEach { (currencyModel: BlockChainDB.Model.Currency) in
 
@@ -525,22 +514,31 @@ public final class System {
                             guard let feeUnit = network.baseUnitFor (currency: network.currency)
                                 else { return }
 
-                            // Extract the network fees from the blockchainModel
-                            let fees = blockchainModel.feeEstimates
-                                // Well, quietly ignore a fee if we can't parse the amount.
-                                .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                    let timeInterval  = fee.confirmationTimeInMilliseconds
-                                    return Amount.create (string: fee.amount, unit: feeUnit)
-                                        .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
-                                                           pricePerCostFactor: $0) }
+                            // If we have a blockchain model for this network, process it.
+                            if let blockchainModel = blockchainModelsMap[network.uids] {
+
+                                if let blockHeight = blockchainModel.blockHeight {
+                                    cryptoNetworkSetHeight (network.core, blockHeight)
+                                }
+
+                                // Extract the network fees from the blockchainModel
+                                let fees = blockchainModel.feeEstimates
+                                    // Well, quietly ignore a fee if we can't parse the amount.
+                                    .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                                        let timeInterval  = fee.confirmationTimeInMilliseconds
+                                        return Amount.create (string: fee.amount, unit: feeUnit)
+                                            .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
+                                                               pricePerCostFactor: $0) }
+                                }
+
+                                // We require fees
+                                guard !fees.isEmpty
+                                    else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
+
+                                // Update the network's fees.
+                                network.fees = fees
                             }
-
-                            // We require fees
-                            guard !fees.isEmpty
-                                else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
-
-                            // Update the network's fees.
-                            network.fees = fees
+                            else { print ("SYS: CONFIGURE: Missed model for network: \(network.uids)") }
 
                             // Finally, announce the network
                             announceNetwork(network)

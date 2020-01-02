@@ -51,46 +51,20 @@ final class NetworkDiscovery {
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.complete(networks));
 
         // The 'supportedNetworks' will be builtin networks matching isMainnet.
-        List<Network> supportedNetworks = findBuiltinNetworks(isMainnet);
+        final List<Network> supportedNetworks = findBuiltinNetworks(isMainnet);
 
         getBlockChains(latch, query, isMainnet, remoteModels -> {
             // We ONLY support built-in blockchains; but the remotes have some
-            // needed values - specifically the network fees.
+            // needed values - specifically the network fees and block height.
 
-            // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never
-            // have more than `builtin` but might have less.
-            Collection<Blockchain> supportedModels = filterBlockchains(supportedNetworks, remoteModels);
-
-            // If there are no supported models - typically because the network query failed -
-            // then simply announce the suppported networks.
-            if (supportedModels.isEmpty()) {
-                for (Network network: supportedNetworks) {
-                    // Announce the network
-                    callback.discovered(network);
-
-                    // Keep a running total of discovered networks
-                    networks.add(network);
-                }
-                return null;
-            }
-
-            // Otherwise, process each supportedModel and fill our a supported network
-            for (Blockchain blockchainModel : supportedModels) {
-                String blockchainModelId = blockchainModel.getId();
-
-                final Network network = findNetwork (supportedNetworks, blockchainModelId);
-                if (null == network) {
-                    Log.log(Level.FINE, String.format("Missed Network for Model: %s", blockchainModelId));
-                    break;
-                }
-
-                @SuppressWarnings("OptionalGetWithoutIsPresent")
-                UnsignedLong blockHeight = blockchainModel.getBlockHeight().get();
+            // Process each supportedNetwork based on the remote model
+            for (Network network: supportedNetworks) {
+                String blockchainModelId = network.getUids();
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> applicationCurrencies = new ArrayList<>();
                 for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency: appCurrencies) {
                     if (currency.getBlockchainId().equals(blockchainModelId)) {
-                        applicationCurrencies .add(currency);
+                        applicationCurrencies.add(currency);
                     }
                 }
 
@@ -115,6 +89,7 @@ final class NetworkDiscovery {
                         Collections.sort(units, (o1, o2) -> o2.getDecimals().compareTo(o1.getDecimals()));
                         Unit defaultUnit = units.get(0);
 
+                        // The currency and unit here will not override builtins.
                         network.addCurrency(currency, baseUnit, defaultUnit);
                         for (Unit u: units) {
                             network.addUnitFor(currency, u);
@@ -124,20 +99,40 @@ final class NetworkDiscovery {
                     Unit feeUnit = network.baseUnitFor (network.getCurrency()).orNull();
                     if (null == feeUnit) { /* never here */ return null; }
 
-                    List<NetworkFee> fees = new ArrayList<>();
-                    for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
-                        Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
-                        if (amount.isPresent()) {
-                            fees.add(NetworkFee.create(bdbFee.getConfirmationTimeInMilliseconds(), amount.get()));
+                    // Find a blockchainModel for this network; there might not be one.
+                    Blockchain blockchainModel = null;
+                    for (Blockchain model : remoteModels)
+                        if (model.getId().equals(blockchainModelId)) {
+                            blockchainModel = model;
+                            break;
                         }
-                    }
 
-                    if (fees.isEmpty()) {
-                        Log.log(Level.FINE, String.format("Missed Fees %s", blockchainModel.getName()));
-                        return null;
-                    }
+                    // If we have a blockchainModel for this network, process the model
+                    if (null != blockchainModel) {
 
-                    network.setFees(fees);
+                        // Update the network's height
+                        if (blockchainModel.getBlockHeight().isPresent())
+                            network.setHeight (blockchainModel.getBlockHeightValue());
+
+                        // Extract the network fees
+                        List<NetworkFee> fees = new ArrayList<>();
+                        for (BlockchainFee bdbFee : blockchainModel.getFeeEstimates()) {
+                            Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
+                            if (amount.isPresent()) {
+                                fees.add(NetworkFee.create(bdbFee.getConfirmationTimeInMilliseconds(), amount.get()));
+                            }
+                        }
+
+                        if (fees.isEmpty()) {
+                            Log.log(Level.FINE, String.format("Missed Fees %s", blockchainModel.getName()));
+                            return null;
+                        }
+
+                        network.setFees(fees);
+                    }
+                    else {
+                        Log.log(Level.FINE, String.format("Missed Model for Network: %s", blockchainModelId));
+                    }
 
                     // Announce the network
                     callback.discovered(network);
@@ -150,25 +145,6 @@ final class NetworkDiscovery {
             }
             return null;
         });
-    }
-
-    private static Collection<Blockchain> filterBlockchains(Collection<Network> supported,
-                                                            Collection<Blockchain> remotes) {
-
-        Map<String, Network> supportedMap = new HashMap<>();
-        for (Network b: supported) {
-            supportedMap.put(b.getUids(), b);
-        }
-
-        Map<String, Blockchain> filteredMap = new HashMap<>();
-        for (Blockchain b: remotes) {
-            String id = b.getId();
-            if (supportedMap.containsKey(id)) {
-                filteredMap.put(id, b);
-            }
-        }
-
-        return filteredMap.values();
     }
 
     private static void getBlockChains(CountUpAndDownLatch latch,
