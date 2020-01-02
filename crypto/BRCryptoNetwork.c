@@ -30,8 +30,9 @@ cryptoNetworkCanonicalTypeString (BRCryptoNetworkCanonicalType type) {
         "CRYPTO_NETWORK_TYPE_BTC",
         "CRYPTO_NETWORK_TYPE_BCH",
         "CRYPTO_NETWORK_TYPE_ETH",
-        // "Ripple",
+        "CRYPTO_NETWORK_TYPE_XRP"
         // "Hedera"
+        // "Stellar"
     };
     assert (type < NUMBER_OF_NETWORK_TYPES);
     return strings[type];
@@ -184,13 +185,12 @@ cryptoNetworkCreateAsETH (const char *uids,
 static BRCryptoNetwork
 cryptoNetworkCreateAsGEN (const char *uids,
                           const char *name,
-                          BRCryptoCurrency currency,
+                          const char *type,
                           uint8_t isMainnet,
                           BRCryptoNetworkCanonicalType canonicalType) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name, canonicalType);
     network->type = BLOCK_CHAIN_TYPE_GEN;
-    network->u.gen = genNetworkCreate(cryptoCurrencyGetCode(currency), isMainnet);
-    network->currency = cryptoCurrencyTake(currency);
+    network->u.gen = genNetworkCreate(type, isMainnet);
     return network;
 }
 
@@ -651,6 +651,14 @@ cryptoNetworkCreateBuiltin (const char *symbol,
         network = cryptoNetworkCreateAsETH (uids, name, ethereumTestnet);
     else if (0 == strcmp ("ethRinkeby", symbol))
         network = cryptoNetworkCreateAsETH (uids, name, ethereumRinkeby);
+    else if (0 == strcmp ("xrpMainnet", symbol))
+        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_XRP, 1, CRYPTO_NETWORK_TYPE_XRP);
+    else if (0 == strcmp ("xrpTestnet", symbol))
+        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_XRP, 0, CRYPTO_NETWORK_TYPE_XRP);
+//    else if (0 == strcmp ("hbarMainnet", symbol))
+//        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_HBAR, 1, CRYPTO_NETWORK_TYPE_HBAR);
+//    else if (0 == strcmp ("xlmMainnet", symbol))
+//        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_Xlm, 1, CRYPTO_NETWORK_TYPE_XLM);
     // ...
 
     assert (NULL != network);

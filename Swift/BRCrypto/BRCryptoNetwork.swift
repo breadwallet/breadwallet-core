@@ -296,16 +296,18 @@ public enum NetworkType: CustomStringConvertible {
     case btc
     case bch
     case eth
-//    case xrp
+    case xrp
 //    case hbar
+//    case xlm
 
     internal init (core: BRCryptoNetworkCanonicalType) {
         switch core {
         case CRYPTO_NETWORK_TYPE_BTC:  self = .btc
         case CRYPTO_NETWORK_TYPE_BCH:  self = .bch
         case CRYPTO_NETWORK_TYPE_ETH:  self = .eth
-//        case CRYPTO_NETWORK_TYPE_XRP:  self = .xrp
+        case CRYPTO_NETWORK_TYPE_XRP:  self = .xrp
 //        case CRYPTO_NETWORK_TYPE_HBAR: self = .hbar
+//        case CRYPTO_NETWORK_TYPE_XLM:  self = .xlm
         default: preconditionFailure()
         }
     }
@@ -315,8 +317,9 @@ public enum NetworkType: CustomStringConvertible {
         case .btc: return CRYPTO_NETWORK_TYPE_BTC
         case .bch: return CRYPTO_NETWORK_TYPE_BCH
         case .eth: return CRYPTO_NETWORK_TYPE_ETH
-//        case .xrp: return CRYPTO_NETWORK_TYPE_XRP
+        case .xrp: return CRYPTO_NETWORK_TYPE_XRP
 //        case .hbar: return CRYPTO_NETWORK_TYPE_HBAR
+//        case .hbar: return CRYPTO_NETWORK_TYPE_XLM
         }
     }
 
