@@ -50,7 +50,7 @@ extern "C" {
     } BRCryptoWalletEventType;
 
     extern const char *
-    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
+    cryptoWalletEventTypeString (BRCryptoWalletEventType t);
 
     typedef struct {
         BRCryptoWalletEventType type;
@@ -158,6 +158,14 @@ extern "C" {
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet,
                             BRCryptoAddressScheme addressScheme);
+
+    /**
+     * Check if `wallet` has `address`.  Checks that `address` has been used already by `wallet`
+     * or if `address` is the *next* address from `wallet`
+     */
+    extern BRCryptoBoolean
+    cryptoWalletHasAddress (BRCryptoWallet wallet,
+                            BRCryptoAddress address);
 
     extern BRCryptoFeeBasis
     cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet);

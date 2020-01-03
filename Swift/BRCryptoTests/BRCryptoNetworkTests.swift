@@ -20,40 +20,29 @@ class BRCryptoNetworkTests: XCTestCase {
     }
 
     func testNetworkBTC () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let btc = Currency (uids: "bitcoin-mainnet:__native__",  name: "Bitcoin",  code: "btc", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
-
-        let associations = Network.Association (baseUnit: BTC_SATOSHI,
-                                                defaultUnit: BTC_BTC,
-                                                units: Set (arrayLiteral: BTC_SATOSHI, BTC_BTC))
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "sat",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "btc",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
         let fee = NetworkFee (timeIntervalInMilliseconds: 30 * 1000,
                               pricePerCostFactor: Amount.create(integer: 1000, unit: BTC_SATOSHI))
 
         let _ = NetworkFee (core: fee.core, take: true)
 
-        let network = Network (uids: "bitcoin-mainnet",
-                               name: "bitcoin-name",
-                               isMainnet: true,
-                               currency: btc,
-                               height: 100000,
-                               associations: [btc:associations],
-                               fees: [fee],
-                               confirmationsUntilFinal: 6)
+        let network = Network.findBuiltin(uids: "bitcoin-mainnet")!
 
         XCTAssertEqual (network.uids, "bitcoin-mainnet")
-        XCTAssertEqual (network.name, "bitcoin-name")
+        XCTAssertEqual (network.name, "Bitcoin")
         XCTAssertTrue  (network.isMainnet)
-        XCTAssertEqual (network.height, 100000)
 
+        let height = network.height;
         network.height *= 2
-        XCTAssertEqual (network.height, 2 * 100000)
+        XCTAssertEqual (network.height, 2 * height)
 
         XCTAssertEqual (network.currency, btc)
         XCTAssertTrue  (network.hasCurrency(btc))
-        XCTAssertTrue  (network.currencyBy(code: "BTC").map { $0 == btc } ?? false)
+        XCTAssertTrue  (network.currencyBy(code: "btc").map { $0 == btc } ?? false)
         XCTAssertTrue  (network.currencyBy(issuer: "foo") == nil)
 
         XCTAssertTrue  (network.baseUnitFor    (currency: btc).map { $0 == BTC_SATOSHI} ?? false)
@@ -63,7 +52,7 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_BTC)     ?? false)
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_SATOSHI) ?? false)
 
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
+        let eth = Currency (uids: "ethereum-mainnet:__native__", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
 
         XCTAssertFalse (network.hasCurrency(eth))
@@ -82,46 +71,30 @@ class BRCryptoNetworkTests: XCTestCase {
     }
 
     func testNetworkETH () {
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
-        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
-        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
-        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
+        let eth = Currency (uids: "ethereum-mainnet:__native__", name: "Ethereum", code: "eth", type: "native", issuer: nil)
+        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "wei", name: "WEI",   symbol: "wei")
+        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "gwei", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "eth", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
 
-        let ETH_associations = Network.Association (baseUnit: ETH_WEI,
-                                                    defaultUnit: ETH_ETHER,
-                                                    units: Set (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER))
+        let brd = Currency (uids: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", name: "BRD Token", code: "brd", type: "erc20", issuer: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6")
+        // let brd_brdi = BRCrypto.Unit (currency: brd, uids: "BRDI", name: "BRD Token INT", symbol: "BRDI")
+        // let brd_brd  = BRCrypto.Unit (currency: brd, uids: "BRD",  name: "BRD Token",     symbol: "BRD", base: brd_brdi, decimals: 18)
 
-        let brd = Currency (uids: "BRD", name: "BRD Token", code: "brd", type: "erc20", issuer: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6")
+        let btc = Currency (uids: "bitcoin-mainnet:__native__",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let brd_brdi = BRCrypto.Unit (currency: brd, uids: "BRD_Integer", name: "BRD Integer", symbol: "BRDI")
-        let brd_brd  = BRCrypto.Unit (currency: brd, uids: "BRD_Decimal", name: "BRD_Decimal", symbol: "BRD", base: brd_brdi, decimals: 18)
-
-        let BRD_associations = Network.Association (baseUnit: brd_brdi,
-                                                    defaultUnit: brd_brd,
-                                                    units: Set (arrayLiteral: brd_brdi, brd_brd))
-
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
-
-        let fee1 = NetworkFee (timeIntervalInMilliseconds: 1000,
+        let fee1 = NetworkFee (timeIntervalInMilliseconds: 1 * 60 * 1000,
                                pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))
-        let fee2 = NetworkFee (timeIntervalInMilliseconds: 500,
-                               pricePerCostFactor: Amount.create(double: 3.0, unit: ETH_GWEI))
 
-        let network = Network (uids: "ethereum-mainnet",
-                               name: "ethereum-name",
-                               isMainnet: true,
-                               currency: eth,
-                               height: 100000,
-                               associations: [eth:ETH_associations, brd:BRD_associations],
-                               fees: [fee1, fee2],
-                               confirmationsUntilFinal: 6)
+        let network = Network.findBuiltin(uids: "ethereum-mainnet")!
 
-        XCTAssertEqual ("ethereum-name", network.description)
+
+
+        XCTAssertEqual ("Ethereum", network.description)
         XCTAssertTrue  (network.hasCurrency(eth))
         XCTAssertTrue  (network.hasCurrency(brd))
         XCTAssertFalse (network.hasCurrency(btc))
 
-        XCTAssertNotNil (network.currencyBy (code: "ETH"))
+        XCTAssertNotNil (network.currencyBy (code: "eth"))
         XCTAssertNotNil (network.currencyBy (code: "brd"))
 
         XCTAssertNotNil (network.currencyBy (issuer: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"))

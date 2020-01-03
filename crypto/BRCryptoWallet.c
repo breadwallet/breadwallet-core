@@ -13,12 +13,13 @@
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoAmount.h"
 
+#include "BRCryptoAmountP.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoNetworkP.h"
-
-#include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
+#include "BRCryptoPaymentP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 
@@ -303,6 +304,46 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
 
             BRGenericAddress genAddress = genWalletGetAddress (wid);
             return cryptoAddressCreateAsGEN (genAddress);
+        }
+    }
+}
+
+extern BRCryptoBoolean
+cryptoWalletHasAddress (BRCryptoWallet wallet,
+                        BRCryptoAddress address) {
+    if (wallet->type != cryptoAddressGetType(address))
+        return CRYPTO_FALSE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRCryptoBoolean isBitcoinAddress;
+
+            BRWallet *btcWallet = wallet->u.btc.wid;
+            BRAddress btcAddress = cryptoAddressAsBTC (address, &isBitcoinAddress);
+
+            if (BRWalletAddressIsUsed (btcWallet, btcAddress.s))
+                return CRYPTO_TRUE;
+
+            BRAddress btcLegacyAddress = BRWalletLegacyAddress (btcWallet);
+            if (0 == memcmp (btcAddress.s, btcLegacyAddress.s, sizeof (btcAddress.s)))
+                return CRYPTO_TRUE;
+
+            if (CRYPTO_TRUE == isBitcoinAddress) {
+                BRAddress btcSegwitAddress = BRWalletReceiveAddress (btcWallet);
+                if (0 == memcmp (btcAddress.s, btcSegwitAddress.s, sizeof (btcAddress.s)))
+                    return CRYPTO_TRUE;
+            }
+
+            return CRYPTO_FALSE;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumAddress ethAddress = cryptoAddressAsETH (address);
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_TRUE == ewmWalletHasAddress(wallet->u.eth.ewm, wallet->u.eth.wid, ethAddress));
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            return AS_CRYPTO_BOOLEAN (genWalletHasAddress (wallet->u.gen, address->u.gen));
         }
     }
 }
@@ -635,7 +676,7 @@ cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2) {
 }
 
 extern const char *
-BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
+cryptoWalletEventTypeString (BRCryptoWalletEventType t) {
     switch (t) {
         case CRYPTO_WALLET_EVENT_CREATED:
         return "CRYPTO_WALLET_EVENT_CREATED";

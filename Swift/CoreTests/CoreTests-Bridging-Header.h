@@ -18,7 +18,6 @@
 #include "BRCryptoAmount.h"
 #include "BRCryptoCurrency.h"
 #include "BRCryptoNetwork.h"
-#include "BRCryptoPrivate.h"
 #include "BRCryptoUnit.h"
 
 // Bitcoin

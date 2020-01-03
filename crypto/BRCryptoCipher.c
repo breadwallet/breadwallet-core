@@ -12,8 +12,7 @@
 #include <stdlib.h>
 
 #include "BRCryptoCipher.h"
-#include "BRCryptoPrivate.h"
-#include "BRCryptoKey.h"
+#include "BRCryptoKeyP.h"
 
 #include "support/BRBase.h"
 #include "support/BRCrypto.h"
@@ -157,16 +156,16 @@ cryptoCipherEncryptLength (BRCryptoCipher cipher,
             break;
         }
         case CRYPTO_CIPHER_CHACHA20_POLY1305: {
-            UInt256 secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
+            BRCryptoSecret secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
             length = BRChacha20Poly1305AEADEncrypt (NULL,
                                                     0,
-                                                    &secret,
+                                                    secret.data,
                                                     cipher->u.chacha20.nonce,
                                                     src,
                                                     srcLen,
                                                     cipher->u.chacha20.ad,
                                                     cipher->u.chacha20.adLen);
-            secret = UINT256_ZERO; (void) &secret;
+            cryptoSecretClear(&secret);
             break;
         }
         case CRYPTO_CIPHER_PIGEON: {
@@ -217,16 +216,16 @@ cryptoCipherEncrypt (BRCryptoCipher cipher,
             break;
         }
         case CRYPTO_CIPHER_CHACHA20_POLY1305: {
-            UInt256 secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
+            BRCryptoSecret secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
             result = AS_CRYPTO_BOOLEAN (BRChacha20Poly1305AEADEncrypt (dst,
                                                                        dstLen,
-                                                                       &secret,
+                                                                       secret.data,
                                                                        cipher->u.chacha20.nonce,
                                                                        src,
                                                                        srcLen,
                                                                        cipher->u.chacha20.ad,
                                                                        cipher->u.chacha20.adLen));
-            secret = UINT256_ZERO; (void) &secret;
+            cryptoSecretClear(&secret);
             break;
         }
         case CRYPTO_CIPHER_PIGEON: {
@@ -267,16 +266,16 @@ cryptoCipherDecryptLength (BRCryptoCipher cipher,
             break;
         }
         case CRYPTO_CIPHER_CHACHA20_POLY1305: {
-            UInt256 secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
+            BRCryptoSecret secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
             length = BRChacha20Poly1305AEADDecrypt (NULL,
                                                     0,
-                                                    &secret,
+                                                    secret.data,
                                                     cipher->u.chacha20.nonce,
                                                     src,
                                                     srcLen,
                                                     cipher->u.chacha20.ad,
                                                     cipher->u.chacha20.adLen);
-            secret = UINT256_ZERO; (void) &secret;
+            cryptoSecretClear(&secret);
             break;
         }
         case CRYPTO_CIPHER_PIGEON: {
@@ -327,16 +326,16 @@ cryptoCipherDecrypt (BRCryptoCipher cipher,
             break;
         }
         case CRYPTO_CIPHER_CHACHA20_POLY1305: {
-            UInt256 secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
+            BRCryptoSecret secret = cryptoKeyGetSecret (cipher->u.chacha20.key);
             result = AS_CRYPTO_BOOLEAN (BRChacha20Poly1305AEADDecrypt (dst,
                                                                        dstLen,
-                                                                       &secret,
+                                                                       secret.data,
                                                                        cipher->u.chacha20.nonce,
                                                                        src,
                                                                        srcLen,
                                                                        cipher->u.chacha20.ad,
                                                                        cipher->u.chacha20.adLen));
-            secret = UINT256_ZERO; (void) &secret;
+            cryptoSecretClear(&secret);
             break;
         }
         case CRYPTO_CIPHER_PIGEON: {

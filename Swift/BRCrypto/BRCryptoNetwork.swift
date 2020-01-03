@@ -9,7 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// A Blockchain Network.  Networks are created based from a cross-product of block chain and
@@ -28,9 +27,12 @@ public final class Network: CustomStringConvertible {
     /// If 'mainnet' then true, otherwise false
     public let isMainnet: Bool
 
+    /// The type of network
+    public let type: NetworkType
+
     /// The current height of the blockChain network.  On a reorganization, this might go backwards.
     /// (No guarantee that this monotonically increases)
-    public var height: UInt64 {
+    public internal(set) var height: UInt64 {
         get { return cryptoNetworkGetHeight (core) }
         set { cryptoNetworkSetHeight (core, newValue) }
     }
@@ -82,26 +84,108 @@ public final class Network: CustomStringConvertible {
         return NetworkPeer (network: core, address: address, port: port, publicKey: publicKey)
     }
 
-//    public func createPeer (serialization: Data) -> NetworkPeer? {
-//        return NetworkPeer (network: core, serialization: serialization)
-//    }
+    // Address Schemes
+
+    ///
+    /// Return the default AddressScheme for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: The default AddressScheme
+    ///
+    public lazy var defaultAddressScheme: AddressScheme = {
+        return AddressScheme (core: cryptoNetworkGetDefaultAddressScheme (core))
+    }()
+
+    ///
+    /// Return the AddressSchemes support for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: An array of AddressScheme
+    ///
+    public lazy var supportedAddressSchemes: [AddressScheme] = {
+        var schemesCount: BRCryptoCount = 0;
+        return cryptoNetworkGetSupportedAddressSchemes (core, &schemesCount)
+            .withMemoryRebound (to: BRCryptoAddressScheme.self, capacity: schemesCount) {
+                Array (UnsafeBufferPointer (start: $0, count: schemesCount))
+        }
+        .map { AddressScheme (core: $0) }
+    }()
+
+    ///
+    /// Check if `network` supports `scheme`
+    ///
+    /// - Parameters:
+    ///   - network: the network
+    ///   - scheme: the scheme
+    ///
+    /// - Returns: If supported `true`; otherwise `false`.
+    ///
+    public func supportsAddressScheme (_ scheme: AddressScheme) -> Bool {
+        return CRYPTO_TRUE == cryptoNetworkSupportsAddressScheme (core, scheme.core)
+    }
+
+    // Sync Modes
+
+    ///
+    /// Return the default WalletManagerMode for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: the default mode
+    ///
+    public lazy var defaultMode: WalletManagerMode = {
+        return WalletManagerMode (core: cryptoNetworkGetDefaultSyncMode(core))
+    }()
+
+    ///
+    /// Return the WalletManagerModes supported by `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: an aray of WalletManagerMode
+    ///
+    public lazy var supportedModes : [WalletManagerMode] = {
+        var modesCount: BRCryptoCount = 0;
+        return cryptoNetworkGetSupportedSyncModes (core, &modesCount)
+            .withMemoryRebound(to: BRCryptoSyncMode.self, capacity: modesCount) {
+                Array (UnsafeBufferPointer (start: $0, count: modesCount))
+        }
+        .map { WalletManagerMode (core: $0) }
+    }()
+
+    ///
+    /// Check if `network` supports `mode`
+    ///
+    /// - Parameters:
+    ///   - network: the network
+    ///   - mode: the mode
+    ///
+    /// - Returns: If supported `true`; otherwise `false`
+    ///
+    public func supportsMode (_ mode: WalletManagerMode) -> Bool {
+        return CRYPTO_TRUE == cryptoNetworkSupportsSyncMode (core, mode.core)
+    }
 
     /// The native currency.
     public let currency: Currency
 
     /// All currencies - at least those we are handling/interested-in.
-    public let currencies: Set<Currency>
+    public var currencies: Set<Currency> {
+        Set ((0..<cryptoNetworkGetCurrencyCount(core))
+            .map { cryptoNetworkGetCurrencyAt (core, $0) }
+            .map { Currency (core: $0, take: false)})
+    }
 
     public func currencyBy (code: String) -> Currency? {
-        return currencies.first { $0.code == code } // sloppily
+        return cryptoNetworkGetCurrencyForCode (core, code)
+            .map { Currency (core: $0, take: false) }
     }
 
     public func currencyBy (issuer: String) -> Currency? {
-        let issuerLowercased = issuer.lowercased()
-        return currencies.first {
-            // Not the best way to compare - but avoid Foundation
-            $0.issuer.map { $0.lowercased() == issuerLowercased } ?? false
-        }
+        return cryptoNetworkGetCurrencyForIssuer (core, issuer)
+            .map { Currency (core: $0, take: false) }
     }
 
     public func hasCurrency(_ currency: Currency) -> Bool {
@@ -132,10 +216,20 @@ public final class Network: CustomStringConvertible {
         return unitsFor (currency: currency)?.contains(unit)
     }
 
-    public struct Association {
-        let baseUnit: Unit
-        let defaultUnit: Unit
-        let units: Set<Unit>
+    internal func addCurrency (_ currency: Currency, baseUnit: Unit, defaultUnit: Unit) {
+        precondition (baseUnit.hasCurrency(currency))
+        precondition (defaultUnit.hasCurrency(currency))
+        if !hasCurrency(currency) {
+            cryptoNetworkAddCurrency (core, currency.core, baseUnit.core, defaultUnit.core)
+        }
+    }
+    
+    internal func addUnitFor (currency: Currency, unit: Unit) {
+        precondition (hasCurrency(currency))
+        precondition (unit.hasCurrency(currency))
+        if !hasUnitFor(currency: currency, unit: unit)! { // 'bang' is safe here
+            cryptoNetworkAddCurrencyUnit (core, currency.core, unit.core)
+        }
     }
 
     internal init (core: BRCryptoNetwork, take: Bool) {
@@ -143,86 +237,25 @@ public final class Network: CustomStringConvertible {
         self.uids = asUTF8String (cryptoNetworkGetUids (core))
         self.name = asUTF8String (cryptoNetworkGetName (core))
         self.isMainnet  = (CRYPTO_TRUE == cryptoNetworkIsMainnet (core))
+        self.type       = NetworkType (core: cryptoNetworkGetCanonicalType(core))
         self.currency   = Currency (core: cryptoNetworkGetCurrency(core), take: false)
-        self.currencies = Set ((0..<cryptoNetworkGetCurrencyCount(core))
-            .map { cryptoNetworkGetCurrencyAt (core, $0) }
-            .map { Currency (core: $0, take: false)})
     }
 
-    /// Create a Network
-    ///
-    /// - Parameters:
-    ///   - uids: A unique identifier string amoung all networks.  This parameter must include a
-    ///       substring of {"mainnet", "testnet", "ropsten", "rinkeby"} to indicate the type
-    ///       of the network.  [This following the BlockChainDB convention]
-    ///   - name: the name
-    ///   - isMainnet: if mainnet, then true
-    ///   - currency: the currency
-    ///   - height: the height
-    ///   - associations: An association between one or more currencies and the units
-    ///      for those currency.  The network currency should be included.
-    ///
-    public convenience init (uids: String,
-                             name: String,
-                             isMainnet: Bool,
-                             currency: Currency,
-                             height: UInt64,
-                             associations: Dictionary<Currency, Association>,
-                             fees: [NetworkFee],
-                             confirmationsUntilFinal: UInt32) {
-        precondition (!fees.isEmpty)
-        
-        var core: BRCryptoNetwork!
+    internal static func findBuiltin (uids: String) -> Network? {
+        return cryptoNetworkFindBuiltin(uids)
+            .map { Network (core: $0, take: false) }
+    }
 
-        switch currency.code.lowercased() {
-        case Currency.codeAsBTC:
-            core = cryptoNetworkCreateAsBTC (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
+    internal static func installBuiltins () -> [Network] {
+        var builtinCoresCount: Int = 0
+        let builtinCores = cryptoNetworkInstallBuiltins (&builtinCoresCount)!
+        defer { cryptoMemoryFree (builtinCores) }
 
-        case Currency.codeAsBCH:
-            core = cryptoNetworkCreateAsBCH (uids, name, isMainnet ? CRYPTO_TRUE : CRYPTO_FALSE)
-
-        case Currency.codeAsETH:
-            if uids.contains("mainnet") {
-                core = cryptoNetworkCreateAsETHForMainnet (uids, name)
-            }
-            else if uids.contains("testnet") || uids.contains("ropsten") {
-                core = cryptoNetworkCreateAsETHForTestnet (uids, name)
-            }
-            else if uids.contains ("rinkeby") {
-                core = cryptoNetworkCreateAsETHForRinkeby (uids, name)
-            }
-            else {
-                preconditionFailure()
-            }
-
-        default:
-            core = cryptoNetworkCreateAsGEN (uids, name, currency.core, (isMainnet ? 1 : 0))
-            break
+        return builtinCores
+            .withMemoryRebound (to: BRCryptoNetwork.self, capacity: builtinCoresCount) {
+                Array (UnsafeBufferPointer (start: $0, count: builtinCoresCount))
         }
-
-        cryptoNetworkSetHeight (core, height);
-        cryptoNetworkSetCurrency (core, currency.core)
-
-        associations.forEach {
-            let (currency, association) = $0
-            cryptoNetworkAddCurrency (core,
-                                      currency.core,
-                                      association.baseUnit.core,
-                                      association.defaultUnit.core)
-            association.units.forEach {
-                cryptoNetworkAddCurrencyUnit (core,
-                                              currency.core,
-                                              $0.core)
-            }
-        }
-
-        fees.forEach {
-            cryptoNetworkAddNetworkFee (core, $0.core)
-        }
-
-        cryptoNetworkSetConfirmationsUntilFinal (core, confirmationsUntilFinal)
-        
-        self.init (core: core, take: false)
+        .map { Network (core: $0, take: false) }
     }
 
     public var description: String {
@@ -246,6 +279,52 @@ extension Network: Hashable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(uids)
+    }
+}
+
+///
+/// Try as we might, certain functionality outside of WalletKit will require knowing the
+/// canonical network type as: BTC, BCH, ETH, etc.  The NetworkType provides this information.
+/// Previously we had exposed Currency.code_as_{btc,bch,eth,...} and expected string comparisons
+/// to distinguish the network type; not the best approach.  Now we are explicit.
+///
+/// WalletKit only supports a well-defined set of network types - this because the network
+/// must be built in to handle the specfics of accounts, transactions, balances, etc.  This
+/// enumeration is extends as new network types are added.
+///
+public enum NetworkType: CustomStringConvertible {
+    case btc
+    case bch
+    case eth
+    case xrp
+//    case hbar
+//    case xlm
+
+    internal init (core: BRCryptoNetworkCanonicalType) {
+        switch core {
+        case CRYPTO_NETWORK_TYPE_BTC:  self = .btc
+        case CRYPTO_NETWORK_TYPE_BCH:  self = .bch
+        case CRYPTO_NETWORK_TYPE_ETH:  self = .eth
+        case CRYPTO_NETWORK_TYPE_XRP:  self = .xrp
+//        case CRYPTO_NETWORK_TYPE_HBAR: self = .hbar
+//        case CRYPTO_NETWORK_TYPE_XLM:  self = .xlm
+        default: preconditionFailure()
+        }
+    }
+
+    internal var core: BRCryptoNetworkCanonicalType {
+        switch self {
+        case .btc: return CRYPTO_NETWORK_TYPE_BTC
+        case .bch: return CRYPTO_NETWORK_TYPE_BCH
+        case .eth: return CRYPTO_NETWORK_TYPE_ETH
+        case .xrp: return CRYPTO_NETWORK_TYPE_XRP
+//        case .hbar: return CRYPTO_NETWORK_TYPE_HBAR
+//        case .hbar: return CRYPTO_NETWORK_TYPE_XLM
+        }
+    }
+
+    public var description: String {
+        return asUTF8String (cryptoNetworkCanonicalTypeString (core))
     }
 }
 
@@ -347,13 +426,6 @@ public final class NetworkPeer: Equatable {
     /// The public key
     public let publicKey: String?
 
-//    /// The serialization to allow reconstructing this peer
-//    public var serialization: Data {
-//        var bytesCount: Int = 0
-//        let bytes = cryptoPeerSerialize(core, &bytesCount)
-//        return Data (bytes: bytes!, count: bytesCount)
-//    }
-
     internal init (core: BRCryptoPeer, take: Bool) {
         self.core = (take ? cryptoPeerTake (core) : core)
         self.network = Network (core: cryptoPeerGetNetwork (core), take: false)
@@ -373,14 +445,6 @@ public final class NetworkPeer: Equatable {
     deinit {
         cryptoPeerGive (core)
     }
-
-//    internal convenience init? (network: BRCryptoNetwork, serialization: Data) {
-//        var bytes = [UInt8](serialization)
-//        guard let core = cryptoPeerCreateFromSerialization (network, &bytes, bytes.count)
-//            else { return nil }
-//
-//        self.init (core: core, take: false)
-//    }
 
     public static func == (lhs: NetworkPeer, rhs: NetworkPeer) -> Bool {
         return CRYPTO_TRUE == cryptoPeerIsIdentical (lhs.core, rhs.core)

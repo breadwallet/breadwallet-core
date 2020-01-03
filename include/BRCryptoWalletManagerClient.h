@@ -217,6 +217,7 @@ extern "C" {
     extern void
     cwmAnnounceGetTransactionsItemBTC (OwnershipKept BRCryptoWalletManager cwm,
                                        OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                       BRCryptoTransferStateType status,
                                        OwnershipKept uint8_t *transaction,
                                        size_t transactionLength,
                                        uint64_t timestamp,
@@ -248,6 +249,7 @@ extern "C" {
     extern void
     cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
                                        BRCryptoCWMClientCallbackState callbackState,
+                                       BRCryptoTransferStateType status,
                                        uint8_t *transaction,
                                        size_t transactionLength,
                                        uint64_t timestamp,

@@ -12,13 +12,12 @@
 #include <math.h>  // round()
 
 #include "BRCryptoBase.h"
-#include "BRCryptoStatus.h"
+#include "BRCryptoStatusP.h"
 #include "BRCryptoNetworkP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoWalletP.h"
-
-#include "BRCryptoPrivate.h" // cryptoStatusFromETH
 
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -1922,6 +1921,7 @@ cwmAnnounceGetBlockNumberFailure (OwnershipKept BRCryptoWalletManager cwm,
 extern void
 cwmAnnounceGetTransactionsItemBTC (OwnershipKept BRCryptoWalletManager cwm,
                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                   BRCryptoTransferStateType status,
                                    OwnershipKept uint8_t *transaction,
                                    size_t transactionLength,
                                    uint64_t timestamp,
@@ -1991,6 +1991,7 @@ cwmAnnounceGetTransactionsItemETH (OwnershipKept BRCryptoWalletManager cwm,
 extern void
 cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
                                    BRCryptoCWMClientCallbackState callbackState,
+                                   BRCryptoTransferStateType status,
                                    uint8_t *transaction,
                                    size_t transactionLength,
                                    uint64_t timestamp,

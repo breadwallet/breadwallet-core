@@ -268,6 +268,13 @@ cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
     return *overflow ? 0 : amount->value.u64[0];
 }
 
+extern char *
+cryptoAmountGetStringPrefaced (BRCryptoAmount amount,
+                               int base,
+                               const char *preface) {
+    return coerceStringPrefaced (amount->value, base, preface);
+}
+
 extern UInt256
 cryptoAmountGetValue (BRCryptoAmount amount) {
     return amount->value;

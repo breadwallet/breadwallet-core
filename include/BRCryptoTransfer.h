@@ -63,6 +63,9 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferStateType;
 
+    extern const char *
+    cryptoTransferStateTypeString (BRCryptoTransferStateType type);
+
     typedef struct {
         BRCryptoTransferStateType type;
         union {
@@ -106,7 +109,7 @@ extern "C" {
     } BRCryptoTransferEventType;
 
     extern const char *
-    BRCryptoTransferEventTypeString (BRCryptoTransferEventType t);
+    cryptoTransferEventTypeString (BRCryptoTransferEventType t);
 
     typedef struct {
         BRCryptoTransferEventType type;
@@ -123,10 +126,6 @@ extern "C" {
         CRYPTO_TRANSFER_RECEIVED,
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
-
-
-    extern BRCryptoBlockChainType
-    cryptoTransferGetType (BRCryptoTransfer transfer);
 
     /**
      * Returns the transfer's source address

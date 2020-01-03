@@ -101,7 +101,7 @@ public interface Wallet {
 
     Address getTargetForScheme(AddressScheme scheme);
 
-    Address getSource();
+    boolean containsAddress(Address address);
 
     Currency getCurrency();
 

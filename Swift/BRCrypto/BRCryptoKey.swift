@@ -110,31 +110,6 @@ public final class Key {
             .map { Key (core: $0) }
     }
 
-//    static public func createFromSerialization (asPrivate data: Data) -> Key? {
-//        var data = data
-//
-//        let dataCount = data.count
-//        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
-//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-//
-//            return cryptoKeyCreateFromSerializationPrivate (dataAddr, dataCount)
-//                .map { Key (core: $0)}
-//        }
-//    }
-//
-//    static public func createFromSerialization (asPublic data: Data) -> Key? {
-//        var data = data
-//
-//        let dataCount = data.count
-//        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
-//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-//
-//            return cryptoKeyCreateFromSerializationPublic (dataAddr, dataCount)
-//                .map { Key (core: $0)}
-//        }
-//    }
-
-
     // The Core representation
     internal let core: BRCryptoKey
 
@@ -154,8 +129,14 @@ public final class Key {
         return asUTF8String (cryptoKeyEncodePublic (self.core), true)
     }
 
-    public var secret: UInt256 {
-        return cryptoKeyGetSecret (self.core)
+    public typealias Secret = (  // 32 bytes
+        UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+        UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+        UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+        UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+
+    public var secret: Secret {
+        return cryptoKeyGetSecret (self.core).data
     }
     
     ///
@@ -189,43 +170,7 @@ public final class Key {
     ///
     /// - Parameter secret: the secret
     ///
-    internal convenience init (secret: UInt256) {
-        self.init (core: cryptoKeyCreateFromSecret (secret))
+    internal convenience init (secret: Secret) {
+        self.init (core: cryptoKeyCreateFromSecret (BRCryptoSecret.init(data: secret)))
     }
-
-//    // Serialization - Public Key
-//
-//    public enum PublicEncoding {
-//        case derCompressed
-//        case derUncompressed
-//    }
-//    
-//    public func serialize (asPublic: PublicEncoding) -> Data {
-//        let dataCount = cryptoKeySerializePublic (core, /* compressed */ nil, 0)
-//        var data = Data (count: dataCount)
-//        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
-//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-//            cryptoKeySerializePublic (core, /* compressed */ dataAddr, dataCount)
-//        }
-//
-//        return data
-//    }
-//
-// // Serialization - Private Key
-//
-//    public enum PrivateEncoding {
-//        case wifCompressed
-//        case wifUncompressed
-//    }
-//
-//    public func serialize (asPrivate: PrivateEncoding) -> Data? {
-//        let dataCount = cryptoKeySerializePrivate (core, /* compressed */ nil, 0)
-//        var data = Data (count: dataCount)
-//        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
-//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-//            cryptoKeySerializePrivate (core, /* compressed */ dataAddr, dataCount)
-//        }
-//
-//        return data
-//    }
 }
