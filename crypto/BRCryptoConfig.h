@@ -100,17 +100,27 @@ DEFINE_CURRENCY ("ethereum-ropsten",    "ethereum-ropsten:0x7108ca7c4718efa81045
 DEFINE_ADDRESS_SCHEMES  ("ethereum-ropsten", CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)
 DEFINE_MODES            ("ethereum-ropsten", CRYPTO_SYNC_MODE_API_ONLY, CRYPTO_SYNC_MODE_API_WITH_P2P_SEND, CRYPTO_SYNC_MODE_P2P_ONLY)
 
-// MARK: XRP Mainnet
+// MARK: XRP Mainnet / Testnet
 
-#if defined (NEED_XRP)
-DEFINE_NETWORK (xrpMainnet,  "ripple-mainnet", "Ripple", "mainnet", true, 0, 6)
+DEFINE_NETWORK (xrpMainnet,  "ripple-mainnet", "Ripple", "mainnet", true, 52473542, 6)
 DEFINE_NETWORK_FEE_ESTIMATE ("ripple-mainnet", "10", "1m", 1 * 60 * 1000)
 DEFINE_CURRENCY ("ripple-mainnet",     "ripple-mainnet:__native__",   "Ripple",  "xrp",  "native",   NULL,   true)
     DEFINE_UNIT ("ripple-mainnet:__native__",      "drop",      "drop",      0,      "drop")
     DEFINE_UNIT ("ripple-mainnet:__native__",      "xrp",       "xrp",       6,      "xrp")
 DEFINE_ADDRESS_SCHEMES  ("ripple-mainnet", CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
 DEFINE_MODES            ("ripple-mainnet", CRYPTO_SYNC_MODE_API_ONLY)
-#endif
+
+DEFINE_NETWORK (xrpTestnet,  "ripple-testnet", "Ripple", "testnet", false, 52473542, 6)
+DEFINE_NETWORK_FEE_ESTIMATE ("ripple-testnet", "10", "1m", 1 * 60 * 1000)
+DEFINE_CURRENCY ("ripple-testnet",     "ripple-testnet:__native__",   "Ripple",  "xrp",  "native",   NULL,   true)
+    DEFINE_UNIT ("ripple-testnet:__native__",      "drop",      "drop",      0,      "drop")
+    DEFINE_UNIT ("ripple-testnet:__native__",      "xrp",       "xrp",       6,      "xrp")
+DEFINE_ADDRESS_SCHEMES  ("ripple-testnet", CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
+DEFINE_MODES            ("ripple-testnet", CRYPTO_SYNC_MODE_API_ONLY)
+
+// MARK: HBAR Mainnet
+
+// MARK: XLM Mainnet
 
 #undef DEFINE_NETWORK
 #undef DEFINE_NETWORK_FEE_ESTIMATE

@@ -273,7 +273,7 @@ genericRippleWalletManagerGetAPISyncType (void) {
 // MARK: - Generic Handlers
 
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
-    "xrp",
+    GEN_NETWORK_TYPE_XRP,
     { // Network
     },
 
