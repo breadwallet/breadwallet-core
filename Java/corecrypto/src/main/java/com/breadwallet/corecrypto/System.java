@@ -18,6 +18,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
+import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
@@ -1673,9 +1674,24 @@ final class System implements com.breadwallet.crypto.System {
                                             UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                             UnsignedLong timestamp =
                                                     transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
-                                            Log.log(Level.FINE,
-                                                    "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
+                                            BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                    : (transaction.getStatus().equals("submitted")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                    : (transaction.getStatus().equals("failed")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                    : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED)));  // Query API error
+
+                                            if (status != BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED) {
+                                                Log.log(Level.FINE,
+                                                        "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemBtc(callbackState, status, optRaw.get(), timestamp, blockHeight);
+                                            }
+                                            else {
+                                                Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback received an unknown status, completing with failure");
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
+
+                                            }
                                         }
 
                                         Log.log(Level.FINE, "BRCryptoCWMBtcGetTransactionsCallback: complete");
@@ -2369,9 +2385,25 @@ final class System implements com.breadwallet.crypto.System {
                                             UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                             UnsignedLong timestamp =
                                                     transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
-                                            Log.log(Level.FINE,
-                                                    "BRCryptoCWMGenGetTransactionsCallback  announcing " + transaction.getId());
-                                            walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemGen(callbackState, optRaw.get(), timestamp, blockHeight);
+
+                                            BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                    : (transaction.getStatus().equals("submitted")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                    : (transaction.getStatus().equals("failed")
+                                                    ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                    : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED))); // Query API error
+
+                                            if (status != BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED) {
+                                                Log.log(Level.FINE,
+                                                        "BRCryptoCWMGenGetTransactionsCallback  announcing " + transaction.getId());
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsItemGen(callbackState, status, optRaw.get(), timestamp, blockHeight);
+                                            }
+                                            else {
+                                                Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback received an unknown status, completing with failure");
+                                                walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
+
+                                            }
                                         }
 
                                         Log.log(Level.FINE, "BRCryptoCWMGenGetTransactionsCallback : complete");

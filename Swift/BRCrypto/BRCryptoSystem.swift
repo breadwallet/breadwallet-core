@@ -1157,12 +1157,20 @@ extension System {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
                                                             let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
+                                                            guard let status = ("confirmed" == model.status
+                                                                ? CRYPTO_TRANSFER_STATE_INCLUDED
+                                                                : ("submitted" == model.status
+                                                                    ? CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                                    : ("failed" == model.status
+                                                                        ? CRYPTO_TRANSFER_STATE_ERRORED
+                                                                        : nil)))
+                                                                else { preconditionFailure() }
 
                                                             if var data = model.raw {
                                                                 let bytesCount = data.count
                                                                 data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
                                                                     let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemBTC (cwm, sid,
+                                                                    cwmAnnounceGetTransactionsItemBTC (cwm, sid, status,
                                                                                                        bytesAsUInt8,
                                                                                                        bytesCount,
                                                                                                        timestamp,
@@ -1567,12 +1575,20 @@ extension System {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
                                                             let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
+                                                            guard let status = ("confirmed" == model.status
+                                                                ? CRYPTO_TRANSFER_STATE_INCLUDED
+                                                                : ("submitted" == model.status
+                                                                    ? CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                                    : ("failed" == model.status
+                                                                        ? CRYPTO_TRANSFER_STATE_ERRORED
+                                                                        : nil)))
+                                                                else { preconditionFailure() }
 
                                                             if var data = model.raw {
                                                                 let bytesCount = data.count
                                                                 data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
                                                                     let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
+                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid, status,
                                                                                                        bytesAsUInt8,
                                                                                                        bytesCount,
                                                                                                        timestamp,

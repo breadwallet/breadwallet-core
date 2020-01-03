@@ -11,6 +11,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbacks;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
+import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerDisconnectReason;
@@ -339,6 +340,7 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetBlockNumberSuccessAsString(Pointer cwm, Pointer callbackState, String blockNumber);
     public static native void cwmAnnounceGetBlockNumberFailure(Pointer cwm, Pointer callbackState);
     public static native void cwmAnnounceGetTransactionsItemBTC(Pointer cwm, Pointer callbackState,
+                                           BRCryptoTransferStateType status,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsItemETH(Pointer cwm, Pointer callbackState,
                                            String hash, String sourceAddr, String targetAddr, String contractAddr,
@@ -347,6 +349,7 @@ public final class CryptoLibraryDirect {
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
     public static native void cwmAnnounceGetTransactionsItemGEN(Pointer cwm, Pointer callbackState,
+                                           BRCryptoTransferStateType status,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
