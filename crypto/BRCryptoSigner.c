@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #include "BRCryptoSigner.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoKeyP.h"
 #include "support/BRCrypto.h"
 
 struct BRCryptoSignerRecord {

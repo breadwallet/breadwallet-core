@@ -11,7 +11,7 @@
 #ifndef BRCryptoAddressP_h
 #define BRCryptoAddressP_h
 
-#include "BRCryptoBase.h"
+#include "BRCryptoBaseP.h"
 #include "BRCryptoAddress.h"
 
 #include "bcash/BRBCashAddr.h"

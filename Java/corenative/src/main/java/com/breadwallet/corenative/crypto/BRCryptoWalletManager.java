@@ -339,11 +339,11 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cwmAnnounceGetBlockNumberFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
+    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction, UnsignedLong timestamp,
                                                UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemBTC(thisPtr, callbackState.getPointer(), transaction, new SizeT(transaction.length),
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemBTC(thisPtr, callbackState.getPointer(), status, transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 
@@ -359,11 +359,11 @@ public class BRCryptoWalletManager extends PointerType {
                 blockTransacionIndex, blockTimestamp, isError);
     }
 
-    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction,
                                                UnsignedLong timestamp, UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemGEN(thisPtr, callbackState.getPointer(), transaction, new SizeT(transaction.length),
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemGEN(thisPtr, callbackState.getPointer(), status, transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 

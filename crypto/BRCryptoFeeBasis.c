@@ -11,7 +11,7 @@
 #include <math.h>
 
 #include "BRCryptoFeeBasisP.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoAmountP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis)
 
@@ -73,7 +73,7 @@ cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
     free (feeBasis);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis) {
     return feeBasis->type;
 }

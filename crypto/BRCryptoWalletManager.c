@@ -12,15 +12,16 @@
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
-#include "BRCryptoKey.h"
 
-#include "BRCryptoPrivate.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoAccountP.h"
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoAddressP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoWalletP.h"
+#include "BRCryptoPaymentP.h"
 
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -653,7 +654,8 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             uint16_t port    = 0;
 
             if (NULL != peer) {
-                address = cryptoPeerGetAddrAsInt(peer);
+                BRCryptoData16 addrAsInt = cryptoPeerGetAddrAsInt(peer);
+                memcpy (address.u8, addrAsInt.data, sizeof (addrAsInt.data));
                 port = cryptoPeerGetPort (peer);
             }
 
@@ -1378,7 +1380,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
 }
 
 extern const char *
-BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
+cryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
     switch (t) {
         case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
         return "CRYPTO_WALLET_MANAGER_EVENT_CREATED";
@@ -1505,7 +1507,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
 
 extern BRCryptoWalletMigratorStatus
 cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
-                                      UInt256 hash,
+                                      BRCryptoData32 hash,
                                       uint32_t height,
                                       uint32_t nonce,
                                       uint32_t target,
@@ -1513,11 +1515,12 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
                                       uint32_t version,
                                       uint32_t timestamp,
                                       uint8_t *flags,  size_t flagsLen,
-                                      UInt256 *hashes, size_t hashesCount,
-                                      UInt256 merkleRoot,
-                                      UInt256 prevBlock) {
+                                      BRCryptoData32 *hashes, size_t hashesCount,
+                                      BRCryptoData32 merkleRoot,
+                                      BRCryptoData32 prevBlock) {
     BRMerkleBlock *block = BRMerkleBlockNew();
-    block->blockHash = hash;
+
+    memcpy (block->blockHash.u8, hash.data, sizeof (hash.data));
     block->height = height;
     block->nonce  = nonce;
     block->target = target;
@@ -1525,10 +1528,10 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
     block->version = version;
     if (0 != timestamp) block->timestamp = timestamp;
 
-    BRMerkleBlockSetTxHashes (block, hashes, hashesCount, flags, flagsLen);
+    BRMerkleBlockSetTxHashes (block, (UInt256*) hashes, hashesCount, flags, flagsLen);
 
-    block->merkleRoot = merkleRoot;
-    block->prevBlock  = prevBlock;
+    memcpy (block->merkleRoot.u8, merkleRoot.data, sizeof (merkleRoot.data));
+    memcpy (block->prevBlock.u8,  prevBlock.data,  sizeof (prevBlock.data));
 
     // ...
     theErrorHackReset(migrator);

@@ -41,7 +41,7 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
     }
 
     func modeSegmentIsEnabled (_ index: Int) -> Bool {
-        return UIApplication.sharedSystem.supportsMode(network: manager.network, modes[index])
+        return manager.network.supportsMode(modes[index])
     }
 
     func addressSchemeIsSelected (_ index: Int) -> Bool {
@@ -49,7 +49,7 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
     }
 
     func addressSchemeIsEnabled (_ index: Int) -> Bool {
-        return UIApplication.sharedSystem.supportsAddressScheme(network: manager.network, addressSchemes[index])
+        return manager.network.supportsAddressScheme(addressSchemes[index])
    }
 
     func connectStateIsSelected (_ index: Int, _ state: WalletManagerState? = nil) -> Bool {

@@ -37,7 +37,7 @@ class TransferCreateSweepController: TransferCreateController {
         }
         else {
             switch wallet.currency.code.lowercased() {
-            case Currency.codeAsBTC:
+            case "btc":
                 if !wallet.manager.network.isMainnet {
                     privateKeyTextField.text = bitcoinTestnetPrivateKey
                 }

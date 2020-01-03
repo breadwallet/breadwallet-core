@@ -10,7 +10,6 @@
 //
 import Foundation  // Data, DispatchQueue
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// System (a singleton)
@@ -53,248 +52,6 @@ public final class System {
 
     /// We define default blockchains but these are wholly insufficient given that the
     /// specfication includes `blockHeight` (which can never be correct).
-
-    static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
-        // Mainnet
-        (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 595000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 600000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 8570000,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__",
-         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-        confirmationsUntilFinal: 1),
-
-        // Testnet
-        (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 1575000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 1325000,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 6415000,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 6),
-        (id: "ripple-testnet", name: "Ripple Testnet", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__",
-         blockHeight: 50000000, feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
-         confirmationsUntilFinal: 1),
-    ]
-
-    private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
-        return "\(blockchainID):\(address)"
-    }
-
-    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
-        let name = code.uppercased()
-        let code = code.lowercased()
-
-        return [
-            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
-            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
-        ]
-    }
-
-    static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
-        // Mainnet
-        (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
-
-        (id: "bitcoincash-mainnet:__native__", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoincash-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",      code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Cash", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
-
-        (id: "ethereum-mainnet:__native__", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
-
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
-         address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
-
-//        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
-//         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-//         demoninations: [(name: "EOS INT, code: "eos1",  decimals:  0, symbol: "eosi"),
-//                         (name: "EOS",    code: "eos",   decimals: 18, symbol: "eos")]),
-
-        (id: "ripple-mainnet:__native__", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-
-        // Testnet
-        (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",         code: "sat",         decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Testnet", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
-
-        (id: "bitcoincash-testnet:__native__", name: "Bitcoin Cash Testnet", code: "bch", type: "native", blockchainID: "bitcoincash-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "Satoshi",              code: "sat",          decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "Bitcoin Cash Testnet", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
-
-        (id: "ethereum-ropsten:__native__", name: "Ethereum Ropsten", code: "eth", type: "native", blockchainID: "ethereum-ropsten",
-         address: nil, verified: true,
-         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
-
-        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
-         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: System.makeCurrencyDemominationsERC20 ("brd", decimals: 18)),
-
-        (id: "ripple-testnet:__native__", name: "Ripple Testnet", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-    ]
-
-    ///
-    /// Address Scheme
-    ///
-
-    static let supportedAddressSchemesMap: [String:[AddressScheme]] = [
-        "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
-        "bitcoincash-mainnet": [.btcLegacy],
-        "ethereum-mainnet":     [.ethDefault],
-        "ripple-mainnet":       [.genDefault],
-        "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
-        "bitcoincash-testnet":  [.btcLegacy],
-        "ethereum-ropsten":     [.ethDefault],
-        "ripple-testnet":       [.genDefault]
-    ]
-
-    static let defaultAddressSchemeMap: [String:AddressScheme] = [
-        "bitcoin-mainnet":      .btcSegwit,
-        "bitcoincash-mainnet": .btcLegacy,
-        "ethereum-mainnet":     .ethDefault,
-        "ripple-mainnet":       .genDefault,
-        "bitcoin-testnet":      .btcSegwit,
-        "bitcoincash-testnet":  .btcLegacy,
-        "ethereum-ropsten":     .ethDefault,
-        "ripple-testnet":       .genDefault
-    ]
-
-    ///
-    /// Return the AddressSchemes support for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: An array of AddressScheme
-    ///
-    public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
-        return System.supportedAddressSchemesMap[network.uids] ?? [.genDefault]
-    }
-
-    ///
-    /// Check if `network` supports `scheme`
-    ///
-    /// - Parameters:
-    ///   - network: the network
-    ///   - scheme: the scheme
-    ///
-    /// - Returns: If supported `true`; otherwise `false`.
-    ///
-    public func supportsAddressScheme (network: Network, _ scheme: AddressScheme) -> Bool {
-        return supportedAddressSchemes(network: network).contains (scheme)
-    }
-
-    ///
-    /// Return the default AddressScheme for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: The default AddressScheme
-    ///
-    public func defaultAddressScheme (network: Network) -> AddressScheme {
-        return System.defaultAddressSchemeMap[network.uids] ?? .genDefault
-    }
-
-    ///
-    /// Wallet Manager Modes
-    ///
-    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
-    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
-    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
-    /// BCH is not at the moment)
-    ///
-    /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
-    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
-    /// selecting another mode if available.
-    ///
-    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
-    /// distribution in the wild might be out of date with the current BDB support.  That can mean
-    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
-    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
-    /// destructive.
-    ///
-    static let supportedModesMap: [String:[WalletManagerMode]] = [
-        "bitcoin-mainnet":      [.api_only, .p2p_only],
-        "bitcoincash-mainnet":  [.api_only, .p2p_only],
-        "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
-        "ripple-mainnet":       [.api_only],
-        "bitcoin-testnet":      [.api_only, .p2p_only],
-        "bitcoincash-testnet":  [.api_only, .p2p_only],
-        "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
-        "ripple-testnet":       [.api_only]
-    ]
-
-    ///
-    /// The default Modes
-    ///
-    static let defaultModesMap: [String:WalletManagerMode] = [
-        "bitcoin-mainnet":      .p2p_only,
-        "bitcoincash-mainnet":  .p2p_only,
-        "ethereum-mainnet":     .api_only,
-        "ripple-mainnet":       .api_only,
-        "bitcoin-testnet":      .p2p_only,
-        "bitcoincash-testnet":  .p2p_only,
-        "ethereum-ropsten":     .api_only,
-        "ripple-testnet":       .api_only
-    ]
-
-
-    /// Return the WalletManagerModes supported by `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: an aray of WalletManagerMode
-    ///
-    public func supportedModes (network: Network) -> [WalletManagerMode] {
-        return System.supportedModesMap[network.uids] ?? [.api_only]
-    }
-
-    ///
-    /// Check if `network` supports `mode`
-    ///
-    /// - Parameters:
-    ///   - network: the network
-    ///   - mode: the mode
-    ///
-    /// - Returns: If supported `true`; otherwise `false`
-    ///
-    public func supportsMode (network: Network, _ mode: WalletManagerMode) -> Bool {
-        return supportedModes (network: network).contains (mode)
-    }
-
-    ///
-    /// Return the default WalletManagerMode for `network`
-    ///
-    /// - Parameter network: the network
-    ///
-    /// - Returns: the default mode
-    ///
-    public func defaultMode (network: Network) -> WalletManagerMode {
-        return System.defaultModesMap[network.uids] ?? .api_only
-    }
 
     ///
     /// Add `network` to `networks`
@@ -356,8 +113,8 @@ public final class System {
                                      mode: WalletManagerMode,
                                      addressScheme: AddressScheme,
                                      currencies: Set<Currency>) -> Bool {
-        precondition (supportsMode(network: network, mode))
-        precondition (supportsAddressScheme(network: network, addressScheme))
+        precondition (network.supportsMode(mode))
+        precondition (network.supportsAddressScheme(addressScheme))
 
         guard let manager = WalletManager (system: self,
                                            callbackCoordinator: callbackCoordinator,
@@ -597,31 +354,7 @@ public final class System {
         managers.forEach { $0.setNetworkReachable(isNetworkReachable) }
     }
 
-    private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
-                                            remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
-        // We ONLY support built-in blockchains; but the remotes have some
-        // needed values - specifically the network fees.
-
-        // Filter `remote` to only include `builtin` block chains.  Thus `remote` will never have
-        // more than `builtin` but might have less.
-        let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
-
-        // Augment `remote` to include all `builtin`.
-        return supportedRemote.unionOf(builtin) { $0.id }
-            // Keep all the `remote` data as valid BUT ensure there is a blockHeight
-            .map { (rbc) in
-                // If we have a block height, then no update is required.
-                guard nil == rbc.blockHeight else { return rbc }
-
-                // By construction we have a builtin blockchain
-                let bbc = builtin.first (where: { $0.id == rbc.id })! // ! => must have
-
-                // The builtin blockchain as a blockHeight; the remote does not -> update it.
-                return BlockChainDB.Model.updateBlockchainModelHeight (model: rbc, height: bbc.blockHeight!)
-        }
-    }
-
-    ///
+     ///
     /// Configure the system.  This will query various BRD services, notably the BlockChainDB, to
     /// establish the available networks (aka blockchains) and their currencies.  For each
     /// `Network` there will be `SystemEvent` which can be used by the App to create a
@@ -660,72 +393,93 @@ public final class System {
             // currencies are processed
             let blockchainsGroup = DispatchGroup ()
 
+            // The 'discovered networks' will all be announced at once.
             var discoveredNetworks:[Network] = []
 
-            // query blockchains
-            self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
-                // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-                let blockChainModelsSupported = System.supportedBlockchains
-                    .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
+            func announceNetwork (_ network: Network) {
+                // Save the network
+                 self.networks.append (network)
 
-                // Get the remote block chains, some of these will be unsupported (have a nil
-                // blockHeight).  We don't filter unsupported block chains because the BDB provides
-                // valid network fee data.  We'll merge 'supported' and 'remote'
-                let blockChainModelsRemote = blockchainResult
-                    .getWithRecovery { (ignore) in return [] }
+                 self.listenerQueue.async {
+                     // Announce NetworkEvent.created...
+                     self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
 
-                let blockChainModels =
-                    self.configureMergeBlockchains (builtin: blockChainModelsSupported,
-                                                    remote: blockChainModelsRemote)
+                     // Announce SystemEvent.networkAdded - this will likely be handled with
+                     // system.createWalletManager(network:...) which will then announce
+                     // numerous events as wallets are created.
+                     self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                 }
 
-                // If there are no models, then we are done (and disappointed).
-                guard !blockChainModels.isEmpty
-                    else { blockchainsSemaphore.signal(); return }
+                 // Keep a running total of discovered networks
+                 discoveredNetworks.append(network)
+            }
+
+            // The 'supported networks' will be the built-in networks matching 'onMainnet'
+            let supportedNetworks = Network.installBuiltins()
+                .filter { self.onMainnet == $0.isMainnet}
+
+            // Query for blockchains.
+            self.query.getBlockchains (mainnet: self.onMainnet) {
+                (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+                // If there was a QueryError then we are done
+                if case let .failure (error) = blockchainResult {
+                    // TODO: Handle a Query Error appropriately.  Must recover/retry
+                    print ("SYS: CONFIGURE: Missed Blockchains Query: \(error)")
+                    supportedNetworks.forEach { announceNetwork($0) }
+                    return // from getBlockchains
+                }
+
+                // Make a map from of the supported models
+                let blockchainModelsMap = Dictionary (uniqueKeysWithValues:
+                    blockchainResult.getWithRecovery { (ignore) in return [] }
+                        .map { ($0.id, $0) })
 
                 // Enter the group once for each model; we'll leave as each currency is processed.
-                // when all have left, self.queue will unblock
-                blockChainModels.forEach { (ignore) in blockchainsGroup.enter() }
+                // When all have left, self.queue will unblock (see blockchainsGroup.wait() below).
+                supportedNetworks.forEach { (ignore) in blockchainsGroup.enter() }
 
                 // Signal the dispatch semaphore, the self.queue will now start blocking
                 // on the dispatch group.
                 blockchainsSemaphore.signal()
 
-                // Handle each blockchain Model - there will be at least one model
-                blockChainModels
-                    .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
-                        // query currencies
-                        self.query.getCurrencies (blockchainId: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+                // Handle each network
+                supportedNetworks
+                    .forEach { (network: Network) in
+
+                        // query currencies based on the (Network <==> BlockchainMode) id
+                        self.query.getCurrencies (blockchainId: network.uids) {
+                            (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+
                             // We get one `currencyResult` per blockchain.  If we leave the group
                             // upon completion of this block, we'll match the `enter` calls.
-                            defer { blockchainsGroup.leave() }
+                            defer {
+                                blockchainsGroup.leave()
+                            }
 
-                            // Find applicable defaults by `blockchainID`
-                            let defaults = System.defaultCurrencies
-                                .filter { $0.blockchainID == blockchainModel.id }
+                            // Don't process a network that we've added already.
+                            guard nil == self.networkBy (uids: network.uids)
+                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(network.name)"); return }
 
-                            // Find applicable application currencies by `blockchainID`
-                            let apps = applicationCurrencies
-                                .filter { $0.blockchainID == blockchainModel.id }
+                            // Get the built-in network
+//                            guard let network = supportedNetworks.first (where: { network.uids == $0.uids })
+//                                else { print ("SYS: CONFIGURE: Missed network for model: \(network.uids)"); return }
 
-                            // Merge in `defaults` with the result; but, on error, use apps
-                            let currencyModels = currencyResult
-                                // On success, always merge `default` INTO the result.  We merge
-                                // into `result` to always bias to the blockchainDB result.
-                                .map { $0.unionOf (defaults) { $0.id }}
+                            // If there was a QueryError, then we are done
+                            if case let .failure(error) = currencyResult {
+                                print ("SYS: CONFIGURE: Missed Currencies Query (\(network.uids)): \(error)")
+                                // Continue on to use the applicationCurrencies
+                             }
 
-                                // On error, use `apps` merged INTO defaults.  We merge into
-                                // `defaults` to ensure that we get BTC, BCH, ETH, BRD and that
-                                // they are correct (don't rely on the App).
-                                .getWithRecovery { (_) in return defaults.unionOf(apps) { $0.id } }
-
-                            var associations: [Currency : Network.Association] = [:]
-
-                            // Update associations
-                            currencyModels
+                            currencyResult.getWithRecovery { (ignore) in
+                                return applicationCurrencies
+                                    .filter { $0.blockchainID == network.uids }
+                            }
                                 // TODO: Only needed if getCurrencies returns the wrong stuff.
-                                .filter { $0.blockchainID == blockchainModel.id }
+                                .filter { $0.blockchainID == network.uids }
                                 .filter { $0.verified }
                                 .forEach { (currencyModel: BlockChainDB.Model.Currency) in
+
                                     // Create the currency
                                     let currency = Currency (uids: currencyModel.id,
                                                              name: currencyModel.name,
@@ -747,75 +501,72 @@ public final class System {
                                     let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
                                     let defaultUnit = units.first { $0.decimals == maximumDecimals }!
 
-                                    // Update associations
-                                    associations[currency] = Network.Association (baseUnit: baseUnit,
-                                                                                  defaultUnit: defaultUnit,
-                                                                                  units: Set<Unit>(units))
+                                    // Add the currency - this will not replace an existing currency
+                                    // Note, a builtin network *always* has a native currency at
+                                    // least which is set as the network's currency.
+                                    network.addCurrency (currency, baseUnit: baseUnit, defaultUnit: defaultUnit)
+
+                                    // Add the units - this will not replace an existing unti
+                                    units.forEach { network.addUnitFor (currency: currency, unit: $0) }
                             }
 
-                            // the default currency
-                            guard let currency = associations.keys.first (where: { $0.uids == blockchainModel.currency.lowercased() }),
-                                let feeUnit = associations[currency]?.baseUnit
-                                else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)) on '\(blockchainModel.network)': defaultUnit"); return }
+                            // The feeUnit is always the network currency's base unit
+                            guard let feeUnit = network.baseUnitFor (currency: network.currency)
+                                else { return }
 
-                            // the network fees
-                            let fees = blockchainModel.feeEstimates
-                                // Well, quietly ignore a fee if we can't parse the amount.
-                                .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                    let timeInterval  = fee.confirmationTimeInMilliseconds
-                                    return Amount.create (string: fee.amount, unit: feeUnit)
-                                        .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
-                                                           pricePerCostFactor: $0) }
+                            // If we have a blockchain model for this network, process it.
+                            if let blockchainModel = blockchainModelsMap[network.uids] {
+
+                                if let blockHeight = blockchainModel.blockHeight {
+                                    cryptoNetworkSetHeight (network.core, blockHeight)
+                                }
+
+                                // Extract the network fees from the blockchainModel
+                                let fees = blockchainModel.feeEstimates
+                                    // Well, quietly ignore a fee if we can't parse the amount.
+                                    .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                                        let timeInterval  = fee.confirmationTimeInMilliseconds
+                                        return Amount.create (string: fee.amount, unit: feeUnit)
+                                            .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
+                                                               pricePerCostFactor: $0) }
+                                }
+
+                                // We require fees
+                                guard !fees.isEmpty
+                                    else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
+
+                                // Update the network's fees.
+                                network.fees = fees
                             }
+                            else { print ("SYS: CONFIGURE: Missed model for network: \(network.uids)") }
 
-                            // We require fees
-                            guard !fees.isEmpty
-                                else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
-
-                            // Do not add a network that we've added already.
-                            guard nil == self.networkBy (uids: blockchainModel.id)
-                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(blockchainModel.name)"); return }
-
-                            // define the network
-                            let network = Network (uids: blockchainModel.id,
-                                                   name: blockchainModel.name,
-                                                   isMainnet: blockchainModel.isMainnet,
-                                                   currency: currency,
-                                                   height: blockchainModel.blockHeight!,
-                                                   associations: associations,
-                                                   fees: fees,
-                                                   confirmationsUntilFinal: blockchainModel.confirmationsUntilFinal)
-
-                            // Save the network
-                            self.networks.append (network)
-
-                            self.listenerQueue.async {
-                                // Announce NetworkEvent.created...
-                                self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
-
-                                // Announce SystemEvent.networkAdded - this will likely be handled with
-                                // system.createWalletManager(network:...) which will then announce
-                                // numerous events as wallets are created.
-                                self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
-                            }
-
-                            // Keep a running total of discovered networks
-                            discoveredNetworks.append(network)
+                            // Finally, announce the network
+                            announceNetwork(network)
                         }
                 }
             }
-
+            
             // Wait on the semaphore - indicates that the DispatchGroup is 'active'
             blockchainsSemaphore.wait()
 
             // Wait on the group - indicates that all models+currencies have entered and left.
             blockchainsGroup.wait()
 
-            // Mark the completion.
+            // Always announce the discoveredNetworks on competion of `getBlockchains`
             self.listenerQueue.async {
                 self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
             }
         }
+    }
+
+    private static func makeCurrencyDemominationsERC20 (_ code: String, decimals: UInt8) -> [BlockChainDB.Model.CurrencyDenomination] {
+        let name = code.uppercased()
+        let code = code.lowercased()
+
+        return [
+            (name: "\(name) Token INT", code: "\(code)i", decimals: 0,        symbol: "\(code)i"),   // BRDI -> BaseUnit
+            (name: "\(name) Token",     code: code,       decimals: decimals, symbol: code)
+        ]
     }
 
     ///
@@ -1406,12 +1157,20 @@ extension System {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
                                                             let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
+                                                            guard let status = ("confirmed" == model.status
+                                                                ? CRYPTO_TRANSFER_STATE_INCLUDED
+                                                                : ("submitted" == model.status
+                                                                    ? CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                                    : ("failed" == model.status
+                                                                        ? CRYPTO_TRANSFER_STATE_ERRORED
+                                                                        : nil)))
+                                                                else { preconditionFailure() }
 
                                                             if var data = model.raw {
                                                                 let bytesCount = data.count
                                                                 data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
                                                                     let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemBTC (cwm, sid,
+                                                                    cwmAnnounceGetTransactionsItemBTC (cwm, sid, status,
                                                                                                        bytesAsUInt8,
                                                                                                        bytesCount,
                                                                                                        timestamp,
@@ -1816,12 +1575,20 @@ extension System {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
                                                             let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
+                                                            guard let status = ("confirmed" == model.status
+                                                                ? CRYPTO_TRANSFER_STATE_INCLUDED
+                                                                : ("submitted" == model.status
+                                                                    ? CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                                    : ("failed" == model.status
+                                                                        ? CRYPTO_TRANSFER_STATE_ERRORED
+                                                                        : nil)))
+                                                                else { preconditionFailure() }
 
                                                             if var data = model.raw {
                                                                 let bytesCount = data.count
                                                                 data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
                                                                     let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
+                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid, status,
                                                                                                        bytesAsUInt8,
                                                                                                        bytesCount,
                                                                                                        timestamp,
@@ -2007,9 +1774,9 @@ extension System {
         guard migrateRequired (network: network)
             else { throw MigrateError.invalid }
 
-        switch network.currency.code.lowercased() {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
             try migrateStorageAsBTC(network: network,
                                     transactionBlobs: transactionBlobs,
                                     blockBlobs: blockBlobs,
@@ -2063,12 +1830,12 @@ extension System {
             var hashes = blob.hashes.flatMap { $0 }  // [[UInt8 ...] ...] => [UInt8 ... ...]
             let hashesCount = blob.hashes.count
 
-            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
-            let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
-            let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
+            let hash: BRCryptoData32 = blob.hash.withUnsafeBytes { $0.load (as: BRCryptoData32.self) }
+            let merkleRoot: BRCryptoData32 = blob.merkleRoot.withUnsafeBytes { $0.load (as: BRCryptoData32.self) }
+            let prevBlock:  BRCryptoData32 = blob.prevBlock.withUnsafeBytes  { $0.load (as: BRCryptoData32.self) }
 
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
-                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
+                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: BRCryptoData32.self)
                 let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
                                                                    hash,
                                                                    blob.height,
@@ -2117,9 +1884,13 @@ extension System {
     /// - Returns: The currency code or nil
     ///
     public func migrateRequired (network: Network) -> Bool {
-        let code = network.currency.code.lowercased()
-        return code == Currency.codeAsBTC
-            || code == Currency.codeAsBCH
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
+            return true
+        default:
+            return false
+        }
     }
 
     /// Testing
@@ -2137,9 +1908,9 @@ extension System {
         guard migrateRequired(network: network)
             else { return nil }
 
-        switch network.currency.code.lowercased() {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
+        switch cryptoNetworkGetCanonicalType (network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC,
+             CRYPTO_NETWORK_TYPE_BCH:
             var blockHeight: UInt32 = 0
             var timestamp:   UInt32 = 0
             var bytesCount:  size_t = 0
@@ -2162,54 +1933,18 @@ extension System {
 
 extension BRCryptoTransferEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
-        case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoTransferEventTypeString(self))
     }
 }
 
 extension BRCryptoWalletEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_WALLET_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:     return "Transfer Added"
-        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:   return "Transfer Changed"
-        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: return "Transfer Submitted"
-        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:   return "Transfer Deleted"
-
-        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
-        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
-        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
-
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoWalletEventTypeString (self))
     }
 }
 
 extension BRCryptoWalletManagerEventType: CustomStringConvertible {
     public var description: String {
-        switch self {
-        case CRYPTO_WALLET_MANAGER_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_MANAGER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:   return "Wallet Added"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: return "Wallet Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: return "Wallet Deleted"
-
-        // wallet: added, ...
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:   return "Sync Started"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<<unknown>>"
-        }
+        return asUTF8String (cryptoWalletManagerEventTypeString (self))
     }
 }

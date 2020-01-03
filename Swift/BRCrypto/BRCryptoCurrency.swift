@@ -9,7 +9,6 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// A currency is a medium for exchange.
@@ -70,9 +69,4 @@ public final class Currency: Hashable {
     public func hash (into hasher: inout Hasher) {
         hasher.combine (uids)
     }
-
-    /// Used to map Currency -> Built-In-Blockchain-Network
-    public static let codeAsBTC = "btc"
-    public static let codeAsBCH = "bch"
-    public static let codeAsETH = "eth"
 }

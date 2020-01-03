@@ -1494,6 +1494,19 @@ ewmWalletGetTransferCount(BREthereumEWM ewm,
     return count;
 }
 
+extern BREthereumAddress
+ewmWalletGetAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet) {
+    return walletGetAddress(wallet);
+}
+
+extern BREthereumBoolean
+ewmWalletHasAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumAddress address) {
+    return addressEqual(address, walletGetAddress(wallet));
+}
+
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet) {

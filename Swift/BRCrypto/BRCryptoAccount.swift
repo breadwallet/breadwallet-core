@@ -10,7 +10,6 @@
 //
 import Foundation // Data
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 ///
@@ -36,6 +35,11 @@ public final class Account {
         return Data (bytes: bytes!, count: bytesCount)
     }
 
+    ///
+    /// Validate that `serialization` is for this account.
+    ///
+    /// - Parameter serialization: the serialization data
+    ///
     public func validate (serialization: Data) -> Bool {
         var bytes = [UInt8](serialization)
         return CRYPTO_TRUE == cryptoAccountValidateSerialization (core, &bytes, bytes.count)
@@ -119,10 +123,5 @@ public final class Account {
         defer { words.forEach { cryptoMemoryFree (UnsafeMutablePointer (mutating: $0)) } }
 
         return CRYPTO_TRUE == cryptoAccountValidatePaperKey (phrase, &words)
-    }
-    
-    // Test Only
-    internal var addressAsETH: String {
-        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }

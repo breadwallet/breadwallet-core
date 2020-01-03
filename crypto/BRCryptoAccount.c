@@ -10,11 +10,10 @@
 
 #include <pthread.h>
 #include "BRCryptoAccountP.h"
-#include "generic/BRGenericRipple.h"
+#include "generic/BRGenericHandlers.h"  // genericHandlersInstall
+#include "generic/BRGenericRipple.h"    // genericRippleHandlers
 
 static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
-
-#include "generic/BRGenericHandlers.h"
 
 static void _accounts_init (void) {
     genHandlersInstall (genericRippleHandlers);
