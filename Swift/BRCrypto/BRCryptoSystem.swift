@@ -1533,7 +1533,7 @@ extension System {
 
             default:
                 // There is more than one "__fee__" entry
-                precondition(false)
+                preconditionFailure()
             }
     }
 }
