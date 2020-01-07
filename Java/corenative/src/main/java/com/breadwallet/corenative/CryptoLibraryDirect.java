@@ -340,7 +340,7 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetBlockNumberSuccessAsString(Pointer cwm, Pointer callbackState, String blockNumber);
     public static native void cwmAnnounceGetBlockNumberFailure(Pointer cwm, Pointer callbackState);
     public static native void cwmAnnounceGetTransactionsItemBTC(Pointer cwm, Pointer callbackState,
-                                           BRCryptoTransferStateType status,
+                                           int status,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsItemETH(Pointer cwm, Pointer callbackState,
                                            String hash, String sourceAddr, String targetAddr, String contractAddr,
@@ -349,7 +349,7 @@ public final class CryptoLibraryDirect {
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
     public static native void cwmAnnounceGetTransactionsItemGEN(Pointer cwm, Pointer callbackState,
-                                           BRCryptoTransferStateType status,
+                                           int status,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,

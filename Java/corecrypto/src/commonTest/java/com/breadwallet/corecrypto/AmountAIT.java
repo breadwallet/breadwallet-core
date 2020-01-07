@@ -46,8 +46,8 @@ public class AmountAIT {
         assertEquals(new Double(-1.5), btc4.doubleAmount(btc_btc).get());
         assertEquals(new Double(-150000000), btc4.doubleAmount(satoshi_btc).get());
 
-        assertEquals("(B1.50)", btc4.toStringAsUnit(btc_btc, null).get());
-        assertEquals("(SAT150,000,000)", btc4.toStringAsUnit(satoshi_btc, null).get());
+        assertEquals("-B1.50", btc4.toStringAsUnit(btc_btc, null).get());
+        assertEquals("-SAT150,000,000", btc4.toStringAsUnit(satoshi_btc, null).get());
 
         assertEquals (btc1.doubleAmount(btc_btc).get(),     btc1.convert(satoshi_btc).get().doubleAmount(btc_btc).get());
         assertEquals (btc1.doubleAmount(satoshi_btc).get(), btc1.convert(btc_btc).get().doubleAmount(satoshi_btc).get());
@@ -78,8 +78,8 @@ public class AmountAIT {
         Amount btc4s = Amount.create("0x5f5e100", true, satoshi_btc).get();
         assertEquals(new Double(-100000000), btc4s.doubleAmount(satoshi_btc).get());
         assertEquals(new Double(-1), btc4s.doubleAmount(btc_btc).get());
-        assertEquals("(SAT100,000,000)", btc4s.toStringAsUnit(satoshi_btc, null).get());
-        assertEquals("(B1.00)", btc4s.toStringAsUnit(btc_btc, null).get());
+        assertEquals("-SAT100,000,000", btc4s.toStringAsUnit(satoshi_btc, null).get());
+        assertEquals("-B1.00", btc4s.toStringAsUnit(btc_btc, null).get());
 
         assertFalse(Amount.create("w0x5f5e100", false, satoshi_btc).isPresent());
         assertFalse(Amount.create("0x5f5e100w", false, satoshi_btc).isPresent());

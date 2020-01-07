@@ -12,6 +12,7 @@
 #include "BRCryptoUnit.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoAmountP.h"
+#include "BRCryptoAccountP.h"
 
 #include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
@@ -121,6 +122,8 @@ static BRCryptoNetwork
 cryptoNetworkCreate (const char *uids,
                      const char *name,
                      BRCryptoNetworkCanonicalType canonicalType) {
+    cryptoAccountInstall();
+
     BRCryptoNetwork network = malloc (sizeof (struct BRCryptoNetworkRecord));
 
     network->canonicalType = canonicalType;
@@ -667,6 +670,8 @@ cryptoNetworkCreateBuiltin (const char *symbol,
 
 extern BRCryptoNetwork *
 cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
+    cryptoAccountInstall();
+
     // Network Specification
     struct NetworkSpecification {
         char *symbol;
