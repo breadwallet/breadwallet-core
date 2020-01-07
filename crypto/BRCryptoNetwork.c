@@ -121,7 +121,7 @@ static BRCryptoNetwork
 cryptoNetworkCreate (const char *uids,
                      const char *name,
                      BRCryptoNetworkCanonicalType canonicalType) {
-    BRCryptoNetwork network = malloc (sizeof (struct BRCryptoNetworkRecord));
+    BRCryptoNetwork network = calloc (1, sizeof (struct BRCryptoNetworkRecord));
 
     network->canonicalType = canonicalType;
     network->uids = strdup (uids);
@@ -872,8 +872,10 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                 network->defaultSyncMode = modeSpec->defaultMode;
             }
         }
-        
+
+        cryptoNetworkSetConfirmationsUntilFinal (network, networkSpec->confirmations);
         cryptoNetworkSetHeight (network, networkSpec->height);
+
         networks[networkIndex] = network;
     }
 
