@@ -880,6 +880,23 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
         
         cryptoNetworkSetHeight (network, networkSpec->height);
         networks[networkIndex] = network;
+
+#define SHOW_BUILTIN_CURRENCIES DEBUG
+#if defined (SHOW_BUILTIN_CURRENCIES)
+        printf ("== Network: %s, '%s'\n", network->uids, network->name);
+        for (size_t ai = 0; ai < array_count(network->associations); ai++) {
+            BRCryptoCurrencyAssociation a = network->associations[ai];
+            printf ("    Currency: %s, '%s'\n", cryptoCurrencyGetUids(a.currency), cryptoCurrencyGetName(a.currency));
+            printf ("    Base Unit: %s\n", cryptoUnitGetUids(a.baseUnit));
+            printf ("    Default Unit: %s\n", cryptoUnitGetUids(a.defaultUnit));
+            printf ("    Units:\n");
+            for (size_t ui = 0; ui < array_count(a.units); ui++) {
+                BRCryptoUnit u = a.units[ui];
+                printf ("      %s, '%s', %5s\n", cryptoUnitGetUids (u), cryptoUnitGetName(u), cryptoUnitGetSymbol(u));
+            }
+            printf ("\n");
+        }
+#endif
     }
 
     return networks;

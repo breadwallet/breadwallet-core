@@ -295,7 +295,7 @@ public class BlockChainDB {
 
         static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
         static internal func lookupSymbol (_ code: String) -> String {
-            return currencySymbols[code] ?? code
+            return currencySymbols[code] ?? code.uppercased()
         }
 
         static private let currencyInternalAddress = "__native__"
