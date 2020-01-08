@@ -174,16 +174,29 @@ extern void rippleWalletAddTransfer (BRRippleWallet wallet,
         // We'll add `transfer` to `wallet->transfers`; since we don't own `transfer` we must copy.
         transfer = rippleTransferClone(transfer);
         array_add(wallet->transfers, transfer);
+
         // Update the balance
         BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
+        BRRippleUnitDrops fee    = rippleTransferGetFee(transfer);
+
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
         BRRippleAddress source = rippleTransferGetSource(transfer);
-        if (1 == rippleAddressEqual(accountAddress, source)) {
-            wallet->balance -= (amount + rippleTransferGetFee (transfer));
-        } else {
+        BRRippleAddress target = rippleTransferGetTarget(transfer);
+
+        int isSource = rippleAccountHasAddress (wallet->account, source);
+        int isTarget = rippleAccountHasAddress (wallet->account, target);
+
+        if (isSource && isTarget)
+            wallet->balance -= fee;
+        else if (isSource)
+            wallet->balance -= (amount + fee);
+        else if (isTarget)
             wallet->balance += amount;
+        else {
+            // something is seriously wrong
         }
         rippleAddressFree (source);
+        rippleAddressFree (target);
 
         // Now update the account's sequence id
         BRRippleSequence sequence = 0;
