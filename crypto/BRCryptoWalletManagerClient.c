@@ -73,11 +73,23 @@ struct BRCryptoCWMClientCallbackStateRecord {
         } genWithWallet;
         struct {
             BRGenericWallet wid;
-            BRGenericTransfer tid;
+            BRGenericTransfer tid; // A copy; must be released.
         } genWithTransaction;
     } u;
     int rid;
 };
+
+static void
+cwmClientCallbackStateRelease (BRCryptoCWMClientCallbackState state) {
+    switch (state->type) {
+        case CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION:
+            genTransferRelease (state->u.genWithTransaction.tid);
+            break;
+        default:
+            break;
+    }
+    free (state);
+}
 
 /// MARK: - BTC Callbacks
 
@@ -1770,7 +1782,7 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
     BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
     callbackState->type = CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION;
     callbackState->u.genWithTransaction.wid = wallet;
-    callbackState->u.genWithTransaction.tid = transfer;
+    callbackState->u.genWithTransaction.tid = genTransferCopy (transfer);
     callbackState->rid = rid;
 
     char *hashAsHex = genericHashAsString (hash);
@@ -1890,7 +1902,7 @@ cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager c
             break;
     }
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -1905,7 +1917,7 @@ cwmAnnounceGetBlockNumberSuccessAsString (OwnershipKept BRCryptoWalletManager cw
                             callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -1915,7 +1927,7 @@ cwmAnnounceGetBlockNumberFailure (OwnershipKept BRCryptoWalletManager cwm,
     assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type ||
             CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == callbackState->type ||
             CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER == callbackState->type);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2053,7 +2065,7 @@ cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
     }
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2137,7 +2149,7 @@ cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
 
     cryptoAmountGive(balance);
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 static void
@@ -2168,6 +2180,7 @@ cwmAnnounceSubmitTransferResultGEN (OwnershipKept BRCryptoWalletManager cwm,
 
     if (NULL != wallet)   cryptoWalletGive(wallet);
     if (NULL != transfer) cryptoTransferGive(transfer);
+    // callbackState->u.genWithTransaction.tid is untouched; still owned by `callbackState`
 }
 
 extern void
@@ -2190,7 +2203,7 @@ cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
     }
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2209,7 +2222,7 @@ cwmAnnounceSubmitTransferSuccessForHash (OwnershipKept BRCryptoWalletManager cwm
                                callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2246,7 +2259,7 @@ cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
     }
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2262,14 +2275,14 @@ cwmAnnounceGetBalanceSuccess (OwnershipKept BRCryptoWalletManager cwm,
                               callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
 cwmAnnounceGetBalanceFailure (OwnershipKept BRCryptoWalletManager cwm,
                               OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == callbackState->type);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2285,14 +2298,14 @@ cwmAnnounceGetGasPriceSuccess (OwnershipKept BRCryptoWalletManager cwm,
                          callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
 cwmAnnounceGetGasPriceFailure (OwnershipKept BRCryptoWalletManager cwm,
                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == callbackState->type);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2311,7 +2324,7 @@ cwmAnnounceGetGasEstimateSuccess (OwnershipKept BRCryptoWalletManager cwm,
                                    callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2325,7 +2338,7 @@ cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
                                    callbackState->u.ethWithWalletAndCookie.cookie,
                                    cryptoStatusAsETH (status),
                                    callbackState->rid);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2375,7 +2388,7 @@ cwmAnnounceGetLogsComplete(OwnershipKept BRCryptoWalletManager cwm,
                             AS_ETHEREUM_BOOLEAN (success));
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2392,14 +2405,14 @@ cwmAnnounceGetBlocksSuccess (OwnershipKept BRCryptoWalletManager cwm,
                        blockNumbers);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
 cwmAnnounceGetBlocksFailure (OwnershipKept BRCryptoWalletManager cwm,
                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCKS == callbackState->type);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2441,7 +2454,7 @@ cwmAnnounceGetTokensComplete(OwnershipKept BRCryptoWalletManager cwm,
                               AS_ETHEREUM_BOOLEAN (success));
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
@@ -2458,12 +2471,12 @@ cwmAnnounceGetNonceSuccess (OwnershipKept BRCryptoWalletManager cwm,
                       callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }
 
 extern void
 cwmAnnounceGetNonceFailure (OwnershipKept BRCryptoWalletManager cwm,
                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == callbackState->type);
-    free (callbackState);
+    cwmClientCallbackStateRelease (callbackState);
 }

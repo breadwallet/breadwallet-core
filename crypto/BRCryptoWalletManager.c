@@ -838,9 +838,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
-                BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  cryptoWalletAsBTC (wallet),
-                                                  cryptoTransferAsBTC(transfer));
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -851,9 +849,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                cryptoTransferAsETH (transfer),
                                                paperKey);
 
-            ewmWalletSubmitTransfer (cwm->u.eth,
-                                     cryptoWalletAsETH (wallet),
-                                     cryptoTransferAsETH (transfer));
+            cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             break;
         }
 
@@ -866,7 +862,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                 cryptoWalletManagerSetTransferStateGEN (cwm, wallet, transfer,
                                                         genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SIGNED));
                 // Submit the transfer
-                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -892,9 +888,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                                       cryptoWalletAsBTC (wallet),
                                                       cryptoTransferAsBTC(transfer),
                                                       cryptoKeyGetCore (key))) {
-                BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  cryptoWalletAsBTC (wallet),
-                                                  cryptoTransferAsBTC(transfer));
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -905,9 +899,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                    cryptoTransferAsETH (transfer),
                                    *cryptoKeyGetCore (key));
 
-            ewmWalletSubmitTransfer (cwm->u.eth,
-                                     cryptoWalletAsETH (wallet),
-                                     cryptoTransferAsETH (transfer));
+            cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             break;
         }
 
@@ -918,7 +910,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
             if (genManagerSignTransferWithKey (cwm->u.gen, genWallet, genTransfer, cryptoKeyGetCore (key))) {
                 cryptoWalletManagerSetTransferStateGEN (cwm, wallet, transfer,
                                                         genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SIGNED));
-                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -945,9 +937,33 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
+            // We don't have GEN Events bubbling up that we can handle by adding transfer
+            // to wallet.  So, we'll add transfer here...
+            cryptoWalletAddTransfer (wallet, transfer);
+
+            // ... and announce the wallet's newly added transfer
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+                { .transfer = { cryptoTransferTake (transfer) }}
+            });
+
+            // ... perform the actual submit
             genManagerSubmitTransfer (cwm->u.gen,
                                       cryptoWalletAsGEN (wallet),
                                       cryptoTransferAsGEN (transfer));
+
+            // ... and then announce the submission.
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED,
+                { .transfer = { cryptoTransferTake (transfer) }}
+            });
+
             break;
         }
     }
