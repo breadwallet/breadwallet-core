@@ -246,16 +246,15 @@ final class NetworkDiscovery {
     }
 
     private static Unit currencyToDefaultBaseUnit(Currency currency) {
-        String symb = currency.getCode().toLowerCase(Locale.ROOT) + "i";
-        String name = currency.getCode().toUpperCase(Locale.ROOT) + "_INTEGER";
-        String uids = String.format("%s:%s", currency.getUids(), name);
-        return Unit.create(currency, uids, name, symb);
+        String code = currency.getCode().toLowerCase(Locale.ROOT) + "i";
+        String name = currency.getName() + " INT";
+        String symb = currency.getCode().toUpperCase(Locale.ROOT) + "I";
+        return Unit.create(currency, code, name, symb);
     }
 
     private static Unit currencyDenominationToBaseUnit(Currency currency,
                                                        CurrencyDenomination denomination) {
-        String uids = String.format("%s:%s", currency.getUids(), denomination.getCode());
-        return Unit.create(currency, uids, denomination.getName(), denomination.getSymbol());
+        return Unit.create(currency, denomination.getCode(), denomination.getName(), denomination.getSymbol());
     }
 
     private static List<Unit> currencyDenominationToUnits(Currency currency,
@@ -263,8 +262,7 @@ final class NetworkDiscovery {
                                                           Unit base) {
         List<Unit> units = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
-            String uids = String.format("%s:%s", currency.getUids(), denomination.getCode());
-            units.add(Unit.create(currency, uids, denomination.getName(), denomination.getSymbol(), base,
+            units.add(Unit.create(currency, denomination.getCode(), denomination.getName(), denomination.getSymbol(), base,
                       denomination.getDecimals()));
         }
         return units;

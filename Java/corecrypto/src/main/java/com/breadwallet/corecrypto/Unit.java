@@ -19,14 +19,14 @@ import java.util.Objects;
 final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
-    static Unit create(Currency currency, String uids, String name, String symbol) {
-        BRCryptoUnit core = BRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol);
+    static Unit create(Currency currency, String code, String name, String symbol) {
+        BRCryptoUnit core = BRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), code, name, symbol);
         return Unit.create(core);
     }
 
     /* package */
-    static Unit create(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
-        BRCryptoUnit core = BRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals);
+    static Unit create(Currency currency, String code, String name, String symbol, Unit base, UnsignedInteger decimals) {
+        BRCryptoUnit core = BRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), code, name, symbol, base.core, decimals);
         return Unit.create(core);
     }
 

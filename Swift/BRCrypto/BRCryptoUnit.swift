@@ -65,20 +65,20 @@ public final class Unit: Hashable {
     }
 
     internal convenience init (currency: Currency,
-                               uids: String,
+                               code: String,
                                name: String,
                                symbol: String) {
-        self.init (core: cryptoUnitCreateAsBase (currency.core, uids, name, symbol),
+        self.init (core: cryptoUnitCreateAsBase (currency.core, code, name, symbol),
                    take: false)
     }
 
     internal convenience init (currency: Currency,
-                               uids: String,
+                               code: String,
                                name: String,
                                symbol: String,
                                base: Unit,
                                decimals: UInt8) {
-        self.init (core: cryptoUnitCreate (currency.core, uids, name, symbol, base.core, decimals),
+        self.init (core: cryptoUnitCreate (currency.core, code, name, symbol, base.core, decimals),
                    take: false)
     }
 
