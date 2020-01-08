@@ -81,6 +81,7 @@ extern "C" {
     typedef BRGenericTransferRef (*BRGenericTransferCreate) (BRGenericAddressRef source,
                                                              BRGenericAddressRef target,
                                                              UInt256 amount);
+    typedef BRGenericTransferRef (*BRGenericTransferCopy) (BRGenericTransferRef transfer);
     typedef void (*BRGenericTransferFree) (BRGenericTransferRef transfer);
     typedef BRGenericAddressRef (*BRGenericTransferGetSourceAddress) (BRGenericTransferRef transfer);
     typedef BRGenericAddressRef (*BRGenericTransferGetTargetAddress) (BRGenericTransferRef transfer);
@@ -91,6 +92,7 @@ extern "C" {
 
     typedef struct {
         BRGenericTransferCreate create;
+        BRGenericTransferCopy   copy;
         BRGenericTransferFree   free;
         BRGenericTransferGetSourceAddress sourceAddress;
         BRGenericTransferGetTargetAddress targetAddress;
@@ -114,7 +116,7 @@ extern "C" {
                                                BRGenericTransferRef transfer);
 
     typedef void (*BRGenericWalletAddTransfer) (BRGenericWalletRef wallet,
-                                                BRGenericTransferRef transfer);
+                                                OwnershipKept BRGenericTransferRef transfer);
 
     typedef BRGenericTransferRef (*BRGenericWalletCreateTransfer) (BRGenericWalletRef wallet,
                                                                    BRGenericAddressRef target,

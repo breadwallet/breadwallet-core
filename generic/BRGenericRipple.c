@@ -114,6 +114,11 @@ genericRippleTransferCreate (BRGenericAddressRef source,
                                                            amountDrops);
 }
 
+static BRGenericTransferRef
+genericRippleTransferCopy (BRGenericTransferRef transfer) {
+    return (BRGenericTransferRef) rippleTransferClone ((BRRippleTransfer) transfer);
+}
+
 static void
 genericRippleTransferFree (BRGenericTransferRef transfer) {
     rippleTransferFree ((BRRippleTransfer) transfer);
@@ -203,7 +208,7 @@ genericRippleWalletHasTransfer (BRGenericWalletRef wallet,
 
 static void
 genericRippleWalletAddTransfer (BRGenericWalletRef wallet,
-                                BRGenericTransferRef transfer) {
+                                OwnershipKept BRGenericTransferRef transfer) {
     rippleWalletAddTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
 }
 
@@ -297,6 +302,7 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
 
     {    // Transfer
         genericRippleTransferCreate,
+        genericRippleTransferCopy,
         genericRippleTransferFree,
         genericRippleTransferGetSourceAddress,
         genericRippleTransferGetTargetAddress,

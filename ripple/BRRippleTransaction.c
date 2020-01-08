@@ -22,6 +22,37 @@
 #include "BRArray.h"
 #include "BRInt.h"
 
+static VLBytes *
+rippleVLBytesClone (VLBytes *bytes) {
+    if (NULL == bytes) return NULL;
+
+    VLBytes *clone = createVLBytes (bytes->length);
+    clone->length = bytes->length;
+    memcpy (clone->value, bytes->value, clone->length);
+
+    return clone;
+}
+
+static BRRippleMemo
+rippleMemoClone (BRRippleMemo memo) {
+    return (BRRippleMemo) {
+        rippleVLBytesClone (memo.memoType),
+        rippleVLBytesClone (memo.memoData),
+        rippleVLBytesClone (memo.memoFormat)
+    };
+}
+
+static BRRippleMemoNode *
+rippleMemoNodeClone (BRRippleMemoNode *node) {
+    if (NULL == node) return NULL;
+
+    BRRippleMemoNode *clone = calloc (1, sizeof (BRRippleMemoNode));
+    clone->memo = rippleMemoClone (node->memo);
+    clone->next = rippleMemoNodeClone (node->next);
+
+    return NULL;
+}
+
 typedef struct _txPaymentRecord {
     // The address to whom the payment is being sent
     BRRippleAddress targetAddress;
@@ -58,6 +89,16 @@ struct BRRippleSerializedTransactionRecord {
     uint8_t  txHash[32];
 };
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
+
+extern BRRippleSerializedTransaction
+rippleSerializedTransactionClone (const BRRippleSerializedTransaction transaction) {
+    BRRippleSerializedTransaction clone = calloc (1, sizeof (struct BRRippleSerializedTransactionRecord));
+    memcpy (clone, transaction, sizeof (struct BRRippleSerializedTransactionRecord));
+
+    clone->buffer = malloc (clone->size);
+    memcpy (clone->buffer, transaction->buffer, clone->size);
+    return clone;
+}
 
 struct BRRippleTransactionRecord {
     
@@ -150,6 +191,25 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     return transaction;
 }
 
+extern BRRippleTransaction
+rippleTransactionClone (BRRippleTransaction transaction) {
+    BRRippleTransaction clone = createTransactionObject();
+    memcpy (clone, transaction, sizeof(struct BRRippleTransactionRecord));
+
+    if (transaction->payment.targetAddress)
+        clone->payment.targetAddress = rippleAddressClone (transaction->payment.targetAddress);
+
+    if (transaction->sourceAddress)
+        clone->sourceAddress = rippleAddressClone (transaction->sourceAddress);
+
+    if (transaction->signedBytes)
+        clone->signedBytes = rippleSerializedTransactionClone (transaction->signedBytes);
+
+    if (transaction->memos)
+        clone->memos = rippleMemoNodeClone (transaction->memos);
+
+    return clone;
+}
 
 extern void rippleTransactionFree(BRRippleTransaction transaction)
 {
