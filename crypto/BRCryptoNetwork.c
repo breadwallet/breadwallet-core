@@ -124,7 +124,7 @@ cryptoNetworkCreate (const char *uids,
                      BRCryptoNetworkCanonicalType canonicalType) {
     cryptoAccountInstall();
 
-    BRCryptoNetwork network = malloc (sizeof (struct BRCryptoNetworkRecord));
+    BRCryptoNetwork network = calloc (1, sizeof (struct BRCryptoNetworkRecord));
 
     network->canonicalType = canonicalType;
     network->uids = strdup (uids);
@@ -877,8 +877,10 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                 network->defaultSyncMode = modeSpec->defaultMode;
             }
         }
-        
+
+        cryptoNetworkSetConfirmationsUntilFinal (network, networkSpec->confirmations);
         cryptoNetworkSetHeight (network, networkSpec->height);
+
         networks[networkIndex] = network;
 
 #define SHOW_BUILTIN_CURRENCIES DEBUG
