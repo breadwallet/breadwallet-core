@@ -303,6 +303,8 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     uint16_t checksum = checksumFletcher16 (&bytes[chkSize], (*bytesCount - chkSize));
     UInt16SetBE (bytes, checksum);
 
+    free (xrpBytes);
+
     return bytes;
 }
 

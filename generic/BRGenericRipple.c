@@ -212,12 +212,16 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
                                    UInt256 amount,
                                    BRGenericFeeBasis estimatedFeeBasis) {
-    BRRippleAddress source = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
-    BRRippleUnitDrops drops  = amount.u64[0];
+    BRRippleAddress source  = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
+    BRRippleUnitDrops drops = amount.u64[0];
 
-    return (BRGenericTransferRef) rippleTransferCreateNew (source,
-                                                           (BRRippleAddress) target,
-                                                           drops);
+    BRRippleTransfer transfer = rippleTransferCreateNew (source,
+                                                         (BRRippleAddress) target,
+                                                         drops);
+
+    rippleAddressFree(source);
+
+    return (BRGenericTransferRef) transfer;
 }
 
 static BRGenericFeeBasis

@@ -32,6 +32,7 @@ public final class Account {
     public var serialize: Data {
         var bytesCount: Int = 0
         let bytes = cryptoAccountSerialize (core, &bytesCount)
+        defer { cryptoMemoryFree(bytes) }
         return Data (bytes: bytes!, count: bytesCount)
     }
 
