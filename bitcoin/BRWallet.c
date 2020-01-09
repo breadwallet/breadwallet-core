@@ -1195,6 +1195,7 @@ uint64_t BRWalletFeeForTxAmountWithFeePerKb(BRWallet *wallet, uint64_t feePerKb,
     o.amount = (amount < maxAmount) ? amount : maxAmount;
     BRTxOutputSetScript(&o, dummyScript, sizeof(dummyScript)); // unspendable dummy scriptPubKey
     tx = BRWalletCreateTxForOutputsWithFeePerKb(wallet, feePerKb, &o, 1);
+    BRTxOutputSetScript(&o, NULL, 0);
 
     if (tx) {
         fee = BRWalletFeeForTx(wallet, tx);
