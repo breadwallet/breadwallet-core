@@ -54,6 +54,15 @@ typedef uint64_t BRBlockHeight;
 // Special values
 #define BLOCK_HEIGHT_UNBOUND       (UINT64_MAX)
 
+// To address Clang 'dead store' issues of 'Address: "Value stored in `var` is never read"', define
+// a convenience macro to note that the warning has been analyzed and can be ignored.  Note: it
+// doesn't seem Clang has its own way to avoid this 'dead store' warning.
+#ifdef __clang_analyzer__
+#  define ANALYZER_IGNORE_UNREAD_VARIABLE(var)     ((void) var)
+#else
+#  define ANALYZER_IGNORE_UNREAD_VARIABLE(var)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

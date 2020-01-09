@@ -67,7 +67,7 @@
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C69A0EA233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
 		3C69A0EB233AC0FE005E7033 /* BREthereumEWMPersist.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C69A0E9233AC0FE005E7033 /* BREthereumEWMPersist.c */; };
-		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
+		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings -Xanalyzer -analyzer-disable-all-checks -Wno-unused-command-line-argument"; }; };
 		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };

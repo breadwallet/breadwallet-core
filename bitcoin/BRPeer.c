@@ -24,6 +24,7 @@
 
 #include "BRPeer.h"
 #include "BRMerkleBlock.h"
+#include "BRBase.h"
 #include "BRAddress.h"
 #include "BRSet.h"
 #include "BRArray.h"
@@ -201,19 +202,19 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
         off += sizeof(uint64_t);
         peer->timestamp = UInt64GetLE(&msg[off]);
         off += sizeof(uint64_t);
-        recvServices = UInt64GetLE(&msg[off]);
+        recvServices = UInt64GetLE(&msg[off]);  ANALYZER_IGNORE_UNREAD_VARIABLE(recvServices);
         off += sizeof(uint64_t);
-        recvAddr = UInt128Get(&msg[off]);
+        recvAddr = UInt128Get(&msg[off]);       ANALYZER_IGNORE_UNREAD_VARIABLE(recvAddr);
         off += sizeof(UInt128);
-        recvPort = UInt16GetBE(&msg[off]);
+        recvPort = UInt16GetBE(&msg[off]);      ANALYZER_IGNORE_UNREAD_VARIABLE(recvPort);
         off += sizeof(uint16_t);
-        fromServices = UInt64GetLE(&msg[off]);
+        fromServices = UInt64GetLE(&msg[off]);  ANALYZER_IGNORE_UNREAD_VARIABLE(fromServices);
         off += sizeof(uint64_t);
-        fromAddr = UInt128Get(&msg[off]);
+        fromAddr = UInt128Get(&msg[off]);       ANALYZER_IGNORE_UNREAD_VARIABLE(fromAddr);
         off += sizeof(UInt128);
-        fromPort = UInt16GetBE(&msg[off]);
+        fromPort = UInt16GetBE(&msg[off]);      ANALYZER_IGNORE_UNREAD_VARIABLE(fromPort);
         off += sizeof(uint16_t);
-        nonce = UInt64GetLE(&msg[off]);
+        nonce = UInt64GetLE(&msg[off]);         ANALYZER_IGNORE_UNREAD_VARIABLE(nonce);
         off += sizeof(uint64_t);
         strLen = (size_t)BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
         off += len;
@@ -233,7 +234,7 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
             array_add(ctx->useragent, '\0');
             off += strLen;
             ctx->lastblock = UInt32GetLE(&msg[off]);
-            off += sizeof(uint32_t);
+            off += sizeof(uint32_t);            ANALYZER_IGNORE_UNREAD_VARIABLE(off);
             peer_log(peer, "got version %"PRIu32", services %"PRIx64", useragent:\"%s\"", ctx->version, peer->services,
                      ctx->useragent);
             BRPeerSendVerackMessage(peer);

@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRMerkleBlock.h"
+#include "BRBase.h"
 #include "BRCrypto.h"
 #include "BRAddress.h"
 #include <stdlib.h>
@@ -181,7 +182,7 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
             off += block->hashesCount*sizeof(UInt256);
             off += BRVarIntSet(&buf[off], (off <= bufLen ? bufLen - off : 0), block->flagsLen);
             if (block->flags) memcpy(&buf[off], block->flags, block->flagsLen);
-            off += block->flagsLen;
+            off += block->flagsLen; ANALYZER_IGNORE_UNREAD_VARIABLE(off);
         }
     }
     

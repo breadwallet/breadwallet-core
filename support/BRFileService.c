@@ -663,6 +663,10 @@ fileServiceLoad (BRFileService fs,
     uint8_t *dataBytes = dataBytesBuffer;
     size_t   dataBytesCount = 8196;
 
+    // Zero out the dataByte memory to avoid subsequent Clang Static Analysis errors releted
+    // to dereferencing uninitialized memory.  We accept this minimal, extraneous function call.
+    memset(dataBytes, 0, dataBytesCount);
+
     while (SQLITE_ROW == sqlite3_step(fs->sdbSelectAllStmt)) {
         const char *hash = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 0);
         const char *data = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 1);
