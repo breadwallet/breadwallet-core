@@ -91,7 +91,7 @@ cryptoWalletManagerReleaseCurrenciesOfIntereest (BRCryptoWalletManager cwm,
 
 static BRCryptoWalletManager
 cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
-                                   BRCryptoCWMClient client,
+                                   BRCryptoClient client,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
@@ -145,7 +145,7 @@ cryptoWalletManagerWipe (BRCryptoNetwork network,
 
 extern BRCryptoWalletManager
 cryptoWalletManagerCreate (BRCryptoCWMListener listener,
-                           BRCryptoCWMClient client,
+                           BRCryptoClient client,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
                            BRCryptoSyncMode mode,

@@ -169,7 +169,7 @@ extern "C" {
     /// Can return NULL
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
-                               BRCryptoCWMClient client,
+                               BRCryptoClient client,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
                                BRCryptoSyncMode mode,
