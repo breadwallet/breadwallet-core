@@ -731,11 +731,15 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SIGNED);
         case GENERIC_TRANSFER_STATE_SUBMITTED:
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SUBMITTED);
-        case GENERIC_TRANSFER_STATE_INCLUDED:
-            return cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
-                                                    generic.u.included.transactionIndex,
-                                                    generic.u.included.timestamp,
-                                                    cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis));
+        case GENERIC_TRANSFER_STATE_INCLUDED: {
+            BRCryptoFeeBasis      basis = cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis);
+            BRCryptoTransferState state = cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
+                                                                           generic.u.included.transactionIndex,
+                                                                           generic.u.included.timestamp,
+                                                                           basis);
+            cryptoFeeBasisGive (basis);
+            return state;
+        }
         case GENERIC_TRANSFER_STATE_ERRORED:
             return cryptoTransferStateErroredInit (cryptoTransferSubmitErrorUnknown());
         case GENERIC_TRANSFER_STATE_DELETED:

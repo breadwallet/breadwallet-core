@@ -1759,7 +1759,7 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
                            BRGenericManager manager,
                            BRGenericWallet wallet,
                            BRGenericTransfer transfer,
-                           uint8_t *tx,
+                           OwnershipKept uint8_t *tx,
                            size_t txLength,
                            BRGenericHash hash,
                            int rid) {

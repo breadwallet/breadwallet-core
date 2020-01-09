@@ -409,6 +409,7 @@ genManagerSubmitTransfer (BRGenericManager gwm,
     // Submit the raw bytes to the client.
     BRGenericClient client = genManagerGetClient(gwm);
     client.submitTransaction (client.context, gwm, wid, transfer, tx, txSize, hash, 0);
+    free (tx);
 }
 
 extern BRGenericTransfer

@@ -318,10 +318,11 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     // Serialize and sign the tx bytes
     BRRippleSerializedTransaction serializedBytes = rippleTransactionSerializeImpl (transaction, 0, 0);
     BRRippleSignature sig = signBytes(privateKey, serializedBytes->buffer, serializedBytes->size);
-    free(serializedBytes); // Free the serialized bytes since we have to reserialize with signature below
 
     transaction->signedBytes = rippleTransactionSerializeImpl(transaction, sig->signature, sig->sig_length);
-
+    
+    rippleSignatureDelete(sig);
+    rippleSerializedTransactionRecordFree(&serializedBytes);
 
     // If we got a valid result then generate a hash
     if (transaction->signedBytes) {
@@ -331,7 +332,7 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     }
 
     // Return the pointer to the signed byte object (or perhaps NULL)
-    return transaction->signedBytes->size;
+    return (NULL == transaction->signedBytes ? 0 : transaction->signedBytes->size);
 }
 
 extern uint8_t* rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize)

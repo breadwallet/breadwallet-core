@@ -214,6 +214,9 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     }
     array_free (network->fees);
 
+    if (network->addressSchemes) array_free (network->addressSchemes);
+    if (network->syncModes)      array_free (network->syncModes);
+        
     // TBD
     switch (network->type){
         case BLOCK_CHAIN_TYPE_BTC:
@@ -542,7 +545,7 @@ cryptoNetworkGetDefaultAddressScheme (BRCryptoNetwork network) {
 static void
 cryptoNetworkAddSupportedAddressScheme (BRCryptoNetwork network,
                                         BRCryptoAddressScheme scheme) {
-    if (NULL == network->addressSchemes) array_new (network->addressSchemes, 1);
+    if (NULL == network->addressSchemes) array_new (network->addressSchemes, NUMBER_OF_ADDRESS_SCHEMES);
     array_add (network->addressSchemes, scheme);
 }
 
@@ -576,7 +579,7 @@ cryptoNetworkGetDefaultSyncMode (BRCryptoNetwork network) {
 static void
 cryptoNetworkAddSupportedSyncMode (BRCryptoNetwork network,
                                    BRCryptoSyncMode scheme) {
-    if (NULL == network->syncModes) array_new (network->syncModes, 1);
+    if (NULL == network->syncModes) array_new (network->syncModes, NUMBER_OF_SYNC_MODES);
     array_add (network->syncModes, scheme);
 }
 
@@ -772,6 +775,7 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                               networkSpec->name);;
 
         BRCryptoCurrency currency = NULL;
+
         BRArrayOf(BRCryptoUnit) units;
         array_new (units, 5);
 
@@ -812,8 +816,10 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                                   unitSpec->decimals);
                             array_add (units, unit);
 
-                            if (NULL == unitDefault || cryptoUnitGetBaseDecimalOffset(unit) > cryptoUnitGetBaseDecimalOffset(unitDefault))
+                            if (NULL == unitDefault || cryptoUnitGetBaseDecimalOffset(unit) > cryptoUnitGetBaseDecimalOffset(unitDefault)) {
+                                if (NULL != unitDefault) cryptoUnitGive(unitDefault);
                                 unitDefault = cryptoUnitTake(unit);
+                            }
                         }
                     }
                 }
@@ -877,6 +883,8 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                 network->defaultSyncMode = modeSpec->defaultMode;
             }
         }
+
+        array_free (units);
 
         cryptoNetworkSetConfirmationsUntilFinal (network, networkSpec->confirmations);
         cryptoNetworkSetHeight (network, networkSpec->height);
