@@ -332,7 +332,7 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     }
 
     // Return the pointer to the signed byte object (or perhaps NULL)
-    return transaction->signedBytes->size;
+    return (NULL == transaction->signedBytes ? 0 : transaction->signedBytes->size);
 }
 
 extern uint8_t* rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize)
