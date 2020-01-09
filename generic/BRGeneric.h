@@ -134,6 +134,9 @@ extern "C" {
     genTransferEqual (BRGenericTransfer t1,
                       BRGenericTransfer t2);
 
+    extern BRGenericTransfer
+    genTransferCopy (const BRGenericTransfer transfer);
+
     extern uint8_t *
     genTransferSerialize (BRGenericTransfer transfer, size_t *bytesCount);
 
@@ -176,7 +179,7 @@ extern "C" {
 
     extern void
     genWalletAddTransfer (BRGenericWallet wallet,
-                          BRGenericTransfer transfer);
+                          OwnershipKept BRGenericTransfer transfer);
 
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,

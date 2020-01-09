@@ -60,8 +60,13 @@ extern void
 rippleWalletFree (BRRippleWallet wallet)
 {
     if (wallet) {
-        pthread_mutex_destroy (&wallet->lock);
+        pthread_mutex_lock (&wallet->lock);
+        for (size_t index = 0; index < array_count(wallet->transfers); index++)
+            rippleTransferFree (wallet->transfers[index]);
         array_free(wallet->transfers);
+        pthread_mutex_unlock (&wallet->lock);
+
+        pthread_mutex_destroy (&wallet->lock);
         free(wallet);
     }
 }
@@ -159,23 +164,39 @@ extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer tran
     return result;
 }
 
-extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer)
+extern void rippleWalletAddTransfer (BRRippleWallet wallet,
+                                     OwnershipKept BRRippleTransfer transfer)
 {
     assert(wallet);
     assert(transfer);
     pthread_mutex_lock (&wallet->lock);
     if (!walletHasTransfer(wallet, transfer)) {
+        // We'll add `transfer` to `wallet->transfers`; since we don't own `transfer` we must copy.
+        transfer = rippleTransferClone(transfer);
         array_add(wallet->transfers, transfer);
+
         // Update the balance
         BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
+        BRRippleUnitDrops fee    = rippleTransferGetFee(transfer);
+
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
         BRRippleAddress source = rippleTransferGetSource(transfer);
-        if (1 == rippleAddressEqual(accountAddress, source)) {
-            wallet->balance -= (amount + rippleTransferGetFee (transfer));
-        } else {
+        BRRippleAddress target = rippleTransferGetTarget(transfer);
+
+        int isSource = rippleAccountHasAddress (wallet->account, source);
+        int isTarget = rippleAccountHasAddress (wallet->account, target);
+
+        if (isSource && isTarget)
+            wallet->balance -= fee;
+        else if (isSource)
+            wallet->balance -= (amount + fee);
+        else if (isTarget)
             wallet->balance += amount;
+        else {
+            // something is seriously wrong
         }
         rippleAddressFree (source);
+        rippleAddressFree (target);
 
         // Now update the account's sequence id
         BRRippleSequence sequence = 0;
@@ -185,7 +206,6 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
 
         rippleAccountSetSequence (wallet->account, sequence);
         rippleAddressFree (accountAddress);
-
     }
     pthread_mutex_unlock (&wallet->lock);
     // Now update the balance

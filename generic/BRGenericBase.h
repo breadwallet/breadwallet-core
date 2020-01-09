@@ -15,6 +15,7 @@
 #include <math.h>   // fabs() - via static inline
 #include "BRCryptoBase.h"
 #include "ethereum/util/BRUtil.h"
+#include "BRCryptoBase.h"
 
 #ifdef __cplusplus
 extern "C" {
