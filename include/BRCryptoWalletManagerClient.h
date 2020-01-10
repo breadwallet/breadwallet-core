@@ -26,6 +26,26 @@ typedef void *BRCryptoClientContext;
 
 typedef struct BRCryptoClientCallbackStateRecord *BRCryptoClientCallbackState;
 
+// MARK: - Get Balance
+
+typedef void
+(*BRCryptoClientGetBalanceCallback) (BRCryptoClientContext context,
+                                     OwnershipGiven BRCryptoWalletManager manager,
+                                     OwnershipGiven BRCryptoClientCallbackState callbackState,
+                                     OwnershipKept const char **addresses,
+                                     size_t addressesCount,
+                                     OwnershipKept const char *issuer); // NULLABLE
+
+extern void
+cwmAnnounceGetBalanceSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                              OwnershipGiven BRCryptoClientCallbackState callbackState,
+                              const char *balance);
+
+extern void
+cwmAnnounceGetBalanceFailure (OwnershipKept BRCryptoWalletManager cwm,
+                              OwnershipGiven BRCryptoClientCallbackState callbackState);
+
+
 // MARK: - Get Block Number
 
 typedef void
@@ -123,32 +143,6 @@ cwmAnnounceSubmitTransferSuccessForHash (OwnershipKept BRCryptoWalletManager cwm
 extern void
 cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoClientCallbackState callbackState);
-
-// MARK: - (ETH) Get Balance
-
-typedef void
-(*BRCryptoClientETHGetEtherBalanceCallback) (BRCryptoClientContext context,
-                                             OwnershipGiven BRCryptoWalletManager manager,
-                                             OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                             OwnershipKept const char *network,
-                                             OwnershipKept const char *address);
-
-typedef void
-(*BRCryptoClientETHGetTokenBalanceCallback) (BRCryptoClientContext context,
-                                             OwnershipGiven BRCryptoWalletManager manager,
-                                             OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                             OwnershipKept const char *network,
-                                             OwnershipKept const char *address,
-                                             OwnershipKept const char *tokenAddress);
-
-extern void
-cwmAnnounceGetBalanceSuccess (OwnershipKept BRCryptoWalletManager cwm,
-                              OwnershipGiven BRCryptoClientCallbackState callbackState,
-                              const char *balance);
-
-extern void
-cwmAnnounceGetBalanceFailure (OwnershipKept BRCryptoWalletManager cwm,
-                              OwnershipGiven BRCryptoClientCallbackState callbackState);
 
 // MARK: - (ETH) Get Gas Price
 
@@ -335,13 +329,12 @@ typedef struct {
 
 typedef struct {
     BRCryptoClientContext context;
+    BRCryptoClientGetBalanceCallback funcGetBalance;
     BRCryptoClientGetBlockNumberCallback  funcGetBlockNumber;
     BRCryptoClientGetTransactionsCallback funcGetTransactions;
     BRCryptoClientGetTransfersCallback funcGetTransfers;
     BRCryptoClientSubmitTransactionCallback funcSubmitTransaction;
 
-    BRCryptoClientETHGetEtherBalanceCallback funcGetEtherBalanceETH;
-    BRCryptoClientETHGetTokenBalanceCallback funcGetTokenBalanceETH;
     BRCryptoClientETHGetGasPriceCallback funcGetGasPriceETH;
     BRCryptoClientETHEstimateGasCallback funcEstimateGasETH;
     BRCryptoClientETHGetTransactionsCallback funcGetTransactionsETH; // announce one-by-one

@@ -359,6 +359,16 @@ _CWMAbuseSwapThread (void *context) {
 // TODO(fix): The below callbacks leak state
 
 static void
+_CWMNopGetBalanceCallback (BRCryptoClientContext context,
+                           OwnershipGiven BRCryptoWalletManager manager,
+                           OwnershipGiven BRCryptoClientCallbackState callbackState,
+                           OwnershipKept const char **addresses,
+                           size_t addressesCount,
+                           OwnershipKept const char *issuer) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
 _CWMNopGetBlockNumberCallback (BRCryptoClientContext context,
                                OwnershipGiven BRCryptoWalletManager manager,
                                OwnershipGiven BRCryptoClientCallbackState callbackState) {
@@ -394,25 +404,6 @@ _CWMNopSubmitTransactionCallback (BRCryptoClientContext context,
                                   OwnershipKept const uint8_t *transaction,
                                   size_t transactionLength,
                                   OwnershipKept const char *hashAsHex) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetEtherBalanceEthCallback (BRCryptoClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *address) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetTokenBalanceEthCallback (BRCryptoClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *address,
-                                            OwnershipKept const char *tokenAddress) {
     cryptoWalletManagerGive (manager);
 }
 
@@ -977,14 +968,13 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
 
     BRCryptoClient client = (BRCryptoClient) {
         state,
+        _CWMNopGetBalanceCallback,
         _CWMNopGetBlockNumberCallback,
         _CWMNopGetTransactionsCallback,
         _CWMNopGetTransfersCallback,
         _CWMNopSubmitTransactionCallback,
 
         // ETH
-        _CWMNopGetEtherBalanceEthCallback,
-        _CWMNopGetTokenBalanceEthCallback,
         _CWMNopGetGasPriceEthCallback,
         _CWMNopEstimateGasEthCallback,
         _CWMNopGetTransactionsEthCallback,

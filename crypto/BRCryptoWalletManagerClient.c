@@ -1417,26 +1417,13 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
     callbackState->u.ethWithWallet.wid = wid;
     callbackState->rid = rid;
 
-    BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
-
     BREthereumToken token = ewmWalletGetToken (ewm, wid);
-    if (NULL == token) {
-        cwm->client.funcGetEtherBalanceETH (cwm->client.context,
-                                            cryptoWalletManagerTake (cwm),
-                                            callbackState,
-                                            networkName,
-                                            address);
-    } else {
-        cwm->client.funcGetTokenBalanceETH (cwm->client.context,
-                                            cryptoWalletManagerTake (cwm),
-                                            callbackState,
-                                            networkName,
-                                            address,
-                                            tokenGetAddress (token));
-    }
+    cwm->client.funcGetBalance (cwm->client.context,
+                                cryptoWalletManagerTake (cwm),
+                                callbackState,
+                                &address, 1,
+                                (NULL == token ? NULL : tokenGetAddress (token)));
 
-    free (networkName);
     cryptoWalletManagerGive (cwm);
 }
 

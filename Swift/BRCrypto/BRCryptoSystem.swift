@@ -1183,9 +1183,62 @@ extension System {
 }
 
 extension System {
+    internal static func makeAddresses (_ addresses: UnsafeMutablePointer<UnsafePointer<Int8>?>?,
+                                        _ addressesCount: Int) -> [String] {
+        var cAddresses = addresses!
+        var addresses:[String] = Array (repeating: "", count: addressesCount)
+        for index in 0..<addressesCount {
+            addresses[index] = asUTF8String (cAddresses.pointee!)
+            cAddresses = cAddresses.advanced(by: 1)
+        }
+        return addresses
+    }
+
     internal var cryptoClient: BRCryptoClient {
         return BRCryptoClient (
             context: systemContext,
+
+            funcGetBalance: { (context, cwm, sid, addresses, addressesCount, issuer) in
+                precondition (nil != context  && nil != cwm)
+
+                guard let (system, manager) = System.systemExtract (context, cwm)
+                    else { System.cleanup ("SYS: GetBalance: Missed {cwm}", cwm: cwm); return }
+
+                let issuer = issuer.map (asUTF8String)
+                print ("SYS: BTC: GetBalance: Issuer: \(issuer ?? "")")
+
+                let addresses = System.makeAddresses (addresses, addressesCount)
+
+                switch manager.network.type {
+                // Handle ETH explicitly - using an ETH query
+                case .eth:
+                    guard let network = manager.network.ethNetworkName.map ({ $0.lowercased() })
+                        else { System.cleanup  ("SYS: GetBalance: Missed {network}", cwm: cwm); return }
+
+                    precondition (1 == addressesCount)
+
+                    switch issuer {
+                    case .none:
+                        manager.query.getBalanceAsETH (network: network, address: addresses[0]) {
+                            (res: Result<String, BlockChainDB.QueryError>) in
+                            defer { cryptoWalletManagerGive (cwm!) }
+                            res.resolve (
+                                success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
+                                failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
+                        }
+                    case .some (let contract):
+                        manager.query.getBalanceAsTOK (network: network, address: addresses[0], contract: contract) {
+                            (res: Result<String, BlockChainDB.QueryError>) in
+                            defer { cryptoWalletManagerGive (cwm!) }
+                            res.resolve (
+                                success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
+                                failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
+                        }
+                    }
+
+                default:
+                    cwmAnnounceGetBalanceFailure (cwm, sid)
+                }},
 
             funcGetBlockNumber: { (context, cwm, sid) in
                 precondition (nil != context  && nil != cwm)
@@ -1232,12 +1285,7 @@ extension System {
                     else { System.cleanup ("SYS: BTC: GetTransactions: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
-                var cAddresses = addresses!
-                var addresses:[String] = Array (repeating: "", count: addressesCount)
-                for index in 0..<addressesCount {
-                    addresses[index] = asUTF8String (cAddresses.pointee!)
-                    cAddresses = cAddresses.advanced(by: 1)
-                }
+                let addresses = System.makeAddresses (addresses, addressesCount)
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: addresses,
@@ -1284,12 +1332,7 @@ extension System {
                     else { print ("SYS: GetTransfers: Missed {cwm}"); return }
                 print ("SYS: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
-                var cAddresses = addresses!
-                var addresses:[String] = Array (repeating: "", count: addressesCount)
-                for index in 0..<addressesCount {
-                    addresses[index] = asUTF8String (cAddresses.pointee!)
-                    cAddresses = cAddresses.advanced(by: 1)
-                }
+                let addresses = System.makeAddresses (addresses, addressesCount)
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: addresses,
@@ -1358,43 +1401,6 @@ extension System {
                                 cwmAnnounceSubmitTransferFailure (cwm, sid) })
                     }
 
-                }},
-
-            funcGetEtherBalanceETH: { (context, cwm, sid, network, address) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String),
-                    let address = address.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetEtherBalance: Missed {network, address}", cwm: cwm); return }
-
-                manager.query.getBalanceAsETH (network: network, address: address) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
-                }},
-
-            funcGetTokenBalanceETH: { (context, cwm, sid, network, address, contract) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String),
-                    let address = address.map (asUTF8String),
-                    let contract = contract.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetTokenBalance: Missed {network, address, contract}", cwm: cwm); return }
-
-                manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
                 }},
 
             funcGetGasPriceETH: { (context, cwm, sid, network) in
