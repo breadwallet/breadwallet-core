@@ -660,21 +660,25 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
 
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY: {
-            char *rawTransaction = transactionGetRlpHexEncoded (transaction,
-                                                                ewm->network,
-                                                                (ETHEREUM_BOOLEAN_IS_TRUE (isSigned)
-                                                                 ? RLP_TYPE_TRANSACTION_SIGNED
-                                                                 : RLP_TYPE_TRANSACTION_UNSIGNED),
-                                                                "0x");
+            BRRlpData transactionData = transactionGetRlpData (transaction,
+                                                    ewm->network,
+                                                    (ETHEREUM_BOOLEAN_IS_TRUE (isSigned)
+                                                     ? RLP_TYPE_TRANSACTION_SIGNED
+                                                     : RLP_TYPE_TRANSACTION_UNSIGNED));
+
+            char *transactionHash = hashAsString (transactionGetHash(transaction));
 
             ewm->client.funcSubmitTransaction (ewm->client.context,
                                                ewm,
                                                wallet,
                                                transfer,
-                                               rawTransaction,
+                                               transactionData.bytes,
+                                               transactionData.bytesCount,
+                                               transactionHash,
                                                ++ewm->requestId);
 
-            free(rawTransaction);
+            free (transactionHash);
+            rlpDataRelease (transactionData);
             break;
         }
 

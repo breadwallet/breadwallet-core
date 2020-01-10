@@ -199,7 +199,9 @@ clientSubmitTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumWallet wid,
                          BREthereumTransfer tid,
-                         const char *transaction,
+                         OwnershipKept const uint8_t *transactionBytes,
+                         size_t transactionBytesCount,
+                         OwnershipKept const char *transactionHash,
                          int rid) {
     // The transaction hash
     ewmAnnounceSubmitTransfer(ewm, wid, tid, "0x123abc456def", -1, NULL, rid);

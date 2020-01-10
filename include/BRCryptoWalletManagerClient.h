@@ -111,7 +111,7 @@ typedef void
 (*BRCryptoClientSubmitTransactionCallback) (BRCryptoClientContext context,
                                             OwnershipGiven BRCryptoWalletManager manager,
                                             OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                            OwnershipKept uint8_t *transaction,
+                                            OwnershipKept const uint8_t *transaction,
                                             size_t transactionLength,
                                             OwnershipKept const char *hashAsHex);
 
@@ -190,15 +190,6 @@ cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoClientCallbackState callbackState,
                                   BRCryptoStatus status);
 
-
-// MARK: - (ETH) Submit Transaction
-
-typedef void
-(*BRCryptoClientETHSubmitTransactionCallback) (BRCryptoClientContext context,
-                                               OwnershipGiven BRCryptoWalletManager manager,
-                                               OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                               OwnershipKept const char *network,
-                                               OwnershipKept const char *transaction);
 
 // MARK: (ETH) Get Transactions
 
@@ -353,7 +344,6 @@ typedef struct {
     BRCryptoClientETHGetTokenBalanceCallback funcGetTokenBalanceETH;
     BRCryptoClientETHGetGasPriceCallback funcGetGasPriceETH;
     BRCryptoClientETHEstimateGasCallback funcEstimateGasETH;
-    BRCryptoClientETHSubmitTransactionCallback funcSubmitTransactionETH;
     BRCryptoClientETHGetTransactionsCallback funcGetTransactionsETH; // announce one-by-one
     BRCryptoClientETHGetLogsCallback funcGetLogsETH; // announce one-by-one
     BRCryptoClientETHGetBlocksCallback funcGetBlocksETH;

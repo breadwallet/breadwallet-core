@@ -1509,7 +1509,9 @@ cwmSubmitTransactionAsETH (BREthereumClientContext context,
                            BREthereumEWM ewm,
                            BREthereumWallet wid,
                            BREthereumTransfer tid,
-                           const char *transaction,
+                           OwnershipKept const uint8_t *transactionBytes,
+                           size_t transactionBytesCount,
+                           OwnershipKept const char *transactionHash,
                            int rid) {
     // Extract CWM, checking to make sure it still lives
     BRCryptoWalletManager cwm = cryptoWalletManagerTakeWeak(context);
@@ -1521,16 +1523,13 @@ cwmSubmitTransactionAsETH (BREthereumClientContext context,
     callbackState->u.ethWithTransaction.tid = tid;
     callbackState->rid = rid;
 
-    BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    cwm->client.funcSubmitTransaction (cwm->client.context,
+                                       cryptoWalletManagerTake(cwm),
+                                       callbackState,
+                                       transactionBytes,
+                                       transactionBytesCount,
+                                       transactionHash);
 
-    cwm->client.funcSubmitTransactionETH (cwm->client.context,
-                                          cryptoWalletManagerTake (cwm),
-                                          callbackState,
-                                          networkName,
-                                          transaction);
-
-    free (networkName);
     cryptoWalletManagerGive (cwm);
 }
 

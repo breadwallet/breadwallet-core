@@ -1331,14 +1331,33 @@ extension System {
 
                 let hash = asUTF8String (hashAsHex!)
                 let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
-                manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
-                    (res: Result<Void, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve(
-                        success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (e) in
-                            print ("SYS: SubmitTransaction: Error: \(e)")
-                            cwmAnnounceSubmitTransferFailure (cwm, sid) })
+
+                switch manager.network.type {
+                // Handle ETH explicitly - using an ETH query
+                case .eth:
+                    guard let network = manager.network.ethNetworkName.map ({ $0.lowercased() })
+                        else { System.cleanup  ("SYS: SubmitTransaction: Missed {network}", cwm: cwm); return }
+
+                    manager.query.submitTransactionAsETH (network: network,
+                                                          transaction: data.asHexEncodedString (prefix: "0x")) {
+                                                            (res: Result<String, BlockChainDB.QueryError>) in
+                                                            defer { cryptoWalletManagerGive (cwm!) }
+                                                            res.resolve (
+                                                                success: { cwmAnnounceSubmitTransferSuccessForHash (cwm, sid, $0) },
+                                                                failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                    }
+
+                default:
+                    manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
+                        (res: Result<Void, BlockChainDB.QueryError>) in
+                        defer { cryptoWalletManagerGive (cwm!) }
+                        res.resolve(
+                            success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
+                            failure: { (e) in
+                                print ("SYS: SubmitTransaction: Error: \(e)")
+                                cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                    }
+
                 }},
 
             funcGetEtherBalanceETH: { (context, cwm, sid, network, address) in
@@ -1417,24 +1436,6 @@ extension System {
                                                     res.resolve (
                                                         success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0, price) },
                                                         failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid, CRYPTO_ERROR_FAILED) })
-                }},
-
-            funcSubmitTransactionETH: { (context, cwm, sid, network, transaction) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: SubmitTransaction: Missed {network}", cwm: cwm); return }
-
-                manager.query.submitTransactionAsETH (network: network,
-                                                      transaction: asUTF8String(transaction!)) {
-                                                        (res: Result<String, BlockChainDB.QueryError>) in
-                                                        defer { cryptoWalletManagerGive (cwm!) }
-                                                        res.resolve (
-                                                            success: { cwmAnnounceSubmitTransferSuccessForHash (cwm, sid, $0) },
-                                                            failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
                 }},
 
             funcGetTransactionsETH: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
