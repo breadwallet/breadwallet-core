@@ -490,14 +490,6 @@ _CWMNopGetTokensEthCallback (BRCryptoClientContext context,
 }
 
 static void
-_CWMNopGetBlockNumberEthCallback (BRCryptoClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoClientCallbackState callbackState,
-                                            OwnershipKept const char *network) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
 _CWMNopGetNonceEthCallback (BRCryptoClientContext context,
                                     OwnershipGiven BRCryptoWalletManager manager,
                                     OwnershipGiven BRCryptoClientCallbackState callbackState,
@@ -1009,7 +1001,6 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
         _CWMNopGetLogsEthCallback,
         _CWMNopGetBlocksEthCallback,
         _CWMNopGetTokensEthCallback,
-        _CWMNopGetBlockNumberEthCallback,
         _CWMNopGetNonceEthCallback,
     };
 

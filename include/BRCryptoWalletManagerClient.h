@@ -358,7 +358,6 @@ typedef struct {
     BRCryptoClientETHGetLogsCallback funcGetLogsETH; // announce one-by-one
     BRCryptoClientETHGetBlocksCallback funcGetBlocksETH;
     BRCryptoClientETHGetTokensCallback funcGetTokensETH; // announce one-by-one
-    BRCryptoClientETHGetBlockNumberCallback funcGetBlockNumberETH;
     BRCryptoClientETHGetNonceCallback funcGetNonceETH;
 } BRCryptoClient;
 

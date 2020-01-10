@@ -1194,12 +1194,35 @@ extension System {
                     else { System.cleanup("SYS: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: GetBlockNumber")
 
-                manager.query.getBlockchain (blockchainId: manager.network.uids) {
-                    (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight!) },
-                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
+                switch manager.network.type {
+                // Handle ETH explicitly - using an ETH query
+                case .eth:
+                    guard let network = manager.network.ethNetworkName.map ({ $0.lowercased() })
+                        else { System.cleanup  ("SYS: GetBlockNumber: Missed {network}", cwm: cwm); return }
+
+                    manager.query.getBlockNumberAsETH (network: network) {
+                        (res: Result<String, BlockChainDB.QueryError>) in
+                        defer { cryptoWalletManagerGive (cwm!) }
+                        // If we get a successful response, but the provided blocknumber is "0" then
+                        // that indicates that the JSON-RPC node is syncing.  Thus, if "0" transform
+                        // to a .failure
+                        res.flatMap {
+                            return ($0 != "0" && $0 != "0x0"
+                                ? Result.success ($0)
+                                : Result.failure (BlockChainDB.QueryError.noData))
+                        }.resolve (
+                            success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
+                            failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
+                    }
+
+                default:
+                    manager.query.getBlockchain (blockchainId: manager.network.uids) {
+                        (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+                        defer { cryptoWalletManagerGive (cwm!) }
+                        res.resolve (
+                            success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight!) },
+                            failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
+                    }
                 }},
 
             funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
@@ -1543,30 +1566,6 @@ extension System {
                                                           token.defaultGasPrice) }
                             cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE) },
                         failure: { (_) in cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-
-            funcGetBlockNumberETH: { (context, cwm, sid, network) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetBlockNumber: Missed {network}", cwm: cwm); return }
-
-                manager.query.getBlockNumberAsETH (network: network) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    // If we get a successful response, but the provided blocknumber is "0" then
-                    // that indicates that the JSON-RPC node is syncing.  Thus, if "0" transform
-                    // to a .failure
-                    res.flatMap {
-                        return ($0 != "0" && $0 != "0x0"
-                            ? Result.success ($0)
-                            : Result.failure (BlockChainDB.QueryError.noData))
-                    }.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
                 }},
 
             funcGetNonceETH: { (context, cwm, sid, network, address) in

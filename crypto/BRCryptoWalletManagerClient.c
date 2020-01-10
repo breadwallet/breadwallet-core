@@ -1656,20 +1656,15 @@ cwmGetBlockNumberAsETH (BREthereumClientContext context,
     // Extract CWM, checking to make sure it still lives
     BRCryptoWalletManager cwm = cryptoWalletManagerTakeWeak(context);
     if (NULL == cwm) return;
-
+    
     BRCryptoClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoClientCallbackStateRecord));
     callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER;
     callbackState->rid = rid;
-
-    BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
-
-    cwm->client.funcGetBlockNumberETH (cwm->client.context,
-                                       cryptoWalletManagerTake (cwm),
-                                       callbackState,
-                                       networkName);
-
-    free (networkName);
+    
+    cwm->client.funcGetBlockNumber (cwm->client.context,
+                                    cryptoWalletManagerTake (cwm),
+                                    callbackState);
+    
     cryptoWalletManagerGive (cwm);
 }
 
