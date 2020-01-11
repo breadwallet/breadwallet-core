@@ -1278,13 +1278,14 @@ extension System {
                     }
                 }},
 
-            funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
+            funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, currency, begBlockNumber, endBlockNumber) in
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { System.cleanup ("SYS: BTC: GetTransactions: Missed {cwm}", cwm: cwm); return }
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
+                let currency  = currency.map (asUTF8String)
                 let addresses = System.makeAddresses (addresses, addressesCount)
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
@@ -1325,44 +1326,123 @@ extension System {
 
                 }},
 
-            funcGetTransfers: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
+            funcGetTransfers: { (context, cwm, sid, addresses, addressesCount, currency, begBlockNumber, endBlockNumber) in
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: GetTransfers: Missed {cwm}"); return }
                 print ("SYS: GetTransfers: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
+                let currency  = currency.map(asUTF8String)
                 let addresses = System.makeAddresses (addresses, addressesCount)
 
-                manager.query.getTransactions (blockchainId: manager.network.uids,
-                                               addresses: addresses,
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
-                                               includeRaw: false) {
-                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-                                                defer { cryptoWalletManagerGive(cwm) }
-                                                res.resolve(
-                                                    success: {
-                                                        $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
-                                                            let height    = transaction.blockHeight ?? 0
+                switch manager.network.type {
+                case .eth:
+                    guard let network = manager.network.ethNetworkName.map ({ $0.lowercased() })
+                        else { System.cleanup  ("SYS: GetTransfers: Missed {network}", cwm: cwm); return }
 
-                                                            System.mergeTransfers (transaction.transfers, with: addresses)
-                                                                .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
-                                                                    let (transfer, fee) = arg
-                                                                    cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
-                                                                                                  transfer.id,
-                                                                                                  transfer.source,
-                                                                                                  transfer.target,
-                                                                                                  transfer.amountValue,
-                                                                                                  transfer.amountCurrency,
-                                                                                                  fee,
-                                                                                                  timestamp,
-                                                                                                  height)
+                    precondition(1 == addresses.count)
+
+                    if nil == currency || currency! != "__native__" {
+                        // The 'address' here must be 32-bytes/64-chars, 0x-prefixed.  We are passed
+                        // in 20-bytes/40-char
+                        let address = "0x000000000000000000000000" + addresses[0].dropFirst(2)
+
+                        manager.query.getLogsAsETH (network: network,
+                                                    contract: currency,
+                                                    address:  address,
+                                                    event:    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", // ERC20 Log Event Transfer
+                            begBlockNumber: begBlockNumber,
+                            endBlockNumber: endBlockNumber) {
+                                (res: Result<[BlockChainDB.ETH.Log], BlockChainDB.QueryError>) in
+                                defer { cryptoWalletManagerGive (cwm!) }
+                                res.resolve(
+                                    success: { (lgs: [BlockChainDB.ETH.Log]) in
+                                        lgs.forEach { (log: BlockChainDB.ETH.Log) in
+                                            let topicsCount = Int32 (log.topics.count)
+                                            var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
+                                            defer { topics.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                            cwmAnnounceGetLogsItemETH (cwm, sid,
+                                                                       log.hash,
+                                                                       log.contract,
+                                                                       topicsCount,
+                                                                       &topics,
+                                                                       log.data,
+                                                                       log.gasPrice,
+                                                                       log.gasUsed,
+                                                                       log.logIndex,
+                                                                       log.blockNumber,
+                                                                       log.blockTransactionIndex,
+                                                                       log.blockTimestamp) }
+                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE) },
+                                    failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
+                        }
+                    }
+                    else {
+                        manager.query.getTransactionsAsETH (network: network,
+                                                            address: addresses[0],
+                                                            begBlockNumber: begBlockNumber,
+                                                            endBlockNumber: endBlockNumber) {
+                                                                (res: Result<[BlockChainDB.ETH.Transaction], BlockChainDB.QueryError>) in
+                                                                defer { cryptoWalletManagerGive (cwm!) }
+                                                                res.resolve(
+                                                                    success: { (txs: [BlockChainDB.ETH.Transaction]) in
+                                                                        txs.forEach { (tx: BlockChainDB.ETH.Transaction) in
+                                                                            cwmAnnounceGetTransactionsItemETH (cwm, sid,
+                                                                                                               tx.hash,
+                                                                                                               tx.sourceAddr,
+                                                                                                               tx.targetAddr,
+                                                                                                               tx.contractAddr,
+                                                                                                               tx.amount,
+                                                                                                               tx.gasLimit,
+                                                                                                               tx.gasPrice,
+                                                                                                               tx.data,
+                                                                                                               tx.nonce,
+                                                                                                               tx.gasUsed,
+                                                                                                               tx.blockNumber,
+                                                                                                               tx.blockHash,
+                                                                                                               tx.blockConfirmations,
+                                                                                                               tx.blockTransactionIndex,
+                                                                                                               tx.blockTimestamp,
+                                                                                                               tx.isError)
+                                                                        }
+                                                                        cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE) },
+                                                                    failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+                        }
+                    }
+
+                default:
+                    manager.query.getTransactions (blockchainId: manager.network.uids,
+                                                   addresses: addresses,
+                                                   begBlockNumber: begBlockNumber,
+                                                   endBlockNumber: endBlockNumber,
+                                                   includeRaw: false) {
+                                                    (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                                    defer { cryptoWalletManagerGive(cwm) }
+                                                    res.resolve(
+                                                        success: {
+                                                            $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
+                                                                let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
+                                                                let height    = transaction.blockHeight ?? 0
+
+                                                                System.mergeTransfers (transaction.transfers, with: addresses)
+                                                                    .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
+                                                                        let (transfer, fee) = arg
+                                                                        cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
+                                                                                                      transfer.id,
+                                                                                                      transfer.source,
+                                                                                                      transfer.target,
+                                                                                                      transfer.amountValue,
+                                                                                                      transfer.amountCurrency,
+                                                                                                      fee,
+                                                                                                      timestamp,
+                                                                                                      height)
+                                                                }
                                                             }
-                                                        }
-                                                        cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
-                                                    failure: { (_) in cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_FALSE) })
+                                                            cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
+                                                        failure: { (_) in cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_FALSE) })
+                    }
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
@@ -1444,86 +1524,6 @@ extension System {
                                                         failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid, CRYPTO_ERROR_FAILED) })
                 }},
 
-            funcGetTransactionsETH: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetTransactions: Missed {network}", cwm: cwm); return }
-
-                manager.query.getTransactionsAsETH (network: network,
-                                                    address: asUTF8String (address!),
-                                                    begBlockNumber: begBlockNumber,
-                                                    endBlockNumber: endBlockNumber) {
-                                                        (res: Result<[BlockChainDB.ETH.Transaction], BlockChainDB.QueryError>) in
-                                                        defer { cryptoWalletManagerGive (cwm!) }
-                                                        res.resolve(
-                                                            success: { (txs: [BlockChainDB.ETH.Transaction]) in
-                                                                txs.forEach { (tx: BlockChainDB.ETH.Transaction) in
-                                                                    cwmAnnounceGetTransactionsItemETH (cwm, sid,
-                                                                                                       tx.hash,
-                                                                                                       tx.sourceAddr,
-                                                                                                       tx.targetAddr,
-                                                                                                       tx.contractAddr,
-                                                                                                       tx.amount,
-                                                                                                       tx.gasLimit,
-                                                                                                       tx.gasPrice,
-                                                                                                       tx.data,
-                                                                                                       tx.nonce,
-                                                                                                       tx.gasUsed,
-                                                                                                       tx.blockNumber,
-                                                                                                       tx.blockHash,
-                                                                                                       tx.blockConfirmations,
-                                                                                                       tx.blockTransactionIndex,
-                                                                                                       tx.blockTimestamp,
-                                                                                                       tx.isError)
-                                                                }
-                                                                cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE) },
-                                                            failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-
-            funcGetLogsETH: { (context, cwm, sid, network, contract, address, event, begBlockNumber, endBlockNumber) in
-                precondition (nil != context  && nil != cwm)
-
-                guard let (system, manager) = System.systemExtract (context, cwm)
-                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {cwm}", cwm: cwm); return }
-
-                guard let network = network.map (asUTF8String)
-                    else { System.cleanup  ("SYS: ETH: GetLogs: Missed {network}", cwm: cwm); return }
-
-                manager.query.getLogsAsETH (network: network,
-                                            contract: contract.map { asUTF8String($0) },
-                                            address:  asUTF8String(address!),
-                                            event:    asUTF8String(event!),
-                                            begBlockNumber: begBlockNumber,
-                                            endBlockNumber: endBlockNumber) {
-                                                (res: Result<[BlockChainDB.ETH.Log], BlockChainDB.QueryError>) in
-                                                defer { cryptoWalletManagerGive (cwm!) }
-                                                res.resolve(
-                                                    success: { (lgs: [BlockChainDB.ETH.Log]) in
-                                                        lgs.forEach { (log: BlockChainDB.ETH.Log) in
-                                                            let topicsCount = Int32 (log.topics.count)
-                                                            var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
-                                                            defer { topics.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
-
-                                                            cwmAnnounceGetLogsItemETH (cwm, sid,
-                                                                                       log.hash,
-                                                                                       log.contract,
-                                                                                       topicsCount,
-                                                                                       &topics,
-                                                                                       log.data,
-                                                                                       log.gasPrice,
-                                                                                       log.gasUsed,
-                                                                                       log.logIndex,
-                                                                                       log.blockNumber,
-                                                                                       log.blockTransactionIndex,
-                                                                                       log.blockTimestamp) }
-                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE) },
-                                                    failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-            
             funcGetBlocksETH: { (context, cwm, sid, network, address, interests, begBlockNumber, endBlockNumber) in
                 precondition (nil != context  && nil != cwm)
 

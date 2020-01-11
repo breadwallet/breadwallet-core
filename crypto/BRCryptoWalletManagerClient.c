@@ -133,6 +133,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                                      callbackState,
                                      addresses,
                                      addressCount,
+                                     "__native__",
                                      begBlockNumber,
                                      endBlockNumber);
 
@@ -1523,7 +1524,7 @@ cwmSubmitTransactionAsETH (BREthereumClientContext context,
 static void
 cwmGetTransactionsAsETH (BREthereumClientContext context,
                          BREthereumEWM ewm,
-                         const char *account,
+                         const char *address,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
                          int rid) {
@@ -1535,26 +1536,22 @@ cwmGetTransactionsAsETH (BREthereumClientContext context,
     callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS;
     callbackState->rid = rid;
 
-    BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    cwm->client.funcGetTransfers (cwm->client.context,
+                                  cryptoWalletManagerTake (cwm),
+                                  callbackState,
+                                  &address, 1,
+                                  "__native__",
+                                  begBlockNumber, endBlockNumber);
 
-    cwm->client.funcGetTransactionsETH (cwm->client.context,
-                                        cryptoWalletManagerTake (cwm),
-                                        callbackState,
-                                        networkName,
-                                        account,
-                                        begBlockNumber,
-                                        endBlockNumber);
 
-    free (networkName);
     cryptoWalletManagerGive (cwm);
 }
 
 static void
 cwmGetLogsAsETH (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 const char *contract,
-                 const char *addressIgnore,
+                 const char *contract,  // NULL => all
+                 const char *address,
                  const char *event,
                  uint64_t begBlockNumber,
                  uint64_t endBlockNumber,
@@ -1567,20 +1564,13 @@ cwmGetLogsAsETH (BREthereumClientContext context,
     callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_LOGS;
     callbackState->rid = rid;
 
-    BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    cwm->client.funcGetTransfers (cwm->client.context,
+                                  cryptoWalletManagerTake (cwm),
+                                  callbackState,
+                                  &address, 1,
+                                  contract,
+                                  begBlockNumber, endBlockNumber);
 
-    cwm->client.funcGetLogsETH (cwm->client.context,
-                                cryptoWalletManagerTake (cwm),
-                                callbackState,
-                                networkName,
-                                contract,
-                                addressIgnore,
-                                event,
-                                begBlockNumber,
-                                endBlockNumber);
-
-    free (networkName);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -1720,6 +1710,7 @@ cwmGetTransactionsAsGEN (BRGenericClientContext context,
                                      cryptoWalletManagerTake (cwm),
                                      callbackState,
                                      &address, 1,
+                                     "__native__",
                                      begBlockNumber, endBlockNumber);
 
     cryptoWalletManagerGive (cwm);
@@ -1742,6 +1733,7 @@ cwmGetTransfersAsGEN (BRGenericClientContext context,
                                   cryptoWalletManagerTake (cwm),
                                   callbackState,
                                   &address, 1,
+                                  "__native__",
                                   begBlockNumber, endBlockNumber);
 
     cryptoWalletManagerGive (cwm);
