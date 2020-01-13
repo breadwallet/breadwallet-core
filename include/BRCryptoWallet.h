@@ -50,7 +50,7 @@ extern "C" {
     } BRCryptoWalletEventType;
 
     extern const char *
-    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
+    cryptoWalletEventTypeString (BRCryptoWalletEventType t);
 
     typedef struct {
         BRCryptoWalletEventType type;
@@ -159,6 +159,14 @@ extern "C" {
     cryptoWalletGetAddress (BRCryptoWallet wallet,
                             BRCryptoAddressScheme addressScheme);
 
+    /**
+     * Check if `wallet` has `address`.  Checks that `address` has been used already by `wallet`
+     * or if `address` is the *next* address from `wallet`
+     */
+    extern BRCryptoBoolean
+    cryptoWalletHasAddress (BRCryptoWallet wallet,
+                            BRCryptoAddress address);
+
     extern BRCryptoFeeBasis
     cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet);
 
@@ -197,17 +205,6 @@ extern "C" {
 
     extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-
-    /**
-     * Estimate the wallet's maximum or minimun transfer amount.
-     */
-    extern BRCryptoAmount
-    cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
-                               BRCryptoBoolean asMaximum,
-                               BRCryptoAddress target,
-                               BRCryptoNetworkFee fee,
-                               BRCryptoBoolean *needEstimate,
-                               BRCryptoBoolean *isZeroIfInsuffientFunds);
 
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,

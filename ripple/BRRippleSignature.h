@@ -25,4 +25,5 @@
 extern BRRippleSignature
 signBytes (BRKey *key, uint8_t *bytes, size_t bytesCount);
 
+extern void rippleSignatureDelete (BRRippleSignature signature);
 #endif

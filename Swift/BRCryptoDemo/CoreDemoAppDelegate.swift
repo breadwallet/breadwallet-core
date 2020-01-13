@@ -120,7 +120,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         currencyCodesToMode = [
             "btc" : .api_only,
             "eth" : .api_only,
-//            "bch" : .p2p_only,
+            "bch" : .p2p_only,
             "xrp" : .api_only,
             "hbar" : .api_only
             ]
@@ -132,8 +132,9 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         }
 
         registerCurrencyCodes = [
-            "zla",
-            "adt"]
+//            "zla",
+//            "adt"
+        ]
 
         print ("APP: CurrenciesToMode  : \(currencyCodesToMode!)")
 
@@ -301,6 +302,7 @@ extension UIApplication {
 
                     let mainnet = (accountSpecification.network == "mainnet")
 
+                    app.accountSpecification = accountSpecification
                     app.account = Account.createFrom (phrase: accountSpecification.paperKey,
                                                       timestamp: accountSpecification.timestamp,
                                                       uids: "WalletID: \(accountSpecification.identifier)")
@@ -346,7 +348,7 @@ extension UIApplication {
 
     static func peer (network: Network) -> NetworkPeer? {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return nil }
-        guard Currency.codeAsBTC == network.currency.code else { return nil }
+        guard "btc" == network.currency.code else { return nil }
         guard app.btcPeerUse else { return nil }
 
         if nil == app.btcPeer {
@@ -361,11 +363,13 @@ extension UIApplication {
 
 extension Network {
     var scheme: String? {
-        switch self.currency.code {
-        case Currency.codeAsBTC: return "bitcoin"
-        case Currency.codeAsBCH: return "bitcoincash" // bchtest
-        case Currency.codeAsETH: return "ethereum"
-        default: return nil
+        switch type {
+        case .btc: return "bitcoin"
+        case .bch: return (isMainnet ? "bitcoincash" : "bchtest")
+        case .eth: return "ethereum"
+        case .xrp: return "ripple"
+//        case .hbar: return "Hedera"
+//        case .xlm:  return "Stellar"
         }
     }
 }

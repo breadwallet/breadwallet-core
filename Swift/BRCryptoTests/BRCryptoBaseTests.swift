@@ -175,11 +175,11 @@ class CryptoTestSystemListener: SystemListener {
                  let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
                  // Get a valid mode, ideally from `currencyMode`
 
-                 let mode = system.supportsMode (network: network, currencyMode)
+                 let mode = network.supportsMode (currencyMode)
                      ? currencyMode
-                     : system.defaultMode(network: network)
+                     : network.defaultMode
 
-                 let scheme = system.defaultAddressScheme(network: network)
+                 let scheme = network.defaultAddressScheme
 
                  let currencies = network.currencies
                      .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }
@@ -249,7 +249,7 @@ class CryptoTestSystemListener: SystemListener {
     var walletExpectation  = XCTestExpectation (description: "ManagerExpectation")
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        print ("TST: Wallet Event: \(event)")
+        print ("TST: Wallet (\(wallet.name)) Event: \(event)")
         walletEvents.append(event)
         walletHandlers.forEach { $0 (system, manager, wallet, event) }
     }

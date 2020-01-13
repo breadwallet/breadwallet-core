@@ -13,11 +13,22 @@
 
 #include <stdint.h>
 #include <math.h>   // fabs() - via static inline
+#include "BRCryptoBase.h"
 #include "ethereum/util/BRUtil.h"
+#include "BRCryptoBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * The installed generic networks.  Use this: a) as the `type` in `BRGenericHandlers` for each
+ * network and b) in `cryptoNetworkCreateBuiltin()` when creating the BRCryptoNetwork for this
+ * generic network.
+ */
+#   define GEN_NETWORK_TYPE_XRP        "xrp"
+//# define GEN_NETWORK_TYPE_HBAR       "hbar"
+//# define GEN_NETWORK_TYPE_XLM        "xlm"
 
     typedef struct BRGenericAccountRecord  *BRGenericAccount;
     typedef struct BRGenericNetworkRecord  *BRGenericNetwork;

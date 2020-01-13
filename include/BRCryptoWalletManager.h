@@ -99,7 +99,7 @@ extern "C" {
     } BRCryptoWalletManagerEventType;
 
     extern const char *
-    BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
+    cryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
 
     typedef struct {
         BRCryptoWalletManagerEventType type;
@@ -285,6 +285,18 @@ extern "C" {
                                      BRCryptoTransfer transfer);
 
     /**
+     * Estimate the wallet's maximum or minimun transfer amount.
+     */
+    extern BRCryptoAmount
+    cryptoWalletManagerEstimateLimit (BRCryptoWalletManager manager,
+                                      BRCryptoWallet  wallet,
+                                      BRCryptoBoolean asMaximum,
+                                      BRCryptoAddress target,
+                                      BRCryptoNetworkFee fee,
+                                      BRCryptoBoolean *needEstimate,
+                                      BRCryptoBoolean *isZeroIfInsuffientFunds);
+
+    /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
      *
@@ -356,7 +368,7 @@ extern "C" {
 
     extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
-                                          UInt256 hash,
+                                          BRCryptoData32 hash,
                                           uint32_t height,
                                           uint32_t nonce,
                                           uint32_t target,
@@ -364,9 +376,9 @@ extern "C" {
                                           uint32_t version,
                                           uint32_t timestamp,
                                           uint8_t *flags,  size_t flagsLen,
-                                          UInt256 *hashes, size_t hashesCount,
-                                          UInt256 merkleRoot,
-                                          UInt256 prevBlock);
+                                          BRCryptoData32 *hashes, size_t hashesCount,
+                                          BRCryptoData32 merkleRoot,
+                                          BRCryptoData32 prevBlock);
 
     extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleBlockBytesAsBTC (BRCryptoWalletMigrator migrator,

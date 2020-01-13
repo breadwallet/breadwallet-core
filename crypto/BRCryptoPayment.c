@@ -15,8 +15,8 @@
 
 #include "BRCryptoBase.h"
 
-#include "BRCryptoPrivate.h"
 #include "BRCryptoNetworkP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoWalletP.h"

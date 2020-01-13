@@ -36,6 +36,16 @@ struct BRCryptoAccountRecord {
 };
 
 /**
+ * Onetime install of BRCryptoAccount static state.  The static state includes the 'GEN Handlers'
+ * which allow BRCryptoAccount to create the required GEN accounts.  In not-DEBUG environments the
+ * static install happens w/i BRCryptoAccount; however, in a DEBUG environment, such as when unit
+ * testing, some BRCryptoNetwork function are invoked prior to BRCryptoAccount install.  So, we
+ * make this function `private_extern` and call it from BRCryptoNetwork.
+ */
+private_extern void
+cryptoAccountInstall (void);
+
+/**
  * Given a phrase (A BIP-39 PaperKey) dervie the corresponding 'seed'.  This is used
  * exclusive to sign transactions (BTC ones for sure).
  *
@@ -43,7 +53,7 @@ struct BRCryptoAccountRecord {
  *
  * @return A UInt512 seed
  */
-extern UInt512
+private_extern UInt512
 cryptoAccountDeriveSeed (const char *phrase);
 
 

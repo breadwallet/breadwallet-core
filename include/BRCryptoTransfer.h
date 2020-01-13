@@ -63,12 +63,17 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferStateType;
 
+    extern const char *
+    cryptoTransferStateTypeString (BRCryptoTransferStateType type);
+
     typedef struct {
         BRCryptoTransferStateType type;
         union {
             struct {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
+                // This is not assuredly the including block's timestamp; it is the transaction's
+                // timestamp which varies depending on how the transaction was discovered.
                 uint64_t timestamp;
                 BRCryptoFeeBasis feeBasis;
             } included;
@@ -104,7 +109,7 @@ extern "C" {
     } BRCryptoTransferEventType;
 
     extern const char *
-    BRCryptoTransferEventTypeString (BRCryptoTransferEventType t);
+    cryptoTransferEventTypeString (BRCryptoTransferEventType t);
 
     typedef struct {
         BRCryptoTransferEventType type;
@@ -121,10 +126,6 @@ extern "C" {
         CRYPTO_TRANSFER_RECEIVED,
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
-
-
-    extern BRCryptoBlockChainType
-    cryptoTransferGetType (BRCryptoTransfer transfer);
 
     /**
      * Returns the transfer's source address

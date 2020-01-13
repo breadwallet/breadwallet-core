@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.UnsignedInteger;
 
+import java.util.Locale;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -93,6 +94,6 @@ public class CurrencyDenomination {
 
     private static String lookupSymbol(String code) {
         String symbol = CURRENCY_SYMBOLS.get(code);
-        return symbol != null ? symbol : code;
+        return symbol != null ? symbol : code.toUpperCase(Locale.ROOT);
     }
 }

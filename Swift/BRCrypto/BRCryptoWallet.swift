@@ -54,18 +54,8 @@ public final class Wallet: Equatable {
         return WalletState (core: cryptoWalletGetState(core))
     }
 
-    /// The default TransferFeeBasis for created transfers.
-//    public var defaultFeeBasis: TransferFeeBasis {
-//        get {
-//            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-//        set {
-//            let defaultFeeBasis = newValue // rename, for clarity
-//            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-//        }
-//    }
-
     /// The default TransferFactory for creating transfers.
-    //    var transferFactory: TransferFactory { get set }
+    ///    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
@@ -76,15 +66,17 @@ public final class Wallet: Equatable {
         return Address (core: cryptoWalletGetAddress (core, scheme.core), take: false)
     }
 
-    /// TODO: `var targets: [Address]`
+    /// TODO: `var {targets,sources}: [Address]` - for query needs?
 
-    /// TODO: Remove `source
-    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
-    public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
+    ///
+    /// Check if `address` is in `wallet`.  The address is considered in wallet if: a) it
+    /// has been used in a transaction or b) is the target address
+    ///
+    /// - Parameter address: the address to check
+    ///
+    public func hasAddress (_ address: Address) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletHasAddress (core, address.core);
     }
-
-    /// TODO: `var sources: [Address]`
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
@@ -240,12 +232,13 @@ public final class Wallet: Equatable {
         var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
 
         // This `amount` is in the `unit` of `wallet`
-        guard let amount = cryptoWalletEstimateLimit (self.core,
-                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                                      target.core,
-                                                      fee.core,
-                                                      &needFeeEstimate,
-                                                      &isZeroIfInsuffientFunds)
+        guard let amount = cryptoWalletManagerEstimateLimit (self.manager.core,
+                                                             self.core,
+                                                             (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                             target.core,
+                                                             fee.core,
+                                                             &needFeeEstimate,
+                                                             &isZeroIfInsuffientFunds)
             .map ({ Amount (core: $0, take: false)})
             else {
                 // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount

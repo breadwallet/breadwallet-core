@@ -12,6 +12,7 @@
 #include "support/BRArray.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
@@ -29,25 +30,27 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit)
 
 static BRCryptoUnit
 cryptoUnitCreateInternal (BRCryptoCurrency currency,
-                          const char *uids,
+                          const char *code,
                           const char *name,
                           const char *symbol) {
     BRCryptoUnit unit = malloc (sizeof (struct BRCryptoUnitRecord));
 
     unit->currency = cryptoCurrencyTake (currency);
-    unit->uids   = strdup (uids);
     unit->name   = strdup (name);
     unit->symbol = strdup (symbol);
+    unit->uids   = malloc (strlen (cryptoCurrencyGetUids(currency)) + 1 + strlen(code) + 1);
+    sprintf (unit->uids, "%s:%s", cryptoCurrencyGetUids(currency), code);
+
     unit->ref = CRYPTO_REF_ASSIGN (cryptoUnitRelease);
     return unit;
 }
 
 extern BRCryptoUnit
 cryptoUnitCreateAsBase (BRCryptoCurrency currency,
-                        const char *uids,
+                        const char *code,
                         const char *name,
                         const char *symbol) {
-    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, uids, name, symbol);
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, code, name, symbol);
 
     unit->base = NULL;
     unit->decimals = 0;
@@ -57,13 +60,13 @@ cryptoUnitCreateAsBase (BRCryptoCurrency currency,
 
 extern BRCryptoUnit
 cryptoUnitCreate (BRCryptoCurrency currency,
-                  const char *uids,
+                  const char *code,
                   const char *name,
                   const char *symbol,
                   BRCryptoUnit baseUnit,
                   uint8_t powerOffset) {
     assert (NULL != baseUnit);
-    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, uids, name, symbol);
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, code, name, symbol);
 
     unit->base = cryptoUnitTake (baseUnit);
     unit->decimals = powerOffset;

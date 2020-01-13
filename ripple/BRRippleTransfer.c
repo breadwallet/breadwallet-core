@@ -54,6 +54,23 @@ rippleTransferCreateNew(BRRippleAddress from, BRRippleAddress to,
     return transfer;
 }
 
+extern BRRippleTransfer
+rippleTransferClone (BRRippleTransfer transfer) {
+    BRRippleTransfer clone = (BRRippleTransfer) calloc (1, sizeof (struct BRRippleTransferRecord));
+    memcpy (clone, transfer, sizeof (struct BRRippleTransferRecord));
+
+    if (transfer->sourceAddress)
+        clone->sourceAddress = rippleAddressClone (transfer->sourceAddress);
+
+    if (transfer->targetAddress)
+        clone->targetAddress = rippleAddressClone (transfer->targetAddress);
+
+    if (transfer->transaction)
+        clone->transaction = rippleTransactionClone (transfer->transaction);
+
+    return clone;
+}
+
 extern void rippleTransferFree(BRRippleTransfer transfer)
 {
     assert(transfer);

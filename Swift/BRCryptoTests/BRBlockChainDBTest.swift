@@ -169,7 +169,6 @@ class BRBlockChainDBTest: XCTestCase {
                                 guard case let .success (transfers) = res
                                     else { XCTAssert(false); return }
 
-                                // TODO(fix): This test fails; see CORE-741 for more details
                                 XCTAssertEqual (2, transfers.count)
                                 self.expectation.fulfill()
         }
@@ -284,7 +283,6 @@ class BRBlockChainDBTest: XCTestCase {
                                 guard case let .success (transactions) = res
                                     else { XCTAssert(false); return }
 
-                                // TODO(fix): This test fails; see CORE-741 for more details
                                 XCTAssertEqual (2, transactions.count)
                                 self.expectation.fulfill()
         }

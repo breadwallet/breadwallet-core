@@ -10,17 +10,21 @@
 
 #include <pthread.h>
 #include "BRCryptoAccountP.h"
-#include "generic/BRGenericRipple.h"
-#include "generic/BRGenericHedera.h"
+#include "generic/BRGenericHandlers.h"  // genericHandlersInstall
+#include "generic/BRGenericRipple.h"    // genericRippleHandlers
+#include "generic/BRGenericHedera.h"    // genericHederaHandlers
 
 static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
-
-#include "generic/BRGenericHandlers.h"
 
 static void _accounts_init (void) {
     genHandlersInstall (genericRippleHandlers);
     genHandlersInstall (genericHederaHandlers);
     // ...
+}
+
+private_extern void
+cryptoAccountInstall (void) {
+    pthread_once (&_accounts_once, _accounts_init);
 }
 
 static uint16_t
@@ -55,7 +59,9 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
     size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
     char  *phrase    = calloc (phraseLen, 1);
 
-    assert (phraseLen == BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy)));
+    // xor to avoid needing an additional variable to perform assert
+    phraseLen ^= BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy));
+    assert (0 == phraseLen);
 
     return phrase;
 }
@@ -94,7 +100,7 @@ static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp,
                                      const char *uids) {
-    pthread_once (&_accounts_once, _accounts_init);
+    cryptoAccountInstall();
 
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
                                         createAccountWithBIP32Seed(seed),
@@ -124,7 +130,7 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp, const char *uids) {
  */
 extern BRCryptoAccount
 cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids) {
-    pthread_once (&_accounts_once, _accounts_init);
+    cryptoAccountInstall();
 
     uint8_t *bytesPtr = (uint8_t *) bytes;
     uint8_t *bytesEnd = bytesPtr + bytesCount;
@@ -324,6 +330,8 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     // checksum
     uint16_t checksum = checksumFletcher16 (&bytes[chkSize], (*bytesCount - chkSize));
     UInt16SetBE (bytes, checksum);
+
+    free (xrpBytes);
 
     return bytes;
 }

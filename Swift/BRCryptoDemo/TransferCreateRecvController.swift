@@ -28,8 +28,7 @@ class TransferCreateRecvController: TransferCreateController {
     func updateView () {
         let target = wallet.target
 
-        walletAddrButton.setTitle ((UIPasteboard.general.string ?? target.description),
-                                   for: .normal)
+        walletAddrButton.setTitle (target.description, for: .normal)
 
         // Generate a QR Code
         if let scheme = wallet.manager.network.scheme {

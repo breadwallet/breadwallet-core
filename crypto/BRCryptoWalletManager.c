@@ -12,15 +12,16 @@
 #include <arpa/inet.h>      // struct in_addr
 
 #include "BRCryptoBase.h"
-#include "BRCryptoKey.h"
 
-#include "BRCryptoPrivate.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoAccountP.h"
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoAddressP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoWalletP.h"
+#include "BRCryptoPaymentP.h"
 
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -653,7 +654,8 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             uint16_t port    = 0;
 
             if (NULL != peer) {
-                address = cryptoPeerGetAddrAsInt(peer);
+                BRCryptoData16 addrAsInt = cryptoPeerGetAddrAsInt(peer);
+                memcpy (address.u8, addrAsInt.data, sizeof (addrAsInt.data));
                 port = cryptoPeerGetPort (peer);
             }
 
@@ -729,11 +731,15 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SIGNED);
         case GENERIC_TRANSFER_STATE_SUBMITTED:
             return cryptoTransferStateInit(CRYPTO_TRANSFER_STATE_SUBMITTED);
-        case GENERIC_TRANSFER_STATE_INCLUDED:
-            return cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
-                                                    generic.u.included.transactionIndex,
-                                                    generic.u.included.timestamp,
-                                                    cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis));
+        case GENERIC_TRANSFER_STATE_INCLUDED: {
+            BRCryptoFeeBasis      basis = cryptoFeeBasisCreateAsGEN (feeUnit, generic.u.included.feeBasis);
+            BRCryptoTransferState state = cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
+                                                                           generic.u.included.transactionIndex,
+                                                                           generic.u.included.timestamp,
+                                                                           basis);
+            cryptoFeeBasisGive (basis);
+            return state;
+        }
         case GENERIC_TRANSFER_STATE_ERRORED:
             return cryptoTransferStateErroredInit (cryptoTransferSubmitErrorUnknown());
         case GENERIC_TRANSFER_STATE_DELETED:
@@ -836,9 +842,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
-                BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  cryptoWalletAsBTC (wallet),
-                                                  cryptoTransferAsBTC(transfer));
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -849,9 +853,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                cryptoTransferAsETH (transfer),
                                                paperKey);
 
-            ewmWalletSubmitTransfer (cwm->u.eth,
-                                     cryptoWalletAsETH (wallet),
-                                     cryptoTransferAsETH (transfer));
+            cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             break;
         }
 
@@ -864,7 +866,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                 cryptoWalletManagerSetTransferStateGEN (cwm, wallet, transfer,
                                                         genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SIGNED));
                 // Submit the transfer
-                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -890,9 +892,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                                       cryptoWalletAsBTC (wallet),
                                                       cryptoTransferAsBTC(transfer),
                                                       cryptoKeyGetCore (key))) {
-                BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  cryptoWalletAsBTC (wallet),
-                                                  cryptoTransferAsBTC(transfer));
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -903,9 +903,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                    cryptoTransferAsETH (transfer),
                                    *cryptoKeyGetCore (key));
 
-            ewmWalletSubmitTransfer (cwm->u.eth,
-                                     cryptoWalletAsETH (wallet),
-                                     cryptoTransferAsETH (transfer));
+            cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             break;
         }
 
@@ -916,7 +914,7 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
             if (genManagerSignTransferWithKey (cwm->u.gen, genWallet, genTransfer, cryptoKeyGetCore (key))) {
                 cryptoWalletManagerSetTransferStateGEN (cwm, wallet, transfer,
                                                         genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SIGNED));
-                genManagerSubmitTransfer (cwm->u.gen, genWallet, genTransfer);
+                cryptoWalletManagerSubmitSigned (cwm, wallet, transfer);
             }
             break;
         }
@@ -943,13 +941,145 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
+            // We don't have GEN Events bubbling up that we can handle by adding transfer
+            // to wallet.  So, we'll add transfer here...
+            cryptoWalletAddTransfer (wallet, transfer);
+
+            // ... and announce the wallet's newly added transfer
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+                { .transfer = { cryptoTransferTake (transfer) }}
+            });
+
+            // ... perform the actual submit
             genManagerSubmitTransfer (cwm->u.gen,
                                       cryptoWalletAsGEN (wallet),
                                       cryptoTransferAsGEN (transfer));
+
+            // ... and then announce the submission.
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED,
+                { .transfer = { cryptoTransferTake (transfer) }}
+            });
+
             break;
         }
     }
 }
+
+extern BRCryptoAmount
+cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet  wallet,
+                                  BRCryptoBoolean asMaximum,
+                                  BRCryptoAddress target,
+                                  BRCryptoNetworkFee fee,
+                                  BRCryptoBoolean *needEstimate,
+                                  BRCryptoBoolean *isZeroIfInsuffientFunds) {
+    assert (NULL != needEstimate && NULL != isZeroIfInsuffientFunds);
+
+    UInt256 amount = UINT256_ZERO;
+    BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
+
+    // By default, we don't need an estimate
+    *needEstimate = CRYPTO_FALSE;
+
+    // By default, zero does not indicate insufficient funds
+    *isZeroIfInsuffientFunds = CRYPTO_FALSE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = wallet->u.btc.wid;
+
+            // Amount may be zero if insufficient fees
+            *isZeroIfInsuffientFunds = CRYPTO_TRUE;
+
+            uint64_t balance     = BRWalletBalance (wid);
+            uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
+                                    ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
+                                    : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
+            uint64_t fee         = (amountInSAT > 0
+                                    ? BRWalletFeeForTxAmountWithFeePerKb (wid, feePerKB, amountInSAT)
+                                    : 0);
+
+//            if (CRYPTO_TRUE == asMaximum)
+//                assert (balance == amountInSAT + fee);
+
+            if (amountInSAT + fee > balance)
+                amountInSAT = 0;
+
+            amount = createUInt256(amountInSAT);
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid = wallet->u.eth.wid;
+
+            // We always need an estimate as we do not know the fees.
+            *needEstimate = CRYPTO_TRUE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
+
+                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
+                          ? amountGetEther(ethAmount).valueInWEI
+                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            // TODO: Probably, unfortunately, the need for an estimate is likely currency dependent.
+            *needEstimate = CRYPTO_FALSE;
+
+            if (CRYPTO_FALSE == asMaximum)
+                amount = createUInt256(0);
+            else {
+                int negative = 0, overflow = 0;
+
+                // Get the balance
+                UInt256 balance = genWalletGetBalance (wallet->u.gen);
+
+                // Get the pricePerCostFactor for the (network) fee.
+                BRCryptoAmount pricePerCostFactor = cryptoNetworkFeeGetPricePerCostFactor (fee);
+                
+                // Get a feeBasis using some sketchy defaults
+                BRGenericAddress address   = genWalletGetAddress (wallet->u.gen);
+                BRGenericFeeBasis feeBasis = genWalletEstimateTransferFee (wallet->u.gen,
+                                                                           address,
+                                                                           balance,
+                                                                           cryptoAmountGetValue(pricePerCostFactor));
+
+                // Finally, compute the fee.
+                UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
+                assert (!overflow);
+
+                amount = subUInt256_Negative (balance, fee, &negative);
+                if (negative) amount = UINT256_ZERO;
+
+                genAddressRelease(address);
+                cryptoAmountGive(pricePerCostFactor);
+
+            }
+            break;
+        }
+    }
+
+    return cryptoAmountCreateInternal (unit,
+                                       CRYPTO_FALSE,
+                                       amount,
+                                       0);
+}
+
 
 extern void
 cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
@@ -1270,7 +1400,7 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
 }
 
 extern const char *
-BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
+cryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
     switch (t) {
         case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
         return "CRYPTO_WALLET_MANAGER_EVENT_CREATED";
@@ -1397,7 +1527,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
 
 extern BRCryptoWalletMigratorStatus
 cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
-                                      UInt256 hash,
+                                      BRCryptoData32 hash,
                                       uint32_t height,
                                       uint32_t nonce,
                                       uint32_t target,
@@ -1405,11 +1535,12 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
                                       uint32_t version,
                                       uint32_t timestamp,
                                       uint8_t *flags,  size_t flagsLen,
-                                      UInt256 *hashes, size_t hashesCount,
-                                      UInt256 merkleRoot,
-                                      UInt256 prevBlock) {
+                                      BRCryptoData32 *hashes, size_t hashesCount,
+                                      BRCryptoData32 merkleRoot,
+                                      BRCryptoData32 prevBlock) {
     BRMerkleBlock *block = BRMerkleBlockNew();
-    block->blockHash = hash;
+
+    memcpy (block->blockHash.u8, hash.data, sizeof (hash.data));
     block->height = height;
     block->nonce  = nonce;
     block->target = target;
@@ -1417,10 +1548,10 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
     block->version = version;
     if (0 != timestamp) block->timestamp = timestamp;
 
-    BRMerkleBlockSetTxHashes (block, hashes, hashesCount, flags, flagsLen);
+    BRMerkleBlockSetTxHashes (block, (UInt256*) hashes, hashesCount, flags, flagsLen);
 
-    block->merkleRoot = merkleRoot;
-    block->prevBlock  = prevBlock;
+    memcpy (block->merkleRoot.u8, merkleRoot.data, sizeof (merkleRoot.data));
+    memcpy (block->prevBlock.u8,  prevBlock.data,  sizeof (prevBlock.data));
 
     // ...
     theErrorHackReset(migrator);

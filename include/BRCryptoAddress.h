@@ -63,15 +63,6 @@ extern "C" {
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
-    /// MARK: - Address Scheme
-
-    typedef enum {
-        CRYPTO_ADDRESS_SCHEME_BTC_LEGACY,
-        CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT,
-        CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT,
-        CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
-    } BRCryptoAddressScheme;
-
 #ifdef __cplusplus
 }
 #endif

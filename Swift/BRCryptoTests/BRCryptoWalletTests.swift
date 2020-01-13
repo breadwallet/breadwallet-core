@@ -187,7 +187,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
                 }
             }]
 
-        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .bch == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
@@ -197,8 +197,9 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil(wallet)
 
         // Checking the wallet address as BCHH
-        let walletAddress = wallet.source
+        let walletAddress = wallet.target
         XCTAssertTrue (walletAddress.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+        XCTAssertTrue (wallet.hasAddress(walletAddress))
     }
 
     func testWalletETH() {
@@ -232,7 +233,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         prepareSystem(listener: listener)
 
-        let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .eth == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
@@ -284,6 +285,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (walletETH.state, WalletState.created)
         XCTAssertEqual (walletETH.target, walletETH.targetForScheme(manager.addressScheme))
         XCTAssertEqual (walletETH, walletETH)
+        XCTAssertTrue  (walletETH.hasAddress(walletETH.target));
 
 
         XCTAssertTrue  (system === walletBRD.system)
@@ -295,6 +297,6 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (walletBRD.balance, Amount.create(integer: 0, unit: walletBRD.unit))
         XCTAssertEqual (walletBRD.state, WalletState.created)
         XCTAssertEqual (walletBRD.target, walletBRD.targetForScheme(manager.addressScheme))
-
+        XCTAssertTrue  (walletBRD.hasAddress(walletBRD.target))
     }
 }

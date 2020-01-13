@@ -13,12 +13,13 @@
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoAmount.h"
 
+#include "BRCryptoAmountP.h"
+#include "BRCryptoKeyP.h"
 #include "BRCryptoFeeBasisP.h"
 #include "BRCryptoTransferP.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoNetworkP.h"
-
-#include "BRCryptoPrivate.h" // sweeper, key.core,  payment protocol
+#include "BRCryptoPaymentP.h"
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
 
@@ -307,6 +308,46 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
     }
 }
 
+extern BRCryptoBoolean
+cryptoWalletHasAddress (BRCryptoWallet wallet,
+                        BRCryptoAddress address) {
+    if (wallet->type != cryptoAddressGetType(address))
+        return CRYPTO_FALSE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRCryptoBoolean isBitcoinAddress;
+
+            BRWallet *btcWallet = wallet->u.btc.wid;
+            BRAddress btcAddress = cryptoAddressAsBTC (address, &isBitcoinAddress);
+
+            if (BRWalletAddressIsUsed (btcWallet, btcAddress.s))
+                return CRYPTO_TRUE;
+
+            BRAddress btcLegacyAddress = BRWalletLegacyAddress (btcWallet);
+            if (0 == memcmp (btcAddress.s, btcLegacyAddress.s, sizeof (btcAddress.s)))
+                return CRYPTO_TRUE;
+
+            if (CRYPTO_TRUE == isBitcoinAddress) {
+                BRAddress btcSegwitAddress = BRWalletReceiveAddress (btcWallet);
+                if (0 == memcmp (btcAddress.s, btcSegwitAddress.s, sizeof (btcAddress.s)))
+                    return CRYPTO_TRUE;
+            }
+
+            return CRYPTO_FALSE;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumAddress ethAddress = cryptoAddressAsETH (address);
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_TRUE == ewmWalletHasAddress(wallet->u.eth.ewm, wallet->u.eth.wid, ethAddress));
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            return AS_CRYPTO_BOOLEAN (genWalletHasAddress (wallet->u.gen, address->u.gen));
+        }
+    }
+}
+
 extern BRCryptoFeeBasis
 cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
     BRCryptoFeeBasis feeBasis;
@@ -471,7 +512,10 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
             BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
+            // The GEN Wallet is holding the `tid` memory
             BRGenericTransfer tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+
+            // The CRYPTO Transfer holds the `tid` memory (w/ REF count of 1)
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }
@@ -565,89 +609,6 @@ cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
     return transfer;
 }
 
-extern BRCryptoAmount
-cryptoWalletEstimateLimit (BRCryptoWallet  wallet,
-                           BRCryptoBoolean asMaximum,
-                           BRCryptoAddress target,
-                           BRCryptoNetworkFee fee,
-                           BRCryptoBoolean *needEstimate,
-                           BRCryptoBoolean *isZeroIfInsuffientFunds) {
-    assert (NULL != needEstimate && NULL != isZeroIfInsuffientFunds);
-
-    UInt256 amount = UINT256_ZERO;
-    BRCryptoUnit unit = cryptoUnitGetBaseUnit (wallet->unit);
-
-    // By default, we don't need an estimate
-    *needEstimate = CRYPTO_FALSE;
-
-    // By default, zero does not indicate insufficient funds
-    *isZeroIfInsuffientFunds = CRYPTO_FALSE;
-
-    switch (wallet->type) {
-        case BLOCK_CHAIN_TYPE_BTC: {
-            BRWallet *wid = wallet->u.btc.wid;
-
-            // Amount may be zero if insufficient fees
-            *isZeroIfInsuffientFunds = CRYPTO_TRUE;
-
-            uint64_t balance     = BRWalletBalance (wid);
-            uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
-            uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
-                                    ? BRWalletMinOutputAmountWithFeePerKb (wid, feePerKB)
-                                    : BRWalletMaxOutputAmountWithFeePerKb (wid, feePerKB));
-            uint64_t fee         = (amountInSAT > 0
-                                    ? BRWalletFeeForTxAmountWithFeePerKb (wid, feePerKB, amountInSAT)
-                                    : 0);
-
-//            if (CRYPTO_TRUE == asMaximum)
-//                assert (balance == amountInSAT + fee);
-
-            if (amountInSAT + fee > balance)
-                amountInSAT = 0;
-
-            amount = createUInt256(amountInSAT);
-            break;
-        }
-
-        case BLOCK_CHAIN_TYPE_ETH: {
-            BREthereumEWM ewm = wallet->u.eth.ewm;
-            BREthereumWallet wid = wallet->u.eth.wid;
-
-            // We always need an estimate as we do not know the fees.
-            *needEstimate = CRYPTO_TRUE;
-
-            if (CRYPTO_FALSE == asMaximum)
-                amount = createUInt256(0);
-            else {
-                BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
-
-                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
-                          ? amountGetEther(ethAmount).valueInWEI
-                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
-            }
-            break;
-        }
-
-        case BLOCK_CHAIN_TYPE_GEN: {
-            assert (0);
-
-            *needEstimate = CRYPTO_FALSE; // TODO: True
-
-            if (CRYPTO_FALSE == asMaximum)
-                amount = createUInt256(0);
-            else {
-                amount = createUInt256(0);
-            }
-            break;
-        }
-    }
-
-    return cryptoAmountCreateInternal (unit,
-                                       CRYPTO_FALSE,
-                                       amount,
-                                       0);
-}
-
 extern BRCryptoFeeBasis
 cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                             BRCryptoAmount pricePerCostFactor,
@@ -718,7 +679,7 @@ cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2) {
 }
 
 extern const char *
-BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
+cryptoWalletEventTypeString (BRCryptoWalletEventType t) {
     switch (t) {
         case CRYPTO_WALLET_EVENT_CREATED:
         return "CRYPTO_WALLET_EVENT_CREATED";

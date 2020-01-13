@@ -10,7 +10,6 @@
 //
 import Foundation
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// An amount of currency.  This can be negative (as in, 'currency owed' rather then 'currency
@@ -98,10 +97,6 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
-    internal var integerRaw: UInt256 {
-        return cryptoAmountGetValue(core)
-    }
-
     ///
     /// Return a 'raw string' (as an integer in self's base unit) using `base` and `preface`.
     /// Caution is warranted: this is a string w/o any context (currency in a particular Unit).
@@ -119,11 +114,7 @@ public final class Amount {
     /// - Returns: the amount in the base unit as a 'raw string'
     ///
     public func string (base: UInt8 = 16, preface: String = "0x") -> String {
-        let value = cryptoAmountGetValue (self.core)
-        let chars = coerceStringPrefaced (value, Int32(base), preface)
-        defer { free (chars) }
-
-        return asUTF8String (chars!)
+        return asUTF8String (cryptoAmountGetStringPrefaced(self.core, Int32(base), preface))
     }
 
     public func isCompatible (with that: Amount) -> Bool {

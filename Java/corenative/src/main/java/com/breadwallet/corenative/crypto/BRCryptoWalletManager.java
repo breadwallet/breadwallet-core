@@ -20,6 +20,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.StringArray;
+import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -248,6 +249,41 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cryptoWalletManagerSubmitSigned(thisPtr, wallet.getPointer(), transfer.getPointer());
     }
 
+    public static class EstimateLimitResult {
+
+        public @Nullable BRCryptoAmount amount;
+        public boolean needFeeEstimate;
+        public boolean isZeroIfInsuffientFunds;
+
+        EstimateLimitResult(@Nullable BRCryptoAmount amount, boolean needFeeEstimate, boolean isZeroIfInsuffientFunds) {
+            this.amount = amount;
+            this.needFeeEstimate = needFeeEstimate;
+            this.isZeroIfInsuffientFunds = isZeroIfInsuffientFunds;
+        }
+    }
+
+    public EstimateLimitResult estimateLimit(BRCryptoWallet wallet, boolean asMaximum, BRCryptoAddress coreAddress, BRCryptoNetworkFee coreFee) {
+        Pointer thisPtr = this.getPointer();
+
+        IntByReference needFeeEstimateRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        IntByReference isZeroIfInsuffientFundsRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        Optional<BRCryptoAmount> maybeAmount = Optional.fromNullable(CryptoLibraryDirect.cryptoWalletManagerEstimateLimit(
+                thisPtr,
+                wallet.getPointer(),
+                asMaximum ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
+                coreAddress.getPointer(),
+                coreFee.getPointer(),
+                needFeeEstimateRef,
+                isZeroIfInsuffientFundsRef
+        )).transform(BRCryptoAmount::new);
+
+        return new EstimateLimitResult(
+                maybeAmount.orNull(),
+                needFeeEstimateRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE,
+                isZeroIfInsuffientFundsRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE
+        );
+    }
+
     public void estimateFeeBasis(BRCryptoWallet wallet, Cookie cookie,
                                  BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
         Pointer thisPtr = this.getPointer();
@@ -303,11 +339,11 @@ public class BRCryptoWalletManager extends PointerType {
         CryptoLibraryDirect.cwmAnnounceGetBlockNumberFailure(thisPtr, callbackState.getPointer());
     }
 
-    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
+    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction, UnsignedLong timestamp,
                                                UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemBTC(thisPtr, callbackState.getPointer(), transaction, new SizeT(transaction.length),
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemBTC(thisPtr, callbackState.getPointer(), status.toCore(), transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 
@@ -323,11 +359,11 @@ public class BRCryptoWalletManager extends PointerType {
                 blockTransacionIndex, blockTimestamp, isError);
     }
 
-    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, BRCryptoTransferStateType status, byte[] transaction,
                                                UnsignedLong timestamp, UnsignedLong blockHeight) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemGEN(thisPtr, callbackState.getPointer(), transaction, new SizeT(transaction.length),
+        CryptoLibraryDirect.cwmAnnounceGetTransactionsItemGEN(thisPtr, callbackState.getPointer(), status.toCore(), transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 

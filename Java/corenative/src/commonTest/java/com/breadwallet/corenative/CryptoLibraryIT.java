@@ -355,8 +355,7 @@ public class CryptoLibraryIT {
 
         try {
 
-            network = BRCryptoNetwork
-                    .createAsBtc("bitcoin-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin", isMainnet);
+            network = BRCryptoNetwork.findBuiltin("bitcoin-" + (isMainnet ? "mainnet" : "testnet")).get();
 
             btc = BRCryptoCurrency
                     .create("bitcoin", "bitcoin", "btc", "native", null);
@@ -405,8 +404,7 @@ public class CryptoLibraryIT {
 
         try {
 
-            network = BRCryptoNetwork
-                    .createAsBch("bitcoin-cash-" + (isMainnet ? "mainnet" : "testnet"), "bitcoin cash", isMainnet);
+            network = BRCryptoNetwork.findBuiltin("bitcoincash-" + (isMainnet ? "mainnet" : "testnet")).get();
 
             btc = BRCryptoCurrency
                     .create("bitcoin-cash", "bitcoin cash", "bch", "native", null);
@@ -456,6 +454,8 @@ public class CryptoLibraryIT {
 
         try {
 
+            network = BRCryptoNetwork.findBuiltin("ethereum-" + (isMainnet ? "mainnet" : "ropsten")).get();
+
             eth = BRCryptoCurrency
                     .create("ethereum", "ethereum", "eth", "native", null);
 
@@ -467,10 +467,6 @@ public class CryptoLibraryIT {
 
             ether = BRCryptoUnit
                     .create(eth, "ether", "eth", "E", wei, UnsignedInteger.valueOf(18));
-
-            network = BRCryptoNetwork
-                    .createAsEth("ethereum-" + (isMainnet ? "mainnet" : "testnet"), "ethereum", isMainnet)
-                    .get();
 
             factor = BRCryptoAmount
                     .create(2.0, gwei);

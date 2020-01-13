@@ -55,10 +55,25 @@ public interface Network {
 
     boolean isMainnet();
 
+    NetworkType getType();
+
     UnsignedLong getHeight();
 
     UnsignedInteger getConfirmationsUntilFinal();
 
+    AddressScheme getDefaultAddressScheme();
+
+    List<AddressScheme> getSupportedAddressSchemes();
+
+    boolean supportsAddressScheme(AddressScheme addressScheme);
+
+    WalletManagerMode getDefaultWalletManagerMode();
+
+    List<WalletManagerMode> getSupportedWalletManagerModes();
+
+    boolean supportsWalletManagerMode(WalletManagerMode mode);
+
+    boolean requiresMigration();
     /**
      * Create a Network Peer for use in P2P modes when a WalletManager connects.
      *

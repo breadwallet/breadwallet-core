@@ -152,6 +152,15 @@ ewmGetWalletHoldingToken(BREthereumEWM ewm,
 
 /// MARK: - Wallet
 
+extern BREthereumAddress
+ewmWalletGetAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet);
+
+extern BREthereumBoolean
+ewmWalletHasAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumAddress address);
+
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet);

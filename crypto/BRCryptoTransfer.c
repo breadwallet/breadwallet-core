@@ -11,14 +11,33 @@
 #include "BRCryptoTransferP.h"
 
 #include "BRCryptoBase.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoHashP.h"
 #include "BRCryptoAddressP.h"
+#include "BRCryptoAmountP.h"
 #include "BRCryptoFeeBasisP.h"
 
 #include "support/BRAddress.h"
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/BREthereum.h"
+
+/// MARK: - Transfer State Type
+
+extern const char *
+cryptoTransferStateTypeString (BRCryptoTransferStateType type) {
+    static const char *strings[] = {
+        "CRYPTO_TRANSFER_STATE_CREATED",
+        "CRYPTO_TRANSFER_STATE_SIGNED",
+        "CRYPTO_TRANSFER_STATE_SUBMITTED",
+        "CRYPTO_TRANSFER_STATE_INCLUDED",
+        "CRYPTO_TRANSFER_STATE_ERRORED",
+        "CRYPTO_TRANSFER_STATE_DELETED",
+    };
+    assert (CRYPTO_TRANSFER_EVENT_CREATED <= type && type <= CRYPTO_TRANSFER_STATE_DELETED);
+    return strings[type];
+}
+
+/// MARK: Transfer
 
 static BRCryptoTransferDirection
 cryptoTransferDirectionFromBTC (uint64_t send, uint64_t recv, uint64_t fee);
@@ -238,7 +257,7 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     free (transfer);
 }
 
-extern BRCryptoBlockChainType
+private_extern BRCryptoBlockChainType
 cryptoTransferGetType (BRCryptoTransfer transfer) {
     return transfer->type;
 }
@@ -665,6 +684,10 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
+    // This does not compare the properties of `t1` to `t2`, just the 'id-ness'.  If the properties
+    // are compared, one needs to be careful about the BRTransaction's timestamp.  Two transactions
+    // with an identical hash can have different timestamps depending on how the transaction
+    // is identified.  Specifically P2P and API found transactions *will* have different timestamps.
     return t1->u.btc.tid == t2->u.btc.tid;
 }
 
@@ -870,7 +893,7 @@ cryptoTransferStateRelease (BRCryptoTransferState *state) {
 }
 
 extern const char *
-BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+cryptoTransferEventTypeString (BRCryptoTransferEventType t) {
     switch (t) {
         case CRYPTO_TRANSFER_EVENT_CREATED:
         return "CRYPTO_TRANSFER_EVENT_CREATED";

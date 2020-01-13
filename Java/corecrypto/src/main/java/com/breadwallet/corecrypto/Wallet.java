@@ -20,7 +20,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
-import com.breadwallet.crypto.errors.FeeEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.errors.LimitEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationServiceFailureError;
@@ -156,12 +155,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private void estimateLimit(boolean asMaximum,
                                com.breadwallet.crypto.Address target, com.breadwallet.crypto.NetworkFee fee,
                                CompletionHandler<com.breadwallet.crypto.Amount, LimitEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
+
         NetworkFee cryptoFee = NetworkFee.from(fee);
         BRCryptoNetworkFee coreFee = cryptoFee.getCoreBRCryptoNetworkFee();
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
 
         // This `amount` is in the `unit` of `wallet`
-        BRCryptoWallet.EstimateLimitResult result = core.estimateLimit(asMaximum, coreAddress, coreFee);
+        BRCryptoWalletManager.EstimateLimitResult result = coreManager.estimateLimit(core, asMaximum, coreAddress, coreFee);
         if (result.amount == null) {
             // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
             callbackCoordinator.completeLimitEstimateWithError(handler, new LimitEstimationInsufficientFundsError());
@@ -376,8 +377,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
-    public Address getSource() {
-        return Address.create(core.getSourceAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
+    public boolean containsAddress(com.breadwallet.crypto.Address address) {
+        return core.containsAddress(Address.from(address).getCoreBRCryptoAddress());
     }
 
     @Override

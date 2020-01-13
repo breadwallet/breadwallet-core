@@ -12,11 +12,22 @@
 #define BRCryptoKey_h
 
 #include "BRCryptoBase.h"
-#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    /// MARK: - Crypto Secret
+
+    typedef struct {
+        uint8_t data[256/8];
+    } BRCryptoSecret;
+
+    static inline void cryptoSecretClear (BRCryptoSecret *secret) {
+        memset (secret->data, 0, sizeof (secret->data));
+    }
+
+    /// MARK: Crypto Key
 
     typedef struct BRCryptoKeyRecord *BRCryptoKey;
 
@@ -24,7 +35,7 @@ extern "C" {
     cryptoKeyIsProtectedPrivate (const char *privateKey);
 
     extern BRCryptoKey
-    cryptoKeyCreateFromSecret (UInt256 secret);
+    cryptoKeyCreateFromSecret (BRCryptoSecret secret);
 
     extern BRCryptoKey
     cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]);
@@ -68,7 +79,7 @@ extern "C" {
     extern char *
     cryptoKeyEncodePublic (BRCryptoKey key);
 
-    extern UInt256
+    extern BRCryptoSecret
     cryptoKeyGetSecret (BRCryptoKey key);
 
     extern int
