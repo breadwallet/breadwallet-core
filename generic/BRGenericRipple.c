@@ -114,6 +114,11 @@ genericRippleTransferCreate (BRGenericAddressRef source,
                                                            amountDrops);
 }
 
+static BRGenericTransferRef
+genericRippleTransferCopy (BRGenericTransferRef transfer) {
+    return (BRGenericTransferRef) rippleTransferClone ((BRRippleTransfer) transfer);
+}
+
 static void
 genericRippleTransferFree (BRGenericTransferRef transfer) {
     rippleTransferFree ((BRRippleTransfer) transfer);
@@ -203,7 +208,7 @@ genericRippleWalletHasTransfer (BRGenericWalletRef wallet,
 
 static void
 genericRippleWalletAddTransfer (BRGenericWalletRef wallet,
-                                BRGenericTransferRef transfer) {
+                                OwnershipKept BRGenericTransferRef transfer) {
     rippleWalletAddTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
 }
 
@@ -212,12 +217,16 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
                                    UInt256 amount,
                                    BRGenericFeeBasis estimatedFeeBasis) {
-    BRRippleAddress source = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
-    BRRippleUnitDrops drops  = amount.u64[0];
+    BRRippleAddress source  = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
+    BRRippleUnitDrops drops = amount.u64[0];
 
-    return (BRGenericTransferRef) rippleTransferCreateNew (source,
-                                                           (BRRippleAddress) target,
-                                                           drops);
+    BRRippleTransfer transfer = rippleTransferCreateNew (source,
+                                                         (BRRippleAddress) target,
+                                                         drops);
+
+    rippleAddressFree(source);
+
+    return (BRGenericTransferRef) transfer;
 }
 
 static BRGenericFeeBasis
@@ -297,6 +306,7 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
 
     {    // Transfer
         genericRippleTransferCreate,
+        genericRippleTransferCopy,
         genericRippleTransferFree,
         genericRippleTransferGetSourceAddress,
         genericRippleTransferGetTargetAddress,

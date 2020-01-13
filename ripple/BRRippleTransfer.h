@@ -28,6 +28,7 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                     BRRippleTransactionHash hash,
                     uint64_t timestamp, uint64_t blockHeight);
 
+extern BRRippleTransfer rippleTransferClone (BRRippleTransfer transfer);
 extern void rippleTransferFree(BRRippleTransfer transfer);
 
 // Getters for all the values

@@ -161,6 +161,12 @@ genTransferAllocAndInit (const char *type,
     return transfer;
 }
 
+extern BRGenericTransfer
+genTransferCopy (const BRGenericTransfer transfer) {
+    return genTransferAllocAndInit (transfer->type,
+                                    transfer->handlers.copy (transfer->ref));
+}
+
 extern void
 genTransferRelease (BRGenericTransfer transfer) {
     transfer->handlers.free (transfer->ref);
@@ -321,7 +327,7 @@ genWalletHasTransfer (BRGenericWallet wallet,
 
 extern void
 genWalletAddTransfer (BRGenericWallet wallet,
-                      BRGenericTransfer transfer) {
+                      OwnershipKept BRGenericTransfer transfer) {
     wallet->handlers.addTransfer (wallet->ref, transfer->ref);
 }
 

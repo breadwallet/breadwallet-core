@@ -20,6 +20,11 @@ static void _accounts_init (void) {
     // ...
 }
 
+private_extern void
+cryptoAccountInstall (void) {
+    pthread_once (&_accounts_once, _accounts_init);
+}
+
 static uint16_t
 checksumFletcher16 (const uint8_t *data, size_t count);
 
@@ -91,7 +96,7 @@ static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp,
                                      const char *uids) {
-    pthread_once (&_accounts_once, _accounts_init);
+    cryptoAccountInstall();
 
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
                                         createAccountWithBIP32Seed(seed),
@@ -120,7 +125,7 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp, const char *uids) {
  */
 extern BRCryptoAccount
 cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids) {
-    pthread_once (&_accounts_once, _accounts_init);
+    cryptoAccountInstall();
 
     uint8_t *bytesPtr = (uint8_t *) bytes;
     uint8_t *bytesEnd = bytesPtr + bytesCount;
@@ -297,6 +302,8 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     // checksum
     uint16_t checksum = checksumFletcher16 (&bytes[chkSize], (*bytesCount - chkSize));
     UInt16SetBE (bytes, checksum);
+
+    free (xrpBytes);
 
     return bytes;
 }

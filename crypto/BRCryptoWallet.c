@@ -512,7 +512,10 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRGenericAddress genAddr = cryptoAddressAsGEN (target);
             BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
+            // The GEN Wallet is holding the `tid` memory
             BRGenericTransfer tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+
+            // The CRYPTO Transfer holds the `tid` memory (w/ REF count of 1)
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }

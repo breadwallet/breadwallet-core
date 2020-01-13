@@ -366,20 +366,26 @@ public final class System {
     ///
     public func configure (withCurrencyModels applicationCurrencies: [BlockChainDB.Model.Currency]) {
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
-            let uids = "\(currency.uids):\(model.code)"
-            return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
+            return Unit (currency: currency,
+                         code:   model.code,
+                         name:   model.name,
+                         symbol: model.symbol)
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
-            let symb = "\(currency.code)I".lowercased()
-            let name = "\(currency.code) INT".uppercased()
-            let uids = "\(currency.uids):\(name)"
-            return Unit (currency: currency, uids: uids, name: name, symbol: symb)
+            return Unit (currency: currency,
+                         code:   "\(currency.code.lowercased())i",
+                         name:   "\(currency.name) INT",
+                         symbol: "\(currency.code.uppercased())I")
         }
 
         func currencyDenominationToUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination, base: Unit) -> Unit {
-            let uids = "\(currency.uids):\(model.code)"
-            return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
+            return Unit (currency: currency,
+                         code:   model.code,
+                         name:   model.name,
+                         symbol: model.symbol,
+                         base:   base,
+                         decimals: model.decimals)
         }
 
         // Query for blockchains on the system.queue - thus system.configure() returns instantly
@@ -1533,7 +1539,7 @@ extension System {
 
             default:
                 // There is more than one "__fee__" entry
-                precondition(false)
+                preconditionFailure()
             }
     }
 }

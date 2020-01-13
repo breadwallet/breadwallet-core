@@ -58,7 +58,9 @@ typedef void
                                        BRGenericManager manager,
                                        BRGenericWallet wallet,
                                        BRGenericTransfer transfer,
-                                       uint8_t * txBytes, size_t txSize, BRGenericHash hash,
+                                       OwnershipKept uint8_t * txBytes,
+                                       size_t txSize,
+                                       BRGenericHash hash,
                                        int rid);
 
 extern void

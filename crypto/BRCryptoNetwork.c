@@ -12,6 +12,7 @@
 #include "BRCryptoUnit.h"
 #include "BRCryptoAddressP.h"
 #include "BRCryptoAmountP.h"
+#include "BRCryptoAccountP.h"
 
 #include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
@@ -121,7 +122,9 @@ static BRCryptoNetwork
 cryptoNetworkCreate (const char *uids,
                      const char *name,
                      BRCryptoNetworkCanonicalType canonicalType) {
-    BRCryptoNetwork network = malloc (sizeof (struct BRCryptoNetworkRecord));
+    cryptoAccountInstall();
+
+    BRCryptoNetwork network = calloc (1, sizeof (struct BRCryptoNetworkRecord));
 
     network->canonicalType = canonicalType;
     network->uids = strdup (uids);
@@ -211,6 +214,9 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     }
     array_free (network->fees);
 
+    if (network->addressSchemes) array_free (network->addressSchemes);
+    if (network->syncModes)      array_free (network->syncModes);
+        
     // TBD
     switch (network->type){
         case BLOCK_CHAIN_TYPE_BTC:
@@ -539,7 +545,7 @@ cryptoNetworkGetDefaultAddressScheme (BRCryptoNetwork network) {
 static void
 cryptoNetworkAddSupportedAddressScheme (BRCryptoNetwork network,
                                         BRCryptoAddressScheme scheme) {
-    if (NULL == network->addressSchemes) array_new (network->addressSchemes, 1);
+    if (NULL == network->addressSchemes) array_new (network->addressSchemes, NUMBER_OF_ADDRESS_SCHEMES);
     array_add (network->addressSchemes, scheme);
 }
 
@@ -573,7 +579,7 @@ cryptoNetworkGetDefaultSyncMode (BRCryptoNetwork network) {
 static void
 cryptoNetworkAddSupportedSyncMode (BRCryptoNetwork network,
                                    BRCryptoSyncMode scheme) {
-    if (NULL == network->syncModes) array_new (network->syncModes, 1);
+    if (NULL == network->syncModes) array_new (network->syncModes, NUMBER_OF_SYNC_MODES);
     array_add (network->syncModes, scheme);
 }
 
@@ -667,6 +673,8 @@ cryptoNetworkCreateBuiltin (const char *symbol,
 
 extern BRCryptoNetwork *
 cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
+    cryptoAccountInstall();
+
     // Network Specification
     struct NetworkSpecification {
         char *symbol;
@@ -767,6 +775,7 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                               networkSpec->name);;
 
         BRCryptoCurrency currency = NULL;
+
         BRArrayOf(BRCryptoUnit) units;
         array_new (units, 5);
 
@@ -807,8 +816,10 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                                                                   unitSpec->decimals);
                             array_add (units, unit);
 
-                            if (NULL == unitDefault || cryptoUnitGetBaseDecimalOffset(unit) > cryptoUnitGetBaseDecimalOffset(unitDefault))
+                            if (NULL == unitDefault || cryptoUnitGetBaseDecimalOffset(unit) > cryptoUnitGetBaseDecimalOffset(unitDefault)) {
+                                if (NULL != unitDefault) cryptoUnitGive(unitDefault);
                                 unitDefault = cryptoUnitTake(unit);
+                            }
                         }
                     }
                 }
@@ -872,9 +883,30 @@ cryptoNetworkInstallBuiltins (BRCryptoCount *networksCount) {
                 network->defaultSyncMode = modeSpec->defaultMode;
             }
         }
-        
+
+        array_free (units);
+
+        cryptoNetworkSetConfirmationsUntilFinal (network, networkSpec->confirmations);
         cryptoNetworkSetHeight (network, networkSpec->height);
+
         networks[networkIndex] = network;
+
+#define SHOW_BUILTIN_CURRENCIES DEBUG
+#if defined (SHOW_BUILTIN_CURRENCIES)
+        printf ("== Network: %s, '%s'\n", network->uids, network->name);
+        for (size_t ai = 0; ai < array_count(network->associations); ai++) {
+            BRCryptoCurrencyAssociation a = network->associations[ai];
+            printf ("    Currency: %s, '%s'\n", cryptoCurrencyGetUids(a.currency), cryptoCurrencyGetName(a.currency));
+            printf ("    Base Unit: %s\n", cryptoUnitGetUids(a.baseUnit));
+            printf ("    Default Unit: %s\n", cryptoUnitGetUids(a.defaultUnit));
+            printf ("    Units:\n");
+            for (size_t ui = 0; ui < array_count(a.units); ui++) {
+                BRCryptoUnit u = a.units[ui];
+                printf ("      %s, '%s', %5s\n", cryptoUnitGetUids (u), cryptoUnitGetName(u), cryptoUnitGetSymbol(u));
+            }
+            printf ("\n");
+        }
+#endif
     }
 
     return networks;

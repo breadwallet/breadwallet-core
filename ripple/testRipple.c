@@ -609,12 +609,11 @@ static void testWalletValues()
     balance = rippleWalletGetBalance(wallet);
     assert(balance == expected_balance);
 
-    BRRippleFeeBasis feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
-    assert(0 == feeBasis.pricePerCostFactor);
-    feeBasis.pricePerCostFactor = 10;
-    rippleWalletSetDefaultFeeBasis(wallet, feeBasis);
+    // Set the wallet's feeBasis and then confirm.
+    rippleWalletSetDefaultFeeBasis(wallet, (BRRippleFeeBasis) { 10, 1});
     BRRippleFeeBasis newFeeBasis = rippleWalletGetDefaultFeeBasis(wallet);
     assert(10 == newFeeBasis.pricePerCostFactor);
+    assert( 1 == newFeeBasis.costFactor);
 
     rippleWalletFree(wallet);
 }
