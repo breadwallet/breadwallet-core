@@ -112,7 +112,9 @@ extern "C" {
                                                  BREthereumEWM ewm,
                                                  BREthereumWallet wid,
                                                  BREthereumTransfer tid,
-                                                 const char *transaction,
+                                                 OwnershipKept const uint8_t *transactionBytes,
+                                                 size_t transactionBytesCount,
+                                                 OwnershipKept const char *transactionHash,
                                                  int rid);
 
     /**

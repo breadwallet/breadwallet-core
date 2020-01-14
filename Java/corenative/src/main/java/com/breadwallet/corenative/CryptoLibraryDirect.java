@@ -7,11 +7,10 @@
  */
 package com.breadwallet.corenative;
 
-import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
+import com.breadwallet.corenative.crypto.BRCryptoClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoPayProtReqBitPayAndBip70Callbacks;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
-import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigratorStatus;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerDisconnectReason;
@@ -120,6 +119,7 @@ public final class CryptoLibraryDirect {
     // crypto/BRCryptoNetwork.h
     public static native Pointer cryptoNetworkGetUids(Pointer network);
     public static native Pointer cryptoNetworkGetName(Pointer network);
+    public static native Pointer cryptoNetworkGetETHNetworkName(Pointer network);
     public static native int cryptoNetworkIsMainnet(Pointer network);
     public static native Pointer cryptoNetworkGetCurrency(Pointer network);
     public static native Pointer cryptoNetworkGetUnitAsDefault(Pointer network, Pointer currency);
@@ -277,7 +277,7 @@ public final class CryptoLibraryDirect {
     // crypto/BRCryptoWalletManager.h
     public static native Pointer cryptoWalletManagerWipe(Pointer network, String path);
     public static native Pointer cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
-                                                           BRCryptoCWMClient.ByValue client,
+                                                           BRCryptoClient.ByValue client,
                                                            Pointer account,
                                                            Pointer network,
                                                            int mode,
@@ -339,7 +339,7 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetBlockNumberSuccessAsInteger(Pointer cwm, Pointer callbackState,long blockNumber);
     public static native void cwmAnnounceGetBlockNumberSuccessAsString(Pointer cwm, Pointer callbackState, String blockNumber);
     public static native void cwmAnnounceGetBlockNumberFailure(Pointer cwm, Pointer callbackState);
-    public static native void cwmAnnounceGetTransactionsItemBTC(Pointer cwm, Pointer callbackState,
+    public static native void cwmAnnounceGetTransactionsItem(Pointer cwm, Pointer callbackState,
                                            int status,
                                            byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsItemETH(Pointer cwm, Pointer callbackState,
@@ -348,9 +348,6 @@ public final class CryptoLibraryDirect {
                                            String gasUsed, String blockNumber, String blockHash,
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
-    public static native void cwmAnnounceGetTransactionsItemGEN(Pointer cwm, Pointer callbackState,
-                                           int status,
-                                           byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
                                                             String hash, String uids, String sourceAddr, String targetAddr,
@@ -368,7 +365,7 @@ public final class CryptoLibraryDirect {
     public static native void cwmAnnounceGetGasPriceFailure(Pointer cwm, Pointer callbackState);
     public static native void cwmAnnounceGetGasEstimateSuccess(Pointer cwm, Pointer callbackState, String gasEstimate, String gasPrice);
     public static native void cwmAnnounceGetGasEstimateFailure(Pointer cwm, Pointer callbackState, int status);
-    public static native void cwmAnnounceGetLogsItem(Pointer cwm, Pointer callbackState, String hash,
+    public static native void cwmAnnounceGetLogsItemETH(Pointer cwm, Pointer callbackState, String hash,
                                 String contract, int size, StringArray topicsArray, String data, String gasPrice,
                                 String gasUsed, String logIndex, String blockNumber, String blockTransactionIndex,
                                 String blockTimestamp);

@@ -282,6 +282,17 @@ extension Network: Hashable {
     }
 }
 
+extension Network {
+    internal var ethNetworkName: String? {
+        if case .eth = type {
+            return cryptoNetworkGetETHNetworkName (core)
+                .map { asUTF8String($0) }
+        }
+        else {
+            return nil
+        }
+    }
+}
 ///
 /// Try as we might, certain functionality outside of WalletKit will require knowing the
 /// canonical network type as: BTC, BCH, ETH, etc.  The NetworkType provides this information.

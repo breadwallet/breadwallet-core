@@ -38,7 +38,7 @@ struct BRCryptoWalletManagerRecord {
     } u;
 
     BRCryptoCWMListener listener;
-    BRCryptoCWMClient client;
+    BRCryptoClient client;
     BRCryptoNetwork network;
     BRCryptoAccount account;
     BRCryptoAddressScheme addressScheme;

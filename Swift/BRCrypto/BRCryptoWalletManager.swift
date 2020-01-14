@@ -262,7 +262,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                 currencies: Set<Currency>,
                                 storagePath: String,
                                 listener: BRCryptoCWMListener,
-                                client: BRCryptoCWMClient) {
+                                client: BRCryptoClient) {
         guard let core = cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,

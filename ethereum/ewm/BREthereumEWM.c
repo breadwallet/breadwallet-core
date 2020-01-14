@@ -2296,20 +2296,17 @@ ewmUpdateLogs (BREthereumEWM ewm,
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
-            char *encodedAddress =
-            eventERC20TransferEncodeAddress (event, address);
             const char *contract = ewmGetWalletContractAddress(ewm, wid);
 
             ewm->client.funcGetLogs (ewm->client.context,
                                      ewm,
                                      contract,
-                                     encodedAddress,
+                                     address,
                                      eventGetSelector(event),
                                      ewm->brdSync.begBlockNumber,
                                      ewm->brdSync.endBlockNumber,
                                      ++ewm->requestId);
 
-            free (encodedAddress);
             free (address);
             break;
         }
