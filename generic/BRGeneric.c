@@ -110,7 +110,7 @@ genAccountSignTransferWithSeed (BRGenericAccount account,
 
 extern void
 genAccountSignTransferWithKey (BRGenericAccount account,
-                                BRGenericTransfer transfer,
+                               BRGenericTransfer transfer,
                                BRKey *key) {
     account->handlers.signTransferWithKey (account->ref, transfer->ref, key);
 }
@@ -292,6 +292,16 @@ genWalletRelease (BRGenericWallet wallet) {
 extern UInt256
 genWalletGetBalance (BRGenericWallet wallet) {
     return wallet->handlers.balance (wallet->ref);
+}
+
+extern UInt256
+genWalletGetBalanceLimit (BRGenericWallet wallet,
+                          BRCryptoBoolean asMaximum,
+                          BRCryptoBoolean *hasLimit) {
+    int genHasLimit = 0;
+    UInt256 limit = wallet->handlers.balanceLimit (wallet->ref, CRYPTO_TRUE == asMaximum, &genHasLimit);
+    *hasLimit = AS_CRYPTO_BOOLEAN(genHasLimit);
+    return limit;
 }
 
 // TODO: Set Balance?  Add transfer/directed-amount?

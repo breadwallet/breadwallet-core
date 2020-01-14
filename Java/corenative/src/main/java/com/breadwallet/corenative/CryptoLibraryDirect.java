@@ -260,6 +260,8 @@ public final class CryptoLibraryDirect {
     // crypto/BRCryptoWallet.h
     public static native int cryptoWalletGetState(Pointer wallet);
     public static native Pointer cryptoWalletGetBalance(Pointer wallet);
+    public static native Pointer cryptoWalletGetBalanceMaximum(Pointer wallet);
+    public static native Pointer cryptoWalletGetBalanceMinimum(Pointer wallet);
     public static native Pointer cryptoWalletGetTransfers(Pointer wallet, SizeTByReference count);
     public static native int cryptoWalletHasTransfer(Pointer wallet, Pointer transfer);
     public static native Pointer cryptoWalletGetAddress(Pointer wallet, int addressScheme);

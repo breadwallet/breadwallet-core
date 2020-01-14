@@ -175,6 +175,46 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
     }
 }
 
+extern BRCryptoAmount /* nullable */
+cryptoWalletGetBalanceMinimum (BRCryptoWallet wallet) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRCryptoBoolean hasLimit = 0;
+            UInt256 limit = genWalletGetBalanceLimit (cryptoWalletAsGEN(wallet), CRYPTO_FALSE, &hasLimit);
+            return (CRYPTO_FALSE == hasLimit
+                    ? NULL
+                    : cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, limit));
+        }
+    }
+}
+
+extern BRCryptoAmount /* nullable */
+cryptoWalletGetBalanceMaximum (BRCryptoWallet wallet) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return NULL;
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return NULL;
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRCryptoBoolean hasLimit = 0;
+            UInt256 limit = genWalletGetBalanceLimit (cryptoWalletAsGEN(wallet), CRYPTO_TRUE, &hasLimit);
+            return (CRYPTO_FALSE == hasLimit
+                    ? NULL
+                    : cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, limit));
+        }
+    }
+
+}
+
+
 extern BRCryptoBoolean
 cryptoWalletHasTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {

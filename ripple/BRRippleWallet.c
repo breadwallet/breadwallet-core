@@ -17,6 +17,8 @@
 #include "BRRippleAddress.h"
 #include <stdio.h>
 
+#define RIPPLE_WALLET_MINIMUM_IN_XRP            (20)
+
 //
 // Wallet
 //
@@ -109,6 +111,16 @@ rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance)
 {
     assert(wallet);
     wallet->balance = balance;
+}
+
+extern BRRippleUnitDrops
+rippleWalletGetBalanceLimit (BRRippleWallet wallet,
+                             int asMaximum,
+                             int *hasLimit) {
+    assert (NULL != hasLimit);
+    
+    *hasLimit = !asMaximum;
+    return (asMaximum ? 0 : RIPPLE_XRP_TO_DROPS (RIPPLE_WALLET_MINIMUM_IN_XRP));
 }
 
 extern void rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleFeeBasis feeBasis)

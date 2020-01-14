@@ -130,6 +130,12 @@ extern "C" {
     extern BRCryptoAmount
     cryptoWalletGetBalance (BRCryptoWallet wallet);
 
+    extern BRCryptoAmount /* nullable */
+    cryptoWalletGetBalanceMinimum (BRCryptoWallet wallet);
+
+    extern BRCryptoAmount /* nullable */
+    cryptoWalletGetBalanceMaximum (BRCryptoWallet wallet);
+
     extern BRCryptoBoolean
     cryptoWalletHasTransfer (BRCryptoWallet wallet,
                              BRCryptoTransfer transfer);
