@@ -999,6 +999,8 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             // Amount may be zero if insufficient fees
             *isZeroIfInsuffientFunds = CRYPTO_TRUE;
 
+            // NOTE: We know BTC/BCH has a minimum balance of zero.
+
             uint64_t balance     = BRWalletBalance (wid);
             uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
             uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
@@ -1030,6 +1032,8 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             else {
                 BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
 
+                // NOTE: We know ETH has a minimum balance of zero.
+
                 amount = (AMOUNT_ETHER == amountGetType(ethAmount)
                           ? amountGetEther(ethAmount).valueInWEI
                           : amountGetTokenQuantity(ethAmount).valueAsInteger);
@@ -1048,6 +1052,16 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
 
                 // Get the balance
                 UInt256 balance = genWalletGetBalance (wallet->u.gen);
+
+                // We are looking for the maximum amount; check if the wallet has a minimum
+                // balance.  If so, reduce the above balance.
+                BRCryptoBoolean hasMinimum = CRYPTO_FALSE;
+                UInt256 balanceMinimum = genWalletGetBalanceLimit (wallet->u.gen, CRYPTO_FALSE, &hasMinimum);
+
+                if (CRYPTO_TRUE == hasMinimum) {
+                    balance = subUInt256_Negative(balance, balanceMinimum, &negative);
+                    if (negative) balance = UINT256_ZERO;
+                }
 
                 // Get the pricePerCostFactor for the (network) fee.
                 BRCryptoAmount pricePerCostFactor = cryptoNetworkFeeGetPricePerCostFactor (fee);
