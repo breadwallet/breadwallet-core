@@ -56,6 +56,8 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->unitForFee = cryptoUnitTake(unitForFee);
     transfer->feeBasisEstimated = NULL;
 
+    array_new (transfer->attributes, 0);
+
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
     {
@@ -241,6 +243,8 @@ cryptoTransferRelease (BRCryptoTransfer transfer) {
     cryptoTransferStateRelease (&transfer->state);
     if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
 
+    array_free_all(transfer->attributes, cryptoTransferAttributeGive);
+    
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             break;
@@ -414,6 +418,27 @@ cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer) {
 extern BRCryptoUnit
 cryptoTransferGetUnitForFee (BRCryptoTransfer transfer) {
     return cryptoUnitTake (transfer->unitForFee);
+}
+
+extern size_t
+cryptoTransferGetAttributeCount (BRCryptoTransfer transfer) {
+    return array_count(transfer->attributes);
+}
+
+extern BRCryptoTransferAttribute
+cryptoTransferGetAttributeAt (BRCryptoTransfer transfer,
+                              size_t index) {
+    return cryptoTransferAttributeTake (transfer->attributes[index]);
+}
+
+private_extern void
+cryptoTransferSetAttributes (BRCryptoTransfer transfer,
+                             BRArrayOf(BRCryptoTransferAttribute) attributes) {
+    array_free_all(transfer->attributes, cryptoTransferAttributeGive);
+
+    if (NULL != attributes)
+        for (size_t index = 0; index < array_count(attributes); index++)
+            array_add (transfer->attributes, cryptoTransferAttributeTake (attributes[index]));
 }
 
 /*
@@ -945,3 +970,59 @@ cryptoTransferSubmitErrorGetMessage (BRCryptoTransferSubmitError *e) {
 
     return message;
 }
+
+
+/// MARK: - Transfer Attribute
+
+struct BRCryptoTransferAttributeRecord {
+    char *key;
+    char *value;
+    BRCryptoBoolean isRequired;
+    BRCryptoRef ref;
+};
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute)
+
+private_extern BRCryptoTransferAttribute
+cryptoTransferAttributeCreate (const char *key,
+                               BRCryptoBoolean isRequired) {
+    BRCryptoTransferAttribute attribute = calloc (1, sizeof (struct BRCryptoTransferAttributeRecord));
+
+    attribute->key   = strdup (key);
+    attribute->value = NULL;
+    attribute->isRequired = isRequired;
+
+    attribute->ref = CRYPTO_REF_ASSIGN (cryptoTransferAttributeRelease);
+
+    return attribute;
+}
+
+static void
+cryptoTransferAttributeRelease (BRCryptoTransferAttribute attribute) {
+    free (attribute->key);
+    if (NULL != attribute->value) free (attribute->value);
+    memset (attribute, 0, sizeof (struct BRCryptoTransferAttributeRecord));
+    free (attribute);
+}
+
+extern const char *
+cryptoTransferAttributeGetKey (BRCryptoTransferAttribute attribute) {
+    return attribute->key;
+}
+
+extern const char * // nullable
+cryptoTransferAttributeGetValue (BRCryptoTransferAttribute attribute) {
+    return attribute->value;
+}
+extern void
+cryptoTransferAttributeSetValue (BRCryptoTransferAttribute attribute, const char *value) {
+    if (NULL != attribute->value) free (attribute->value);
+    attribute->value = strdup (value);
+}
+
+extern BRCryptoBoolean
+cryptoTransferAttributeIsRequired (BRCryptoTransferAttribute attribute) {
+    return attribute->isRequired;
+}
+
+DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute);

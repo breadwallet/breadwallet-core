@@ -124,11 +124,25 @@ extern "C" {
     typedef BRGenericTransferRef (*BRGenericWalletCreateTransfer) (BRGenericWalletRef wallet,
                                                                    BRGenericAddressRef target,
                                                                    UInt256 amount,
-                                                                   BRGenericFeeBasis estimatedFeeBasis);
+                                                                   BRGenericFeeBasis estimatedFeeBasis,
+                                                                   size_t attributesCount,
+                                                                   BRGenericTransferAttribute *attributes);
+
     typedef BRGenericFeeBasis (*BRGenericWalletEstimateFeeBasis) (BRGenericWalletRef wallet,
                                                                   BRGenericAddressRef address,
                                                                   UInt256 amount,
                                                                   UInt256 pricePerCostFactor);
+
+    typedef const char ** (*BRGenericWalletGetTransactionAttributeKeys) (BRGenericWalletRef wallet,
+                                                                         int asRequired,
+                                                                         size_t *count);
+
+    typedef int (*BRGenericWalletValidateTransactionAttribute) (BRGenericWalletRef wallet,
+                                                                BRGenericTransferAttribute attribute);
+
+    typedef int (*BRGenericWalletValidateTransactionAttributes) (BRGenericWalletRef wallet,
+                                                                 size_t attributesCount,
+                                                                 BRGenericTransferAttribute *attributes);
 
     typedef struct {
         BRGenericWalletCreate create;
@@ -143,6 +157,12 @@ extern "C" {
         BRGenericWalletAddTransfer addTransfer;
         BRGenericWalletCreateTransfer createTransfer; // Unneeded.
         BRGenericWalletEstimateFeeBasis estimateFeeBasis;
+        
+        BRGenericWalletGetTransactionAttributeKeys getTransactionAttributeKeys;
+        BRGenericWalletValidateTransactionAttribute validateTransactionAttribute;
+        BRGenericWalletValidateTransactionAttributes validateTransactionAttributes;
+        
+        //
     } BRGenericWalletHandlers;
 
     // MARK: - Generic (Wallet) Manager

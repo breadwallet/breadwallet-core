@@ -124,4 +124,14 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 
 extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize);
+
+/// Transaction Attribute
+extern size_t rippleTransactionFieldRequiredCount;
+extern const char **rippleTransactionFieldRequiredNames;
+
+extern size_t rippleTransactionFieldOptionalCount;
+extern const char *rippleTransactionFieldOptionalNames[];
+
+extern void rippleTransactionSetDestinationTag (BRRippleTransaction transaction, BRRippleDestinationTag tag);
+extern void rippleTransactionSetInvoiceID (BRRippleTransaction transaction, UInt256 invoiceId);
 #endif

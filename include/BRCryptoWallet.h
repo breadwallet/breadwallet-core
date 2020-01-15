@@ -180,6 +180,24 @@ extern "C" {
     cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                     BRCryptoFeeBasis feeBasis);
 
+    extern size_t
+    cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet);
+
+    extern BRCryptoTransferAttribute
+    cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
+                                        size_t index);
+
+    extern BRCryptoTransferAttributeValidationError
+    cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
+                                           BRCryptoTransferAttribute attribute,
+                                           BRCryptoBoolean *validates);
+
+    extern BRCryptoTransferAttributeValidationError
+    cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
+                                            size_t attributesCount,
+                                            BRCryptoTransferAttribute attributes[],
+                                            BRCryptoBoolean *validates);
+
     /**
      * Create a transfer.
      *
@@ -194,7 +212,9 @@ extern "C" {
     cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                                 BRCryptoAddress target,
                                 BRCryptoAmount amount,
-                                BRCryptoFeeBasis estimatedFeeBasis);
+                                BRCryptoFeeBasis estimatedFeeBasis,
+                                size_t attributesCount,
+                                BRCryptoTransferAttribute *attributes);
 
     extern BRCryptoTransfer
     cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,

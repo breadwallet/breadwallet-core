@@ -70,6 +70,8 @@ struct BRCryptoTransferRecord {
     /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
     BRCryptoFeeBasis feeBasisEstimated;
 
+    BRArrayOf(BRCryptoTransferAttribute) attributes;
+
     BRCryptoRef ref;
 };
 
@@ -123,6 +125,14 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 private_extern BRCryptoBoolean
 cryptoTransferHasGEN (BRCryptoTransfer transfer,
                       BRGenericTransfer gen);
+
+private_extern void
+cryptoTransferSetAttributes (BRCryptoTransfer transfer,
+                             BRArrayOf(BRCryptoTransferAttribute) attributes);
+
+private_extern BRCryptoTransferAttribute
+cryptoTransferAttributeCreate (const char *key,
+                               BRCryptoBoolean isRequired);
 
 #ifdef __cplusplus
 }

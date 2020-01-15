@@ -496,6 +496,10 @@ extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction)
     return bytes;
 }
 
+extern void rippleTransactionSetInvoiceID (BRRippleTransaction transaction, UInt256 invoiceId) {
+    memcpy (transaction->payment.invoiceId, invoiceId.u8, sizeof (transaction->payment.invoiceId));
+}
+
 extern BRRippleSourceTag rippleTransactionGetSourceTag(BRRippleTransaction transaction)
 {
     assert(transaction);
@@ -506,6 +510,10 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 {
     assert(transaction);
     return transaction->payment.destinationTag;
+}
+
+extern void rippleTransactionSetDestinationTag (BRRippleTransaction transaction, BRRippleDestinationTag tag) {
+    transaction->payment.destinationTag = tag;
 }
 
 extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction)
@@ -662,3 +670,4 @@ rippleTransactionHashEqual (const void *h1, const void *h2) {
 extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize) {
     return BRSetNew (rippleTransactionHashValue, rippleTransactionHashEqual, initialSize);
 }
+

@@ -346,11 +346,25 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount,
                          BRGenericFeeBasis estimatedFeeBasis) {
+    return genWalletCreateTransferWithAttributes (wallet, target, amount, estimatedFeeBasis, 0, NULL);
+}
+
+extern BRGenericTransfer
+genWalletCreateTransferWithAttributes (BRGenericWallet wallet,
+                                       BRGenericAddress target,
+                                       UInt256 amount,
+                                       BRGenericFeeBasis estimatedFeeBasis,
+                                       size_t attributesCount,
+                                       BRGenericTransferAttribute *attributes) {
+
     BRGenericTransfer transfer = genTransferAllocAndInit (wallet->type,
                                                           wallet->handlers.createTransfer (wallet->ref,
                                                                                            target->ref,
                                                                                            amount,
-                                                                                           estimatedFeeBasis));
+                                                                                           estimatedFeeBasis,
+                                                                                           attributesCount,
+                                                                                           attributes));
+
     int isSource = 1;
     int isTarget = genWalletHasAddress (wallet, target);
 
@@ -374,4 +388,48 @@ genWalletEstimateTransferFee (BRGenericWallet wallet,
                                               target->ref,
                                               amount,
                                               pricePerCostFactor);
+}
+
+
+extern size_t
+genWalletGetTransferAttributeCount (BRGenericWallet wallet) {
+    size_t countRequired, countOptional;
+    wallet->handlers.getTransactionAttributeKeys (wallet->ref, 1, &countRequired);
+    wallet->handlers.getTransactionAttributeKeys (wallet->ref, 0, &countOptional);
+    return countRequired + countOptional;
+}
+
+extern const BRGenericTransferAttribute
+genWalletGetTransferAttributeAt (BRGenericWallet wallet,
+                                 size_t index) {
+    size_t countRequired, countOptional;
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, 1, &countRequired);
+    const char **keysOptional = wallet->handlers.getTransactionAttributeKeys (wallet->ref, 0, &countOptional);
+
+    assert (index < (countRequired + countOptional));
+
+    int isRequired = (index < countRequired);
+    const char **keys      = (isRequired ? keysRequired : keysOptional);
+    size_t       keysIndex = (isRequired ? index : (index - countRequired));
+
+    return (BRGenericTransferAttribute) {
+        keys[keysIndex],
+        NULL,
+        isRequired
+    };
+}
+
+extern BRCryptoBoolean
+genWalletValidateTransferAttribute (BRGenericWallet wallet,
+                                    BRGenericTransferAttribute attribute) {
+    return AS_CRYPTO_BOOLEAN (wallet->handlers.validateTransactionAttribute (wallet->ref, attribute));
+}
+
+extern BRCryptoBoolean
+genWalletValidateTransferAttributes (BRGenericWallet wallet,
+                                     size_t attributesCount,
+                                     BRGenericTransferAttribute *attributes) {
+    if (0 == attributesCount) return CRYPTO_TRUE;
+    
+    return wallet->handlers.validateTransactionAttributes (wallet->ref, attributesCount, attributes);
 }

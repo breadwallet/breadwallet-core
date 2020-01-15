@@ -90,6 +90,52 @@ public final class Wallet: Equatable {
         return CRYPTO_TRUE == cryptoWalletHasAddress (core, address.core);
     }
 
+    ///
+    /// The Set of TransferAttributes applicable to Transfers created for this Wallet.  Every
+    /// attribute in the returned Set has a `nil` value.  Pass a subset of these to the
+    /// `createTransfer()` function.  Transfer creation and attribute validation will fail if
+    /// any of the required attributes have a `nil` value or if any `value` is not valid itself.
+    ///
+    public lazy var transferAttributes: Set<TransferAttribute> = {
+        Set ((0..<cryptoWalletGetTransferAttributeCount(core))
+            .map { cryptoWalletGetTransferAttributeAt (core, $0) }
+            .map { TransferAttribute (core: $0, take: false)})
+    }()
+
+    ///
+    /// Validate a TransferAttribute.  This returns `true` if the attributes value is valid and,
+    /// if the attribute's value is required, if is it not `nil`.
+    ///
+    /// - Parameter attribute: The attribute to validate
+    ///
+    public func validateTransferAttribute (_ attribute: TransferAttribute) -> TransferAttributeValidationError? {
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttribute (core, attribute.core, &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
+    ///
+    /// Validate a Set of TransferAttributes.  This should be called prior to `createTransfer`
+    /// (otherwise `createTransfer` will fail).  This checks the Set as a whole given that their
+    /// might be relationships between the attributes
+    ///
+    /// - Note: Relationships between attributes are not explicitly provided in the interface
+    ///
+    /// - Parameter attributes: the set of attributes to validate
+    ///
+    public func validatetTranferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
+        let coreAttributesCount = attributes.count
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
+
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttributes (core,
+                                                            coreAttributesCount,
+                                                            UnsafeMutablePointer (&coreAttributes),
+                                                            &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
+
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
         var transfersCount: BRCryptoCount = 0
@@ -141,14 +187,21 @@ public final class Wallet: Equatable {
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
-    ///   - feeBasis: Teh basis for 'fee'
+    ///   - feeBasis: The basis for 'fee'
+    ///   - attributes: Optional transfer attributes.
     ///
     /// - Returns: A new transfer
     ///
     public func createTransfer (target: Address,
                                 amount: Amount,
-                                estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
-        return cryptoWalletCreateTransfer (core, target.core, amount.core, estimatedFeeBasis.core)
+                                estimatedFeeBasis: TransferFeeBasis,
+                                attributes: Set<TransferAttribute>? = nil) -> Transfer? {
+        let coreAttributesCount = attributes?.count ?? 0
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
+
+        return cryptoWalletCreateTransfer (core, target.core, amount.core,
+                                           estimatedFeeBasis.core,
+                                           coreAttributesCount, UnsafeMutablePointer (&coreAttributes))
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)

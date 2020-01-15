@@ -109,6 +109,12 @@ public final class Transfer: Equatable {
         return TransferDirection (core: cryptoTransferGetDirection (self.core))
     }()
 
+    // A possibly empty set of TransferAttributes that were used when this Transfer was created.
+    public private(set) lazy var attributes: Set<TransferAttribute> = {
+        Set ((0..<cryptoTransferGetAttributeCount(core))
+            .map { cryptoTransferGetAttributeAt (core, $0) }
+            .map { TransferAttribute (core: $0, take: false)})
+    }()
 
     internal init (core: BRCryptoTransfer,
                    wallet: Wallet,
@@ -303,8 +309,78 @@ public enum TransferSubmitError: Equatable, Error {
 extension TransferSubmitError: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .unknown: return ".unknwon"
+        case .unknown: return ".unknown"
         case let .posix(errno, message): return ".posix(\(errno):\(message ?? ""))"
+        }
+    }
+}
+
+public class TransferAttribute: Hashable {
+    internal let core: BRCryptoTransferAttribute
+
+    public var key: String {
+        return asUTF8String(cryptoTransferAttributeGetKey (core))
+    }
+
+    public var value: String? {
+        get { return cryptoTransferAttributeGetValue (core).map (asUTF8String) }
+        set { cryptoTransferAttributeSetValue (core, newValue) }
+    }
+
+    public var required: Bool {
+        return CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
+    }
+
+    internal init (core: BRCryptoTransferAttribute, take: Bool) {
+        self.core = (take ? cryptoTransferAttributeTake(core) : core)
+    }
+    //
+
+    deinit {
+        cryptoTransferAttributeGive (core)
+    }
+
+    public static func == (lhs: TransferAttribute, rhs: TransferAttribute) -> Bool {
+        return lhs.core == rhs.core || lhs.key == rhs.key
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine (key)
+    }
+}
+
+extension TransferAttribute: CustomStringConvertible {
+    public var description: String {
+        return "\(key)(\(required ? "R" : "O")):\(value ?? "")"
+    }
+}
+
+public enum TransferAttributeValidationError {
+    case requiredButNotProvided
+    case mismatchedType
+    case relationshipInconsistency
+
+    internal var core: BRCryptoTransferAttributeValidationError {
+        switch self {
+        case .requiredButNotProvided:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED
+        case .mismatchedType:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE
+        case .relationshipInconsistency:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+        }
+    }
+
+    internal init (core: BRCryptoTransferAttributeValidationError) {
+        switch core {
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED:
+            self = .requiredButNotProvided
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE:
+            self = .mismatchedType
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY:
+            self = .relationshipInconsistency
+        default:
+            preconditionFailure()
         }
     }
 }

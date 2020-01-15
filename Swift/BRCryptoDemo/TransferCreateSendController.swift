@@ -20,6 +20,8 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     var minimum: Amount!
     var maximum: Amount!
 
+    var destinationTag = "739376465"
+    
      override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -112,9 +114,20 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
             guard let transferFeeBasis = self.feeBasis
                 else { self.submitTransferFailed ("no fee basis"); return }
 
+            var attributes: Set<TransferAttribute> = Set()
+
+            if self.recvField.text == "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg" {
+                if let destinationTagAttribute = self.wallet.transferAttributes
+                    .first (where: { "DestinationTag" == $0.key }) {
+                    destinationTagAttribute.value = self.destinationTag
+                    attributes.insert (destinationTagAttribute)
+                }
+            }
+
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             estimatedFeeBasis: transferFeeBasis)
+                                                             estimatedFeeBasis: transferFeeBasis,
+                                                             attributes: attributes)
                 else { self.submitTransferFailed("balance too low?"); return }
 
             // Will generate a WalletEvent.transferSubmitted (transfer, success)
@@ -295,6 +308,9 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         }
     }
 
+    @IBAction func doUseCoinbase(_ sender: Any) {
+        recvField.text = "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg";
+    }
     // Network Fee Picker
 
     func numberOfComponents(in pickerView: UIPickerView) -> Int {

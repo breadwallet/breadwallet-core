@@ -460,6 +460,103 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
     }
 }
 
+extern size_t
+cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: return 0;
+        case BLOCK_CHAIN_TYPE_ETH: return 0;
+        case BLOCK_CHAIN_TYPE_GEN: {
+            return genWalletGetTransferAttributeCount (wallet->u.gen);
+        }
+    }
+}
+
+extern BRCryptoTransferAttribute
+cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
+                                    size_t index) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: return NULL;
+        case BLOCK_CHAIN_TYPE_ETH: return NULL;
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericTransferAttribute attribute = genWalletGetTransferAttributeAt (wallet->u.gen, index);
+            return cryptoTransferAttributeCreate (attribute.key, AS_CRYPTO_BOOLEAN (attribute.isRequired));
+        }
+    }
+}
+
+extern BRCryptoTransferAttributeValidationError
+cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
+                                       BRCryptoTransferAttribute attribute,
+                                       BRCryptoBoolean *validates) {
+    int ignore = 0;
+    *validates = CRYPTO_TRUE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: return (BRCryptoTransferAttributeValidationError) ignore;
+        case BLOCK_CHAIN_TYPE_ETH: return (BRCryptoTransferAttributeValidationError) ignore;
+        case BLOCK_CHAIN_TYPE_GEN: {
+            if (cryptoTransferAttributeIsRequired(attribute)
+                && NULL == cryptoTransferAttributeGetValue(attribute)) {
+                *validates = CRYPTO_FALSE;
+                return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED;
+            }
+
+            BRGenericTransferAttribute genAttribute = (BRGenericTransferAttribute) {
+                cryptoTransferAttributeGetKey(attribute),
+                cryptoTransferAttributeGetValue(attribute),
+                cryptoTransferAttributeIsRequired(attribute)
+            };
+
+            *validates = genWalletValidateTransferAttribute(wallet->u.gen, genAttribute);
+            return (CRYPTO_FALSE == *validates
+                    ? CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE
+                    : (BRCryptoTransferAttributeValidationError) ignore);
+        }
+    }
+}
+
+extern BRCryptoTransferAttributeValidationError
+cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
+                                        size_t attributesCount,
+                                        BRCryptoTransferAttribute attributes[],
+                                        BRCryptoBoolean *validates) {
+    int ignore = 0;
+    *validates = CRYPTO_TRUE;
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: return (BRCryptoTransferAttributeValidationError) ignore;
+        case BLOCK_CHAIN_TYPE_ETH: return (BRCryptoTransferAttributeValidationError) ignore;
+        case BLOCK_CHAIN_TYPE_GEN: {
+            // Check if all required attributes are provided and have values
+
+            // If we've no attributes (and have no required attributes), success.
+            if (0 == attributesCount) return (BRCryptoTransferAttributeValidationError) ignore;
+
+            // Check individual validity
+            for (size_t index = 0; index < attributesCount; index++) {
+                BRCryptoTransferAttributeValidationError error = cryptoWalletValidateTransferAttribute (wallet, attributes[index], validates);
+                if (CRYPTO_FALSE == validates) return error;
+            }
+
+            // Check joint validity
+            BRGenericTransferAttribute genAttributes[attributesCount];
+            for (size_t index = 0; index < attributesCount; index++) {
+                BRCryptoTransferAttribute attribute = attributes[index];
+                genAttributes[index] = (BRGenericTransferAttribute) {
+                    cryptoTransferAttributeGetKey(attribute),
+                    cryptoTransferAttributeGetValue(attribute),
+                    cryptoTransferAttributeIsRequired(attribute)
+                };
+            }
+
+            *validates = genWalletValidateTransferAttributes (wallet->u.gen, attributesCount, genAttributes);
+            return (CRYPTO_FALSE == *validates
+                    ? CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+                    : (BRCryptoTransferAttributeValidationError) ignore);
+        }
+    }
+}
+
 private_extern BRWallet *
 cryptoWalletAsBTC (BRCryptoWallet wallet) {
     assert (BLOCK_CHAIN_TYPE_BTC == wallet->type);
@@ -482,7 +579,9 @@ extern BRCryptoTransfer
 cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAddress target,
                             BRCryptoAmount  amount,
-                            BRCryptoFeeBasis estimatedFeeBasis) {
+                            BRCryptoFeeBasis estimatedFeeBasis,
+                            size_t attributesCount,
+                            BRCryptoTransferAttribute *attributes) {
     assert (cryptoWalletGetType(wallet) == cryptoAddressGetType(target));
     assert (cryptoWalletGetType(wallet) == cryptoFeeBasisGetType(estimatedFeeBasis));
 
@@ -553,7 +652,22 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRGenericFeeBasis genFeeBasis = cryptoFeeBasisAsGEN (estimatedFeeBasis);
 
             // The GEN Wallet is holding the `tid` memory
-            BRGenericTransfer tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+            BRGenericTransfer tid = NULL;
+
+            if (0 == attributesCount)
+                tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
+            else {
+                BRGenericTransferAttribute genAttributes[attributesCount];
+                for (size_t index = 0; index < attributesCount; index++) {
+                    BRCryptoTransferAttribute attribute = attributes[index];
+                    genAttributes[index] = (BRGenericTransferAttribute) {
+                        cryptoTransferAttributeGetKey(attribute),
+                        cryptoTransferAttributeGetValue(attribute),
+                        cryptoTransferAttributeIsRequired(attribute)
+                    };
+                }
+                tid = genWalletCreateTransferWithAttributes (wid, genAddr, genValue, genFeeBasis, attributesCount, genAttributes);
+            }
 
             // The CRYPTO Transfer holds the `tid` memory (w/ REF count of 1)
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);

@@ -192,11 +192,35 @@ extern "C" {
                              UInt256 amount,
                              BRGenericFeeBasis estimatedFeeBasis);
 
+    extern BRGenericTransfer
+    genWalletCreateTransferWithAttributes (BRGenericWallet wid,
+                                           BRGenericAddress target,
+                                           UInt256 amount,
+                                           BRGenericFeeBasis estimatedFeeBasis,
+                                           size_t attributesCount,
+                                           BRGenericTransferAttribute *attributes);
+
     extern BRGenericFeeBasis
     genWalletEstimateTransferFee (BRGenericWallet wid,
                                   BRGenericAddress target,
                                   UInt256 amount,
                                   UInt256 pricePerCostFactor);
+
+    extern size_t
+    genWalletGetTransferAttributeCount (BRGenericWallet wid);
+
+    extern const BRGenericTransferAttribute
+    genWalletGetTransferAttributeAt (BRGenericWallet wid,
+                                     size_t index);
+
+    extern BRCryptoBoolean
+    genWalletValidateTransferAttribute (BRGenericWallet wid,
+                                        BRGenericTransferAttribute attribute);
+
+    extern BRCryptoBoolean
+    genWalletValidateTransferAttributes (BRGenericWallet wid,
+                                         size_t attributesCount,
+                                         BRGenericTransferAttribute *attributes);
 
     // MARK: Generic (Wallet) Manager
 
