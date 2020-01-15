@@ -93,6 +93,10 @@ public interface Wallet {
 
     Amount getBalance();
 
+    Optional<? extends Amount> getBalanceMaximum();
+
+    Optional<? extends Amount> getBalanceMinimum();
+
     List<? extends Transfer> getTransfers();
 
     Optional<? extends Transfer> getTransferByHash(TransferHash hash);

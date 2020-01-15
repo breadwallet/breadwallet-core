@@ -57,6 +57,8 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (wallet.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (wallet.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (wallet.balance, Amount.create(integer: 0, unit: wallet.unit))
+        XCTAssertEqual (wallet.balanceMinimum, Amount.create(integer: 0, unit: wallet.unit));
+        XCTAssertNil   (wallet.balanceMaximum)
         XCTAssertEqual (wallet.state, WalletState.created)
         XCTAssertEqual (wallet.target, wallet.targetForScheme(manager.addressScheme))
         XCTAssertEqual (wallet, wallet)
@@ -282,6 +284,8 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (walletETH.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletETH.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletETH.balance, Amount.create(integer: 0, unit: walletETH.unit))
+        XCTAssertEqual (walletETH.balanceMinimum, Amount.create(integer: 0, unit: walletETH.unit));
+        XCTAssertNil   (walletETH.balanceMaximum)
         XCTAssertEqual (walletETH.state, WalletState.created)
         XCTAssertEqual (walletETH.target, walletETH.targetForScheme(manager.addressScheme))
         XCTAssertEqual (walletETH, walletETH)
@@ -295,8 +299,46 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotEqual (walletBRD.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletBRD.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletBRD.balance, Amount.create(integer: 0, unit: walletBRD.unit))
+        XCTAssertEqual (walletBRD.balanceMinimum, Amount.create(integer: 0, unit: walletBRD.unit));
+        XCTAssertNil   (walletBRD.balanceMaximum)
         XCTAssertEqual (walletBRD.state, WalletState.created)
         XCTAssertEqual (walletBRD.target, walletBRD.targetForScheme(manager.addressScheme))
         XCTAssertTrue  (walletBRD.hasAddress(walletBRD.target))
+    }
+
+    func testWalletXRP() {
+        isMainnet = false
+        currencyCodesToMode = ["xrp":WalletManagerMode.api_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+
+        prepareSystem()
+
+        // Connect and wait for a number of transfers
+        let network: Network! = system.networks.first { "xrp" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+
+        let wallet = manager.primaryWallet
+        XCTAssertNotNil(wallet)
+
+        XCTAssertTrue  (system === wallet.system)
+        XCTAssertEqual (manager, wallet.manager)
+        XCTAssertEqual (network.currency, wallet.currency)
+        XCTAssertEqual (wallet.unit, manager.unit)
+        XCTAssertEqual (wallet.unit,       network.defaultUnitFor(currency: network.currency))
+        XCTAssertEqual (wallet.unitForFee, network.defaultUnitFor(currency: network.currency))
+        XCTAssertEqual (wallet.balance,        Amount.create(integer:  0, unit: wallet.unit))
+        XCTAssertEqual (wallet.balanceMinimum, Amount.create(integer: 20, unit: wallet.unit));
+        XCTAssertNil   (wallet.balanceMaximum)
+        XCTAssertEqual (wallet.state, WalletState.created)
+        XCTAssertEqual (wallet.target, wallet.targetForScheme(manager.addressScheme))
+        XCTAssertEqual (wallet, wallet)
     }
 }

@@ -159,6 +159,11 @@ extern "C" {
     extern UInt256
     genWalletGetBalance (BRGenericWallet wallet);
 
+    extern UInt256
+    genWalletGetBalanceLimit (BRGenericWallet wallet,
+                              BRCryptoBoolean asMaximum,
+                              BRCryptoBoolean *hasLimit);
+
     extern BRGenericAddress
     genWalletGetAddress (BRGenericWallet wid);
 

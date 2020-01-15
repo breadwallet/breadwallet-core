@@ -186,6 +186,13 @@ genericRippleWalletGetBalance (BRGenericWalletRef wallet) {
     return createUInt256 (rippleWalletGetBalance ((BRRippleWallet) wallet));
 }
 
+static UInt256
+genericRippleWalletGetBalanceLimit (BRGenericWalletRef wallet,
+                                    int asMaximum,
+                                    int *hasLimit) {
+    return createUInt256 (rippleWalletGetBalanceLimit ((BRRippleWallet) wallet, asMaximum, hasLimit));
+}
+
 static BRGenericAddressRef
 genericRippleGetAddress (BRGenericWalletRef wallet, int asSource) {
     return (BRGenericAddressRef) (asSource
@@ -320,6 +327,8 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletCreate,
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
+        /* set balance */
+        genericRippleWalletGetBalanceLimit,
         genericRippleGetAddress,
         genericRippleWalletHasAddress,
         genericRippleWalletHasTransfer,

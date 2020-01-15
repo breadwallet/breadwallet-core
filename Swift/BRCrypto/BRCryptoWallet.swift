@@ -49,6 +49,18 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
+    /// The maximum balance
+    public var balanceMaximum: Amount? {
+        return cryptoWalletGetBalanceMaximum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
+    /// The minimum balance
+    public var balanceMinimum: Amount? {
+        return cryptoWalletGetBalanceMinimum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
     /// The current state.
     public var state: WalletState {
         return WalletState (core: cryptoWalletGetState(core))
