@@ -94,12 +94,14 @@ public final class Wallet: Equatable {
     /// The Set of TransferAttributes applicable to Transfers created for this Wallet.  Every
     /// attribute in the returned Set has a `nil` value.  Pass a subset of these to the
     /// `createTransfer()` function.  Transfer creation and attribute validation will fail if
-    /// any of the required attributes have a `nil` value or if any `value` is not valid itself.
+    /// any of the _required_ attributes have a `nil` value or if any `value` is not valid itself.
     ///
-    public lazy var transferAttributes: Set<TransferAttribute> = {
-        Set ((0..<cryptoWalletGetTransferAttributeCount(core))
-            .map { cryptoWalletGetTransferAttributeAt (core, $0) }
-            .map { TransferAttribute (core: $0, take: false)})
+    public lazy private(set) var transferAttributes: Set<TransferAttribute> = {
+        let coreAttributes = (0..<cryptoWalletGetTransferAttributeCount(core))
+            .map { cryptoWalletGetTransferAttributeAt (core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        return Set (coreAttributes.map { TransferAttribute (core: $0)})
     }()
 
     ///
@@ -109,8 +111,11 @@ public final class Wallet: Equatable {
     /// - Parameter attribute: The attribute to validate
     ///
     public func validateTransferAttribute (_ attribute: TransferAttribute) -> TransferAttributeValidationError? {
+        let coreAttribute = attribute.core
+        defer { cryptoTransferAttributeGive(coreAttribute)}
+
         var validates: BRCryptoBoolean = CRYPTO_TRUE
-        let error = cryptoWalletValidateTransferAttribute (core, attribute.core, &validates)
+        let error = cryptoWalletValidateTransferAttribute (core, coreAttribute, &validates)
         return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
     }
 
@@ -123,9 +128,10 @@ public final class Wallet: Equatable {
     ///
     /// - Parameter attributes: the set of attributes to validate
     ///
-    public func validatetTranferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
+    public func validatetTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
         let coreAttributesCount = attributes.count
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
 
         var validates: BRCryptoBoolean = CRYPTO_TRUE
         let error = cryptoWalletValidateTransferAttributes (core,
@@ -198,10 +204,12 @@ public final class Wallet: Equatable {
                                 attributes: Set<TransferAttribute>? = nil) -> Transfer? {
         let coreAttributesCount = attributes?.count ?? 0
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
+        defer { coreAttributes.forEach(cryptoTransferAttributeGive) }
 
         return cryptoWalletCreateTransfer (core, target.core, amount.core,
                                            estimatedFeeBasis.core,
-                                           coreAttributesCount, UnsafeMutablePointer (&coreAttributes))
+                                           coreAttributesCount,
+                                           UnsafeMutablePointer (&coreAttributes))
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)

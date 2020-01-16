@@ -111,9 +111,11 @@ public final class Transfer: Equatable {
 
     // A possibly empty set of TransferAttributes that were used when this Transfer was created.
     public private(set) lazy var attributes: Set<TransferAttribute> = {
-        Set ((0..<cryptoTransferGetAttributeCount(core))
-            .map { cryptoTransferGetAttributeAt (core, $0) }
-            .map { TransferAttribute (core: $0, take: false)})
+        let coreAttributes = (0..<cryptoTransferGetAttributeCount(core))
+            .map { cryptoTransferGetAttributeAt (core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        return Set (coreAttributes.map { TransferAttribute (core: $0)})
     }()
 
     internal init (core: BRCryptoTransfer,
@@ -315,33 +317,39 @@ extension TransferSubmitError: CustomStringConvertible {
     }
 }
 
-public class TransferAttribute: Hashable {
-    internal let core: BRCryptoTransferAttribute
+///
+/// A TransferAttribute is an arbitary {key, value} pair associated with a Transfer; the attribute
+/// may be either required or optional.  The `key` and `isRequired` fields in a `TransferAttribute`
+/// are immutable; the `value` is mutable and optional.
+///
+/// The `Transfer` field `attributes` is an immutable list of the attributes.
+/// The `Wallet`   field `attributes` is an immutable list of the wallet's supported attributes.
+///
+/// The `Wallet` function `createTransfer` takes an optional Set of TransferAttributes.
+///
+/// TransferAttributes exist to provide for blockchain specific customizations to Transfers.
+/// Specifically, for example, XRP provides a 'DestinationTag'.  Without this attributes concept
+/// there is no way to augment an XRP transfer with such a tag.
+///
+public struct TransferAttribute: Hashable {
+    public let key: String
+    public var value: String?
+    public let isRequired: Bool
 
-    public var key: String {
-        return asUTF8String(cryptoTransferAttributeGetKey (core))
+    internal init (core: BRCryptoTransferAttribute) {
+        self.key   = asUTF8String (cryptoTransferAttributeGetKey (core))
+        self.value = cryptoTransferAttributeGetValue (core).map (asUTF8String)
+        self.isRequired = CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
     }
 
-    public var value: String? {
-        get { return cryptoTransferAttributeGetValue (core).map (asUTF8String) }
-        set { cryptoTransferAttributeSetValue (core, newValue) }
-    }
-
-    public var required: Bool {
-        return CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
-    }
-
-    internal init (core: BRCryptoTransferAttribute, take: Bool) {
-        self.core = (take ? cryptoTransferAttributeTake(core) : core)
-    }
-    //
-
-    deinit {
-        cryptoTransferAttributeGive (core)
+    internal var core: BRCryptoTransferAttribute {
+        let core = cryptoTransferAttributeCreate (self.key, self.isRequired ? CRYPTO_TRUE : CRYPTO_FALSE)!
+        cryptoTransferAttributeSetValue(core, self.value)
+        return core
     }
 
     public static func == (lhs: TransferAttribute, rhs: TransferAttribute) -> Bool {
-        return lhs.core == rhs.core || lhs.key == rhs.key
+        return lhs.key == rhs.key
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -351,7 +359,7 @@ public class TransferAttribute: Hashable {
 
 extension TransferAttribute: CustomStringConvertible {
     public var description: String {
-        return "\(key)(\(required ? "R" : "O")):\(value ?? "")"
+        return "\(key)(\(isRequired ? "R" : "O")):\(value ?? "")"
     }
 }
 

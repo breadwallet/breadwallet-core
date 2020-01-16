@@ -1017,7 +1017,7 @@ cryptoTransferAttributeGetValue (BRCryptoTransferAttribute attribute) {
 extern void
 cryptoTransferAttributeSetValue (BRCryptoTransferAttribute attribute, const char *value) {
     if (NULL != attribute->value) free (attribute->value);
-    attribute->value = strdup (value);
+    attribute->value = (NULL == value ? NULL : strdup (value));
 }
 
 extern BRCryptoBoolean

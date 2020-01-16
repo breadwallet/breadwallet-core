@@ -130,10 +130,6 @@ private_extern void
 cryptoTransferSetAttributes (BRCryptoTransfer transfer,
                              BRArrayOf(BRCryptoTransferAttribute) attributes);
 
-private_extern BRCryptoTransferAttribute
-cryptoTransferAttributeCreate (const char *key,
-                               BRCryptoBoolean isRequired);
-
 #ifdef __cplusplus
 }
 #endif

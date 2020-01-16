@@ -147,6 +147,10 @@ extern "C" {
     extern BRCryptoBoolean
     cryptoTransferAttributeIsRequired (BRCryptoTransferAttribute attribute);
 
+    private_extern BRCryptoTransferAttribute
+    cryptoTransferAttributeCreate (const char *key,
+                                   BRCryptoBoolean isRequired);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute);
 
     typedef enum {
