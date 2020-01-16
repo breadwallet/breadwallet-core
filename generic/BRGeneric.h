@@ -186,6 +186,10 @@ extern "C" {
     genWalletAddTransfer (BRGenericWallet wallet,
                           OwnershipKept BRGenericTransfer transfer);
 
+    extern void
+    genWalletRemTransfer (BRGenericWallet wallet,
+                          OwnershipKept BRGenericTransfer transfer);
+
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,
