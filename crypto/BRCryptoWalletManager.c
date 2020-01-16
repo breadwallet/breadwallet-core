@@ -781,6 +781,26 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
         cryptoTransferStateRelease (&oldState);
         cryptoTransferStateRelease (&newState);
     }
+
+    //
+    // If this is an error case, then we must remove the genericTransfer from the
+    // genericWallet; otherwise the GEN balance and sequence number will be off.
+    //
+    // However, we leave the `transfer` in `wallet`.  And trouble is forecasted...
+    //
+    if (GENERIC_TRANSFER_STATE_ERRORED == newGenericState.type) {
+        genWalletRemTransfer(cryptoWalletAsGEN(wallet), genericTransfer);
+
+        BRCryptoAmount balance = cryptoWalletGetBalance(wallet);
+        cwm->listener.walletEventCallback (cwm->listener.context,
+                                           cryptoWalletManagerTake (cwm),
+                                           cryptoWalletTake (cwm->wallet),
+                                           (BRCryptoWalletEvent) {
+                                               CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                               { .balanceUpdated = { balance }}
+                                           });
+    }
+
     pthread_mutex_unlock (&cwm->lock);
 }
 
@@ -944,6 +964,11 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
             // We don't have GEN Events bubbling up that we can handle by adding transfer
             // to wallet.  So, we'll add transfer here...
             cryptoWalletAddTransfer (wallet, transfer);
+
+            // Add the signed/submitted transfer to the GEN wallet.  If the submission fails
+            // we'll remove it then.  For now, include transfer when computing the balance and
+            // the sequence-number 
+            genWalletAddTransfer (cryptoWalletAsGEN(wallet), cryptoTransferAsGEN(transfer));
 
             // ... and announce the wallet's newly added transfer
             cwm->listener.walletEventCallback (cwm->listener.context,

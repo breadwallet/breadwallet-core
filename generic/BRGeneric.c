@@ -341,6 +341,12 @@ genWalletAddTransfer (BRGenericWallet wallet,
     wallet->handlers.addTransfer (wallet->ref, transfer->ref);
 }
 
+extern void
+genWalletRemTransfer (BRGenericWallet wallet,
+                      OwnershipKept BRGenericTransfer transfer) {
+    wallet->handlers.remTransfer (wallet->ref, transfer->ref);
+}
+
 extern BRGenericTransfer
 genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
@@ -360,7 +366,7 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                               ? GENERIC_TRANSFER_SENT
                               : GENERIC_TRANSFER_RECEIVED));
 
-    genWalletAddTransfer (wallet, transfer);
+    // We don't add `transfer` to `wallet`.  Let an explicit `genWalletAddTransfer` do that.
 
     return transfer;
 }
