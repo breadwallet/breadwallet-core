@@ -700,7 +700,7 @@ testTransactionId (void /* ... */) {
     rippleAccountSignTransaction(sourceAccount, transaction, seed);
 
     // Compare the transaction hash
-    const char * expected_hash = "0422880D4F88A7DE9A586D536119CAD2DEBFEACDAEA850E10A8E7155FF8DB2C6";
+    const char * expected_hash = "CA41B6D6C35EC8E1F207203F9FD00B08A8E94D544ABCB394DFA53DBA1FFF1643";
     uint8_t expected_tx_id[32];
     hex2bin(expected_hash, expected_tx_id);
 
@@ -717,14 +717,15 @@ testTransactionId (void /* ... */) {
 
     // Compare the hash
     BRRippleTransactionHash hash = rippleTransactionGetHash(transaction);
-    assert(memcmp(expected_tx_id, hash.bytes, 32) == 0);
-    if (debug_log) {
+
+    if (memcmp(expected_tx_id, hash.bytes, 32) != 0) {
         for (int i = 0; i < 32; i++) {
-            if (i == 0) printf("HASH: \n");
+            if (i == 0) printf("WRONG HASH: \n");
             printf("%02X", hash.bytes[i]);
         }
         printf("\n");
     }
+    assert(memcmp(expected_tx_id, hash.bytes, 32) == 0);
 
     rippleAccountFree(sourceAccount);
     rippleAccountFree(targetAccount);
@@ -852,26 +853,27 @@ static void runDeserializeTests(const char* tx_list_name, const char* tx_list[],
 }
 
 static void
-createSubmittableTransaction (void /* ... */) {
+assembleTransaction (const char * source_paper_key,
+                     BRRippleAccount sourceAccount,
+                     BRRippleAddress targetAddress,
+                     BRRippleUnitDrops amount,
+                     uint32_t sequence,
+                     uint32_t destinationTag) {
     BRRippleTransaction transaction;
 
-    // Create an account so we can get a public key
-    const char * source_paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
-    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
-    const char * target_paper_key = "choose color rich dose toss winter dutch cannon over air cash market"; // rwjruMZqtebGhobxYuFVoNg6KmVMbEUws3
-    BRRippleAccount targetAccount = rippleAccountCreate(target_paper_key);
-
     BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
-    BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
     BRRippleFeeBasis feeBasis;
-    feeBasis.pricePerCostFactor = 12;
+    feeBasis.pricePerCostFactor = 10;
     feeBasis.costFactor = 1;
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, feeBasis);
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, amount, feeBasis);
     rippleAddressFree(sourceAddress);
-    rippleAddressFree(targetAddress);
+
+    if (destinationTag > 0) {
+        rippleTransactionSetDestinationTag(transaction, destinationTag);
+    }
 
     // Serialize and sign
-    rippleAccountSetSequence(sourceAccount, 2);
+    rippleAccountSetSequence(sourceAccount, sequence);
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, source_paper_key, NULL);
     rippleAccountSignTransaction(sourceAccount, transaction, seed);
@@ -892,10 +894,42 @@ createSubmittableTransaction (void /* ... */) {
         printf("%02X", hash.bytes[i]);
     }
     printf("\n");
-    rippleAccountFree(sourceAccount);
-    rippleAccountFree(targetAccount);
+
     rippleTransactionFree(transaction);
     free(signedBytes);
+}
+
+static void createSubmittableTransaction(void) {
+    // Create an account so we can get a public key
+    const char * source_paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
+    const char * target_paper_key = "choose color rich dose toss winter dutch cannon over air cash market"; // rwjruMZqtebGhobxYuFVoNg6KmVMbEUws3
+    BRRippleAccount targetAccount = rippleAccountCreate(target_paper_key);
+    BRRippleAddress targetAddress = rippleAccountGetAddress(sourceAccount);
+    assembleTransaction(source_paper_key, sourceAccount, targetAddress, 50000000, 2, 0);
+    rippleAccountFree(sourceAccount);
+    rippleAccountFree(targetAccount);
+    rippleAddressFree(targetAddress);
+}
+
+static void submitWithDestinationTag() {
+    // Create an account so we can get a public key
+    const char * source_paper_key = "use a valid account here";
+    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
+    // Carl's Coinbase account and destination tag.
+    BRRippleAddress targetAddress = rippleAddressCreateFromString("rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg");
+    assembleTransaction(source_paper_key, sourceAccount, targetAddress, 400000, 3, 2611653455);
+    rippleAccountFree(sourceAccount);
+}
+
+static void submitWithoutDestinationTag() {
+    // Create an account so we can get a public key
+    const char * source_paper_key = "use a valid account here";
+    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
+    // Carl's Coinbase account and destination tag.
+    BRRippleAddress targetAddress = rippleAddressCreateFromString("rpFRjDTUmUdVgMjwurx3osy4rNmXsoz7FE");
+    assembleTransaction(source_paper_key, sourceAccount, targetAddress, 300000, 4, 0);
+    rippleAccountFree(sourceAccount);
 }
 
 extern void
@@ -919,4 +953,6 @@ runRippleTest (void /* ... */) {
     const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
     getAccountInfo(paper_key, ripple_address);
     //createSubmittableTransaction();
+    //submitWithDestinationTag();
+    //submitWithoutDestinationTag();
 }

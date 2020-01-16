@@ -272,6 +272,13 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
     fields[index].fieldCode = 2;
     fields[index++].data.i32 = transaction->flags;
 
+    // Always add in the destination tag - the Ripple system will ignore it
+    // but exchanges use it to identify internally hosted accounts that share
+    // a single ripple address.
+    fields[index].typeCode = 2;
+    fields[index].fieldCode = 14;
+    fields[index++].data.i32 = transaction->payment.destinationTag;
+
     if (signature) {
         fields[index].typeCode = 7;
         fields[index].fieldCode = 4;
@@ -313,7 +320,7 @@ rippleTransactionSerializeImpl (BRRippleTransaction transaction,
     // NOTE - the address fields will hold a BRRippleAddress pointer BUT
     // they are owned by the the transaction or transfer so we don't need
     // to worry about the memory.
-    BRRippleField fields[10];
+    BRRippleField fields[11];
 
     transaction->fee = calculateFee(transaction);
     int num_fields = setFieldInfo(fields, transaction, signature, sig_length);
