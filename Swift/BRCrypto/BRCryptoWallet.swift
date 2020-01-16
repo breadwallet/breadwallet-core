@@ -148,7 +148,7 @@ public final class Wallet: Equatable {
     public func createTransfer (target: Address,
                                 amount: Amount,
                                 estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
-        return cryptoWalletCreateTransfer (core, target.core, amount.core, estimatedFeeBasis.core)
+        return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core, estimatedFeeBasis.core)
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)

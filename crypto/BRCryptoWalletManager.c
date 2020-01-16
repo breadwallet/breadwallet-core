@@ -804,6 +804,33 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
     pthread_mutex_unlock (&cwm->lock);
 }
 
+extern BRCryptoTransfer
+cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
+                                   BRCryptoWallet wallet,
+                                   BRCryptoAddress target,
+                                   BRCryptoAmount amount,
+                                   BRCryptoFeeBasis estimatedFeeBasis) {
+    BRCryptoTransfer transfer = cryptoWalletCreateTransfer (wallet, target, amount, estimatedFeeBasis);
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            if (NULL != transfer) {
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake(transfer),
+                                                     (BRCryptoTransferEvent) {
+                    CRYPTO_TRANSFER_EVENT_CREATED
+                });
+            }
+            break;
+    }
+    return transfer;
+}
+
 extern BRCryptoBoolean
 cryptoWalletManagerSign (BRCryptoWalletManager cwm,
                          BRCryptoWallet wallet,
