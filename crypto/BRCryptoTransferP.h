@@ -128,7 +128,7 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 private_extern void
 cryptoTransferSetAttributes (BRCryptoTransfer transfer,
-                             BRArrayOf(BRCryptoTransferAttribute) attributes);
+                             OwnershipKept BRArrayOf(BRCryptoTransferAttribute) attributes);
 
 #ifdef __cplusplus
 }
