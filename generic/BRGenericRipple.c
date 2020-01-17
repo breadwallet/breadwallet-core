@@ -225,6 +225,9 @@ genericRippleWalletRemTransfer (BRGenericWalletRef wallet,
     rippleWalletRemTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
 }
 
+#define FIELD_OPTION_DESTINATION_TAG        "DestinationTag"
+#define FIELD_OPTION_INVOICE_ID             "InvoiceId"
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
@@ -243,16 +246,18 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
 
     for (size_t index = 0; index < attributeCount; index++) {
         BRGenericTransferAttribute *attribute = &attributes[index];
-        if (0 == strcmp (attribute->key, "DestinationTag")) {
-            BRCoreParseStatus tag;
-            sscanf (attribute->value, "%u", &tag);
-            rippleTransactionSetDestinationTag (transaction, tag);
-        }
-        else if (0 == strcmp (attribute->key, "InvoiceId")) {
-            // TODO:
-        }
-        else {
-            // TODO: Impossible if validated?
+        if (NULL != attribute->value) {
+            if (0 == strcmp (attribute->key, FIELD_OPTION_DESTINATION_TAG)) {
+                BRCoreParseStatus tag;
+                sscanf (attribute->value, "%u", &tag);
+                rippleTransactionSetDestinationTag (transaction, tag);
+            }
+            else if (0 == strcmp (attribute->key, FIELD_OPTION_INVOICE_ID)) {
+                // TODO:
+            }
+            else {
+                // TODO: Impossible if validated?
+            }
         }
     }
 
@@ -281,8 +286,8 @@ genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
 
     static size_t rippleTransactionFieldOptionalCount = 2;
     static const char *rippleTransactionFieldOptionalNames[] = {
-        "DestinationTag",
-        "InvoiceId"
+        FIELD_OPTION_DESTINATION_TAG,
+        FIELD_OPTION_INVOICE_ID
     };
 
     if (asRequired) { *count = rippleTransactionFieldRequiredCount; return rippleTransactionFieldRequiredNames; }
@@ -292,11 +297,14 @@ genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
 static int
 genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
                                                  BRGenericTransferAttribute attribute) {
-    if (0 == strcmp (attribute.key, "DestinationTag")) {
+    // If attribute.value is NULL, we validate unless the attribute.value is required.
+    if (NULL == attribute.value) return !attribute.isRequired;
+
+    if (0 == strcmp (attribute.key, FIELD_OPTION_DESTINATION_TAG)) {
         uint32_t tag;
         return 1 == sscanf(attribute.value, "%u", &tag);
     }
-    else if (0 == strcmp (attribute.key, "InvoiceId")) {
+    else if (0 == strcmp (attribute.key, FIELD_OPTION_INVOICE_ID)) {
         BRCoreParseStatus status;
         createUInt256Parse(attribute.value, 10, &status);
         return CORE_PARSE_OK == status;

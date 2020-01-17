@@ -422,23 +422,31 @@ cryptoTransferGetUnitForFee (BRCryptoTransfer transfer) {
 
 extern size_t
 cryptoTransferGetAttributeCount (BRCryptoTransfer transfer) {
-    return array_count(transfer->attributes);
+    pthread_mutex_lock (&transfer->lock);
+    size_t count = array_count(transfer->attributes);
+    pthread_mutex_unlock (&transfer->lock);
+    return count;
 }
 
 extern BRCryptoTransferAttribute
 cryptoTransferGetAttributeAt (BRCryptoTransfer transfer,
                               size_t index) {
-    return cryptoTransferAttributeTake (transfer->attributes[index]);
+    pthread_mutex_lock (&transfer->lock);
+    BRCryptoTransferAttribute attribute = cryptoTransferAttributeTake (transfer->attributes[index]);
+    pthread_mutex_unlock (&transfer->lock);
+    return attribute;
 }
 
 private_extern void
 cryptoTransferSetAttributes (BRCryptoTransfer transfer,
                              BRArrayOf(BRCryptoTransferAttribute) attributes) {
+    pthread_mutex_lock (&transfer->lock);
     array_free_all(transfer->attributes, cryptoTransferAttributeGive);
 
     if (NULL != attributes)
         for (size_t index = 0; index < array_count(attributes); index++)
             array_add (transfer->attributes, cryptoTransferAttributeTake (attributes[index]));
+    pthread_mutex_unlock (&transfer->lock);
 }
 
 /*

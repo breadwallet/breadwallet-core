@@ -495,8 +495,7 @@ cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
         case BLOCK_CHAIN_TYPE_BTC: return (BRCryptoTransferAttributeValidationError) ignore;
         case BLOCK_CHAIN_TYPE_ETH: return (BRCryptoTransferAttributeValidationError) ignore;
         case BLOCK_CHAIN_TYPE_GEN: {
-            if (cryptoTransferAttributeIsRequired(attribute)
-                && NULL == cryptoTransferAttributeGetValue(attribute)) {
+            if (CRYPTO_TRUE == cryptoTransferAttributeIsRequired(attribute) && NULL == cryptoTransferAttributeGetValue(attribute)) {
                 *validates = CRYPTO_FALSE;
                 return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED;
             }
@@ -535,7 +534,7 @@ cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
             // Check individual validity
             for (size_t index = 0; index < attributesCount; index++) {
                 BRCryptoTransferAttributeValidationError error = cryptoWalletValidateTransferAttribute (wallet, attributes[index], validates);
-                if (CRYPTO_FALSE == validates) return error;
+                if (CRYPTO_FALSE == *validates) return error;
             }
 
             // Check joint validity

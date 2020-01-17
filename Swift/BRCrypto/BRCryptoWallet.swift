@@ -128,7 +128,7 @@ public final class Wallet: Equatable {
     ///
     /// - Parameter attributes: the set of attributes to validate
     ///
-    public func validatetTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
+    public func validateTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
         let coreAttributesCount = attributes.count
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
         defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
@@ -185,7 +185,9 @@ public final class Wallet: Equatable {
     // address scheme
 
     ///
-    /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
+    /// Create a transfer for wallet.  If attributes are provided and they don't validate, then
+    /// `nil` is returned.  Creation will fail if the amount exceeds the wallet's balance.
+    ///
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
@@ -202,6 +204,10 @@ public final class Wallet: Equatable {
                                 amount: Amount,
                                 estimatedFeeBasis: TransferFeeBasis,
                                 attributes: Set<TransferAttribute>? = nil) -> Transfer? {
+        if nil != attributes && nil != self.validateTransferAttributes(attributes!) {
+            return nil
+        }
+
         let coreAttributesCount = attributes?.count ?? 0
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
         defer { coreAttributes.forEach(cryptoTransferAttributeGive) }
