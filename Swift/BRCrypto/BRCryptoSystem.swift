@@ -1526,7 +1526,8 @@ extension System {
                             acknowledgements: transferWithFee.acknowledgements,
                             index: transferWithFee.index,
                             transactionId: transferWithFee.transactionId,
-                            blockchainId: transferWithFee.blockchainId)])
+                            blockchainId: transferWithFee.blockchainId,
+                            metaData: transferWithFee.metaData)])
 
                 // Hold the Id for the transfer that we'll add a fee to.
                 let transferForFeeId = transferMatchingFee.map { $0.id } ?? transferWithFee.id
@@ -1630,6 +1631,8 @@ extension System {
                                                             System.mergeTransfers (transaction.transfers, with: accountAddress)
                                                                 .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
                                                                     let (transfer, fee) = arg
+
+                                                                    // Use MetaData to extract TransferAttribute
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
                                                                                                   transfer.id,
                                                                                                   transfer.source,

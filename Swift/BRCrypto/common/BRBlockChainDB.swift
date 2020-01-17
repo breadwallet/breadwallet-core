@@ -339,7 +339,8 @@ public class BlockChainDB {
             acknowledgements: UInt64,
             index: UInt64,
             transactionId: String?,
-            blockchainId: String)
+            blockchainId: String,
+            metaData: Dictionary<String,String>?)
 
         static internal func asTransfer (json: JSON) -> Model.Transfer? {
             guard let id   = json.asString (name: "transfer_id"),
@@ -355,11 +356,13 @@ public class BlockChainDB {
             let source = json.asString (name: "from_address")
             let target = json.asString (name: "to_address")
             let tid    = json.asString (name: "transaction_id")
+            let meta   = json.asDict(name: "meta")?.mapValues { return $0 as! String }
 
             return (id: id, source: source, target: target,
                     amountValue: amountValue, amountCurrency: amountCurrency,
                     acknowledgements: acks, index: index,
-                    transactionId: tid, blockchainId: bid)
+                    transactionId: tid, blockchainId: bid,
+                    metaData: meta)
         }
 
         /// Transaction
