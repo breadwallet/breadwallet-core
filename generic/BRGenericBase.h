@@ -204,6 +204,14 @@ extern "C" {
         return type1 == state.type || type2 == state.type;
     }
 
+    // MARK: - Transfer Attribute
+
+    typedef struct {
+        const char *key;
+        const char *value;
+        int isRequired;
+    } BRGenericTransferAttribute;
+
 #ifdef __cplusplus
 }
 #endif

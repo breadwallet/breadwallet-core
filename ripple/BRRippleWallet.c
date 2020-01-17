@@ -271,4 +271,3 @@ extern void rippleWalletRemTransfer (BRRippleWallet wallet,
     pthread_mutex_unlock (&wallet->lock);
     // Now update the balance
 }
-

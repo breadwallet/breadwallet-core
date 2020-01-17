@@ -809,8 +809,13 @@ cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
                                    BRCryptoWallet wallet,
                                    BRCryptoAddress target,
                                    BRCryptoAmount amount,
-                                   BRCryptoFeeBasis estimatedFeeBasis) {
-    BRCryptoTransfer transfer = cryptoWalletCreateTransfer (wallet, target, amount, estimatedFeeBasis);
+                                   BRCryptoFeeBasis estimatedFeeBasis,
+                                   size_t attributesCount,
+                                   BRCryptoTransferAttribute *attributes) {
+    BRCryptoTransfer transfer = cryptoWalletCreateTransfer (wallet, target, amount,
+                                                            estimatedFeeBasis,
+                                                            attributesCount,
+                                                            attributes);
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
             break;

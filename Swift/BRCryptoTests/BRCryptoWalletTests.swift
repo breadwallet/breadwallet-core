@@ -340,5 +340,102 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (wallet.state, WalletState.created)
         XCTAssertEqual (wallet.target, wallet.targetForScheme(manager.addressScheme))
         XCTAssertEqual (wallet, wallet)
+
+        var attributes: Set<TransferAttribute> = wallet.transferAttributes
+        XCTAssertEqual(2, attributes.count)
+        for key in ["DestinationTag", "InvoiceId"] {
+            XCTAssertTrue(attributes.contains { key == $0.key })
+        }
+        XCTAssertTrue (attributes.reduce(true) { $0 && !$1.isRequired })
+        XCTAssertNil (wallet.validateTransferAttributes(attributes))
+
+        // Destination Tag parses
+        attributes = Set(wallet.transferAttributes.map {
+            var attribute: TransferAttribute = $0
+            switch attribute.key {
+            case "DestinationTag":
+                attribute.value = "1234567"
+            default:
+                break
+            }
+            return attribute
+        })
+        XCTAssertNil (wallet.validateTransferAttributes(attributes))
+
+        // DestinationTag does not parse
+        attributes = Set(wallet.transferAttributes.map {
+            var attribute: TransferAttribute = $0
+            switch attribute.key {
+            case "DestinationTag":
+                attribute.value = "x123.4567x"
+            default:
+                break
+            }
+            return attribute
+        })
+        if case .mismatchedType = wallet.validateTransferAttributes(attributes) {}
+        else { XCTAssert (false ) }
+
+        #if false
+        let coinbase = Address.create(string: "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w", network: network)!
+        attributes = wallet.transferAttributesFor (target: coinbase)
+        XCTAssertEqual(2, attributes.count)
+        for key in ["DestinationTag", "InvoiceId"] {
+            XCTAssertTrue(attributes.contains { key == $0.key })
+        }
+        if let attrDestination = attributes.first(where: { "DestinationTag" == $0.key }) {
+            XCTAssertTrue (attrDestination.isRequired)
+        }
+        else { XCTAssert (false) }
+
+        if let attrDestination = attributes.first(where: { "InvoiceId" == $0.key }) {
+            XCTAssertFalse (attrDestination.isRequired)
+        }
+        else { XCTAssert (false) }
+
+        // DestinationTag required but not provided
+        attributes = Set(wallet.transferAttributesFor(target: coinbase)
+            .map {
+                var attribute: TransferAttribute = $0
+                switch attribute.key {
+                case "DestinationTag":
+                    attribute.value = nil
+                default:
+                    break
+                }
+                return attribute
+        })
+        if case .requiredButNotProvided = wallet.validateTransferAttributes(attributes) {}
+        else { XCTAssert (false ) }
+
+        /// Transfer
+        let feeBasisPricePerCostFactor = Amount.create (integer: 10, unit: network.baseUnitFor(currency: network.currency)!)
+        let feeBasisCostFactor = 1.0
+        let feeBasis: TransferFeeBasis! =
+            wallet.createTransferFeeBasis (pricePerCostFactor: feeBasisPricePerCostFactor,
+                                           costFactor: feeBasisCostFactor)
+
+        attributes = Set(wallet.transferAttributesFor(target: coinbase)
+            .compactMap {
+                var attribute: TransferAttribute? = nil
+                switch $0.key {
+                case "DestinationTag":
+                    var attribute = $0
+                    attribute.value = "1234567"
+                    return attribute
+                default:
+                    return nil
+                }
+        })
+
+        if let transfer = wallet.createTransfer (target: coinbase,
+                                                 amount: Amount.create(integer: 20, unit: wallet.unit),
+                                                 estimatedFeeBasis: feeBasis,
+                                                 attributes: attributes) {
+            let transferAttributes = transfer.attributes
+            XCTAssertTrue (attributes.subtracting(transferAttributes).isEmpty)
+        }
+        else { XCTAssert (false) }
+        #endif
     }
 }
