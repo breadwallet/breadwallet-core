@@ -502,6 +502,11 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 //    return CRYPTO_TRUE;
 //}
 
+extern BRCryptoTransferStateType
+cryptoTransferGetStateType (BRCryptoTransfer transfer) {
+    return transfer->state.type;
+}
+
 extern BRCryptoTransferState
 cryptoTransferGetState (BRCryptoTransfer transfer) {
     pthread_mutex_lock (&transfer->lock);

@@ -206,10 +206,10 @@ public final class Wallet: Equatable {
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
         defer { coreAttributes.forEach(cryptoTransferAttributeGive) }
 
-        return cryptoWalletCreateTransfer (core, target.core, amount.core,
-                                           estimatedFeeBasis.core,
-                                           coreAttributesCount,
-                                           UnsafeMutablePointer (&coreAttributes))
+        return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core,
+                                                  estimatedFeeBasis.core,
+                                                  coreAttributesCount,
+                                                  UnsafeMutablePointer (&coreAttributes))
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)

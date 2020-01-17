@@ -232,6 +232,9 @@ extern "C" {
 //                                       uint64_t *timestamp,
 //                                       BRCryptoAmount *fee);
 
+    extern BRCryptoTransferStateType
+    cryptoTransferGetStateType (BRCryptoTransfer transfer);
+
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);
 

@@ -128,4 +128,7 @@ extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer tran
 extern void rippleWalletAddTransfer (BRRippleWallet wallet,
                                      OwnershipKept BRRippleTransfer transfer);
 
+extern void rippleWalletRemTransfer (BRRippleWallet wallet,
+                                     OwnershipKept BRRippleTransfer transfer);
+
 #endif
