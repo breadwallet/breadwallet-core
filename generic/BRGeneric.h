@@ -211,10 +211,12 @@ extern "C" {
                                   UInt256 pricePerCostFactor);
 
     extern size_t
-    genWalletGetTransferAttributeCount (BRGenericWallet wid);
+    genWalletGetTransferAttributeCount (BRGenericWallet wid,
+                                        BRGenericAddress target);
 
     extern const BRGenericTransferAttribute
     genWalletGetTransferAttributeAt (BRGenericWallet wid,
+                                     BRGenericAddress target,
                                      size_t index);
 
     extern BRCryptoBoolean

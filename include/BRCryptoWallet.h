@@ -181,10 +181,12 @@ extern "C" {
                                     BRCryptoFeeBasis feeBasis);
 
     extern size_t
-    cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet);
+    cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet,
+                                           BRCryptoAddress target);
 
     extern BRCryptoTransferAttribute
     cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
+                                        BRCryptoAddress target,
                                         size_t index);
 
     extern BRCryptoTransferAttributeValidationError

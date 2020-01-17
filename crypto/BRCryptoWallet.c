@@ -461,24 +461,26 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
 }
 
 extern size_t
-cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet) {
+cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet,
+                                       BRCryptoAddress target) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: return 0;
         case BLOCK_CHAIN_TYPE_ETH: return 0;
         case BLOCK_CHAIN_TYPE_GEN: {
-            return genWalletGetTransferAttributeCount (wallet->u.gen);
+            return genWalletGetTransferAttributeCount (wallet->u.gen, (NULL == target ? NULL : target->u.gen));
         }
     }
 }
 
 extern BRCryptoTransferAttribute
 cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
+                                    BRCryptoAddress target,
                                     size_t index) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: return NULL;
         case BLOCK_CHAIN_TYPE_ETH: return NULL;
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericTransferAttribute attribute = genWalletGetTransferAttributeAt (wallet->u.gen, index);
+            BRGenericTransferAttribute attribute = genWalletGetTransferAttributeAt (wallet->u.gen, (NULL == target ? NULL : target->u.gen), index);
             return cryptoTransferAttributeCreate (attribute.key, AS_CRYPTO_BOOLEAN (attribute.isRequired));
         }
     }
