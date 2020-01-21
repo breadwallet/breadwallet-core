@@ -210,7 +210,8 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
 
     size_t tx_size =
         rippleTransactionSerializeAndSign(transaction, &key, &account->publicKey,
-                                          account->sequence, account->lastLedgerSequence);
+                                          account->sequence + 1,  // next sequence number
+                                          account->lastLedgerSequence);
 
     // Increment the sequence number if we were able to sign the bytes
     if (tx_size > 0) {

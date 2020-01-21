@@ -1865,11 +1865,25 @@ cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager c
                                     blockNumber);
             break;
 
-        case CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER:
+        case CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER: {
             genManagerAnnounceBlockNumber (cwm->u.gen,
                                            callbackState->rid,
                                            blockNumber);
+
+            // GEN does not signal events; so we must do it ourselves.
+            BRCryptoNetwork network = cryptoWalletManagerGetNetwork(cwm);
+            cryptoNetworkSetHeight (network, blockNumber);
+
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake(cwm),
+                                                      ((BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
+                { .blockHeight = { blockNumber } }
+            }));
+
+            cryptoNetworkGive(network);
             break;
+        }
 
         default:
             break;

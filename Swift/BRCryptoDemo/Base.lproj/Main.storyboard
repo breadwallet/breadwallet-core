@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15702" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15705" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15704"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15706"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -915,7 +915,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <textField opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" textAlignment="center" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="hkW-xm-lDZ">
-                                <rect key="frame" x="16" y="101" width="343" height="34"/>
+                                <rect key="frame" x="16" y="101" width="306" height="34"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <textInputTraits key="textInputTraits" autocorrectionType="no" spellCheckingType="no" keyboardType="alphabet" keyboardAppearance="alert"/>
                                 <connections>
@@ -944,6 +944,17 @@
                                     <constraint firstAttribute="width" constant="10" id="RKW-13-YzD"/>
                                 </constraints>
                             </view>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Hac-5W-bGE">
+                                <rect key="frame" x="330" y="102" width="30" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="30" id="Vee-aq-Axm"/>
+                                    <constraint firstAttribute="height" constant="30" id="keY-d8-HY1"/>
+                                </constraints>
+                                <state key="normal" title="CB"/>
+                                <connections>
+                                    <action selector="doUseCoinbase:" destination="G47-GP-HJH" eventType="touchUpInside" id="DV9-st-Q8G"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                         <constraints>
@@ -978,15 +989,17 @@
                             <constraint firstItem="AgX-H5-eTy" firstAttribute="top" secondItem="7yV-yu-opg" secondAttribute="bottom" constant="1" id="ds9-t5-W4g"/>
                             <constraint firstItem="KQa-c8-4Vd" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="egz-hp-fhs"/>
                             <constraint firstItem="Pmn-IU-P5U" firstAttribute="centerY" secondItem="rOL-bT-Hlg" secondAttribute="centerY" id="fCZ-vJ-OOK"/>
-                            <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="hkW-xm-lDZ" secondAttribute="trailing" constant="16" id="fQL-L1-nQB"/>
+                            <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="Hac-5W-bGE" secondAttribute="trailing" constant="15" id="fIc-kX-b3l"/>
                             <constraint firstItem="7yV-yu-opg" firstAttribute="top" secondItem="rOL-bT-Hlg" secondAttribute="bottom" constant="2" id="fcc-Ns-vbY"/>
                             <constraint firstItem="7yV-yu-opg" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="fnh-sf-vyT"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="dLC-zn-56J" secondAttribute="trailing" constant="245" id="gLE-wj-1bZ"/>
                             <constraint firstItem="Ei5-pP-B3a" firstAttribute="top" secondItem="xan-Ll-ueq" secondAttribute="bottom" id="j79-NM-sWA"/>
+                            <constraint firstItem="Hac-5W-bGE" firstAttribute="leading" secondItem="hkW-xm-lDZ" secondAttribute="trailing" constant="8" id="jQ5-J6-EPz"/>
                             <constraint firstItem="OwR-mh-elN" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="kdM-ye-jB4"/>
                             <constraint firstItem="dLC-zn-56J" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="l3h-xN-3hL"/>
                             <constraint firstItem="xan-Ll-ueq" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="lPG-51-Kho"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="2ha-zL-0Hu" secondAttribute="trailing" constant="16" id="lVP-3C-Ffj"/>
+                            <constraint firstItem="Hac-5W-bGE" firstAttribute="top" secondItem="l4H-M0-1ex" secondAttribute="bottom" constant="1" id="mJC-Mh-r34"/>
                             <constraint firstItem="KQa-c8-4Vd" firstAttribute="top" secondItem="rOL-bT-Hlg" secondAttribute="bottom" constant="70" id="oiG-BF-tbD"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="Ei5-pP-B3a" secondAttribute="trailing" constant="16" id="rgX-95-MPa"/>
                             <constraint firstItem="hkW-xm-lDZ" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="rwj-9b-hR9"/>
