@@ -899,6 +899,10 @@ assembleTransaction (const char * source_paper_key,
     free(signedBytes);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void createSubmittableTransaction(void) {
     // Create an account so we can get a public key
     const char * source_paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
@@ -931,6 +935,8 @@ static void submitWithoutDestinationTag() {
     assembleTransaction(source_paper_key, sourceAccount, targetAddress, 300000, 4, 0);
     rippleAccountFree(sourceAccount);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 extern void
 runRippleTest (void /* ... */) {

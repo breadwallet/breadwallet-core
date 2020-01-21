@@ -435,6 +435,10 @@ void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
     _signalTestComplete();
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 run_GetBlookProofs_Tests (BREthereumLES les) {
     _initTest(1);
@@ -447,6 +451,8 @@ run_GetBlookProofs_Tests (BREthereumLES les) {
 
     eth_log(TST_LOG_TOPIC, "GetBlockProofs: %s", "Tests Successful");
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 //
 // Testing GetTxtStatus message

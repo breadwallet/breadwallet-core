@@ -580,6 +580,10 @@ runEWM_freeClient (BREthereumClient client) {
 //
 //
 //
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 runEWM_CONNECT_test (const char *paperKey,
                      const char *storagePath) {
@@ -646,6 +650,8 @@ runEWM_CONNECT_test (const char *paperKey,
     ewmDisconnect(ewm);
     ewmDestroy(ewm);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 //
 //
