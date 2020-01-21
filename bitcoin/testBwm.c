@@ -1289,7 +1289,7 @@ static void
 fileServiceErrorHandler (BRFileServiceContext context,
                          BRFileService fs,
                          BRFileServiceError error) {
-    BRFileServiceTester fst = (BRFileServiceTester) context;
+    // BRFileServiceTester fst = (BRFileServiceTester) context;
     // ...
 }
 
