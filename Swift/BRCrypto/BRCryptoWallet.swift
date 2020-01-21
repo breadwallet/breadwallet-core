@@ -105,7 +105,7 @@ public final class Wallet: Equatable {
             .map { cryptoWalletGetTransferAttributeAt (core, target?.core, $0)! }
         defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
 
-        return Set (coreAttributes.map { TransferAttribute (core: $0)})
+        return Set (coreAttributes.map { TransferAttribute (core: cryptoTransferAttributeCopy($0), take: false) })
     }
     ///
     /// Validate a TransferAttribute.  This returns `true` if the attributes value is valid and,
@@ -115,7 +115,6 @@ public final class Wallet: Equatable {
     ///
     public func validateTransferAttribute (_ attribute: TransferAttribute) -> TransferAttributeValidationError? {
         let coreAttribute = attribute.core
-        defer { cryptoTransferAttributeGive(coreAttribute)}
 
         var validates: BRCryptoBoolean = CRYPTO_TRUE
         let error = cryptoWalletValidateTransferAttribute (core, coreAttribute, &validates)
@@ -134,7 +133,6 @@ public final class Wallet: Equatable {
     public func validateTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
         let coreAttributesCount = attributes.count
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
-        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
 
         var validates: BRCryptoBoolean = CRYPTO_TRUE
         let error = cryptoWalletValidateTransferAttributes (core,
@@ -213,7 +211,6 @@ public final class Wallet: Equatable {
 
         let coreAttributesCount = attributes?.count ?? 0
         var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
-        defer { coreAttributes.forEach(cryptoTransferAttributeGive) }
 
         return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core,
                                                   estimatedFeeBasis.core,

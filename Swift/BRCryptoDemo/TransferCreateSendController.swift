@@ -114,7 +114,7 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
             var attributes: Set<TransferAttribute> = Set()
 
-            if var destinationTagAttribute = self.wallet.transferAttributesFor (target: target)
+            if let destinationTagAttribute = self.wallet.transferAttributesFor (target: target)
                 .first (where: { "DestinationTag" == $0.key }) {
                 destinationTagAttribute.value = (self.recvField.text! == "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg"
                     ? "739376465"
