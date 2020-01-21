@@ -266,7 +266,10 @@ extern "C" {
                                    OwnershipKept const char *currency,
                                    OwnershipKept const char *fee,
                                    uint64_t timestamp,
-                                   uint64_t blockHeight);
+                                   uint64_t blockHeight,
+                                   size_t attributesCount,
+                                   OwnershipKept const char **attributeKeys,
+                                   OwnershipKept const char **attributeVals);
 
     extern void
     cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,

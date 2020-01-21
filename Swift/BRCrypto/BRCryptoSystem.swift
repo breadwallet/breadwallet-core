@@ -1632,6 +1632,14 @@ extension System {
                                                                 .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
                                                                     let (transfer, fee) = arg
 
+                                                                    var metaKeysPtr = (transfer.metaData.map { Array($0.keys)   } ?? [])
+                                                                        .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                    defer { metaKeysPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                                                    var metaValsPtr = (transfer.metaData.map { Array($0.values) } ?? [])
+                                                                        .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                    defer { metaValsPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
                                                                     // Use MetaData to extract TransferAttribute
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
                                                                                                   transfer.id,
@@ -1641,7 +1649,10 @@ extension System {
                                                                                                   transfer.amountCurrency,
                                                                                                   fee,
                                                                                                   timestamp,
-                                                                                                  height)
+                                                                                                  height,
+                                                                                                  metaKeysPtr.count,
+                                                                                                  &metaKeysPtr,
+                                                                                                  &metaValsPtr)
                                                             }
                                                         }
                                                         cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
