@@ -1015,6 +1015,13 @@ cryptoTransferAttributeCreate (const char *key,
     return attribute;
 }
 
+extern BRCryptoTransferAttribute
+cryptoTransferAttributeCopy (BRCryptoTransferAttribute attribute) {
+    BRCryptoTransferAttribute copy = cryptoTransferAttributeCreate (attribute->key, attribute->isRequired);
+    cryptoTransferAttributeSetValue (copy, attribute->value);
+    return copy;
+}
+
 static void
 cryptoTransferAttributeRelease (BRCryptoTransferAttribute attribute) {
     free (attribute->key);

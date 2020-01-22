@@ -15,6 +15,9 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 public interface Wallet {
 
@@ -26,7 +29,7 @@ public interface Wallet {
      */
     Optional<? extends TransferFeeBasis> createTransferFeeBasis(Amount pricePerCostFactor, double costFactor);
 
-    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis);
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis, @Nullable Set<TransferAttribute> attributes);
 
     /**
      * Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
@@ -100,6 +103,16 @@ public interface Wallet {
     List<? extends Transfer> getTransfers();
 
     Optional<? extends Transfer> getTransferByHash(TransferHash hash);
+
+    Set<? extends TransferAttribute> getTransferAttributesFor (@Nullable Address address);
+
+    default Set<? extends TransferAttribute> getTransferAttributes () {
+        return getTransferAttributesFor(null);
+    }
+
+    Optional<TransferAttribute.Error> validateTransferAttribute(TransferAttribute attribute);
+
+    Optional<TransferAttribute.Error>  validateTransferAttributes(Set<TransferAttribute> attributes);
 
     Address getTarget();
 

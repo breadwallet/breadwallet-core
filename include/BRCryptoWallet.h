@@ -191,13 +191,13 @@ extern "C" {
 
     extern BRCryptoTransferAttributeValidationError
     cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
-                                           BRCryptoTransferAttribute attribute,
+                                           OwnershipKept BRCryptoTransferAttribute attribute,
                                            BRCryptoBoolean *validates);
 
     extern BRCryptoTransferAttributeValidationError
     cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
                                             size_t attributesCount,
-                                            BRCryptoTransferAttribute attributes[],
+                                            OwnershipKept BRCryptoTransferAttribute *attribute,
                                             BRCryptoBoolean *validates);
 
     /**
@@ -216,7 +216,7 @@ extern "C" {
                                 BRCryptoAmount amount,
                                 BRCryptoFeeBasis estimatedFeeBasis,
                                 size_t attributesCount,
-                                BRCryptoTransferAttribute *attributes);
+                                OwnershipKept BRCryptoTransferAttribute *attributes);
 
     extern BRCryptoTransfer
     cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,

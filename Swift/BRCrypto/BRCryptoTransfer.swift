@@ -109,13 +109,20 @@ public final class Transfer: Equatable {
         return TransferDirection (core: cryptoTransferGetDirection (self.core))
     }()
 
-    // A possibly empty set of TransferAttributes that were used when this Transfer was created.
+    //
+    // The Set of TransferAttributes.  These are the attributes used when the transfer was
+    // created.  The attributes in the Set should be considered immutable; any mutations to the
+    // attribtues will not impact the transfer.  The returned set is possibly, likely emptyh.
+    //
     public private(set) lazy var attributes: Set<TransferAttribute> = {
         let coreAttributes = (0..<cryptoTransferGetAttributeCount(core))
             .map { cryptoTransferGetAttributeAt (core, $0)! }
         defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
 
-        return Set (coreAttributes.map { TransferAttribute (core: $0)})
+        // Make a copy so that any mutations of the attributes in the returned Set do not
+        // make it back into this transfer's attributes.  The attributes themselves are reference
+        // types and thus, even if the Set is immutable, it's elements won't be.
+        return Set (coreAttributes.map { TransferAttribute (core: cryptoTransferAttributeCopy($0), take: false) })
     }()
 
     internal init (core: BRCryptoTransfer,
@@ -331,21 +338,27 @@ extension TransferSubmitError: CustomStringConvertible {
 /// Specifically, for example, XRP provides a 'DestinationTag'.  Without this attributes concept
 /// there is no way to augment an XRP transfer with such a tag.
 ///
-public struct TransferAttribute: Hashable {
-    public let key: String
-    public var value: String?
-    public let isRequired: Bool
+public class TransferAttribute: Hashable {
+    internal let core: BRCryptoTransferAttribute
 
-    internal init (core: BRCryptoTransferAttribute) {
-        self.key   = asUTF8String (cryptoTransferAttributeGetKey (core))
-        self.value = cryptoTransferAttributeGetValue (core).map (asUTF8String)
-        self.isRequired = CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
+    public let key: String
+
+    public var value: String? {
+        get { return cryptoTransferAttributeGetValue (core).map (asUTF8String) }
+        set { cryptoTransferAttributeSetValue (core, newValue)}
     }
 
-    internal var core: BRCryptoTransferAttribute {
-        let core = cryptoTransferAttributeCreate (self.key, self.isRequired ? CRYPTO_TRUE : CRYPTO_FALSE)!
-        cryptoTransferAttributeSetValue(core, self.value)
-        return core
+    public let isRequired: Bool
+
+    deinit {
+        cryptoTransferAttributeGive (core)
+    }
+
+    internal init (core: BRCryptoTransferAttribute, take: Bool) {
+        self.core = (take ? cryptoTransferAttributeTake (core) : core)
+
+        self.key = asUTF8String (cryptoTransferAttributeGetKey (core))
+        self.isRequired = CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
     }
 
     public static func == (lhs: TransferAttribute, rhs: TransferAttribute) -> Bool {

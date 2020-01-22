@@ -811,7 +811,7 @@ cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
                                    BRCryptoAmount amount,
                                    BRCryptoFeeBasis estimatedFeeBasis,
                                    size_t attributesCount,
-                                   BRCryptoTransferAttribute *attributes) {
+                                   OwnershipKept BRCryptoTransferAttribute *attributes) {
     BRCryptoTransfer transfer = cryptoWalletCreateTransfer (wallet, target, amount,
                                                             estimatedFeeBasis,
                                                             attributesCount,

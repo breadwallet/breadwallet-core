@@ -488,7 +488,7 @@ cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
 
 extern BRCryptoTransferAttributeValidationError
 cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
-                                       BRCryptoTransferAttribute attribute,
+                                       OwnershipKept BRCryptoTransferAttribute attribute,
                                        BRCryptoBoolean *validates) {
     int ignore = 0;
     *validates = CRYPTO_TRUE;
@@ -519,7 +519,7 @@ cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
 extern BRCryptoTransferAttributeValidationError
 cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
                                         size_t attributesCount,
-                                        BRCryptoTransferAttribute attributes[],
+                                        OwnershipKept BRCryptoTransferAttribute *attributes,
                                         BRCryptoBoolean *validates) {
     int ignore = 0;
     *validates = CRYPTO_TRUE;
@@ -582,7 +582,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAmount  amount,
                             BRCryptoFeeBasis estimatedFeeBasis,
                             size_t attributesCount,
-                            BRCryptoTransferAttribute *attributes) {
+                            OwnershipKept BRCryptoTransferAttribute *attributes) {
     assert (cryptoWalletGetType(wallet) == cryptoAddressGetType(target));
     assert (cryptoWalletGetType(wallet) == cryptoFeeBasisGetType(estimatedFeeBasis));
 
@@ -659,7 +659,10 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                 tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
             else {
                 BRGenericTransferAttribute genAttributes[attributesCount];
+
                 for (size_t index = 0; index < attributesCount; index++) {
+                    // There is no need to give/take this attribute.  It is OwnershipKept
+                    // (by the caller) and we only extract info.
                     BRCryptoTransferAttribute attribute = attributes[index];
                     genAttributes[index] = (BRGenericTransferAttribute) {
                         cryptoTransferAttributeGetKey(attribute),

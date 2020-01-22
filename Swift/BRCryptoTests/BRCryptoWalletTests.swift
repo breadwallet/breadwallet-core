@@ -351,27 +351,25 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         // Destination Tag parses
         attributes = Set(wallet.transferAttributes.map {
-            var attribute: TransferAttribute = $0
-            switch attribute.key {
+            switch $0.key {
             case "DestinationTag":
-                attribute.value = "1234567"
+                $0.value = "1234567"
             default:
                 break
             }
-            return attribute
+            return $0
         })
         XCTAssertNil (wallet.validateTransferAttributes(attributes))
 
         // DestinationTag does not parse
         attributes = Set(wallet.transferAttributes.map {
-            var attribute: TransferAttribute = $0
-            switch attribute.key {
+            switch $0.key {
             case "DestinationTag":
-                attribute.value = "x123.4567x"
+                $0.value = "x123.4567x"
             default:
                 break
             }
-            return attribute
+            return $0
         })
         if case .mismatchedType = wallet.validateTransferAttributes(attributes) {}
         else { XCTAssert (false ) }
