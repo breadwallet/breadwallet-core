@@ -277,21 +277,70 @@ genericRippleWalletEstimateFeeBasis (BRGenericWalletRef wallet,
     };
 }
 
+static const char *knownDestinationTagRequiringAddresses[] = {
+    "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w",           // Coinbase(1)
+    "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg",           // Coinbase(2)
+    "rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh",           // Binance(1)
+    "rJb5KsHsDHF1YS5B5DU6QCkH5NsPaKQTcy",           // Binance(2)
+    "rEy8TFcrAPvhpKrwyrscNYyqBGUkE9hKaJ",           // Binance(3)
+    "rXieaAC3nevTKgVu2SYoShjTCS2Tfczqx",            // Wirex(1)
+    "r9HwsqBnAUN4nF6nDqxd4sgP8DrDnDcZP3",           // BitBay
+    "rLbKbPyuvs4wc1h13BEPHgbFGsRXMeFGL6",           // BitBank(1)
+    "rw7m3CtVHwGSdhFjV4MyJozmZJv3DYQnsA",           // BitBank(2)
+    NULL
+};
+
+static int
+genericRippleRequiresDestinationTag (BRRippleAddress address) {
+    if (NULL == address) return 0;
+
+    char *addressAsString = rippleAddressAsString(address);
+    int isRequired = 0;
+
+    for (size_t index = 0; NULL != knownDestinationTagRequiringAddresses[index]; index++)
+        if (0 == strcmp (addressAsString, knownDestinationTagRequiringAddresses[index])) {
+            isRequired = 1;
+            break;
+        }
+
+    free (addressAsString);
+    return isRequired;
+}
+
 static const char **
 genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
+                                                BRGenericAddressRef address,
                                                 int asRequired,
                                                 size_t *count) {
-    static size_t rippleTransactionFieldRequiredCount = 0;
-    static const char **rippleTransactionFieldRequiredNames = NULL;
 
-    static size_t rippleTransactionFieldOptionalCount = 2;
-    static const char *rippleTransactionFieldOptionalNames[] = {
-        FIELD_OPTION_DESTINATION_TAG,
-        FIELD_OPTION_INVOICE_ID
-    };
+    if (genericRippleRequiresDestinationTag ((BRRippleAddress) address)) {
+        static size_t requiredCount = 1;
+        static const char *requiredNames[] = {
+            FIELD_OPTION_DESTINATION_TAG,
+        };
 
-    if (asRequired) { *count = rippleTransactionFieldRequiredCount; return rippleTransactionFieldRequiredNames; }
-    else {            *count = rippleTransactionFieldOptionalCount; return rippleTransactionFieldOptionalNames; }
+        static size_t optionalCount = 1;
+        static const char *optionalNames[] = {
+            FIELD_OPTION_INVOICE_ID
+        };
+
+        if (asRequired) { *count = requiredCount; return requiredNames; }
+        else {            *count = optionalCount; return optionalNames; }
+    }
+
+    else {
+        static size_t requiredCount = 0;
+        static const char **requiredNames = NULL;
+
+        static size_t optionalCount = 2;
+        static const char *optionalNames[] = {
+            FIELD_OPTION_DESTINATION_TAG,
+            FIELD_OPTION_INVOICE_ID
+        };
+
+        if (asRequired) { *count = requiredCount; return requiredNames; }
+        else {            *count = optionalCount; return optionalNames; }
+    }
 }
 
 static int

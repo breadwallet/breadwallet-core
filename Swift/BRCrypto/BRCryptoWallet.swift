@@ -97,13 +97,16 @@ public final class Wallet: Equatable {
     /// any of the _required_ attributes have a `nil` value or if any `value` is not valid itself.
     ///
     public lazy private(set) var transferAttributes: Set<TransferAttribute> = {
-        let coreAttributes = (0..<cryptoWalletGetTransferAttributeCount(core))
-            .map { cryptoWalletGetTransferAttributeAt (core, $0)! }
+        return transferAttributesFor(target: nil)
+    }()
+
+    public func transferAttributesFor (target: Address?) -> Set<TransferAttribute> {
+        let coreAttributes = (0..<cryptoWalletGetTransferAttributeCount(core, target?.core))
+            .map { cryptoWalletGetTransferAttributeAt (core, target?.core, $0)! }
         defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
 
         return Set (coreAttributes.map { TransferAttribute (core: $0)})
-    }()
-
+    }
     ///
     /// Validate a TransferAttribute.  This returns `true` if the attributes value is valid and,
     /// if the attribute's value is required, if is it not `nil`.
