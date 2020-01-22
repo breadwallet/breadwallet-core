@@ -13,10 +13,11 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 public interface Wallet {
 
@@ -28,7 +29,7 @@ public interface Wallet {
      */
     Optional<? extends TransferFeeBasis> createTransferFeeBasis(Amount pricePerCostFactor, double costFactor);
 
-    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis, Optional<Set<TransferAttribute>> attributes);
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis, @Nullable Set<TransferAttribute> attributes);
 
     /**
      * Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
@@ -103,15 +104,15 @@ public interface Wallet {
 
     Optional<? extends Transfer> getTransferByHash(TransferHash hash);
 
-    ImmutableSet<? extends TransferAttribute> getTransferAttributesFor (Optional<Address> address);
+    Set<? extends TransferAttribute> getTransferAttributesFor (@Nullable Address address);
 
-    default ImmutableSet<? extends TransferAttribute> getTransferAttributes () {
-        return getTransferAttributesFor(Optional.absent());
+    default Set<? extends TransferAttribute> getTransferAttributes () {
+        return getTransferAttributesFor(null);
     }
 
     Optional<TransferAttribute.Error> validateTransferAttribute(TransferAttribute attribute);
 
-    Optional<TransferAttribute.Error>  validateTransferAttributes(ImmutableSet<TransferAttribute> attributes);
+    Optional<TransferAttribute.Error>  validateTransferAttributes(Set<TransferAttribute> attributes);
 
     Address getTarget();
 

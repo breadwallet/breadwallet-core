@@ -6,6 +6,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
+import javax.annotation.Nullable;
+
 public class TransferAttribute implements com.breadwallet.crypto.TransferAttribute {
 
     /* package */
@@ -24,7 +26,7 @@ public class TransferAttribute implements com.breadwallet.crypto.TransferAttribu
             return (TransferAttribute) attribute;
         }
 
-        throw new IllegalArgumentException("Unsupported TransferAmount instance");
+        throw new IllegalArgumentException("Unsupported TransferAttribute instance");
     }
 
     private final BRCryptoTransferAttribute core;
@@ -47,12 +49,12 @@ public class TransferAttribute implements com.breadwallet.crypto.TransferAttribu
 
     @Override
     public Optional<String> getValue() {
-        return Optional.of (core.getValue());
+        return core.getValue();
     }
 
     @Override
-    public void setValue(Optional<String> value) {
-        core.setValue(value.orNull());
+    public void setValue(@Nullable String value) {
+        core.setValue(value);
     }
 
     @Override
@@ -69,14 +71,15 @@ public class TransferAttribute implements com.breadwallet.crypto.TransferAttribu
         return core;
     }
 
-    public boolean equalsOther (TransferAttribute that) {
+    public boolean equalsTransferAttribute (TransferAttribute that) {
         return this.core == that.core || this.getKey().equals(that.getKey());
     }
 
     @Override
     public boolean equals(Object that) {
         return this == that
-                || (that instanceof TransferAttribute && equalsOther((TransferAttribute) that));
+                || (that instanceof TransferAttribute && equalsTransferAttribute((TransferAttribute) that))
+                || (that instanceof com.breadwallet.crypto.TransferAttribute && this.getKey().equals(((com.breadwallet.crypto.TransferAttribute) that).getKey()));
     }
 
     @Override

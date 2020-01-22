@@ -7,10 +7,8 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.CryptoLibraryIndirect;
-import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
@@ -85,9 +83,9 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasTransfer(thisPtr, transfer.getPointer());
     }
 
-    public UnsignedLong getTransferAttributeCount(Optional<BRCryptoAddress> target) {
+    public UnsignedLong getTransferAttributeCount(@Nullable BRCryptoAddress target) {
         Pointer thisPtr = this.getPointer();
-        Pointer targetPtr = target.transform(PointerType::getPointer).orNull();
+        Pointer targetPtr = (null == target ? null : target.getPointer());
 
         return UnsignedLong.fromLongBits(
                 CryptoLibraryDirect.cryptoWalletGetTransferAttributeCount(
@@ -97,9 +95,9 @@ public class BRCryptoWallet extends PointerType {
         );
     }
 
-    public Optional<BRCryptoTransferAttribute> getTransferAttributeAt(Optional<BRCryptoAddress> target, UnsignedLong index) {
+    public Optional<BRCryptoTransferAttribute> getTransferAttributeAt(@Nullable BRCryptoAddress target, UnsignedLong index) {
         Pointer thisPtr = this.getPointer();
-        Pointer targetPtr = target.transform(PointerType::getPointer).orNull();
+        Pointer targetPtr = (null == target ? null : target.getPointer());
 
         return Optional.fromNullable(
                 CryptoLibraryDirect.cryptoWalletGetTransferAttributeAt(

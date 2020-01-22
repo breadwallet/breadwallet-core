@@ -28,7 +28,6 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
@@ -36,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -95,14 +96,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis,
-                                             Optional<Set<com.breadwallet.crypto.TransferAttribute>> attributes) {
+                                             @Nullable Set<com.breadwallet.crypto.TransferAttribute> attributes) {
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
 
         List<BRCryptoTransferAttribute> coreAttributes = new ArrayList<>();
-        if (attributes.isPresent())
-            for (com.breadwallet.crypto.TransferAttribute attribute : attributes.get()) {
+        if (null != attributes)
+            for (com.breadwallet.crypto.TransferAttribute attribute : attributes) {
                 coreAttributes.add (TransferAttribute.from(attribute).getCoreBRCryptoTransferAttribute());
             }
 
@@ -360,20 +361,20 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
-    public ImmutableSet<TransferAttribute> getTransferAttributesFor(Optional<com.breadwallet.crypto.Address> target) {
-        Optional<BRCryptoAddress> coreTarget = target.transform((obj) -> Address.from(obj).getCoreBRCryptoAddress());
+    public Set<TransferAttribute> getTransferAttributesFor(@Nullable com.breadwallet.crypto.Address target) {
+        BRCryptoAddress coreTarget = (null == target ? null : Address.from(target).getCoreBRCryptoAddress());
 
         Set<TransferAttribute> attributes = new HashSet<>();
         UnsignedLong count = core.getTransferAttributeCount(coreTarget);
 
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             Optional<TransferAttribute> attribute = core.getTransferAttributeAt(coreTarget, i)
-                    .transform(TransferAttribute::create);
+                    .transform(TransferAttribute::create);  // Uses the 'take' from '...AttributeAt'
             if (attribute.isPresent()) {
                 attributes.add (attribute.get().copy());
             }
         }
-        return ImmutableSet.copyOf(attributes);
+        return attributes;
     }
 
     @Override
@@ -386,7 +387,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
-    public Optional<TransferAttribute.Error> validateTransferAttributes(ImmutableSet<com.breadwallet.crypto.TransferAttribute> attributes) {
+    public Optional<TransferAttribute.Error> validateTransferAttributes(Set<com.breadwallet.crypto.TransferAttribute> attributes) {
 
         List<BRCryptoTransferAttribute> coreAttributes = new ArrayList<>();
         for (com.breadwallet.crypto.TransferAttribute attribute : attributes)

@@ -2,12 +2,14 @@ package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
 
+import javax.annotation.Nullable;
+
 public interface TransferAttribute {
     String getKey();
 
     Optional<String> getValue();
 
-    void setValue(Optional<String> value);
+    void setValue(@Nullable String value);
 
     boolean isRequired();
 
@@ -16,5 +18,4 @@ public interface TransferAttribute {
         MISMATHED_TYPE,
         RELATIONSHIP_INCONSISTENCY
     }
-
 }

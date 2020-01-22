@@ -1,8 +1,11 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
+import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+
+import javax.annotation.Nullable;
 
 public class BRCryptoTransferAttribute extends PointerType {
     public BRCryptoTransferAttribute() {
@@ -19,13 +22,14 @@ public class BRCryptoTransferAttribute extends PointerType {
         return CryptoLibraryDirect.cryptoTransferAttributeGetKey(thisPtr).getString(0, "UTF-8");
     }
 
-    public String getValue() {
+    public Optional<String> getValue() {
         Pointer thisPtr = this.getPointer();
 
-        return CryptoLibraryDirect.cryptoTransferAttributeGetValue(thisPtr).getString(0, "UTF-8");
+        return Optional.of (CryptoLibraryDirect.cryptoTransferAttributeGetValue(thisPtr))
+                .transform(v -> v.getString(0, "UTF-8"));
     }
 
-    public void setValue(String value) {
+    public void setValue(@Nullable String value) {
         Pointer thisPtr = this.getPointer();
 
         CryptoLibraryDirect.cryptoTransferAttributeSetValue(thisPtr, value);

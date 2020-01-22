@@ -310,14 +310,14 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
         // Assign transfer attributes, if required
         Set<TransferAttribute> attributes = new HashSet<>();
-        ImmutableSet<? extends TransferAttribute> walletAttributes = wallet.getTransferAttributesFor(Optional.of(target));
+        Set<? extends TransferAttribute> walletAttributes = wallet.getTransferAttributesFor(target);
         for (TransferAttribute attribute : walletAttributes) {
             // For the Demo, only consider required attributes.
             if (attribute.isRequired()) {
                 // If it is a 'DestinationTag' attribute and Coinbase, give it a destination
                 if (attribute.getKey().equals("DestinationTag") &&
                         targetAsString.equals("rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg")) // Coinbase
-                    attribute.setValue(Optional.of("739376465"));                    // My Address
+                    attribute.setValue("739376465");                    // My Address
                 attributes.add(attribute);
             }
         }
@@ -338,7 +338,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
                         return;
                     }
 
-                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis, Optional.of(attributes));
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis, attributes);
 
                     if (!transfer.isPresent()) {
                         showError("Balance too low?");
