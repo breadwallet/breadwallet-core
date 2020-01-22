@@ -60,6 +60,10 @@ public class TransferAttribute implements com.breadwallet.crypto.TransferAttribu
         return isRequiredSupplier.get();
     }
 
+    public TransferAttribute copy () {
+        return TransferAttribute.create (core.copy());
+    }
+
     /* package */
     BRCryptoTransferAttribute getCoreBRCryptoTransferAttribute() {
         return core;

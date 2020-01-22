@@ -370,7 +370,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
             Optional<TransferAttribute> attribute = core.getTransferAttributeAt(coreTarget, i)
                     .transform(TransferAttribute::create);
             if (attribute.isPresent()) {
-                attributes.add (attribute.get());
+                attributes.add (attribute.get().copy());
             }
         }
         return ImmutableSet.copyOf(attributes);
