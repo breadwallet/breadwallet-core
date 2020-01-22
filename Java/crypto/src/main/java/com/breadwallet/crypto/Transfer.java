@@ -12,6 +12,7 @@ package com.breadwallet.crypto;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.UnsignedLong;
 
 public interface Transfer {
@@ -81,4 +82,6 @@ public interface Transfer {
     }
 
     TransferState getState();
+
+    ImmutableSet<? extends TransferAttribute> getAttributes ();
 }

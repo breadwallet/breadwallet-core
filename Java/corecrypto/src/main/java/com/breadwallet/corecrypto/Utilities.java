@@ -13,6 +13,8 @@ import com.breadwallet.corenative.crypto.BRCryptoNetworkCanonicalType;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolError;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolType;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
+import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoTransferAttributeValidationError;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
@@ -166,6 +168,18 @@ final class Utilities {
             );
             default: throw new IllegalArgumentException("Unsupported state");
         }
+    }
+
+    static TransferAttribute.Error transferAttributeErrorFromCrypto(BRCryptoTransferAttributeValidationError error) {
+        switch (error) {
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED:
+                return TransferAttribute.Error.REQUIRED_BUT_NOT_PROVIDED;
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE:
+                return TransferAttribute.Error.MISMATHED_TYPE;
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY:
+                return TransferAttribute.Error.RELATIONSHIP_INCONSISTENCY;
+            default: throw new IllegalArgumentException(("Unsupported TransferAttribute.Error"));
+            }
     }
 
     /* package */

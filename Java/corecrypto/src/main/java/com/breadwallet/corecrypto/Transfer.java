@@ -9,13 +9,18 @@ package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.crypto.TransferAttribute;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.UnsignedLong;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -58,6 +63,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     private final Supplier<Amount> amountSupplier;
     private final Supplier<Amount> directedSupplier;
     private final Supplier<TransferDirection> directionSupplier;
+    private final Supplier<ImmutableSet<TransferAttribute>> attributesSupplier;
 
     private Transfer(BRCryptoTransfer core, Wallet wallet) {
         this.core = core;
@@ -72,6 +78,15 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
         this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount()));
         this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected()));
         this.directionSupplier = Suppliers.memoize(() -> Utilities.transferDirectionFromCrypto(core.getDirection()));
+
+        attributesSupplier = Suppliers.memoize(() -> {
+            Set<TransferAttribute> attributes = new HashSet<>();
+            UnsignedLong count = core.getAttributeCount();
+            for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+                attributes.add(com.breadwallet.corecrypto.TransferAttribute.create (core.getAttributeAt(i).get()));
+            }
+            return ImmutableSet.copyOf(attributes);
+        });
     }
 
     @Override
@@ -124,6 +139,11 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     @Override
     public Optional<TransferHash> getHash() {
         return core.getHash().transform(TransferHash::create);
+    }
+
+    @Override
+    public ImmutableSet<TransferAttribute> getAttributes() {
+        return attributesSupplier.get();
     }
 
     @Override
