@@ -357,6 +357,13 @@ class CoreTests: XCTestCase {
         runRippleTest ()
     }
 
+    ///
+    /// Hedera
+    ///
+    func testHedera () {
+        runHederaTest ()
+    }
+
     /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
     /// start from the saved state of the first sync.
     ///

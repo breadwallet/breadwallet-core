@@ -11,4 +11,6 @@ git commit -m 'Update secp256k1 to <commit>'
 #
 # sqlite - update
 #
+# ed25519 - see https://github.com/orlp/ed25519
+#
 # ...
