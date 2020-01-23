@@ -137,6 +137,7 @@ extern "C" {
                                                                   UInt256 pricePerCostFactor);
 
     typedef const char ** (*BRGenericWalletGetTransactionAttributeKeys) (BRGenericWalletRef wallet,
+                                                                         BRGenericAddressRef target,
                                                                          int asRequired,
                                                                          size_t *count);
 

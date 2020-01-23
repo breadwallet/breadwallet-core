@@ -239,11 +239,23 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoTransferGetUnitForFee (Pointer transfer);
     public static native Pointer cryptoTransferGetEstimatedFeeBasis (Pointer transfer);
     public static native Pointer cryptoTransferGetConfirmedFeeBasis (Pointer transfer);
+
+    public static native SizeT cryptoTransferGetAttributeCount(Pointer transfer);
+    public static native Pointer cryptoTransferGetAttributeAt(Pointer transfer, SizeT index);
+
     public static native int cryptoTransferEqual(Pointer transfer, Pointer other);
     public static native Pointer cryptoTransferTake(Pointer obj);
     public static native void cryptoTransferGive(Pointer obj);
 
     public static native Pointer cryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError error);
+
+    public static native Pointer cryptoTransferAttributeCopy(Pointer attribute);
+    public static native Pointer cryptoTransferAttributeGetKey(Pointer attribute);
+    public static native Pointer cryptoTransferAttributeGetValue(Pointer attribute);
+    public static native void cryptoTransferAttributeSetValue(Pointer attribute, String value);
+    public static native boolean cryptoTransferAttributeIsRequired(Pointer attribute);
+    public static native void cryptoTransferAttributeGive(Pointer attribute);
+
 
     // crypto/BRCryptoUnit.h
     public static native Pointer cryptoUnitGetUids(Pointer unit);
@@ -270,9 +282,16 @@ public final class CryptoLibraryDirect {
     public static native Pointer cryptoWalletGetUnitForFee(Pointer wallet);
     public static native Pointer cryptoWalletGetCurrency(Pointer wallet);
     public static native Pointer cryptoWalletCreateFeeBasis(Pointer wallet, Pointer pricePerCostFactor, double costFactor);
-    public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis);
+    // INDIRECT: public static native Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis, SizeT attributesCount, Pointer arrayOfAttributes);
     public static native Pointer cryptoWalletCreateTransferForWalletSweep(Pointer wallet, Pointer sweeper, Pointer feeBasis);
     public static native Pointer cryptoWalletCreateTransferForPaymentProtocolRequest(Pointer wallet, Pointer request, Pointer feeBasis);
+
+    public static native SizeT cryptoWalletGetTransferAttributeCount(Pointer wallet, Pointer target);
+    public static native Pointer cryptoWalletGetTransferAttributeAt(Pointer wallet, Pointer target, SizeT index);
+    public static native int cryptoWalletValidateTransferAttribute(Pointer wallet, Pointer attribute, IntByReference validates);
+    // INDIRECT: public static native int cryptoWalletValidateTransferAttributes(Pointer wallet, SizeT countOfAttributes, Pointer arrayOfAttributes, IntByReference validates);
+
+
     public static native Pointer cryptoWalletTake(Pointer wallet);
     public static native void cryptoWalletGive(Pointer obj);
 

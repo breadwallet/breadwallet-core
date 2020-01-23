@@ -351,32 +351,29 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         // Destination Tag parses
         attributes = Set(wallet.transferAttributes.map {
-            var attribute: TransferAttribute = $0
-            switch attribute.key {
+            switch $0.key {
             case "DestinationTag":
-                attribute.value = "1234567"
+                $0.value = "1234567"
             default:
                 break
             }
-            return attribute
+            return $0
         })
         XCTAssertNil (wallet.validateTransferAttributes(attributes))
 
         // DestinationTag does not parse
         attributes = Set(wallet.transferAttributes.map {
-            var attribute: TransferAttribute = $0
-            switch attribute.key {
+            switch $0.key {
             case "DestinationTag":
-                attribute.value = "x123.4567x"
+                $0.value = "x123.4567x"
             default:
                 break
             }
-            return attribute
+            return $0
         })
         if case .mismatchedType = wallet.validateTransferAttributes(attributes) {}
         else { XCTAssert (false ) }
 
-        #if false
         let coinbase = Address.create(string: "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w", network: network)!
         attributes = wallet.transferAttributesFor (target: coinbase)
         XCTAssertEqual(2, attributes.count)
@@ -417,7 +414,6 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         attributes = Set(wallet.transferAttributesFor(target: coinbase)
             .compactMap {
-                var attribute: TransferAttribute? = nil
                 switch $0.key {
                 case "DestinationTag":
                     var attribute = $0
@@ -436,6 +432,5 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
             XCTAssertTrue (attributes.subtracting(transferAttributes).isEmpty)
         }
         else { XCTAssert (false) }
-        #endif
     }
 }

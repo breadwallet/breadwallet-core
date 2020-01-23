@@ -269,7 +269,7 @@ extern "C" {
                                        BRCryptoAmount amount,
                                        BRCryptoFeeBasis estimatedFeeBasis,
                                        size_t attributesCount,
-                                       BRCryptoTransferAttribute *attributes);
+                                       OwnershipKept BRCryptoTransferAttribute *attributes);
 
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,

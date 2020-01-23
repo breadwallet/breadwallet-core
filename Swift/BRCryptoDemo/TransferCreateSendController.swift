@@ -19,8 +19,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     var target: Address?
     var minimum: Amount!
     var maximum: Amount!
-
-    var destinationTag = "739376465"
     
      override func viewDidLoad() {
         super.viewDidLoad()
@@ -116,12 +114,12 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
             var attributes: Set<TransferAttribute> = Set()
 
-            if self.recvField.text == "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg" {
-                if var destinationTagAttribute = self.wallet.transferAttributes
-                    .first (where: { "DestinationTag" == $0.key }) {
-                    destinationTagAttribute.value = self.destinationTag
-                    attributes.insert (destinationTagAttribute)
-                }
+            if let destinationTagAttribute = self.wallet.transferAttributesFor (target: target)
+                .first (where: { "DestinationTag" == $0.key }) {
+                destinationTagAttribute.value = (self.recvField.text! == "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg"
+                    ? "739376465"
+                    : nil)
+                attributes.insert (destinationTagAttribute)
             }
 
             guard let transfer = self.wallet.createTransfer (target: target,

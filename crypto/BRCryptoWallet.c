@@ -461,24 +461,26 @@ cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
 }
 
 extern size_t
-cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet) {
+cryptoWalletGetTransferAttributeCount (BRCryptoWallet wallet,
+                                       BRCryptoAddress target) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: return 0;
         case BLOCK_CHAIN_TYPE_ETH: return 0;
         case BLOCK_CHAIN_TYPE_GEN: {
-            return genWalletGetTransferAttributeCount (wallet->u.gen);
+            return genWalletGetTransferAttributeCount (wallet->u.gen, (NULL == target ? NULL : target->u.gen));
         }
     }
 }
 
 extern BRCryptoTransferAttribute
 cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
+                                    BRCryptoAddress target,
                                     size_t index) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: return NULL;
         case BLOCK_CHAIN_TYPE_ETH: return NULL;
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericTransferAttribute attribute = genWalletGetTransferAttributeAt (wallet->u.gen, index);
+            BRGenericTransferAttribute attribute = genWalletGetTransferAttributeAt (wallet->u.gen, (NULL == target ? NULL : target->u.gen), index);
             return cryptoTransferAttributeCreate (attribute.key, AS_CRYPTO_BOOLEAN (attribute.isRequired));
         }
     }
@@ -486,7 +488,7 @@ cryptoWalletGetTransferAttributeAt (BRCryptoWallet wallet,
 
 extern BRCryptoTransferAttributeValidationError
 cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
-                                       BRCryptoTransferAttribute attribute,
+                                       OwnershipKept BRCryptoTransferAttribute attribute,
                                        BRCryptoBoolean *validates) {
     int ignore = 0;
     *validates = CRYPTO_TRUE;
@@ -517,7 +519,7 @@ cryptoWalletValidateTransferAttribute (BRCryptoWallet wallet,
 extern BRCryptoTransferAttributeValidationError
 cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
                                         size_t attributesCount,
-                                        BRCryptoTransferAttribute attributes[],
+                                        OwnershipKept BRCryptoTransferAttribute *attributes,
                                         BRCryptoBoolean *validates) {
     int ignore = 0;
     *validates = CRYPTO_TRUE;
@@ -580,7 +582,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAmount  amount,
                             BRCryptoFeeBasis estimatedFeeBasis,
                             size_t attributesCount,
-                            BRCryptoTransferAttribute *attributes) {
+                            OwnershipKept BRCryptoTransferAttribute *attributes) {
     assert (cryptoWalletGetType(wallet) == cryptoAddressGetType(target));
     assert (cryptoWalletGetType(wallet) == cryptoFeeBasisGetType(estimatedFeeBasis));
 
@@ -657,7 +659,10 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                 tid = genWalletCreateTransfer (wid, genAddr, genValue, genFeeBasis);
             else {
                 BRGenericTransferAttribute genAttributes[attributesCount];
+
                 for (size_t index = 0; index < attributesCount; index++) {
+                    // There is no need to give/take this attribute.  It is OwnershipKept
+                    // (by the caller) and we only extract info.
                     BRCryptoTransferAttribute attribute = attributes[index];
                     genAttributes[index] = (BRGenericTransferAttribute) {
                         cryptoTransferAttributeGetKey(attribute),
@@ -672,6 +677,14 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsGEN (unit, unitForFee, tid);
             break;
         }
+    }
+
+    if (NULL != transfer && attributesCount > 0) {
+        BRArrayOf (BRCryptoTransferAttribute) transferAttributes;
+        array_new (transferAttributes, attributesCount);
+        array_add_array (transferAttributes, attributes, attributesCount);
+        cryptoTransferSetAttributes (transfer, transferAttributes);
+        array_free (transferAttributes);
     }
 
     cryptoUnitGive (unitForFee);

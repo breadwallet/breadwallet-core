@@ -147,6 +147,9 @@ extern "C" {
     extern BRCryptoBoolean
     cryptoTransferAttributeIsRequired (BRCryptoTransferAttribute attribute);
 
+    extern BRCryptoTransferAttribute
+    cryptoTransferAttributeCopy (BRCryptoTransferAttribute attribute);
+
     private_extern BRCryptoTransferAttribute
     cryptoTransferAttributeCreate (const char *key,
                                    BRCryptoBoolean isRequired);

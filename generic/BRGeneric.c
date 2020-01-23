@@ -398,19 +398,23 @@ genWalletEstimateTransferFee (BRGenericWallet wallet,
 
 
 extern size_t
-genWalletGetTransferAttributeCount (BRGenericWallet wallet) {
+genWalletGetTransferAttributeCount (BRGenericWallet wallet,
+                                    BRGenericAddress target) {
     size_t countRequired, countOptional;
-    wallet->handlers.getTransactionAttributeKeys (wallet->ref, 1, &countRequired);
-    wallet->handlers.getTransactionAttributeKeys (wallet->ref, 0, &countOptional);
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+    wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 0, &countOptional);
     return countRequired + countOptional;
 }
 
 extern const BRGenericTransferAttribute
 genWalletGetTransferAttributeAt (BRGenericWallet wallet,
+                                 BRGenericAddress target,
                                  size_t index) {
     size_t countRequired, countOptional;
-    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, 1, &countRequired);
-    const char **keysOptional = wallet->handlers.getTransactionAttributeKeys (wallet->ref, 0, &countOptional);
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+    const char **keysOptional = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 0, &countOptional);
 
     assert (index < (countRequired + countOptional));
 
