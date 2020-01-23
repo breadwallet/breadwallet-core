@@ -81,7 +81,7 @@ struct BRRlpCoderRecord {
      * acquire an item and you best be sure to release it and if you don't you've leaked memory.
      *
      * Well, in order to ensure that memory is not leaked, we keep a `busy` list and then on
-     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are releaded.
+     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are released.
      *
      * This busy list caused a problem (see bugfix/CORE-152).  It was singly linked and thus to
      * remove an item we were forced to traverse the list to find the just-prior item and then

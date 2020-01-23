@@ -152,6 +152,7 @@ extern "C" {
 
     private_extern BRCryptoTransferAttribute
     cryptoTransferAttributeCreate (const char *key,
+                                   const char *val, // nullable
                                    BRCryptoBoolean isRequired);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute);

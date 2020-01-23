@@ -89,6 +89,11 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
             nonceTitleLabel.isHidden = true
             nonceLabel.isHidden = true;
         }
+
+        attributesLabel.text = transfer.attributes
+            .map { "\($0.key)(\($0.isRequired ? "R" : "O")):\($0.value ?? "")" }
+            .joined(separator: ", ")
+
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -105,8 +110,8 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
             resubmitButton.isEnabled = false
        }
 
-//        nonceLabel.text = (transfer as? EthereumTransfer)?.nonce.description ?? "N/A"
         dotView.mainColor = colorForState()
+        dotView.setNeedsDisplay()
     }
 
     @IBAction func doResubmit(_ sender: UIButton) {
@@ -232,6 +237,7 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
     @IBOutlet var resubmitButton: UIButton!
     @IBOutlet var nonceTitleLabel: UILabel!
     @IBOutlet var nonceLabel: UILabel!
+    @IBOutlet var attributesLabel: UILabel!
     @IBOutlet var dotView: Dot!
     @IBAction func toPasteBoard(_ sender: UIButton) {
         UIPasteboard.general.string = sender.titleLabel?.text

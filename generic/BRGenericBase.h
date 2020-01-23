@@ -15,7 +15,7 @@
 #include <math.h>   // fabs() - via static inline
 #include "BRCryptoBase.h"
 #include "ethereum/util/BRUtil.h"
-#include "BRCryptoBase.h"
+#include "support/BRArray.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -206,11 +206,28 @@ extern "C" {
 
     // MARK: - Transfer Attribute
 
-    typedef struct {
-        const char *key;
-        const char *value;
-        int isRequired;
-    } BRGenericTransferAttribute;
+    /// This is an utter duplicate of BRCryptoTransferAttribute - except it doesn't do
+    /// reference counting.  We can't use the BRCrypto version becuase of circularities, or just
+    /// potential circularties, in header files.
+    typedef struct BRGenericTransferAttributeRecord *BRGenericTransferAttribute;
+
+    extern BRGenericTransferAttribute // copies key, val
+    genTransferAttributeCreate (const char *key, const char *val, int isRequired);
+
+    extern void // frees key, val
+    genTransferAttributeRelease (BRGenericTransferAttribute attribute);
+
+    extern const char *
+    genTransferAttributeGetKey (BRGenericTransferAttribute attribute);
+
+    extern const char *
+    genTransferAttributeGetVal (BRGenericTransferAttribute attribute);
+
+    extern int
+    genTransferAttributeIsRequired (BRGenericTransferAttribute attribute);
+
+    extern void
+    genTransferAttributeReleaseAll (OwnershipGiven BRArrayOf(BRGenericTransferAttribute) attributes);
 
 #ifdef __cplusplus
 }
