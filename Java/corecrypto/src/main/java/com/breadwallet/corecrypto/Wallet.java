@@ -362,6 +362,18 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
+    public Optional<Amount> getBalanceMaximum() {
+        return core.getBalanceMaximum()
+                .transform(Amount::create);
+    }
+
+    @Override
+    public Optional<Amount> getBalanceMinimum() {
+        return core.getBalanceMinimum()
+                .transform(Amount::create);
+    }
+
+    @Override
     public WalletState getState() {
         return Utilities.walletStateFromCrypto(core.getState());
     }

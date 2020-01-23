@@ -199,7 +199,9 @@ clientSubmitTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumWallet wid,
                          BREthereumTransfer tid,
-                         const char *transaction,
+                         OwnershipKept const uint8_t *transactionBytes,
+                         size_t transactionBytesCount,
+                         OwnershipKept const char *transactionHash,
                          int rid) {
     // The transaction hash
     ewmAnnounceSubmitTransfer(ewm, wid, tid, "0x123abc456def", -1, NULL, rid);
@@ -578,6 +580,10 @@ runEWM_freeClient (BREthereumClient client) {
 //
 //
 //
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 runEWM_CONNECT_test (const char *paperKey,
                      const char *storagePath) {
@@ -644,6 +650,8 @@ runEWM_CONNECT_test (const char *paperKey,
     ewmDisconnect(ewm);
     ewmDestroy(ewm);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 //
 //

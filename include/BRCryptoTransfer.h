@@ -102,6 +102,8 @@ extern "C" {
     extern void
     cryptoTransferStateRelease (BRCryptoTransferState *state);
 
+    /// MARK: - Transfer Event
+
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
         CRYPTO_TRANSFER_EVENT_CHANGED,
@@ -121,11 +123,43 @@ extern "C" {
         } u;
     } BRCryptoTransferEvent;
 
+    /// MARK: - Transfer Direction
+
     typedef enum {
         CRYPTO_TRANSFER_SENT,
         CRYPTO_TRANSFER_RECEIVED,
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
+
+    /// MARK: - Transfer Attribute
+
+    typedef struct BRCryptoTransferAttributeRecord *BRCryptoTransferAttribute;
+
+    extern const char *
+    cryptoTransferAttributeGetKey (BRCryptoTransferAttribute attribute);
+
+    extern const char * // nullable
+    cryptoTransferAttributeGetValue (BRCryptoTransferAttribute attribute);
+
+    extern void
+    cryptoTransferAttributeSetValue (BRCryptoTransferAttribute attribute, const char *value);
+
+    extern BRCryptoBoolean
+    cryptoTransferAttributeIsRequired (BRCryptoTransferAttribute attribute);
+
+    private_extern BRCryptoTransferAttribute
+    cryptoTransferAttributeCreate (const char *key,
+                                   BRCryptoBoolean isRequired);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute);
+
+    typedef enum {
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED,
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE,
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+    } BRCryptoTransferAttributeValidationError;
+
+    /// MARK: - Transfer
 
     /**
      * Returns the transfer's source address
@@ -198,6 +232,9 @@ extern "C" {
 //                                       uint64_t *timestamp,
 //                                       BRCryptoAmount *fee);
 
+    extern BRCryptoTransferStateType
+    cryptoTransferGetStateType (BRCryptoTransfer transfer);
+
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);
 
@@ -238,6 +275,13 @@ extern "C" {
 
     extern BRCryptoFeeBasis
     cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
+
+    extern size_t
+    cryptoTransferGetAttributeCount (BRCryptoTransfer transfer);
+
+    extern BRCryptoTransferAttribute
+    cryptoTransferGetAttributeAt (BRCryptoTransfer transfer,
+                                  size_t index);
 
     extern BRCryptoBoolean
     cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);

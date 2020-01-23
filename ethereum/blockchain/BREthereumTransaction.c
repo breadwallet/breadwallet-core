@@ -498,6 +498,20 @@ transactionRlpDecode (BRRlpItem item,
     return transaction;
 }
 
+extern BRRlpData
+transactionGetRlpData (BREthereumTransaction transaction,
+                       BREthereumNetwork network,
+                       BREthereumRlpType type) {
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item   = transactionRlpEncode (transaction, network, type, coder);
+    BRRlpData data   = rlpGetData (coder, item);
+
+    rlpReleaseItem  (coder, item);
+    rlpCoderRelease (coder);
+
+    return data;
+}
+
 extern char *
 transactionGetRlpHexEncoded (BREthereumTransaction transaction,
                              BREthereumNetwork network,

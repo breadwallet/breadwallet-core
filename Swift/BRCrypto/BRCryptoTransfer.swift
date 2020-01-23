@@ -109,6 +109,14 @@ public final class Transfer: Equatable {
         return TransferDirection (core: cryptoTransferGetDirection (self.core))
     }()
 
+    // A possibly empty set of TransferAttributes that were used when this Transfer was created.
+    public private(set) lazy var attributes: Set<TransferAttribute> = {
+        let coreAttributes = (0..<cryptoTransferGetAttributeCount(core))
+            .map { cryptoTransferGetAttributeAt (core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        return Set (coreAttributes.map { TransferAttribute (core: $0)})
+    }()
 
     internal init (core: BRCryptoTransfer,
                    wallet: Wallet,
@@ -303,8 +311,84 @@ public enum TransferSubmitError: Equatable, Error {
 extension TransferSubmitError: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .unknown: return ".unknwon"
+        case .unknown: return ".unknown"
         case let .posix(errno, message): return ".posix(\(errno):\(message ?? ""))"
+        }
+    }
+}
+
+///
+/// A TransferAttribute is an arbitary {key, value} pair associated with a Transfer; the attribute
+/// may be either required or optional.  The `key` and `isRequired` fields in a `TransferAttribute`
+/// are immutable; the `value` is mutable and optional.
+///
+/// The `Transfer` field `attributes` is an immutable list of the attributes.
+/// The `Wallet`   field `attributes` is an immutable list of the wallet's supported attributes.
+///
+/// The `Wallet` function `createTransfer` takes an optional Set of TransferAttributes.
+///
+/// TransferAttributes exist to provide for blockchain specific customizations to Transfers.
+/// Specifically, for example, XRP provides a 'DestinationTag'.  Without this attributes concept
+/// there is no way to augment an XRP transfer with such a tag.
+///
+public struct TransferAttribute: Hashable {
+    public let key: String
+    public var value: String?
+    public let isRequired: Bool
+
+    internal init (core: BRCryptoTransferAttribute) {
+        self.key   = asUTF8String (cryptoTransferAttributeGetKey (core))
+        self.value = cryptoTransferAttributeGetValue (core).map (asUTF8String)
+        self.isRequired = CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
+    }
+
+    internal var core: BRCryptoTransferAttribute {
+        let core = cryptoTransferAttributeCreate (self.key, self.isRequired ? CRYPTO_TRUE : CRYPTO_FALSE)!
+        cryptoTransferAttributeSetValue(core, self.value)
+        return core
+    }
+
+    public static func == (lhs: TransferAttribute, rhs: TransferAttribute) -> Bool {
+        return lhs.key == rhs.key
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine (key)
+    }
+}
+
+extension TransferAttribute: CustomStringConvertible {
+    public var description: String {
+        return "\(key)(\(isRequired ? "R" : "O")):\(value ?? "")"
+    }
+}
+
+public enum TransferAttributeValidationError {
+    case requiredButNotProvided
+    case mismatchedType
+    case relationshipInconsistency
+
+    internal var core: BRCryptoTransferAttributeValidationError {
+        switch self {
+        case .requiredButNotProvided:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED
+        case .mismatchedType:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE
+        case .relationshipInconsistency:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+        }
+    }
+
+    internal init (core: BRCryptoTransferAttributeValidationError) {
+        switch core {
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED:
+            self = .requiredButNotProvided
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE:
+            self = .mismatchedType
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY:
+            self = .relationshipInconsistency
+        default:
+            preconditionFailure()
         }
     }
 }

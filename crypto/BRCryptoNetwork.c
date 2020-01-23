@@ -608,6 +608,12 @@ cryptoNetworkRequiresMigration (BRCryptoNetwork network) {
             CRYPTO_NETWORK_TYPE_BCH == network->canonicalType);
 }
 
+extern const char *
+cryptoNetworkGetETHNetworkName (BRCryptoNetwork network) {
+    BREthereumNetwork ethNetwork = cryptoNetworkAsETH(network);
+    return networkGetName(ethNetwork);
+}
+
 // TODO(discuss): Is it safe to give out this pointer?
 private_extern const BRChainParams *
 cryptoNetworkAsBTC (BRCryptoNetwork network) {

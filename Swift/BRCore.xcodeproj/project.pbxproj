@@ -261,6 +261,7 @@
 		3CCB1363224D94C300ADCDB9 /* BRCryptoBaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */; };
 		3CCC61E8228C6C2000C0A13E /* BRCryptoHash.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */; };
 		3CCC61EB228C7FB500C0A13E /* BRCryptoFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCC61EA228C7FB500C0A13E /* BRCryptoFeeBasis.c */; };
+		3CCCBAC223CE969000AFBDBC /* Initial Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3CCCBAC123CE969000AFBDBC /* Initial Screen.storyboard */; };
 		3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B721AC90850032637A /* WalletViewController.swift */; };
@@ -713,6 +714,7 @@
 		3CCB13672252B58C00ADCDB9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoHash.c; sourceTree = "<group>"; };
 		3CCC61EA228C7FB500C0A13E /* BRCryptoFeeBasis.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoFeeBasis.c; sourceTree = "<group>"; };
+		3CCCBAC123CE969000AFBDBC /* Initial Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Initial Screen.storyboard"; sourceTree = "<group>"; };
 		3CCD36AA21A36B590032637A /* BREthereumBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumBase.h; sourceTree = "<group>"; };
 		3CCD36AE21A4B1EB0032637A /* BREthereumClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumClient.h; sourceTree = "<group>"; };
 		3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRWalletManager.h; sourceTree = "<group>"; };
@@ -976,6 +978,7 @@
 				3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */,
 				3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */,
 				3CCD36C321AC92210032637A /* Support.swift */,
+				3CCCBAC123CE969000AFBDBC /* Initial Screen.storyboard */,
 				3C18F8B721950746006F738F /* Main.storyboard */,
 				3C18F8BA21950748006F738F /* Assets.xcassets */,
 				3C18F8BC21950748006F738F /* LaunchScreen.storyboard */,
@@ -1880,6 +1883,7 @@
 				3C1D1F2222ECDD760028B20C /* CoreTestsConfig.json in Resources */,
 				3C18F8B921950746006F738F /* Main.storyboard in Resources */,
 				3C4B1AA8234CE14700189DD5 /* InstallCoreTestsConfig.sh in Resources */,
+				3CCCBAC223CE969000AFBDBC /* Initial Screen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2430,6 +2434,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 0;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2444,7 +2449,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0;
+				MARKETING_VERSION = 5.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_CFLAGS = (
@@ -2469,6 +2474,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 0;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2483,7 +2489,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0;
+				MARKETING_VERSION = 5.0;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCrypto;

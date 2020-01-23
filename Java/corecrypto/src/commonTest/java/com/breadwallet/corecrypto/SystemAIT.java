@@ -266,17 +266,22 @@ public class SystemAIT {
 
     @Test
     public void testSystemBtc() {
-        testSystemForCurrency("btc", WalletManagerMode.API_ONLY, AddressScheme.BTC_LEGACY);
+        testSystemForCurrency("btc", WalletManagerMode.API_ONLY, AddressScheme.BTC_LEGACY, 0);
     }
 
     @Test
     public void testSystemBch() {
-        testSystemForCurrency("bch", WalletManagerMode.P2P_ONLY, AddressScheme.BTC_LEGACY);
+        testSystemForCurrency("bch", WalletManagerMode.P2P_ONLY, AddressScheme.BTC_LEGACY, 0);
     }
 
     @Test
     public void testSystemEth() {
-        testSystemForCurrency("eth", WalletManagerMode.API_ONLY, AddressScheme.ETH_DEFAULT);
+        testSystemForCurrency("eth", WalletManagerMode.API_ONLY, AddressScheme.ETH_DEFAULT, 0);
+    }
+
+    @Test
+    public void testSystemXrp() {
+        testSystemForCurrency("xrp", WalletManagerMode.API_ONLY, AddressScheme.GEN_DEFAULT, 20);
     }
 
     @Test
@@ -314,7 +319,7 @@ public class SystemAIT {
         testSystemMigrationFailureOnBlockForBitcoinCurrency("bch");
     }
 
-    private void testSystemForCurrency(String currencyCode, WalletManagerMode mode, AddressScheme scheme) {
+    private void testSystemForCurrency(String currencyCode, WalletManagerMode mode, AddressScheme scheme, long balanceMinimum) {
         RecordingSystemListener recorder = HelpersAIT.createRecordingListener();
         System system = HelpersAIT.createAndConfigureSystemWithListener(coreDataDir, recorder);
 
@@ -355,6 +360,8 @@ public class SystemAIT {
         assertEquals(manager.getCurrency(), wallet.getCurrency());
         assertEquals(network.getCurrency(), wallet.getCurrency());
         assertEquals(Amount.create(0, manager.getBaseUnit()), wallet.getBalance());
+        assertEquals(Optional.of(Amount.create(balanceMinimum, manager.getDefaultUnit())), wallet.getBalanceMinimum());
+        assertTrue(!wallet.getBalanceMaximum().isPresent());
         assertEquals(WalletState.CREATED, wallet.getState());
         assertEquals(0, wallet.getTransfers().size());
     }
