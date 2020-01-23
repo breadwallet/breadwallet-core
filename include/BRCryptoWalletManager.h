@@ -169,7 +169,7 @@ extern "C" {
     /// Can return NULL
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
-                               BRCryptoCWMClient client,
+                               BRCryptoClient client,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
                                BRCryptoSyncMode mode,
@@ -260,6 +260,16 @@ extern "C" {
     extern void
     cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
                                     BRCryptoSyncDepth depth);
+
+    // TODO: Workaround to create a TransferEvent.created for GEN (required CWM)
+    extern BRCryptoTransfer
+    cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
+                                       BRCryptoWallet wallet,
+                                       BRCryptoAddress target,
+                                       BRCryptoAmount amount,
+                                       BRCryptoFeeBasis estimatedFeeBasis,
+                                       size_t attributesCount,
+                                       BRCryptoTransferAttribute *attributes);
 
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,

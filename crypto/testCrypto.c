@@ -359,64 +359,68 @@ _CWMAbuseSwapThread (void *context) {
 // TODO(fix): The below callbacks leak state
 
 static void
-_CWMNopGetBlockNumberBtcCallback (BRCryptoCWMClientContext context,
+_CWMNopGetBalanceCallback (BRCryptoClientContext context,
+                           OwnershipGiven BRCryptoWalletManager manager,
+                           OwnershipGiven BRCryptoClientCallbackState callbackState,
+                           OwnershipKept const char **addresses,
+                           size_t addressesCount,
+                           OwnershipKept const char *issuer) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
+_CWMNopGetBlockNumberCallback (BRCryptoClientContext context,
+                               OwnershipGiven BRCryptoWalletManager manager,
+                               OwnershipGiven BRCryptoClientCallbackState callbackState) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
+_CWMNopGetTransactionsCallback (BRCryptoClientContext context,
+                                OwnershipGiven BRCryptoWalletManager manager,
+                                OwnershipGiven BRCryptoClientCallbackState callbackState,
+                                OwnershipKept const char **addresses,
+                                size_t addressCount,
+                                OwnershipKept const char *currency,
+                                uint64_t begBlockNumber,
+                                uint64_t endBlockNumber) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
+_CWMNopGetTransfersCallback (BRCryptoClientContext context,
+                             OwnershipGiven BRCryptoWalletManager manager,
+                             OwnershipGiven BRCryptoClientCallbackState callbackState,
+                             OwnershipKept const char **addresses,
+                             size_t addressCount,
+                             OwnershipKept const char *currency,
+                             uint64_t begBlockNumber,
+                             uint64_t endBlockNumber) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
+_CWMNopSubmitTransactionCallback (BRCryptoClientContext context,
                                   OwnershipGiven BRCryptoWalletManager manager,
-                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
+                                  OwnershipGiven BRCryptoClientCallbackState callbackState,
+                                  OwnershipKept const uint8_t *transaction,
+                                  size_t transactionLength,
+                                  OwnershipKept const char *hashAsHex) {
     cryptoWalletManagerGive (manager);
 }
 
 static void
-_CWMNopGetTransactionsBtcCallback (BRCryptoCWMClientContext context,
-                                   OwnershipGiven BRCryptoWalletManager manager,
-                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                   OwnershipKept const char **addresses,
-                                   size_t addressCount,
-                                   uint64_t begBlockNumber,
-                                   uint64_t endBlockNumber) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopSubmitTransactionBtcCallback (BRCryptoCWMClientContext context,
-                                     OwnershipGiven BRCryptoWalletManager manager,
-                                     OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                     OwnershipKept uint8_t *transaction,
-                                     size_t transactionLength,
-                                     OwnershipKept const char *hashAsHex) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetEtherBalanceEthCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *address) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetTokenBalanceEthCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *address,
-                                            OwnershipKept const char *tokenAddress) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetGasPriceEthCallback (BRCryptoCWMClientContext context,
+_CWMNopGetGasPriceEthCallback (BRCryptoClientContext context,
                                         OwnershipGiven BRCryptoWalletManager manager,
-                                        OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                        OwnershipGiven BRCryptoClientCallbackState callbackState,
                                         OwnershipKept const char *network) {
     cryptoWalletManagerGive (manager);
 }
 
 static void
-_CWMNopEstimateGasEthCallback (BRCryptoCWMClientContext context,
+_CWMNopEstimateGasEthCallback (BRCryptoClientContext context,
                                         OwnershipGiven BRCryptoWalletManager manager,
-                                        OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                        OwnershipGiven BRCryptoClientCallbackState callbackState,
                                         OwnershipKept const char *network,
                                         OwnershipKept const char *from,
                                         OwnershipKept const char *to,
@@ -427,42 +431,9 @@ _CWMNopEstimateGasEthCallback (BRCryptoCWMClientContext context,
 }
 
 static void
-_CWMNopSubmitTransactionEthCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *transaction) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetTransactionsEthCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *network,
-                                            OwnershipKept const char *address,
-                                            uint64_t begBlockNumber,
-                                            uint64_t endBlockNumber) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetLogsEthCallback (BRCryptoCWMClientContext context,
+_CWMNopGetBlocksEthCallback (BRCryptoClientContext context,
                                     OwnershipGiven BRCryptoWalletManager manager,
-                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                    OwnershipKept const char *network,
-                                    OwnershipKept const char *contract,
-                                    OwnershipKept const char *address,
-                                    OwnershipKept const char *event,
-                                    uint64_t begBlockNumber,
-                                    uint64_t endBlockNumber) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetBlocksEthCallback (BRCryptoCWMClientContext context,
-                                    OwnershipGiven BRCryptoWalletManager manager,
-                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                    OwnershipGiven BRCryptoClientCallbackState callbackState,
                                     OwnershipKept const char *network,
                                     OwnershipKept const char *address, // disappears immediately
                                     BREthereumSyncInterestSet interests,
@@ -472,63 +443,18 @@ _CWMNopGetBlocksEthCallback (BRCryptoCWMClientContext context,
 }
 
 static void
-_CWMNopGetTokensEthCallback (BRCryptoCWMClientContext context,
+_CWMNopGetTokensEthCallback (BRCryptoClientContext context,
                                     OwnershipGiven BRCryptoWalletManager manager,
-                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
+                                    OwnershipGiven BRCryptoClientCallbackState callbackState) {
     cryptoWalletManagerGive (manager);
 }
 
 static void
-_CWMNopGetBlockNumberEthCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *network) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetNonceEthCallback (BRCryptoCWMClientContext context,
+_CWMNopGetNonceEthCallback (BRCryptoClientContext context,
                                     OwnershipGiven BRCryptoWalletManager manager,
-                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                    OwnershipGiven BRCryptoClientCallbackState callbackState,
                                     OwnershipKept const char *network,
                                     OwnershipKept const char *address) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetBlockNumberGenCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetTransactionsGenCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept const char *address,
-                                            uint64_t begBlockNumber,
-                                            uint64_t endBlockNumber) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopGetTransfersGenCallback (BRCryptoCWMClientContext context,
-                                OwnershipGiven BRCryptoWalletManager manager,
-                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                OwnershipKept const char *address,
-                                uint64_t begBlockNumber,
-                                uint64_t endBlockNumber) {
-    cryptoWalletManagerGive (manager);
-}
-
-static void
-_CWMNopSubmitTransactionGenCallback (BRCryptoCWMClientContext context,
-                                            OwnershipGiven BRCryptoWalletManager manager,
-                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                            OwnershipKept uint8_t *transaction,
-                                            size_t transactionLength,
-                                            OwnershipKept const char *hashAsHex) {
     cryptoWalletManagerGive (manager);
 }
 
@@ -835,6 +761,10 @@ _CWMEventRecordingTransferCallback (BRCryptoCWMListenerContext context,
     pthread_mutex_unlock (&state->lock);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static size_t
 CWMEventRecordingGetNextEventIndexByType(CWMEventRecordingState *state,
                                          size_t startIndex,
@@ -888,6 +818,8 @@ CWMEventRecordingGetNextWalletManagerEventIndexForState(CWMEventRecordingState *
     }
     return SIZE_MAX;
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 static int
 CWMEventRecordingVerifyEventPairs (CWMEventRecordingState *state) {
@@ -991,38 +923,20 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
         _CWMEventRecordingTransferCallback,
     };
 
-    BRCryptoCWMClientBTC btcClient = (BRCryptoCWMClientBTC) {
-        _CWMNopGetBlockNumberBtcCallback,
-        _CWMNopGetTransactionsBtcCallback,
-        _CWMNopSubmitTransactionBtcCallback,
-    };
+    BRCryptoClient client = (BRCryptoClient) {
+        state,
+        _CWMNopGetBalanceCallback,
+        _CWMNopGetBlockNumberCallback,
+        _CWMNopGetTransactionsCallback,
+        _CWMNopGetTransfersCallback,
+        _CWMNopSubmitTransactionCallback,
 
-    BRCryptoCWMClientETH ethClient = (BRCryptoCWMClientETH) {
-        _CWMNopGetEtherBalanceEthCallback,
-        _CWMNopGetTokenBalanceEthCallback,
+        // ETH
         _CWMNopGetGasPriceEthCallback,
         _CWMNopEstimateGasEthCallback,
-        _CWMNopSubmitTransactionEthCallback,
-        _CWMNopGetTransactionsEthCallback,
-        _CWMNopGetLogsEthCallback,
         _CWMNopGetBlocksEthCallback,
         _CWMNopGetTokensEthCallback,
-        _CWMNopGetBlockNumberEthCallback,
         _CWMNopGetNonceEthCallback,
-    };
-
-    BRCryptoCWMClientGEN genClient = (BRCryptoCWMClientGEN) {
-        _CWMNopGetBlockNumberGenCallback,
-        _CWMNopGetTransactionsGenCallback,
-        _CWMNopGetTransfersGenCallback,
-        _CWMNopSubmitTransactionGenCallback,
-    };
-
-    BRCryptoCWMClient client = (BRCryptoCWMClient) {
-        state,
-        btcClient,
-        ethClient,
-        genClient,
     };
 
     return cryptoWalletManagerCreate (listener, client, account, network, mode, scheme, storagePath);

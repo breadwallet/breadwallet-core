@@ -180,6 +180,11 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumRlpType type,
                      BRRlpCoder coder);
 
+extern BRRlpData
+transactionGetRlpData (BREthereumTransaction transaction,
+                       BREthereumNetwork network,
+                       BREthereumRlpType type);
+
 extern char *
 transactionGetRlpHexEncoded (BREthereumTransaction transaction,
                              BREthereumNetwork network,

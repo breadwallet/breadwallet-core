@@ -272,6 +272,13 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
     fields[index].fieldCode = 2;
     fields[index++].data.i32 = transaction->flags;
 
+    // Always add in the destination tag - the Ripple system will ignore it
+    // but exchanges use it to identify internally hosted accounts that share
+    // a single ripple address.
+    fields[index].typeCode = 2;
+    fields[index].fieldCode = 14;
+    fields[index++].data.i32 = transaction->payment.destinationTag;
+
     if (signature) {
         fields[index].typeCode = 7;
         fields[index].fieldCode = 4;
@@ -313,7 +320,7 @@ rippleTransactionSerializeImpl (BRRippleTransaction transaction,
     // NOTE - the address fields will hold a BRRippleAddress pointer BUT
     // they are owned by the the transaction or transfer so we don't need
     // to worry about the memory.
-    BRRippleField fields[10];
+    BRRippleField fields[11];
 
     transaction->fee = calculateFee(transaction);
     int num_fields = setFieldInfo(fields, transaction, signature, sig_length);
@@ -496,6 +503,10 @@ extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction)
     return bytes;
 }
 
+extern void rippleTransactionSetInvoiceID (BRRippleTransaction transaction, UInt256 invoiceId) {
+    memcpy (transaction->payment.invoiceId, invoiceId.u8, sizeof (transaction->payment.invoiceId));
+}
+
 extern BRRippleSourceTag rippleTransactionGetSourceTag(BRRippleTransaction transaction)
 {
     assert(transaction);
@@ -506,6 +517,10 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 {
     assert(transaction);
     return transaction->payment.destinationTag;
+}
+
+extern void rippleTransactionSetDestinationTag (BRRippleTransaction transaction, BRRippleDestinationTag tag) {
+    transaction->payment.destinationTag = tag;
 }
 
 extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction)
@@ -662,3 +677,4 @@ rippleTransactionHashEqual (const void *h1, const void *h2) {
 extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize) {
     return BRSetNew (rippleTransactionHashValue, rippleTransactionHashEqual, initialSize);
 }
+

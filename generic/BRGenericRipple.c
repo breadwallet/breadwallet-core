@@ -186,6 +186,13 @@ genericRippleWalletGetBalance (BRGenericWalletRef wallet) {
     return createUInt256 (rippleWalletGetBalance ((BRRippleWallet) wallet));
 }
 
+static UInt256
+genericRippleWalletGetBalanceLimit (BRGenericWalletRef wallet,
+                                    int asMaximum,
+                                    int *hasLimit) {
+    return createUInt256 (rippleWalletGetBalanceLimit ((BRRippleWallet) wallet, asMaximum, hasLimit));
+}
+
 static BRGenericAddressRef
 genericRippleGetAddress (BRGenericWalletRef wallet, int asSource) {
     return (BRGenericAddressRef) (asSource
@@ -212,17 +219,47 @@ genericRippleWalletAddTransfer (BRGenericWalletRef wallet,
     rippleWalletAddTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
 }
 
+static void
+genericRippleWalletRemTransfer (BRGenericWalletRef wallet,
+                                OwnershipKept BRGenericTransferRef transfer) {
+    rippleWalletRemTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
+}
+
+#define FIELD_OPTION_DESTINATION_TAG        "DestinationTag"
+#define FIELD_OPTION_INVOICE_ID             "InvoiceId"
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
                                    UInt256 amount,
-                                   BRGenericFeeBasis estimatedFeeBasis) {
+                                   BRGenericFeeBasis estimatedFeeBasis,
+                                   size_t attributeCount,
+                                   BRGenericTransferAttribute *attributes) {
     BRRippleAddress source  = rippleWalletGetSourceAddress ((BRRippleWallet) wallet);
     BRRippleUnitDrops drops = amount.u64[0];
 
     BRRippleTransfer transfer = rippleTransferCreateNew (source,
                                                          (BRRippleAddress) target,
                                                          drops);
+
+    BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
+
+    for (size_t index = 0; index < attributeCount; index++) {
+        BRGenericTransferAttribute *attribute = &attributes[index];
+        if (NULL != attribute->value) {
+            if (0 == strcmp (attribute->key, FIELD_OPTION_DESTINATION_TAG)) {
+                BRCoreParseStatus tag;
+                sscanf (attribute->value, "%u", &tag);
+                rippleTransactionSetDestinationTag (transaction, tag);
+            }
+            else if (0 == strcmp (attribute->key, FIELD_OPTION_INVOICE_ID)) {
+                // TODO:
+            }
+            else {
+                // TODO: Impossible if validated?
+            }
+        }
+    }
 
     rippleAddressFree(source);
 
@@ -238,6 +275,52 @@ genericRippleWalletEstimateFeeBasis (BRGenericWalletRef wallet,
         pricePerCostFactor,
         1
     };
+}
+
+static const char **
+genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
+                                                int asRequired,
+                                                size_t *count) {
+    static size_t rippleTransactionFieldRequiredCount = 0;
+    static const char **rippleTransactionFieldRequiredNames = NULL;
+
+    static size_t rippleTransactionFieldOptionalCount = 2;
+    static const char *rippleTransactionFieldOptionalNames[] = {
+        FIELD_OPTION_DESTINATION_TAG,
+        FIELD_OPTION_INVOICE_ID
+    };
+
+    if (asRequired) { *count = rippleTransactionFieldRequiredCount; return rippleTransactionFieldRequiredNames; }
+    else {            *count = rippleTransactionFieldOptionalCount; return rippleTransactionFieldOptionalNames; }
+}
+
+static int
+genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
+                                                 BRGenericTransferAttribute attribute) {
+    // If attribute.value is NULL, we validate unless the attribute.value is required.
+    if (NULL == attribute.value) return !attribute.isRequired;
+
+    if (0 == strcmp (attribute.key, FIELD_OPTION_DESTINATION_TAG)) {
+        uint32_t tag;
+        return 1 == sscanf(attribute.value, "%u", &tag);
+    }
+    else if (0 == strcmp (attribute.key, FIELD_OPTION_INVOICE_ID)) {
+        BRCoreParseStatus status;
+        createUInt256Parse(attribute.value, 10, &status);
+        return CORE_PARSE_OK == status;
+    }
+    else return 0;
+}
+
+static int
+genericRippleWalletValidateTransactionAttributes (BRGenericWalletRef wallet,
+                                                  size_t attributesCount,
+                                                  BRGenericTransferAttribute *attributes) {
+    // Validate one-by-one
+    for (size_t index = 0; index < attributesCount; index++)
+        if (0 == genericRippleWalletValidateTransactionAttribute (wallet, attributes[index]))
+            return 0;
+    return 1;
 }
 
 // MARK: - Generic Manager
@@ -320,12 +403,19 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletCreate,
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
+        /* set balance */
+        genericRippleWalletGetBalanceLimit,
         genericRippleGetAddress,
         genericRippleWalletHasAddress,
         genericRippleWalletHasTransfer,
         genericRippleWalletAddTransfer,
+        genericRippleWalletRemTransfer,
         genericRippleWalletCreateTransfer,
-        genericRippleWalletEstimateFeeBasis
+        genericRippleWalletEstimateFeeBasis,
+
+        genericRippleWalletGetTransactionAttributeKeys,
+        genericRippleWalletValidateTransactionAttribute,
+        genericRippleWalletValidateTransactionAttributes
     },
 
     { // Wallet Manager

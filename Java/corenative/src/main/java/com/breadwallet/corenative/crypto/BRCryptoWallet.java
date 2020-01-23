@@ -38,6 +38,22 @@ public class BRCryptoWallet extends PointerType {
         return new BRCryptoAmount(CryptoLibraryDirect.cryptoWalletGetBalance(thisPtr));
     }
 
+    public Optional<BRCryptoAmount> getBalanceMaximum () {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletGetBalanceMaximum(thisPtr)
+        ).transform(BRCryptoAmount::new);
+    }
+
+    public Optional<BRCryptoAmount> getBalanceMinimum () {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletGetBalanceMinimum(thisPtr)
+        ).transform(BRCryptoAmount::new);
+    }
+
     public List<BRCryptoTransfer> getTransfers() {
         Pointer thisPtr = this.getPointer();
 

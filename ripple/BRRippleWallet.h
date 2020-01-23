@@ -89,6 +89,20 @@ extern void
 rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance);
 
 /**
+ * Return the ripple balance limit for this wallet
+ *
+ * @param wallet the specified ripple wallet
+ * @param asMaximum if true, return the maximum limit; otherwise the minimum limit
+ * @param hasLimit set to true (1) if the wallet has a limit
+ *
+ * @return the limit
+ */
+extern BRRippleUnitDrops
+rippleWalletGetBalanceLimit (BRRippleWallet wallet,
+                             int asMaximum,
+                             int *hasLimit);
+
+/**
  * Set the ripple fee basis default amount
  *
  * @param wallet     the specified wallet
@@ -112,6 +126,9 @@ rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
 extern int rippleWalletHasTransfer (BRRippleWallet wallet, BRRippleTransfer transfer);
 
 extern void rippleWalletAddTransfer (BRRippleWallet wallet,
+                                     OwnershipKept BRRippleTransfer transfer);
+
+extern void rippleWalletRemTransfer (BRRippleWallet wallet,
                                      OwnershipKept BRRippleTransfer transfer);
 
 #endif

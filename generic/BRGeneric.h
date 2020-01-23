@@ -159,6 +159,11 @@ extern "C" {
     extern UInt256
     genWalletGetBalance (BRGenericWallet wallet);
 
+    extern UInt256
+    genWalletGetBalanceLimit (BRGenericWallet wallet,
+                              BRCryptoBoolean asMaximum,
+                              BRCryptoBoolean *hasLimit);
+
     extern BRGenericAddress
     genWalletGetAddress (BRGenericWallet wid);
 
@@ -181,17 +186,45 @@ extern "C" {
     genWalletAddTransfer (BRGenericWallet wallet,
                           OwnershipKept BRGenericTransfer transfer);
 
+    extern void
+    genWalletRemTransfer (BRGenericWallet wallet,
+                          OwnershipKept BRGenericTransfer transfer);
+
     extern BRGenericTransfer
     genWalletCreateTransfer (BRGenericWallet wid,
                              BRGenericAddress target,
                              UInt256 amount,
                              BRGenericFeeBasis estimatedFeeBasis);
 
+    extern BRGenericTransfer
+    genWalletCreateTransferWithAttributes (BRGenericWallet wid,
+                                           BRGenericAddress target,
+                                           UInt256 amount,
+                                           BRGenericFeeBasis estimatedFeeBasis,
+                                           size_t attributesCount,
+                                           BRGenericTransferAttribute *attributes);
+
     extern BRGenericFeeBasis
     genWalletEstimateTransferFee (BRGenericWallet wid,
                                   BRGenericAddress target,
                                   UInt256 amount,
                                   UInt256 pricePerCostFactor);
+
+    extern size_t
+    genWalletGetTransferAttributeCount (BRGenericWallet wid);
+
+    extern const BRGenericTransferAttribute
+    genWalletGetTransferAttributeAt (BRGenericWallet wid,
+                                     size_t index);
+
+    extern BRCryptoBoolean
+    genWalletValidateTransferAttribute (BRGenericWallet wid,
+                                        BRGenericTransferAttribute attribute);
+
+    extern BRCryptoBoolean
+    genWalletValidateTransferAttributes (BRGenericWallet wid,
+                                         size_t attributesCount,
+                                         BRGenericTransferAttribute *attributes);
 
     // MARK: Generic (Wallet) Manager
 

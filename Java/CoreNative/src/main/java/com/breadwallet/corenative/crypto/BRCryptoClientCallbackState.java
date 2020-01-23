@@ -10,13 +10,13 @@ package com.breadwallet.corenative.crypto;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public class BRCryptoCWMClientCallbackState extends PointerType {
+public class BRCryptoClientCallbackState extends PointerType {
 
-    public BRCryptoCWMClientCallbackState() {
+    public BRCryptoClientCallbackState() {
         super();
     }
 
-    public BRCryptoCWMClientCallbackState(Pointer address) {
+    public BRCryptoClientCallbackState(Pointer address) {
         super(address);
     }
 }

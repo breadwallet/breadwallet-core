@@ -91,7 +91,7 @@ cryptoWalletManagerReleaseCurrenciesOfIntereest (BRCryptoWalletManager cwm,
 
 static BRCryptoWalletManager
 cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
-                                   BRCryptoCWMClient client,
+                                   BRCryptoClient client,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
@@ -145,7 +145,7 @@ cryptoWalletManagerWipe (BRCryptoNetwork network,
 
 extern BRCryptoWalletManager
 cryptoWalletManagerCreate (BRCryptoCWMListener listener,
-                           BRCryptoCWMClient client,
+                           BRCryptoClient client,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
                            BRCryptoSyncMode mode,
@@ -781,7 +781,59 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
         cryptoTransferStateRelease (&oldState);
         cryptoTransferStateRelease (&newState);
     }
+
+    //
+    // If this is an error case, then we must remove the genericTransfer from the
+    // genericWallet; otherwise the GEN balance and sequence number will be off.
+    //
+    // However, we leave the `transfer` in `wallet`.  And trouble is forecasted...
+    //
+    if (GENERIC_TRANSFER_STATE_ERRORED == newGenericState.type) {
+        genWalletRemTransfer(cryptoWalletAsGEN(wallet), genericTransfer);
+
+        BRCryptoAmount balance = cryptoWalletGetBalance(wallet);
+        cwm->listener.walletEventCallback (cwm->listener.context,
+                                           cryptoWalletManagerTake (cwm),
+                                           cryptoWalletTake (cwm->wallet),
+                                           (BRCryptoWalletEvent) {
+                                               CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                               { .balanceUpdated = { balance }}
+                                           });
+    }
+
     pthread_mutex_unlock (&cwm->lock);
+}
+
+extern BRCryptoTransfer
+cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
+                                   BRCryptoWallet wallet,
+                                   BRCryptoAddress target,
+                                   BRCryptoAmount amount,
+                                   BRCryptoFeeBasis estimatedFeeBasis,
+                                   size_t attributesCount,
+                                   BRCryptoTransferAttribute *attributes) {
+    BRCryptoTransfer transfer = cryptoWalletCreateTransfer (wallet, target, amount,
+                                                            estimatedFeeBasis,
+                                                            attributesCount,
+                                                            attributes);
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            if (NULL != transfer) {
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake(transfer),
+                                                     (BRCryptoTransferEvent) {
+                    CRYPTO_TRANSFER_EVENT_CREATED
+                });
+            }
+            break;
+    }
+    return transfer;
 }
 
 extern BRCryptoBoolean
@@ -945,6 +997,11 @@ cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
             // to wallet.  So, we'll add transfer here...
             cryptoWalletAddTransfer (wallet, transfer);
 
+            // Add the signed/submitted transfer to the GEN wallet.  If the submission fails
+            // we'll remove it then.  For now, include transfer when computing the balance and
+            // the sequence-number 
+            genWalletAddTransfer (cryptoWalletAsGEN(wallet), cryptoTransferAsGEN(transfer));
+
             // ... and announce the wallet's newly added transfer
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
@@ -999,6 +1056,8 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             // Amount may be zero if insufficient fees
             *isZeroIfInsuffientFunds = CRYPTO_TRUE;
 
+            // NOTE: We know BTC/BCH has a minimum balance of zero.
+
             uint64_t balance     = BRWalletBalance (wid);
             uint64_t feePerKB    = 1000 * cryptoNetworkFeeAsBTC (fee);
             uint64_t amountInSAT = (CRYPTO_FALSE == asMaximum
@@ -1030,6 +1089,8 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             else {
                 BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
 
+                // NOTE: We know ETH has a minimum balance of zero.
+
                 amount = (AMOUNT_ETHER == amountGetType(ethAmount)
                           ? amountGetEther(ethAmount).valueInWEI
                           : amountGetTokenQuantity(ethAmount).valueAsInteger);
@@ -1048,6 +1109,16 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
 
                 // Get the balance
                 UInt256 balance = genWalletGetBalance (wallet->u.gen);
+
+                // We are looking for the maximum amount; check if the wallet has a minimum
+                // balance.  If so, reduce the above balance.
+                BRCryptoBoolean hasMinimum = CRYPTO_FALSE;
+                UInt256 balanceMinimum = genWalletGetBalanceLimit (wallet->u.gen, CRYPTO_FALSE, &hasMinimum);
+
+                if (CRYPTO_TRUE == hasMinimum) {
+                    balance = subUInt256_Negative(balance, balanceMinimum, &negative);
+                    if (negative) balance = UINT256_ZERO;
+                }
 
                 // Get the pricePerCostFactor for the (network) fee.
                 BRCryptoAmount pricePerCostFactor = cryptoNetworkFeeGetPricePerCostFactor (fee);
