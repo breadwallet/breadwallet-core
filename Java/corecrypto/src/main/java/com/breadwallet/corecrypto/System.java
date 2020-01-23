@@ -2473,7 +2473,8 @@ final class System implements com.breadwallet.crypto.System {
                                                         o.o1.getAmount().getCurrencyId(),
                                                         o.o2,
                                                         timestamp,
-                                                        blockHeight);
+                                                        blockHeight,
+                                                        o.o1.getMeta());
                                             }
                                         }
 
