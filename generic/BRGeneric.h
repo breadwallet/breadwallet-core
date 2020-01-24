@@ -226,6 +226,12 @@ extern "C" {
                                      size_t index);
 
     extern BRCryptoBoolean
+    genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
+                                         BRGenericAddress target,
+                                         const char *key,
+                                         BRCryptoBoolean *isRequired);
+
+    extern BRCryptoBoolean
     genWalletValidateTransferAttribute (BRGenericWallet wid,
                                         BRGenericTransferAttribute attribute);
 

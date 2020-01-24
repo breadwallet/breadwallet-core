@@ -25,7 +25,7 @@ public class BRCryptoTransferAttribute extends PointerType {
     public Optional<String> getValue() {
         Pointer thisPtr = this.getPointer();
 
-        return Optional.of (CryptoLibraryDirect.cryptoTransferAttributeGetValue(thisPtr))
+        return Optional.fromNullable (CryptoLibraryDirect.cryptoTransferAttributeGetValue(thisPtr))
                 .transform(v -> v.getString(0, "UTF-8"));
     }
 

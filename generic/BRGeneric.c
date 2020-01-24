@@ -513,6 +513,50 @@ genWalletGetTransferAttributeAt (BRGenericWallet wallet,
 }
 
 extern BRCryptoBoolean
+genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
+                                     BRGenericAddress target,
+                                     const char *key,
+                                     BRCryptoBoolean *isRequired) {
+    size_t countRequired, countOptional;
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+    const char **keysOptional = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 0, &countOptional);
+
+    if (NULL != keysRequired)
+        for (size_t index = 0; index < countRequired; index++)
+            if (0 == strcmp (key, keysRequired[index])) {
+                *isRequired = CRYPTO_TRUE;
+                return CRYPTO_TRUE;
+            }
+
+    if (NULL != keysOptional)
+        for (size_t index = 0; index < countOptional; index++)
+            if (0 == strcmp (key, keysOptional[index])) {
+                *isRequired = CRYPTO_FALSE;
+                return CRYPTO_TRUE;
+            }
+
+    *isRequired = CRYPTO_FALSE;
+    return CRYPTO_FALSE;
+}
+
+
+extern BRCryptoBoolean
+genWalletRequiresTransferAttributeForKey (BRGenericWallet wallet,
+                                          BRGenericAddress target,
+                                          const char *key) {
+    size_t countRequired;
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+
+    if (NULL != keysRequired)
+        for (size_t index = 0; NULL != keysRequired[index]; index++)
+            if (0 == strcmp (key, keysRequired[index]))
+                return CRYPTO_TRUE;
+    return CRYPTO_FALSE;
+}
+
+extern BRCryptoBoolean
 genWalletValidateTransferAttribute (BRGenericWallet wallet,
                                     BRGenericTransferAttribute attribute) {
     return AS_CRYPTO_BOOLEAN (wallet->handlers.validateTransactionAttribute (wallet->ref, attribute));

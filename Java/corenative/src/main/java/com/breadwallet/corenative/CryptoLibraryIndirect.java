@@ -34,6 +34,20 @@ public final class CryptoLibraryIndirect {
         return INSTANCE.cryptoWalletValidateTransferAttributes(wallet, countOfAttributes, attributes, validates);
     }
 
+    public static void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
+                                                     String hash, String uids, String sourceAddr, String targetAddr,
+                                                     String amount, String currency, String fee,
+                                                     long timestamp, long blockHeight,
+                                                     SizeT attributesCount,
+                                                     String[] attributeKeys,
+                                                     String[] attributeVals) {
+        INSTANCE.cwmAnnounceGetTransferItemGEN(cwm, callbackState,
+                hash, uids, sourceAddr, targetAddr,
+                amount, currency, fee,
+                timestamp, blockHeight,
+                attributesCount, attributeKeys, attributeVals);
+    }
+
     public interface LibraryInterface extends Library {
 
         // crypto/BRCryptoNetwork.h
@@ -42,5 +56,14 @@ public final class CryptoLibraryIndirect {
         // crypto/BRCryptoWallet.h
         Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis, SizeT attributesCount, BRCryptoTransferAttribute[] attributes);
         int cryptoWalletValidateTransferAttributes(Pointer wallet, SizeT countOfAttributes, BRCryptoTransferAttribute[] attributes, IntByReference validates);
+
+        void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
+                                           String hash, String uids, String sourceAddr, String targetAddr,
+                                           String amount, String currency, String fee,
+                                           long timestamp, long blockHeight,
+                                           SizeT attributesCount,
+                                           String[] attributeKeys,
+                                           String[] attributeVals);
+
     }
 }

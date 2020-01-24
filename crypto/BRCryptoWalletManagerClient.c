@@ -2093,7 +2093,10 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                OwnershipKept const char *currency,
                                OwnershipKept const char *fee,
                                uint64_t timestamp,
-                               uint64_t blockHeight) {
+                               uint64_t blockHeight,
+                               size_t attributesCount,
+                               OwnershipKept const char **attributeKeys,
+                               OwnershipKept const char **attributeVals) {
     assert (cwm); assert (callbackState);
     assert (CWM_CALLBACK_TYPE_GEN_GET_TRANSFERS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
@@ -2115,6 +2118,34 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                                                    from, to,
                                                                    amount, currency, fee,
                                                                    timestamp, blockHeight);
+
+        // If we are passed in attribues, they will replace any attribute already held
+        // in `genTransfer`.  Specifically, for example, if we created an XRP transfer, then
+        // we might have a 'DestinationTag'.  If the attributes provided do not include
+        // 'DestinatinTag' then that attribute will be lost.  Losing such an attribute would
+        // indicate a BlockSet error in processing transfers.
+        if (attributesCount > 0) {
+            BRGenericAddress genTarget = genTransferGetTargetAddress (genTransfer);
+
+            // Build the transfer attributes
+            BRArrayOf(BRGenericTransferAttribute) genAttributes;
+            array_new(genAttributes, attributesCount);
+            for (size_t index = 0; index < attributesCount; index++) {
+                BRCryptoBoolean isRequiredAttribute;
+                BRCryptoBoolean isAttribute = genWalletHasTransferAttributeForKey (genWallet,
+                                                                                   genTarget,
+                                                                                   attributeKeys[index],
+                                                                                   &isRequiredAttribute);
+                if (CRYPTO_TRUE == isAttribute)
+                    array_add (genAttributes,
+                               genTransferAttributeCreate (attributeKeys[index],
+                                                           attributeVals[index],
+                                                           CRYPTO_TRUE == isRequiredAttribute));
+            }
+            genTransferSetAttributes(genTransfer, genAttributes);
+            genTransferAttributeReleaseAll(genAttributes);
+            genAddressRelease(genTarget);
+        }
 
         // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
         // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by

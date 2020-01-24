@@ -1526,7 +1526,8 @@ extension System {
                             acknowledgements: transferWithFee.acknowledgements,
                             index: transferWithFee.index,
                             transactionId: transferWithFee.transactionId,
-                            blockchainId: transferWithFee.blockchainId)])
+                            blockchainId: transferWithFee.blockchainId,
+                            metaData: transferWithFee.metaData)])
 
                 // Hold the Id for the transfer that we'll add a fee to.
                 let transferForFeeId = transferMatchingFee.map { $0.id } ?? transferWithFee.id
@@ -1630,6 +1631,16 @@ extension System {
                                                             System.mergeTransfers (transaction.transfers, with: accountAddress)
                                                                 .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
                                                                     let (transfer, fee) = arg
+
+                                                                    var metaKeysPtr = (transfer.metaData.map { Array($0.keys)   } ?? [])
+                                                                        .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                    defer { metaKeysPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                                                    var metaValsPtr = (transfer.metaData.map { Array($0.values) } ?? [])
+                                                                        .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                    defer { metaValsPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                                                    // Use MetaData to extract TransferAttribute
                                                                     cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
                                                                                                   transfer.id,
                                                                                                   transfer.source,
@@ -1638,7 +1649,10 @@ extension System {
                                                                                                   transfer.amountCurrency,
                                                                                                   fee,
                                                                                                   timestamp,
-                                                                                                  height)
+                                                                                                  height,
+                                                                                                  metaKeysPtr.count,
+                                                                                                  &metaKeysPtr,
+                                                                                                  &metaValsPtr)
                                                             }
                                                         }
                                                         cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },
