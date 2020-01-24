@@ -554,6 +554,8 @@ cryptoWalletValidateTransferAttributes (BRCryptoWallet wallet,
             }
 
             *validates = genWalletValidateTransferAttributes (wallet->u.gen, genAttributes);
+            genTransferAttributeReleaseAll(genAttributes);
+
             return (CRYPTO_FALSE == *validates
                     ? CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
                     : (BRCryptoTransferAttributeValidationError) ignore);
