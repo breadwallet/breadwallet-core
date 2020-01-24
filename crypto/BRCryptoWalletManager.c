@@ -1393,6 +1393,20 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     if (NULL == transfer) {
         // Create the generic transfer... `transferGeneric` owned by `transfer`
         transfer = cryptoTransferCreateAsGEN (unit, unitForFee, transferGeneric);
+
+        // Fill in any attributes
+        BRArrayOf(BRGenericTransferAttribute) genAttributes = genTransferGetAttributes(transferGeneric);
+        BRArrayOf(BRCryptoTransferAttribute)  attributes;
+        array_new(attributes, array_count(genAttributes));
+        for (size_t index = 0; index < array_count(genAttributes); index++) {
+            array_add (attributes,
+                       cryptoTransferAttributeCreate (genTransferAttributeGetKey(genAttributes[index]),
+                                                      genTransferAttributeGetVal(genAttributes[index]),
+                                                      AS_CRYPTO_BOOLEAN (genTransferAttributeIsRequired(genAttributes[index]))));
+        }
+        cryptoTransferSetAttributes (transfer, attributes);
+        array_free_all (attributes, cryptoTransferAttributeGive);
+
         transferWasCreated = 1;
     }
 

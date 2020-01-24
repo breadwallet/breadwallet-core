@@ -245,14 +245,14 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
     BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
 
     for (size_t index = 0; index < attributeCount; index++) {
-        BRGenericTransferAttribute *attribute = &attributes[index];
-        if (NULL != attribute->value) {
-            if (0 == strcmp (attribute->key, FIELD_OPTION_DESTINATION_TAG)) {
+        BRGenericTransferAttribute attribute = attributes[index];
+        if (NULL != genTransferAttributeGetVal(attribute)) {
+            if (0 == strcmp (genTransferAttributeGetKey(attribute), FIELD_OPTION_DESTINATION_TAG)) {
                 BRCoreParseStatus tag;
-                sscanf (attribute->value, "%u", &tag);
+                sscanf (genTransferAttributeGetVal(attribute), "%u", &tag);
                 rippleTransactionSetDestinationTag (transaction, tag);
             }
-            else if (0 == strcmp (attribute->key, FIELD_OPTION_INVOICE_ID)) {
+            else if (0 == strcmp (genTransferAttributeGetKey(attribute), FIELD_OPTION_INVOICE_ID)) {
                 // TODO:
             }
             else {
@@ -346,16 +346,19 @@ genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
 static int
 genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
                                                  BRGenericTransferAttribute attribute) {
-    // If attribute.value is NULL, we validate unless the attribute.value is required.
-    if (NULL == attribute.value) return !attribute.isRequired;
+    const char *key = genTransferAttributeGetKey (attribute);
+    const char *val = genTransferAttributeGetVal (attribute);
 
-    if (0 == strcmp (attribute.key, FIELD_OPTION_DESTINATION_TAG)) {
+    // If attribute.value is NULL, we validate unless the attribute.value is required.
+    if (NULL == val) return !genTransferAttributeIsRequired(attribute);
+
+    if (0 == strcmp (key, FIELD_OPTION_DESTINATION_TAG)) {
         uint32_t tag;
-        return 1 == sscanf(attribute.value, "%u", &tag);
+        return 1 == sscanf(val, "%u", &tag);
     }
-    else if (0 == strcmp (attribute.key, FIELD_OPTION_INVOICE_ID)) {
+    else if (0 == strcmp (key, FIELD_OPTION_INVOICE_ID)) {
         BRCoreParseStatus status;
-        createUInt256Parse(attribute.value, 10, &status);
+        createUInt256Parse(val, 10, &status);
         return CORE_PARSE_OK == status;
     }
     else return 0;

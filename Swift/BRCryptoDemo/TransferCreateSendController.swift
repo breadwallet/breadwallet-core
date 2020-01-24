@@ -60,7 +60,9 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         self.minimum = Amount.create (double: 0.0, unit: wallet.unit)
         self.maximum = wallet.balance;
 
-        recvField.text = UIPasteboard.general.string
+        if nil == recvField.text || "" == recvField.text! {
+            recvField.text = UIPasteboard.general.string
+        }
         target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
 
         gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
@@ -308,6 +310,7 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
     @IBAction func doUseCoinbase(_ sender: Any) {
         recvField.text = "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg";
+        updateView()
     }
     // Network Fee Picker
 
