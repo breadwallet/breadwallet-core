@@ -17,20 +17,26 @@ import com.sun.jna.ptr.IntByReference;
 
 public final class CryptoLibraryIndirect {
 
+    // JNA does NOT support passing zero length arrays using the indirect interface method; as a result, check
+    // all arrays being passed as arguments for lengths and NULL appropriately
+
     private static final LibraryInterface INSTANCE = Native.load(CryptoLibrary.LIBRARY_NAME, LibraryInterface.class);
 
     // Can this be migrated to CryptoLibraryDirect? Well, not easily. The JNA library explicitly mentions
     // it doesn't support arrays of pointers in direct mapping mode. That said, it has an example of how
     // this can be done (see: com.sun.jna.StringArray).
     public static void cryptoNetworkSetNetworkFees(Pointer network, BRCryptoNetworkFee[] fees, SizeT count) {
+        fees = fees.length == 0 ? null : fees;
         INSTANCE.cryptoNetworkSetNetworkFees(network, fees, count);
     }
 
     public static Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis, SizeT attributesCount, BRCryptoTransferAttribute[] attributes) {
+        attributes = attributes.length == 0 ? null : attributes;
         return INSTANCE.cryptoWalletCreateTransfer(wallet, target, amount, feeBasis, attributesCount, attributes);
     }
 
     public static int cryptoWalletValidateTransferAttributes(Pointer wallet, SizeT countOfAttributes, BRCryptoTransferAttribute[] attributes, IntByReference validates) {
+        attributes = attributes.length == 0 ? null : attributes;
         return INSTANCE.cryptoWalletValidateTransferAttributes(wallet, countOfAttributes, attributes, validates);
     }
 
@@ -41,6 +47,8 @@ public final class CryptoLibraryIndirect {
                                                      SizeT attributesCount,
                                                      String[] attributeKeys,
                                                      String[] attributeVals) {
+        attributeKeys = attributeKeys.length == 0 ? null : attributeKeys;
+        attributeVals = attributeVals.length == 0 ? null : attributeVals;
         INSTANCE.cwmAnnounceGetTransferItemGEN(cwm, callbackState,
                 hash, uids, sourceAddr, targetAddr,
                 amount, currency, fee,
