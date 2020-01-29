@@ -430,7 +430,7 @@ public class BlockchainDbIT {
          blockchainDb.getLogsAsEth(
                  "mainnet",
                  null,
-                 "0x04d542459de6765682d21771d1ba23dc30fb675f",
+                 "0x00000000000000000000000004d542459de6765682d21771d1ba23dc30fb675f",
                  "0xa9059cbb",
                  UnsignedLong.ZERO,
                  UnsignedLong.valueOf(7778000),
