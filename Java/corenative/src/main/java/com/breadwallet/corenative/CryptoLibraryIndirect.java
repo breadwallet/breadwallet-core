@@ -40,7 +40,7 @@ public final class CryptoLibraryIndirect {
         return INSTANCE.cryptoWalletValidateTransferAttributes(wallet, countOfAttributes, attributes, validates);
     }
 
-    public static void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
+    public static void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState, int status,
                                                      String hash, String uids, String sourceAddr, String targetAddr,
                                                      String amount, String currency, String fee,
                                                      long timestamp, long blockHeight,
@@ -49,7 +49,7 @@ public final class CryptoLibraryIndirect {
                                                      String[] attributeVals) {
         attributeKeys = attributeKeys.length == 0 ? null : attributeKeys;
         attributeVals = attributeVals.length == 0 ? null : attributeVals;
-        INSTANCE.cwmAnnounceGetTransferItemGEN(cwm, callbackState,
+        INSTANCE.cwmAnnounceGetTransferItemGEN(cwm, callbackState, status,
                 hash, uids, sourceAddr, targetAddr,
                 amount, currency, fee,
                 timestamp, blockHeight,
@@ -65,7 +65,7 @@ public final class CryptoLibraryIndirect {
         Pointer cryptoWalletCreateTransfer(Pointer wallet, Pointer target, Pointer amount, Pointer feeBasis, SizeT attributesCount, BRCryptoTransferAttribute[] attributes);
         int cryptoWalletValidateTransferAttributes(Pointer wallet, SizeT countOfAttributes, BRCryptoTransferAttribute[] attributes, IntByReference validates);
 
-        void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
+        void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState, int status,
                                            String hash, String uids, String sourceAddr, String targetAddr,
                                            String amount, String currency, String fee,
                                            long timestamp, long blockHeight,
