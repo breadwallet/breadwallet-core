@@ -2148,7 +2148,8 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
         BRGenericTransfer genTransfer = genManagerRecoverTransfer (cwm->u.gen, genWallet, hash, uids,
                                                                    from, to,
                                                                    amount, currency, fee,
-                                                                   timestamp, blockHeight);
+                                                                   timestamp, blockHeight,
+                                                                   CRYPTO_TRANSFER_STATE_ERRORED == status);
 
         genTransferSetState (genTransfer, cwmAnnounceGetTransferStateGEN (genTransfer, status, timestamp, blockHeight));
 

@@ -24,7 +24,8 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
                      BRRippleUnitDrops amount, // For now assume XRP drops.
                      BRRippleUnitDrops fee,
                      BRRippleTransactionHash hash,
-                     uint64_t timestamp, uint64_t blockHeight)
+                     uint64_t timestamp, uint64_t blockHeight,
+                     int error)
 {
     BRRippleTransfer transfer = (BRRippleTransfer) calloc (1, sizeof (struct BRRippleTransferRecord));
     transfer->sourceAddress = rippleAddressClone (from);
@@ -34,6 +35,7 @@ rippleTransferCreate(BRRippleAddress from, BRRippleAddress to,
     transfer->transactionId = hash;
     transfer->timestamp = timestamp;
     transfer->blockHeight = blockHeight;
+    transfer->error = error;
     transfer->transaction = NULL;
     return transfer;
 }
@@ -142,4 +144,9 @@ extern BRRippleTransaction rippleTransferGetTransaction(BRRippleTransfer transfe
 extern int rippleTransferHasSource (BRRippleTransfer transfer,
                                     BRRippleAddress source) {
     return rippleAddressEqual (transfer->sourceAddress, source);
+}
+
+extern int
+rippleTransferHasError(BRRippleTransfer transfer) {
+    return transfer->error;
 }
