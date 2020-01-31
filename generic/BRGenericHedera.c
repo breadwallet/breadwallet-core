@@ -109,6 +109,11 @@ genericHederaTransferCreate (BRGenericAddressRef source,
     return NULL;
 }
 
+static BRGenericTransferRef
+genericHederaTransferCopy (BRGenericTransferRef transfer) {
+    return (BRGenericTransferRef) hederaTransactionClone ((BRHederaTransaction) transfer);
+}
+
 static void
 genericHederaTransferFree (BRGenericTransferRef transfer) {
     hederaTransactionFree ((BRHederaTransaction) transfer);
@@ -172,6 +177,20 @@ genericHederaWalletGetBalance (BRGenericWalletRef wallet) {
     return createUInt256 (hederaWalletGetBalance ((BRHederaWallet) wallet));
 }
 
+static UInt256
+genericHederaWalletGetBalanceLimit (BRGenericWalletRef wallet,
+                                    int asMaximum,
+                                    int *hasLimit) {
+    return createUInt256(0);
+}
+
+static BRGenericAddressRef
+genericHederaWalletGetAddress (BRGenericWalletRef wallet, int asSource) {
+    return (BRGenericAddressRef) (asSource
+                                  ? hederaWalletGetSourceAddress ((BRHederaWallet) wallet)
+                                  : hederaWalletGetTargetAddress ((BRHederaWallet) wallet));
+}
+
 static int
 genericHederaWalletHasAddress (BRGenericWalletRef wallet,
                                BRGenericAddressRef address) {
@@ -192,11 +211,20 @@ genericHederaWalletAddTransfer (BRGenericWalletRef wallet,
     hederaWalletAddTransfer ((BRHederaWallet) wallet, (BRHederaTransaction) transfer);
 }
 
+static void
+genericHederaWalletRemTransfer (BRGenericWalletRef wallet,
+                                OwnershipKept BRGenericTransferRef transfer) {
+    // TODO - implement
+    // hederaWalletRemTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
+}
+
 static BRGenericTransferRef
 genericHederaWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
                                    UInt256 amount,
-                                   BRGenericFeeBasis estimatedFeeBasis) {
+                                   BRGenericFeeBasis estimatedFeeBasis,
+                                   size_t attributesCount,
+                                   BRGenericTransferAttribute *attributes) {
     BRHederaAddress source = hederaWalletGetSourceAddress ((BRHederaWallet) wallet);
     BRHederaUnitTinyBar thbar  = amount.u64[0];
     BRHederaAddress nodeAddress = hederaWalletGetNodeAddress((BRHederaWallet) wallet);
@@ -294,6 +322,7 @@ struct BRGenericHandersRecord genericHederaHandlersRecord = {
 
     {    // Transfer
         genericHederaTransferCreate,
+        genericHederaTransferCopy,
         genericHederaTransferFree,
         genericHederaTransferGetSourceAddress,
         genericHederaTransferGetTargetAddress,
@@ -307,9 +336,12 @@ struct BRGenericHandersRecord genericHederaHandlersRecord = {
         genericHederaWalletCreate,
         genericHederaWalletFree,
         genericHederaWalletGetBalance,
+        genericHederaWalletGetBalanceLimit,
+        genericHederaWalletGetAddress,
         genericHederaWalletHasAddress,
         genericHederaWalletHasTransfer,
         genericHederaWalletAddTransfer,
+        genericHederaWalletRemTransfer,
         genericHederaWalletCreateTransfer,
         genericHederaWalletEstimateFeeBasis
     },

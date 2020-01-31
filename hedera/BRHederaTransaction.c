@@ -73,13 +73,51 @@ extern BRHederaTransaction hederaTransactionCreate (BRHederaAddress source,
     if (txID && strlen(txID) > 1) {
         transaction->transactionId = (char*) calloc(1, strlen(txID) + 1);
         strcpy(transaction->transactionId, txID);
+        // Get the timestamp from the transaction id
+        transaction->timeStamp = hederaParseTimeStamp(txID);
+    } else {
+        // It would great to be able to get the timestamp from the txID - but I guess
+        // we just have to use whatever came from blockset
+        transaction->timeStamp.seconds = timestamp;
     }
+
     transaction->hash = hash;
     transaction->blockHeight = blockHeight;
-    // This is not great - since the Hedera timestamp includes seconds and nano-seconds
-    transaction->timeStamp.seconds = timestamp;
-    transaction->timeStamp.nano = 0;
+
     return transaction;
+}
+
+extern BRHederaTransaction
+hederaTransactionClone (BRHederaTransaction transaction)
+{
+    assert(transaction);
+    BRHederaTransaction newTransaction = calloc (1, sizeof(struct BRHederaTransactionRecord));
+    newTransaction->source = hederaTransactionGetSource(transaction);
+    newTransaction->target = hederaTransactionGetTarget(transaction);
+    newTransaction->amount = hederaTransactionGetAmount(transaction);
+    newTransaction->fee = transaction->fee;
+    newTransaction->feeBasis = transaction->feeBasis;
+
+    if (transaction->transactionId && strlen(transaction->transactionId) > 1) {
+        newTransaction->transactionId = (char*) calloc(1, strlen(transaction->transactionId) + 1);
+        strcpy(newTransaction->transactionId, transaction->transactionId);
+    }
+
+    newTransaction->hash = transaction->hash;
+    newTransaction->blockHeight = transaction->blockHeight;
+    newTransaction->timeStamp = transaction->timeStamp;
+
+    if (transaction->serializedSize > 0 && transaction->serializedBytes) {
+        newTransaction->serializedSize = transaction->serializedSize;
+        newTransaction->serializedBytes = calloc(1, newTransaction->serializedSize);
+        memcpy(newTransaction->serializedBytes, transaction->serializedBytes, newTransaction->serializedSize);
+    }
+
+    if (transaction->nodeAddress) {
+        newTransaction->nodeAddress = hederaAddressClone(transaction->nodeAddress);
+    }
+
+    return newTransaction;
 }
 
 extern void hederaTransactionFree (BRHederaTransaction transaction)
@@ -91,27 +129,6 @@ extern void hederaTransactionFree (BRHederaTransaction transaction)
     if (transaction->target) hederaAddressFree (transaction->target);
     if (transaction->nodeAddress) hederaAddressFree (transaction->nodeAddress);
     free (transaction);
-}
-
-uint8_t * hederaSerializeNodeAccountId(BRHederaAddress nodeAddress, size_t * sizeOfBuffer)
-{
-    assert(sizeOfBuffer);
-
-    // The Hedera account IDs are made up of 3 int64_t numbers
-    *sizeOfBuffer = sizeof(int64_t) * 3;
-    uint8_t * buffer = calloc(1, *sizeOfBuffer);
-
-    // Get the account id values convert to network order
-    int64_t shard = htonl(hederaAddressGetShard(nodeAddress));
-    int64_t realm = htonl(hederaAddressGetRealm(nodeAddress));
-    int64_t account = htonl(hederaAddressGetAccount(nodeAddress));
-
-    // Copy the values to the buffer
-    memcpy(buffer, &shard, sizeof(int64_t));
-    memcpy(buffer + sizeof(int64_t), &realm, sizeof(int64_t));
-    memcpy(buffer + (2 * sizeof(int64_t)), &account, sizeof(int64_t));
-
-    return buffer;
 }
 
 extern size_t
@@ -165,23 +182,22 @@ hederaTransactionSignTransaction (BRHederaTransaction transaction,
     // is included in the signing data so we MUST get the server to use the correct node.
     // The BDB server implementation requires that we add in the node account id along with
     // the serialized bytes.
-    size_t nodeAccountIdSize = 0;
-    uint8_t * nodeAccountId = hederaSerializeNodeAccountId (transaction->nodeAddress, &nodeAccountIdSize);
+    uint8_t nodeAccountId[HEDERA_ADDRESS_SERIALIZED_SIZE];
+    hederaAddressSerialize (transaction->nodeAddress, nodeAccountId, HEDERA_ADDRESS_SERIALIZED_SIZE);
 
     // The buffer has to hold the nodeAccountId and the serialized bytes
-    transaction->serializedBytes = calloc(1, transaction->serializedSize + nodeAccountIdSize);
+    transaction->serializedBytes = calloc(1, transaction->serializedSize + HEDERA_ADDRESS_SERIALIZED_SIZE);
 
     // First copy the nodeAccountId,
-    memcpy(transaction->serializedBytes, nodeAccountId, nodeAccountIdSize);
+    memcpy(transaction->serializedBytes, nodeAccountId, HEDERA_ADDRESS_SERIALIZED_SIZE);
 
     // Now copy the serialized transaction bytes after the node account id
-    memcpy(transaction->serializedBytes + nodeAccountIdSize, serializedBytes, transaction->serializedSize);
+    memcpy(transaction->serializedBytes + HEDERA_ADDRESS_SERIALIZED_SIZE, serializedBytes, transaction->serializedSize);
 
     // Cleanup temporary buffers
-    free (nodeAccountId);
     free (serializedBytes);
 
-    transaction->serializedSize += nodeAccountIdSize; // This will be our new size of serialized bytes
+    transaction->serializedSize += HEDERA_ADDRESS_SERIALIZED_SIZE; // This will be our new size of serialized bytes
     return transaction->serializedSize;
 }
 
@@ -270,5 +286,33 @@ extern BRHederaTimeStamp hederaGenerateTimeStamp(void)
     gettimeofday(&tv, NULL);
     ts.seconds = tv.tv_sec;
     ts.nano = tv.tv_usec;
+    return ts;
+}
+
+BRHederaTimeStamp hederaParseTimeStamp(const char* transactionID)
+{
+    BRHederaTimeStamp ts;
+
+    // The transaction ID looks like this:
+    // block-chain:shard.realm.account-seconds-nanos-index
+
+    // Copy the transactionID and then use strtok to parse
+    char * txID = strdup(transactionID);
+    const char * searchTokens = ":.";
+    strtok(txID, searchTokens); // blockchain-id
+    strtok(NULL, searchTokens); // shard
+    strtok(NULL, searchTokens); // realm
+    char * accountAndTS = strtok(NULL, searchTokens); // account plus rest of the string
+
+    // Now start over and search for the "-" the string now looks like this:
+    // account-seconds-nanos-index-whatever
+    strtok(accountAndTS, "-"); // Account number
+    char * secondsStr = strtok(NULL, "-"); // Seconds
+    char * nanosStr = strtok(NULL, "-"); // Nanos
+
+    //sscanf(transactionID, "%s:%lld.%lld.%lld-%lld-%d-", blockchain, &shard, &realm, &account, &seconds, &nanos);
+    sscanf(secondsStr, "%lld", &ts.seconds);
+    sscanf(nanosStr, "%d", &ts.nano);
+
     return ts;
 }

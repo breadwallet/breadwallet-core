@@ -56,6 +56,9 @@ hederaTransactionCreate(BRHederaAddress source, BRHederaAddress target,
                         BRHederaUnitTinyBar amount, BRHederaUnitTinyBar fee, const char *txID,
                         BRHederaTransactionHash hash, uint64_t timestamp, uint64_t blockHeight);
 
+extern BRHederaTransaction /* caller must free - hederaTrasactionFree */
+hederaTransactionClone (BRHederaTransaction transaction);
+
 /**
  * Free (destroy) a Hedera transaction object
  *
@@ -106,6 +109,7 @@ extern BRHederaAddress hederaTransactionGetTarget(BRHederaTransaction transactio
 extern bool hederaTransactionEqual (BRHederaTransaction t1, BRHederaTransaction t2);
 
 extern BRHederaTimeStamp hederaGenerateTimeStamp(void);
+extern BRHederaTimeStamp hederaParseTimeStamp(const char* txID);
 
 #ifdef __cplusplus
 }

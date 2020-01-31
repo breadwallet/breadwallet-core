@@ -34,7 +34,7 @@ extern "C" {
         CRYPTO_NETWORK_TYPE_BCH,
         CRYPTO_NETWORK_TYPE_ETH,
         CRYPTO_NETWORK_TYPE_XRP,
-        // CRYPTO_NETWORK_TYPE_HBAR,
+        CRYPTO_NETWORK_TYPE_HBAR,
         // CRYPTO_NETWORK_TYPE_XLM,
     } BRCryptoNetworkCanonicalType;
 

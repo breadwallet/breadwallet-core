@@ -667,8 +667,10 @@ cryptoNetworkCreateBuiltin (const char *symbol,
         network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_XRP, 1, CRYPTO_NETWORK_TYPE_XRP);
     else if (0 == strcmp ("xrpTestnet", symbol))
         network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_XRP, 0, CRYPTO_NETWORK_TYPE_XRP);
-//    else if (0 == strcmp ("hbarMainnet", symbol))
-//        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_HBAR, 1, CRYPTO_NETWORK_TYPE_HBAR);
+    else if (0 == strcmp ("hbarMainnet", symbol))
+        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_HBAR, 1, CRYPTO_NETWORK_TYPE_HBAR);
+    else if (0 == strcmp ("hbarTestnet", symbol))
+        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_HBAR, 0, CRYPTO_NETWORK_TYPE_HBAR);
 //    else if (0 == strcmp ("xlmMainnet", symbol))
 //        network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_Xlm, 1, CRYPTO_NETWORK_TYPE_XLM);
     // ...

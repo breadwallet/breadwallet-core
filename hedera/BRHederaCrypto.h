@@ -20,7 +20,7 @@ extern "C" {
 
 BRKey hederaKeyCreate(UInt512 seed);
 
-BRKey hederaKeyGetPublicKey (BRKey key);
+void hederaKeyGetPublicKey (BRKey key, uint8_t * publicKey);
 
 #ifdef __cplusplus
 }
