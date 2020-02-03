@@ -15,7 +15,7 @@ public interface TransferAttribute {
 
     enum Error {
         REQUIRED_BUT_NOT_PROVIDED,
-        MISMATHED_TYPE,
+        MISMATCHED_TYPE,
         RELATIONSHIP_INCONSISTENCY
     }
 }
