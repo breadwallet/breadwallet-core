@@ -512,11 +512,19 @@ genWalletGetTransferAttributeAt (BRGenericWallet wallet,
     return genTransferAttributeCreate (keys[keysIndex], NULL, isRequired);
 }
 
+static int // 1 if equal, 0 if not.
+genWalletCompareFieldOption (const char *t1, const char *t2) {
+    return 0 == strcasecmp (t1, t2);
+}
+
 extern BRCryptoBoolean
 genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
                                      BRGenericAddress target,
                                      const char *key,
+                                     const char **keyFound,
                                      BRCryptoBoolean *isRequired) {
+    assert (NULL != keyFound);
+
     size_t countRequired, countOptional;
     BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
     const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
@@ -524,18 +532,21 @@ genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
 
     if (NULL != keysRequired)
         for (size_t index = 0; index < countRequired; index++)
-            if (0 == strcmp (key, keysRequired[index])) {
+            if (genWalletCompareFieldOption (key, keysRequired[index])) {
+                *keyFound = keysRequired[index];
                 *isRequired = CRYPTO_TRUE;
                 return CRYPTO_TRUE;
             }
 
     if (NULL != keysOptional)
         for (size_t index = 0; index < countOptional; index++)
-            if (0 == strcmp (key, keysOptional[index])) {
+            if (genWalletCompareFieldOption (key, keysOptional[index])) {
+                *keyFound = keysOptional[index];
                 *isRequired = CRYPTO_FALSE;
                 return CRYPTO_TRUE;
             }
 
+    *keyFound = NULL;
     *isRequired = CRYPTO_FALSE;
     return CRYPTO_FALSE;
 }
@@ -551,7 +562,7 @@ genWalletRequiresTransferAttributeForKey (BRGenericWallet wallet,
 
     if (NULL != keysRequired)
         for (size_t index = 0; NULL != keysRequired[index]; index++)
-            if (0 == strcmp (key, keysRequired[index]))
+            if (genWalletCompareFieldOption (key, keysRequired[index]))
                 return CRYPTO_TRUE;
     return CRYPTO_FALSE;
 }

@@ -2131,14 +2131,16 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
             BRArrayOf(BRGenericTransferAttribute) genAttributes;
             array_new(genAttributes, attributesCount);
             for (size_t index = 0; index < attributesCount; index++) {
+                const char *keyFound;
                 BRCryptoBoolean isRequiredAttribute;
                 BRCryptoBoolean isAttribute = genWalletHasTransferAttributeForKey (genWallet,
                                                                                    genTarget,
                                                                                    attributeKeys[index],
+                                                                                   &keyFound,
                                                                                    &isRequiredAttribute);
                 if (CRYPTO_TRUE == isAttribute)
                     array_add (genAttributes,
-                               genTransferAttributeCreate (attributeKeys[index],
+                               genTransferAttributeCreate (keyFound,
                                                            attributeVals[index],
                                                            CRYPTO_TRUE == isRequiredAttribute));
             }
