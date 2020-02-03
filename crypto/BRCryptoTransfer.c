@@ -56,7 +56,7 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->unitForFee = cryptoUnitTake(unitForFee);
     transfer->feeBasisEstimated = NULL;
 
-    array_new (transfer->attributes, 0);
+    array_new (transfer->attributes, 1);
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
