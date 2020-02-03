@@ -25,6 +25,16 @@ struct BRHederaTransactionRecord {
     uint64_t blockHeight;
 };
 
+char * createTransactionID(BRHederaAddress address, BRHederaTimeStamp timeStamp)
+{
+    char buffer[128] = {0};
+    const char * hederaAddress = hederaAddressAsString(address);
+    sprintf(buffer, "%s-%lld-%d", hederaAddress, timeStamp.seconds, timeStamp.nano);
+    char * result = calloc(1, strlen(buffer) + 1);
+    strncpy(result, buffer, strlen(buffer));
+    return result;
+}
+
 extern BRHederaTransaction hederaTransactionCreateNew (BRHederaAddress source,
                                                        BRHederaAddress target,
                                                        BRHederaUnitTinyBar amount,
@@ -46,6 +56,7 @@ extern BRHederaTransaction hederaTransactionCreateNew (BRHederaAddress source,
         // and includes seconds and nano-seconds
         transaction->timeStamp = hederaGenerateTimeStamp();
     }
+    transaction->transactionId = createTransactionID(source, transaction->timeStamp);
     transaction->blockHeight = 0;
     return transaction;
 }
@@ -257,24 +268,32 @@ extern bool hederaTransactionEqual (BRHederaTransaction t1, BRHederaTransaction 
     assert(t2);
     // Equal means the same transaction id, source, target
     bool result = false;
-    BRHederaTransactionHash hash1 = hederaTransactionGetHash(t1);
-    BRHederaTransactionHash hash2 = hederaTransactionGetHash(t2);
-    if (memcmp(hash1.bytes, hash2.bytes, sizeof(hash1.bytes)) == 0) {
-        // Hash is the same - compare the source
-        BRHederaAddress source1 = hederaTransactionGetSource(t1);
-        BRHederaAddress source2 = hederaTransactionGetSource(t2);
-        if (1 == hederaAddressEqual(source1, source2)) {
-            // OK - compare the target
-            BRHederaAddress target1 = hederaTransactionGetTarget(t1);
-            BRHederaAddress target2 = hederaTransactionGetTarget(t2);
-            if (1 == hederaAddressEqual(target1, target2)) {
-                result = true;
-            }
-            hederaAddressFree(target1);
-            hederaAddressFree(target2);
+    // First check the transaction ID
+    if (t1->transactionId && t2->transactionId) {
+        if (0 == strcmp(t1->transactionId, t2->transactionId)) {
+            result = true;
         }
-        hederaAddressFree (source1);
-        hederaAddressFree (source2);
+    } else {
+        // Transaction IDs are not available - use the hash
+        BRHederaTransactionHash hash1 = hederaTransactionGetHash(t1);
+        BRHederaTransactionHash hash2 = hederaTransactionGetHash(t2);
+        if (memcmp(hash1.bytes, hash2.bytes, sizeof(hash1.bytes)) == 0) {
+            // Hash is the same - compare the source
+            BRHederaAddress source1 = hederaTransactionGetSource(t1);
+            BRHederaAddress source2 = hederaTransactionGetSource(t2);
+            if (1 == hederaAddressEqual(source1, source2)) {
+                // OK - compare the target
+                BRHederaAddress target1 = hederaTransactionGetTarget(t1);
+                BRHederaAddress target2 = hederaTransactionGetTarget(t2);
+                if (1 == hederaAddressEqual(target1, target2)) {
+                    result = true;
+                }
+                hederaAddressFree(target1);
+                hederaAddressFree(target2);
+            }
+            hederaAddressFree (source1);
+            hederaAddressFree (source2);
+        }
     }
     return result;
 }

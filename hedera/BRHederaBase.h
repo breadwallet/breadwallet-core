@@ -13,6 +13,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include "BRCryptoBase.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -131,20 +131,75 @@ extern void hederaWalletAddTransfer(BRHederaWallet wallet, BRHederaTransaction t
     assert(transaction);
     pthread_mutex_lock (&wallet->lock);
     if (!walletHasTransfer(wallet, transaction)) {
+        transaction = hederaTransactionClone(transaction);
         array_add(wallet->transactions, transaction);
+
         // Update the balance
         BRHederaUnitTinyBar amount = hederaTransactionGetAmount(transaction);
+        BRHederaUnitTinyBar fee    = hederaTransactionGetFee(transaction);
+
         BRHederaAddress accountAddress = hederaAccountGetAddress(wallet->account);
         BRHederaAddress source = hederaTransactionGetSource(transaction);
-        if (1 == hederaAddressEqual(accountAddress, source)) {
-            wallet->balance -= (amount + hederaTransactionGetFee (transaction));
-        } else {
-            wallet->balance += amount;
-        }
-        // Clean up...
-        hederaAddressFree (source);
-        hederaAddressFree (accountAddress);
+        BRHederaAddress target = hederaTransactionGetTarget(transaction);
 
+        int isSource = hederaAccountHasAddress (wallet->account, source);
+        int isTarget = hederaAccountHasAddress (wallet->account, target);
+
+        if (isSource && isTarget)
+            wallet->balance -= fee;
+        else if (isSource)
+            wallet->balance -= (amount + fee);
+        else if (isTarget)
+            wallet->balance += amount;
+        else {
+            // something is seriously wrong
+        }
+        // Cleanpu
+        hederaAddressFree (source);
+        hederaAddressFree (target);
+        hederaAddressFree (accountAddress);
+    }
+    pthread_mutex_unlock (&wallet->lock);
+}
+
+extern void hederaWalletRemTransfer (BRHederaWallet wallet,
+                                     OwnershipKept BRHederaTransaction transaction)
+{
+    assert(wallet);
+    assert(transaction);
+    pthread_mutex_lock (&wallet->lock);
+    if (walletHasTransfer(wallet, transaction)) {
+        for (size_t index = 0; index < array_count(wallet->transactions); index++)
+            if (hederaTransactionEqual (transaction, wallet->transactions[index])) {
+                hederaTransactionFree(wallet->transactions[index]);
+                array_rm (wallet->transactions, index);
+                break;
+            }
+
+        // Update the balance
+        BRHederaUnitTinyBar amount = hederaTransactionGetAmount(transaction);
+        BRHederaUnitTinyBar fee    = hederaTransactionGetFee(transaction);
+
+        BRHederaAddress accountAddress = hederaAccountGetAddress(wallet->account);
+        BRHederaAddress source = hederaTransactionGetSource(transaction);
+        BRHederaAddress target = hederaTransactionGetTarget(transaction);
+
+        int isSource = hederaAccountHasAddress (wallet->account, source);
+        int isTarget = hederaAccountHasAddress (wallet->account, target);
+
+        if (isSource && isTarget)
+            wallet->balance += fee;
+        else if (isSource)
+            wallet->balance += (amount + fee);
+        else if (isTarget)
+            wallet->balance -= amount;
+        else {
+            // something is seriously wrong
+        }
+        // Cleanup
+        hederaAddressFree (source);
+        hederaAddressFree (target);
+        hederaAddressFree (accountAddress);
     }
     pthread_mutex_unlock (&wallet->lock);
 }

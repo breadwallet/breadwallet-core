@@ -81,6 +81,7 @@ struct account_info {
 };
 
 struct account_info accounts[] = {
+    {"none", "0.0.0", "", ""} ,
     {"patient", "0.0.114008", "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone",
         "ec7554cc83ba25a9b6ca44f491de24881af4faba8805ba518db751d62f675585"
     } ,
@@ -94,11 +95,14 @@ struct account_info accounts[] = {
 size_t num_accounts = sizeof (accounts) / sizeof (struct account_info);
 
 struct account_info find_account (const char * accountName) {
+    if (strcmp(accountName, "default_account") == 0) {
+        // If we get to here just return the first account
+        return accounts[1];
+    }
     for (size_t i = 0; i < num_accounts; i++) {
         if (strcmp(accounts[i].name, accountName) == 0)
             return accounts[i];
     }
-    // If we get to here just return the first account
     return accounts[0];
 }
 
@@ -120,6 +124,21 @@ static BRHederaAccount getDefaultAccount()
     BRBIP39DeriveKey(seed.u8, default_account.paper_key, NULL); // no passphrase
     BRHederaAccount account = hederaAccountCreateWithSeed(seed);
     BRHederaAddress address = hederaAddressCreateFromString(default_account.account_string);
+    hederaAccountSetAddress(account, address);
+    return account;
+}
+
+static BRHederaAccount getAccount(const char * name)
+{
+    // There is no account named "default_account" BUT the find function
+    // will give me back a valid account anyway.
+    struct account_info accountInfo = find_account(name);
+    if (strcmp(accountInfo.name, "none") == 0) return NULL;
+
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, accountInfo.paper_key, NULL); // no passphrase
+    BRHederaAccount account = hederaAccountCreateWithSeed(seed);
+    BRHederaAddress address = hederaAddressCreateFromString(accountInfo.account_string);
     hederaAccountSetAddress(account, address);
     return account;
 }
@@ -438,15 +457,33 @@ static void createAndDeleteWallet()
 
 static void walletBalanceTests()
 {
-    BRHederaAccount account = getDefaultAccount ();
+    BRHederaAccount account = getAccount ("patient"); // Our wallet account
     BRHederaWallet wallet = hederaWalletCreate (account);
-    BRHederaUnitTinyBar expectedBalance = 1000000000;
-    hederaWalletSetBalance (wallet, expectedBalance);
+    BRHederaUnitTinyBar expectedBalance = 0;
+
+    // Now add a few transfers for this wallet (3 TO and 1 FROM)
+    BRHederaTransaction tx1 = createSignedTransaction("choose", "patient", "node3", 2000000000, 1, 0, 500000);
+    BRHederaTransaction tx2 = createSignedTransaction("choose", "patient", "node3", 1500000000, 2, 0, 500000);
+    BRHederaTransaction tx3 = createSignedTransaction("choose", "patient", "node3", 1400000000, 3, 0, 500000);
+    BRHederaTransaction tx4 = createSignedTransaction("patient", "choose", "node3", 1400000000, 4, 0, 500000);
+    expectedBalance = 2000000000L + 1500000000L + 1400000000L;
+    hederaWalletAddTransfer(wallet, tx1);
+    hederaWalletAddTransfer(wallet, tx2);
+    hederaWalletAddTransfer(wallet, tx3);
     BRHederaUnitTinyBar balance = hederaWalletGetBalance (wallet);
+    assert(balance == expectedBalance);
+
+    hederaWalletAddTransfer(wallet, tx4);
+    balance = hederaWalletGetBalance (wallet);
+    expectedBalance -= (1400000000L + 500000L);
     assert(balance == expectedBalance);
 
     hederaAccountFree (account);
     hederaWalletFree (wallet);
+    hederaTransactionFree(tx1);
+    hederaTransactionFree(tx2);
+    hederaTransactionFree(tx3);
+    hederaTransactionFree(tx4);
 }
 
 static void create_real_transactions() {

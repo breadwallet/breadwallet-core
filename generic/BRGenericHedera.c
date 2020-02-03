@@ -214,8 +214,7 @@ genericHederaWalletAddTransfer (BRGenericWalletRef wallet,
 static void
 genericHederaWalletRemTransfer (BRGenericWalletRef wallet,
                                 OwnershipKept BRGenericTransferRef transfer) {
-    // TODO - implement
-    // hederaWalletRemTransfer ((BRRippleWallet) wallet, (BRRippleTransfer) transfer);
+    hederaWalletRemTransfer ((BRHederaWallet) wallet, (BRHederaTransaction) transfer);
 }
 
 static BRGenericTransferRef
