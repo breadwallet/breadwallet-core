@@ -229,6 +229,7 @@ extern "C" {
     genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
                                          BRGenericAddress target,
                                          const char *key,
+                                         const char **keyFound,
                                          BRCryptoBoolean *isRequired);
 
     extern BRCryptoBoolean

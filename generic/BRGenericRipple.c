@@ -228,6 +228,11 @@ genericRippleWalletRemTransfer (BRGenericWalletRef wallet,
 #define FIELD_OPTION_DESTINATION_TAG        "DestinationTag"
 #define FIELD_OPTION_INVOICE_ID             "InvoiceId"
 
+static int // 1 if equal, 0 if not.
+genericRippleCompareFieldOption (const char *t1, const char *t2) {
+    return 0 == strcasecmp (t1, t2);
+}
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
@@ -247,12 +252,12 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
     for (size_t index = 0; index < attributeCount; index++) {
         BRGenericTransferAttribute attribute = attributes[index];
         if (NULL != genTransferAttributeGetVal(attribute)) {
-            if (0 == strcmp (genTransferAttributeGetKey(attribute), FIELD_OPTION_DESTINATION_TAG)) {
+            if (genericRippleCompareFieldOption (genTransferAttributeGetKey(attribute), FIELD_OPTION_DESTINATION_TAG)) {
                 BRCoreParseStatus tag;
                 sscanf (genTransferAttributeGetVal(attribute), "%u", &tag);
                 rippleTransactionSetDestinationTag (transaction, tag);
             }
-            else if (0 == strcmp (genTransferAttributeGetKey(attribute), FIELD_OPTION_INVOICE_ID)) {
+            else if (genericRippleCompareFieldOption (genTransferAttributeGetKey(attribute), FIELD_OPTION_INVOICE_ID)) {
                 // TODO:
             }
             else {
@@ -298,7 +303,7 @@ genericRippleRequiresDestinationTag (BRRippleAddress address) {
     int isRequired = 0;
 
     for (size_t index = 0; NULL != knownDestinationTagRequiringAddresses[index]; index++)
-        if (0 == strcmp (addressAsString, knownDestinationTagRequiringAddresses[index])) {
+        if (0 == strcasecmp (addressAsString, knownDestinationTagRequiringAddresses[index])) {
             isRequired = 1;
             break;
         }
@@ -352,11 +357,11 @@ genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
     // If attribute.value is NULL, we validate unless the attribute.value is required.
     if (NULL == val) return !genTransferAttributeIsRequired(attribute);
 
-    if (0 == strcmp (key, FIELD_OPTION_DESTINATION_TAG)) {
+    if (genericRippleCompareFieldOption (key, FIELD_OPTION_DESTINATION_TAG)) {
         uint32_t tag;
         return 1 == sscanf(val, "%u", &tag);
     }
-    else if (0 == strcmp (key, FIELD_OPTION_INVOICE_ID)) {
+    else if (genericRippleCompareFieldOption (key, FIELD_OPTION_INVOICE_ID)) {
         BRCoreParseStatus status;
         createUInt256Parse(val, 10, &status);
         return CORE_PARSE_OK == status;
