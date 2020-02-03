@@ -180,7 +180,8 @@ extern "C" {
                                                                            const char *currency,
                                                                            const char *fee,
                                                                            uint64_t timestamp,
-                                                                           uint64_t blockHeight);
+                                                                           uint64_t blockHeight,
+                                                                           int error);
 
     typedef BRArrayOf(BRGenericTransferRef) (*BRGenericWalletManagerRecoverTransfersFromRawTransaction) (uint8_t *bytes,
                                                                                                          size_t   bytesCount);

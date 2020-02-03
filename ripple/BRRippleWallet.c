@@ -199,7 +199,9 @@ extern void rippleWalletAddTransfer (BRRippleWallet wallet,
         array_add(wallet->transfers, transfer);
 
         // Update the balance
-        BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
+        BRRippleUnitDrops amount = (rippleTransferHasError(transfer)
+                                    ? 0
+                                    : rippleTransferGetAmount(transfer));
         BRRippleUnitDrops fee    = rippleTransferGetFee(transfer);
 
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);
@@ -243,7 +245,10 @@ extern void rippleWalletRemTransfer (BRRippleWallet wallet,
             }
 
         // Update the balance
-        BRRippleUnitDrops amount = rippleTransferGetAmount(transfer);
+        BRRippleUnitDrops amount = (rippleTransferHasError(transfer)
+                                    ? 0
+                                    : rippleTransferGetAmount(transfer));
+
         BRRippleUnitDrops fee    = rippleTransferGetFee(transfer);
 
         BRRippleAddress accountAddress = rippleAccountGetAddress(wallet->account);

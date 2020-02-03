@@ -177,7 +177,8 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                                                             currency,
                                                             strFee,
                                                             timestamp,
-                                                            blockHeight);
+                                                            blockHeight,
+                                                            GENERIC_TRANSFER_STATE_ERRORED == state.type);
 
     genTransferSetAttributes (transfer, attributes);
 
@@ -435,9 +436,10 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            const char *currency,
                            const char *fee,
                            uint64_t timestamp,
-                           uint64_t blockHeight) {
+                           uint64_t blockHeight,
+                           int error) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
-                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
+                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight, error));
 
     transfer->uids = strdup (uids);
 

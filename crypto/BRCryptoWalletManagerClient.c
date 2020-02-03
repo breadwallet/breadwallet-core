@@ -2014,6 +2014,30 @@ cwmAnnounceGetTransactionsItemETH (OwnershipKept BRCryptoWalletManager cwm,
     // DON'T free (callbackState);
 }
 
+static BRGenericTransferState
+cwmAnnounceGetTransferStateGEN (BRGenericTransfer transfer,
+                                BRCryptoTransferStateType status,
+                                uint64_t timestamp,
+                                uint64_t blockHeight) {
+    switch (status) {
+        case CRYPTO_TRANSFER_STATE_CREATED:
+            return genTransferStateCreateOther (GENERIC_TRANSFER_STATE_CREATED);
+        case CRYPTO_TRANSFER_STATE_SIGNED:
+            return genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SIGNED);
+        case CRYPTO_TRANSFER_STATE_SUBMITTED:
+            return genTransferStateCreateOther (GENERIC_TRANSFER_STATE_SUBMITTED);
+        case CRYPTO_TRANSFER_STATE_INCLUDED:
+            return genTransferStateCreateIncluded (blockHeight,
+                                                   GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
+                                                   timestamp,
+                                                   genTransferGetFeeBasis (transfer));
+        case CRYPTO_TRANSFER_STATE_ERRORED:
+            return genTransferStateCreateErrored (GENERIC_TRANSFER_SUBMIT_ERROR_ONE);
+        case CRYPTO_TRANSFER_STATE_DELETED:
+            return genTransferStateCreateOther (GENERIC_TRANSFER_STATE_DELETED);
+    }
+}
+
 extern void
 cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
                                    BRCryptoCWMClientCallbackState callbackState,
@@ -2036,8 +2060,14 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     if (transfers != NULL) {
         pthread_mutex_lock (&cwm->lock);
         for (size_t index = 0; index < array_count (transfers); index++) {
+            BRGenericTransfer genTransfer = transfers[index];
             // TODO: A BRGenericTransfer must allow us to determine the Wallet (via a Currency).
-            cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
+
+            // Update the GEN state based on the `status`
+            genTransferSetState (genTransfer, cwmAnnounceGetTransferStateGEN (genTransfer, status, timestamp, blockHeight));
+
+            // Generate required events.
+            cryptoWalletManagerHandleTransferGEN (cwm, genTransfer);
         }
         pthread_mutex_unlock (&cwm->lock);
 
@@ -2085,6 +2115,7 @@ cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
 extern void
 cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                BRCryptoCWMClientCallbackState callbackState,
+                               BRCryptoTransferStateType status,
                                OwnershipKept const char *hash,
                                OwnershipKept const char *uids,
                                OwnershipKept const char *from,
@@ -2117,7 +2148,10 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
         BRGenericTransfer genTransfer = genManagerRecoverTransfer (cwm->u.gen, genWallet, hash, uids,
                                                                    from, to,
                                                                    amount, currency, fee,
-                                                                   timestamp, blockHeight);
+                                                                   timestamp, blockHeight,
+                                                                   CRYPTO_TRANSFER_STATE_ERRORED == status);
+
+        genTransferSetState (genTransfer, cwmAnnounceGetTransferStateGEN (genTransfer, status, timestamp, blockHeight));
 
         // If we are passed in attribues, they will replace any attribute already held
         // in `genTransfer`.  Specifically, for example, if we created an XRP transfer, then

@@ -112,6 +112,7 @@ struct BRRippleTransferRecord {
     BRRippleTransactionHash transactionId;
     uint64_t timestamp;
     uint64_t blockHeight;
+    int error;
     BRRippleTransaction transaction;
 };
 

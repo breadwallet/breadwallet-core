@@ -301,7 +301,8 @@ extern "C" {
                                const char *currency,
                                const char *fee,
                                uint64_t timestamp,
-                               uint64_t blockHeight);
+                               uint64_t blockHeight,
+                               int error);
 
     extern void
     genManagerWipe (BRGenericNetwork network,
