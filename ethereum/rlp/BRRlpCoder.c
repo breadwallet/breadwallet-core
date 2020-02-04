@@ -81,7 +81,7 @@ struct BRRlpCoderRecord {
      * acquire an item and you best be sure to release it and if you don't you've leaked memory.
      *
      * Well, in order to ensure that memory is not leaked, we keep a `busy` list and then on
-     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are releaded.
+     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are released.
      *
      * This busy list caused a problem (see bugfix/CORE-152).  It was singly linked and thus to
      * remove an item we were forced to traverse the list to find the just-prior item and then
@@ -611,6 +611,27 @@ rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
 }
 
 //
+// Double
+//
+extern BRRlpItem
+rlpEncodeDouble(BRRlpCoder coder, double value) {
+    char strDouble[65];
+    snprintf(strDouble, 64, "%lf", value);
+    return rlpEncodeString (coder, strDouble);
+}
+
+extern double
+rlpDecodeDouble(BRRlpCoder coder, BRRlpItem item) {
+    char *strDouble = rlpDecodeString (coder, item);
+
+    double value;
+    sscanf (strDouble, "%lf", &value);
+    free (strDouble);
+
+    return value;
+}
+
+//
 // Bytes
 //
 extern BRRlpItem
@@ -670,7 +691,7 @@ rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
 // String
 //
 extern BRRlpItem
-rlpEncodeString (BRRlpCoder coder, char *string) {
+rlpEncodeString (BRRlpCoder coder, const char *string) {
     if (NULL == string) string = "";
     return rlpEncodeBytes(coder, (uint8_t *) string, strlen (string));
 }
@@ -710,7 +731,7 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item) {
 // Hex String
 //
 extern BRRlpItem
-rlpEncodeHexString (BRRlpCoder coder, char *string) {
+rlpEncodeHexString (BRRlpCoder coder, const char *string) {
     if (NULL == string || string[0] == '\0')
         return rlpEncodeString(coder, "");
     

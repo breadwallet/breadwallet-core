@@ -269,14 +269,22 @@ target_sources (corecrypto
                 src/main/cpp/core/ripple/BRRipple.h
                 src/main/cpp/core/ripple/BRRippleAccount.c
                 src/main/cpp/core/ripple/BRRippleAccount.h
+                src/main/cpp/core/ripple/BRRippleAddress.c
+                src/main/cpp/core/ripple/BRRippleAddress.h
                 src/main/cpp/core/ripple/BRRippleBase58.c
                 src/main/cpp/core/ripple/BRRippleBase58.h
+                src/main/cpp/core/ripple/BRRippleFeeBasis.c
+                src/main/cpp/core/ripple/BRRippleFeeBasis.h
                 src/main/cpp/core/ripple/BRRippleSerialize.c
                 src/main/cpp/core/ripple/BRRippleSerialize.h
                 src/main/cpp/core/ripple/BRRippleSignature.c
                 src/main/cpp/core/ripple/BRRippleSignature.h
                 src/main/cpp/core/ripple/BRRippleTransaction.c
                 src/main/cpp/core/ripple/BRRippleTransaction.h
+                src/main/cpp/core/ripple/BRRippleTransfer.c
+                src/main/cpp/core/ripple/BRRippleTransfer.h
+                src/main/cpp/core/ripple/BRRippleUtils.c
+                src/main/cpp/core/ripple/BRRippleUtils.h
                 src/main/cpp/core/ripple/BRRippleWallet.c
                 src/main/cpp/core/ripple/BRRippleWallet.h)
 
@@ -295,66 +303,95 @@ target_sources (corecrypto
                 src/main/cpp/core/generic/BRGenericBase.h
                 src/main/cpp/core/generic/BRGeneric.c
                 src/main/cpp/core/generic/BRGeneric.h
+                src/main/cpp/core/generic/BRGenericClient.c
+                src/main/cpp/core/generic/BRGenericClient.h
                 src/main/cpp/core/generic/BRGenericHandlers.c
                 src/main/cpp/core/generic/BRGenericHandlers.h
-                src/main/cpp/core/generic/BRGenericWalletManager.c
-                src/main/cpp/core/generic/BRGenericWalletManager.h
+                src/main/cpp/core/generic/BRGenericManager.c
                 src/main/cpp/core/generic/BRGenericRipple.h
                 src/main/cpp/core/generic/BRGenericRipple.c)
 
 # Crypto
 target_sources (corecrypto
                 PRIVATE
-                src/main/cpp/core/crypto/BRCryptoAccount.c
-                src/main/cpp/core/crypto/BRCryptoAccountP.h
-                src/main/cpp/core/include/BRCryptoAccount.h
-                src/main/cpp/core/crypto/BRCryptoAddress.c
-                src/main/cpp/core/crypto/BRCryptoAddressP.h
-                src/main/cpp/core/include/BRCryptoAddress.h
-                src/main/cpp/core/crypto/BRCryptoAmount.c
-                src/main/cpp/core/include/BRCryptoAmount.h
+                #  Dependency Order
                 src/main/cpp/core/include/BRCryptoBase.h
-                src/main/cpp/core/crypto/BRCryptoCurrency.c
-                src/main/cpp/core/include/BRCryptoCurrency.h
-                src/main/cpp/core/crypto/BRCryptoFeeBasis.c
-                src/main/cpp/core/crypto/BRCryptoFeeBasisP.h
-                src/main/cpp/core/include/BRCryptoFeeBasis.h
-                src/main/cpp/core/crypto/BRCryptoHash.c
-                src/main/cpp/core/include/BRCryptoHash.h
-                src/main/cpp/core/crypto/BRCryptoCipher.c
-                src/main/cpp/core/include/BRCryptoCipher.h
-                src/main/cpp/core/crypto/BRCryptoCoder.c
-                src/main/cpp/core/include/BRCryptoCoder.h
-                src/main/cpp/core/crypto/BRCryptoHasher.c
-                src/main/cpp/core/include/BRCryptoHasher.h
-                src/main/cpp/core/crypto/BRCryptoKey.c
-                src/main/cpp/core/include/BRCryptoKey.h
-                src/main/cpp/core/crypto/BRCryptoSigner.c
-                src/main/cpp/core/include/BRCryptoSigner.h
-                src/main/cpp/core/crypto/BRCryptoNetwork.c
-                src/main/cpp/core/crypto/BRCryptoNetworkP.h
-                src/main/cpp/core/include/BRCryptoNetwork.h
-                src/main/cpp/core/crypto/BRCryptoStatus.c
+                src/main/cpp/core/crypto/BRCryptoBaseP.h
+
                 src/main/cpp/core/include/BRCryptoStatus.h
-                src/main/cpp/core/crypto/BRCryptoPayment.c
-                src/main/cpp/core/include/BRCryptoPayment.h
-                src/main/cpp/core/crypto/BRCryptoPeer.c
-                src/main/cpp/core/include/BRCryptoPeer.h
-                src/main/cpp/core/crypto/BRCryptoPrivate.h
-                src/main/cpp/core/crypto/BRCryptoTransfer.c
-                src/main/cpp/core/crypto/BRCryptoTransferP.h
-                src/main/cpp/core/include/BRCryptoTransfer.h
-                src/main/cpp/core/crypto/BRCryptoUnit.c
+                src/main/cpp/core/crypto/BRCryptoStatusP.h
+                src/main/cpp/core/crypto/BRCryptoStatus.c
+
+                src/main/cpp/core/include/BRCryptoHash.h
+                src/main/cpp/core/crypto/BRCryptoHashP.h
+                src/main/cpp/core/crypto/BRCryptoHash.c
+
+                src/main/cpp/core/include/BRCryptoCurrency.h
+                src/main/cpp/core/crypto/BRCryptoCurrency.c
+
                 src/main/cpp/core/include/BRCryptoUnit.h
-                src/main/cpp/core/crypto/BRCryptoWallet.c
-                src/main/cpp/core/crypto/BRCryptoWalletP.h
+                src/main/cpp/core/crypto/BRCryptoUnit.c
+
+                src/main/cpp/core/include/BRCryptoAmount.h
+                src/main/cpp/core/crypto/BRCryptoAmountP.h
+                src/main/cpp/core/crypto/BRCryptoAmount.c
+
+                src/main/cpp/core/include/BRCryptoKey.h
+                src/main/cpp/core/crypto/BRCryptoKeyP.h
+                src/main/cpp/core/crypto/BRCryptoKey.c
+
+                src/main/cpp/core/include/BRCryptoAccount.h
+                src/main/cpp/core/crypto/BRCryptoAccountP.h
+                src/main/cpp/core/crypto/BRCryptoAccount.c
+
+                src/main/cpp/core/include/BRCryptoFeeBasis.h
+                src/main/cpp/core/crypto/BRCryptoFeeBasisP.h
+                src/main/cpp/core/crypto/BRCryptoFeeBasis.c
+
+                src/main/cpp/core/include/BRCryptoNetwork.h
+                src/main/cpp/core/crypto/BRCryptoNetworkP.h
+                src/main/cpp/core/crypto/BRCryptoNetwork.c
+
+                src/main/cpp/core/include/BRCryptoAddress.h
+                src/main/cpp/core/crypto/BRCryptoAddressP.h
+                src/main/cpp/core/crypto/BRCryptoAddress.c
+
+                src/main/cpp/core/include/BRCryptoPeer.h
+                src/main/cpp/core/crypto/BRCryptoPeer.c
+
+                src/main/cpp/core/include/BRCryptoTransfer.h
+                src/main/cpp/core/crypto/BRCryptoTransferP.h
+                src/main/cpp/core/crypto/BRCryptoTransfer.c
+
+                src/main/cpp/core/include/BRCryptoPayment.h
+                src/main/cpp/core/crypto/BRCryptoPaymentP.h
+                src/main/cpp/core/crypto/BRCryptoPayment.c
+
                 src/main/cpp/core/include/BRCryptoWallet.h
+                src/main/cpp/core/crypto/BRCryptoWalletP.h
+                src/main/cpp/core/crypto/BRCryptoWallet.c
+
                 src/main/cpp/core/include/BRCryptoSync.h
-                src/main/cpp/core/crypto/BRCryptoWalletManager.c
-                src/main/cpp/core/crypto/BRCryptoWalletManagerP.h
-                src/main/cpp/core/include/BRCryptoWalletManager.h
+
+                src/main/cpp/core/include/BRCryptoWalletManagerClient.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
-                src/main/cpp/core/include/BRCryptoWalletManagerClient.h)
+
+                src/main/cpp/core/include/BRCryptoWalletManager.h
+                src/main/cpp/core/crypto/BRCryptoWalletManagerP.h
+                src/main/cpp/core/crypto/BRCryptoWalletManager.c
+
+                src/main/cpp/core/include/BRCryptoCipher.h
+                src/main/cpp/core/crypto/BRCryptoCipher.c
+
+                src/main/cpp/core/include/BRCryptoCoder.h
+                src/main/cpp/core/crypto/BRCryptoCoder.c
+
+                src/main/cpp/core/include/BRCryptoHasher.h
+                src/main/cpp/core/crypto/BRCryptoHasher.c
+
+                src/main/cpp/core/include/BRCryptoSigner.h
+                src/main/cpp/core/crypto/BRCryptoSigner.c
+                )
 
 # Crypto Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)

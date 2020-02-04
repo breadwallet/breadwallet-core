@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "BRCryptoPrivate.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoNetworkP.h"
 #include "BRCryptoWallet.h"
@@ -514,6 +513,16 @@ _CWMNopGetTransactionsGenCallback (BRCryptoCWMClientContext context,
 }
 
 static void
+_CWMNopGetTransfersGenCallback (BRCryptoCWMClientContext context,
+                                OwnershipGiven BRCryptoWalletManager manager,
+                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                OwnershipKept const char *address,
+                                uint64_t begBlockNumber,
+                                uint64_t endBlockNumber) {
+    cryptoWalletManagerGive (manager);
+}
+
+static void
 _CWMNopSubmitTransactionGenCallback (BRCryptoCWMClientContext context,
                                             OwnershipGiven BRCryptoWalletManager manager,
                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
@@ -720,13 +729,13 @@ CWMEventString (CWMEvent *e) {
 
     switch (e->type) {
         case SYNC_EVENT_WALLET_MANAGER_TYPE:
-        subtypeString = BRCryptoWalletManagerEventTypeString (e->u.m.event.type);
+        subtypeString = cryptoWalletManagerEventTypeString (e->u.m.event.type);
         break;
         case SYNC_EVENT_WALLET_TYPE:
-        subtypeString = BRCryptoWalletEventTypeString (e->u.w.event.type);
+        subtypeString = cryptoWalletEventTypeString (e->u.w.event.type);
         break;
         case SYNC_EVENT_TXN_TYPE:
-        subtypeString = BRCryptoTransferEventTypeString (e->u.t.event.type);
+        subtypeString = cryptoTransferEventTypeString (e->u.t.event.type);
         break;
     }
 
@@ -784,7 +793,7 @@ _CWMEventRecordingManagerCallback (BRCryptoCWMListenerContext context,
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added MANAGER event: %s (%zu total)\n", BRCryptoWalletManagerEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added MANAGER event: %s (%zu total)\n", cryptoWalletManagerEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -802,7 +811,7 @@ _CWMEventRecordingWalletCallback (BRCryptoCWMListenerContext context,
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added WALLET event: %s (%zu total)\n", BRCryptoWalletEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added WALLET event: %s (%zu total)\n", cryptoWalletEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -822,7 +831,7 @@ _CWMEventRecordingTransferCallback (BRCryptoCWMListenerContext context,
 
     pthread_mutex_lock (&state->lock);
     array_add (state->events, cwmEvent);
-    if (!state->silent) printf ("Added TXN event: %s (%zu total)\n", BRCryptoTransferEventTypeString (event.type), array_count (state->events));
+    if (!state->silent) printf ("Added TXN event: %s (%zu total)\n", cryptoTransferEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -1005,6 +1014,7 @@ BRCryptoWalletManagerSetupForLifecycleTest (CWMEventRecordingState *state,
     BRCryptoCWMClientGEN genClient = (BRCryptoCWMClientGEN) {
         _CWMNopGetBlockNumberGenCallback,
         _CWMNopGetTransactionsGenCallback,
+        _CWMNopGetTransfersGenCallback,
         _CWMNopSubmitTransactionGenCallback,
     };
 

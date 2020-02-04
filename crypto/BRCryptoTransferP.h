@@ -49,10 +49,7 @@ struct BRCryptoTransferRecord {
             BREthereumTransfer tid;
             BREthereumAddress accountAddress;
         } eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericTransfer tid;
-        } gen;
+        BRGenericTransfer gen;
     } u;
 
     BRCryptoAddress sourceAddress;
@@ -72,7 +69,8 @@ struct BRCryptoTransferRecord {
 
     /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
     BRCryptoFeeBasis feeBasisEstimated;
-    BRCryptoFeeBasis feeBasisConfirmed;
+
+    BRArrayOf(BRCryptoTransferAttribute) attributes;
 
     BRCryptoRef ref;
 };
@@ -101,7 +99,6 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 extern BRCryptoTransfer
 cryptoTransferCreateAsGEN (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
-                           BRGenericWalletManager gwm,
                            BRGenericTransfer tid);
 
 private_extern void
@@ -128,6 +125,10 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 private_extern BRCryptoBoolean
 cryptoTransferHasGEN (BRCryptoTransfer transfer,
                       BRGenericTransfer gen);
+
+private_extern void
+cryptoTransferSetAttributes (BRCryptoTransfer transfer,
+                             OwnershipKept BRArrayOf(BRCryptoTransferAttribute) attributes);
 
 #ifdef __cplusplus
 }

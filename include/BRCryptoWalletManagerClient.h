@@ -171,6 +171,14 @@ extern "C" {
                                               uint64_t endBlockNumber);
 
     typedef void
+    (*BRCryptoCWMGenGetTransfersCallback) (BRCryptoCWMClientContext context,
+                                           OwnershipGiven BRCryptoWalletManager manager,
+                                           OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                           OwnershipKept const char *address,
+                                           uint64_t begBlockNumber,
+                                           uint64_t endBlockNumber);
+
+    typedef void
     (*BRCryptoCWMGenSubmitTransactionCallback) (BRCryptoCWMClientContext context,
                                                 OwnershipGiven BRCryptoWalletManager manager,
                                                 OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
@@ -181,6 +189,7 @@ extern "C" {
     typedef struct {
         BRCryptoCWMGenGetBlockNumberCallback  funcGetBlockNumber;
         BRCryptoCWMGenGetTransactionsCallback funcGetTransactions;
+        BRCryptoCWMGenGetTransfersCallback funcGetTransfers;
         BRCryptoCWMGenSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientGEN;
 
@@ -208,6 +217,7 @@ extern "C" {
     extern void
     cwmAnnounceGetTransactionsItemBTC (OwnershipKept BRCryptoWalletManager cwm,
                                        OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                       BRCryptoTransferStateType status,
                                        OwnershipKept uint8_t *transaction,
                                        size_t transactionLength,
                                        uint64_t timestamp,
@@ -239,15 +249,38 @@ extern "C" {
     extern void
     cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
                                        BRCryptoCWMClientCallbackState callbackState,
+                                       BRCryptoTransferStateType status,
                                        uint8_t *transaction,
                                        size_t transactionLength,
                                        uint64_t timestamp,
                                        uint64_t blockHeight);
 
     extern void
+    cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMClientCallbackState callbackState,
+                                   BRCryptoTransferStateType status,
+                                   OwnershipKept const char *hash,
+                                   OwnershipKept const char *uids,
+                                   OwnershipKept const char *from,
+                                   OwnershipKept const char *to,
+                                   OwnershipKept const char *amount,
+                                   OwnershipKept const char *currency,
+                                   OwnershipKept const char *fee,
+                                   uint64_t timestamp,
+                                   uint64_t blockHeight,
+                                   size_t attributesCount,
+                                   OwnershipKept const char **attributeKeys,
+                                   OwnershipKept const char **attributeVals);
+
+    extern void
     cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
                                         OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                         BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceGetTransfersComplete (OwnershipKept BRCryptoWalletManager cwm,
+                                     OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                     BRCryptoBoolean success);
 
     extern void
     cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,

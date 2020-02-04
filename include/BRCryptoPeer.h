@@ -30,7 +30,7 @@ extern "C" {
     cryptoPeerCreateFromSerialization (BRCryptoNetwork network,
                                        uint8_t *bytes, size_t bytesCount);
 
-    extern UInt128
+    extern BRCryptoData16
     cryptoPeerGetAddrAsInt (BRCryptoPeer peer);
 
     extern BRCryptoNetwork

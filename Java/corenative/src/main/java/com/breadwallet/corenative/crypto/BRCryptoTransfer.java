@@ -8,7 +8,9 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
+import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
@@ -94,6 +96,27 @@ public class BRCryptoTransfer extends PointerType {
                         thisPtr
                 )
         ).transform(BRCryptoFeeBasis::new);
+    }
+
+    public UnsignedLong getAttributeCount() {
+        Pointer thisPtr = this.getPointer();
+
+        return UnsignedLong.fromLongBits(
+                CryptoLibraryDirect.cryptoTransferGetAttributeCount(
+                        thisPtr
+                ).longValue()
+        );
+    }
+
+    public Optional<BRCryptoTransferAttribute> getAttributeAt(UnsignedLong index) {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoTransferGetAttributeAt(
+                        thisPtr,
+                        new SizeT(index.longValue())
+                )
+        ).transform(BRCryptoTransferAttribute::new);
     }
 
     public BRCryptoUnit getUnitForFee() {

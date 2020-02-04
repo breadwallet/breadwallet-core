@@ -28,6 +28,7 @@ import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferAttribute;
 import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
@@ -36,10 +37,14 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
+import java.security.cert.PKIXRevocationChecker;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -151,7 +156,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
-            Optional<? extends Address> target = network.addressFor(addressStr);
+            Optional<? extends Address> target = Address.create(addressStr, network);
             if (!target.isPresent()) {
                 showError("Invalid target address");
                 return;
@@ -211,7 +216,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
     private void updateFee() {
         String addressStr = receiverView.getText().toString();
-        Optional<? extends Address> target = network.addressFor(addressStr);
+        Optional<? extends Address> target = Address.create(addressStr, network);
         if (!target.isPresent()) {
             return;
         }
@@ -255,7 +260,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
     private void updateView(int progress, CharSequence receiver) {
         Amount amount = calculateValue(progress);
-        Optional<? extends Address> target = network.addressFor(receiver.toString());
+        Optional<? extends Address> target = Address.create(receiver.toString(), network);
 
         amountMinView.setText(minValue.toStringAsUnit(baseUnit).or(""));
         amountMaxView.setText(maxValue.toStringAsUnit(baseUnit).or(""));
@@ -297,16 +302,44 @@ public class TransferCreateSendActivity extends AppCompatActivity {
     }
 
     private void showConfirmTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
-        String escapedTarget = Html.escapeHtml(target.toString());
+        String targetAsString = target.toString();
+
+        String escapedTarget = Html.escapeHtml(targetAsString);
         String escapedAmount = Html.escapeHtml(amount.toString());
         Spanned message = Html.fromHtml(String.format("Send <b>%s</b> to <b>%s</b>?", escapedAmount, escapedTarget));
+
+        // Assign transfer attributes, if required
+        Set<TransferAttribute> attributes = new HashSet<>();
+        Set<? extends TransferAttribute> walletAttributes = wallet.getTransferAttributesFor(target);
+        for (TransferAttribute attribute : walletAttributes) {
+            // For the Demo, only consider required attributes.
+            if (attribute.isRequired()) {
+                // If it is a 'DestinationTag' attribute and Coinbase, give it a destination
+                if (attribute.getKey().equals("DestinationTag") &&
+                        targetAsString.equals("rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg")) // Coinbase
+                    attribute.setValue("739376465");                    // My Address
+                attributes.add(attribute);
+            }
+        }
 
         new AlertDialog.Builder(this)
                 .setTitle("Confirmation")
                 .setMessage(message)
-                .setNegativeButton("Cancel", (dialog, which) -> {})
+                .setNegativeButton("Cancel",   (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis);
+                    boolean haveRequiredAttributes = true;
+                    for (TransferAttribute attribute : attributes) {
+                        haveRequiredAttributes &=
+                                attribute.isRequired() && attribute.getValue().isPresent();
+                    }
+
+                    if (!haveRequiredAttributes) {
+                        showError("Missed Required Attribute");
+                        return;
+                    }
+
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis, attributes);
+
                     if (!transfer.isPresent()) {
                         showError("Balance too low?");
                     } else {

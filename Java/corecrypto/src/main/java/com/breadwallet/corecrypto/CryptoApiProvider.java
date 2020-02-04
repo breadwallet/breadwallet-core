@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.crypto.CryptoApi;
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
@@ -47,6 +48,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         @Override
         public boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
             return Account.validatePhrase(phraseUtf8, words);
+        }
+    };
+
+    private static final CryptoApi.AddressProvider addressProvider = new CryptoApi.AddressProvider() {
+        @Override
+        public Optional<com.breadwallet.crypto.Address> create(String address, Network network) {
+            return Address.create(address, network).transform(a -> a);
         }
     };
 
@@ -220,6 +228,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     @Override
     public CryptoApi.AccountProvider accountProvider() {
         return accountProvider;
+    }
+
+    @Override
+    public CryptoApi.AddressProvider addressProvider() {
+        return addressProvider;
     }
 
     @Override

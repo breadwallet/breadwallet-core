@@ -49,23 +49,25 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
+    /// The maximum balance
+    public var balanceMaximum: Amount? {
+        return cryptoWalletGetBalanceMaximum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
+    /// The minimum balance
+    public var balanceMinimum: Amount? {
+        return cryptoWalletGetBalanceMinimum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
     /// The current state.
     public var state: WalletState {
         return WalletState (core: cryptoWalletGetState(core))
     }
 
-    /// The default TransferFeeBasis for created transfers.
-//    public var defaultFeeBasis: TransferFeeBasis {
-//        get {
-//            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-//        set {
-//            let defaultFeeBasis = newValue // rename, for clarity
-//            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-//        }
-//    }
-
     /// The default TransferFactory for creating transfers.
-    //    var transferFactory: TransferFactory { get set }
+    ///    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
@@ -76,15 +78,70 @@ public final class Wallet: Equatable {
         return Address (core: cryptoWalletGetAddress (core, scheme.core), take: false)
     }
 
-    /// TODO: `var targets: [Address]`
+    /// TODO: `var {targets,sources}: [Address]` - for query needs?
 
-    /// TODO: Remove `source
-    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
-    public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
+    ///
+    /// Check if `address` is in `wallet`.  The address is considered in wallet if: a) it
+    /// has been used in a transaction or b) is the target address
+    ///
+    /// - Parameter address: the address to check
+    ///
+    public func hasAddress (_ address: Address) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletHasAddress (core, address.core);
     }
 
-    /// TODO: `var sources: [Address]`
+    ///
+    /// The Set of TransferAttributes applicable to Transfers created for this Wallet.  Every
+    /// attribute in the returned Set has a `nil` value.  Pass a subset of these to the
+    /// `createTransfer()` function.  Transfer creation and attribute validation will fail if
+    /// any of the _required_ attributes have a `nil` value or if any `value` is not valid itself.
+    ///
+    public lazy private(set) var transferAttributes: Set<TransferAttribute> = {
+        return transferAttributesFor(target: nil)
+    }()
+
+    public func transferAttributesFor (target: Address?) -> Set<TransferAttribute> {
+        let coreAttributes = (0..<cryptoWalletGetTransferAttributeCount(core, target?.core))
+            .map { cryptoWalletGetTransferAttributeAt (core, target?.core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        return Set (coreAttributes.map { TransferAttribute (core: cryptoTransferAttributeCopy($0), take: false) })
+    }
+    ///
+    /// Validate a TransferAttribute.  This returns `true` if the attributes value is valid and,
+    /// if the attribute's value is required, if is it not `nil`.
+    ///
+    /// - Parameter attribute: The attribute to validate
+    ///
+    public func validateTransferAttribute (_ attribute: TransferAttribute) -> TransferAttributeValidationError? {
+        let coreAttribute = attribute.core
+
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttribute (core, coreAttribute, &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
+    ///
+    /// Validate a Set of TransferAttributes.  This should be called prior to `createTransfer`
+    /// (otherwise `createTransfer` will fail).  This checks the Set as a whole given that their
+    /// might be relationships between the attributes
+    ///
+    /// - Note: Relationships between attributes are not explicitly provided in the interface
+    ///
+    /// - Parameter attributes: the set of attributes to validate
+    ///
+    public func validateTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
+        let coreAttributesCount = attributes.count
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
+
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttributes (core,
+                                                            coreAttributesCount,
+                                                            UnsafeMutablePointer (&coreAttributes),
+                                                            &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
@@ -129,7 +186,9 @@ public final class Wallet: Equatable {
     // address scheme
 
     ///
-    /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
+    /// Create a transfer for wallet.  If attributes are provided and they don't validate, then
+    /// `nil` is returned.  Creation will fail if the amount exceeds the wallet's balance.
+    ///
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
@@ -137,14 +196,26 @@ public final class Wallet: Equatable {
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
-    ///   - feeBasis: Teh basis for 'fee'
+    ///   - feeBasis: The basis for 'fee'
+    ///   - attributes: Optional transfer attributes.
     ///
     /// - Returns: A new transfer
     ///
     public func createTransfer (target: Address,
                                 amount: Amount,
-                                estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
-        return cryptoWalletCreateTransfer (core, target.core, amount.core, estimatedFeeBasis.core)
+                                estimatedFeeBasis: TransferFeeBasis,
+                                attributes: Set<TransferAttribute>? = nil) -> Transfer? {
+        if nil != attributes && nil != self.validateTransferAttributes(attributes!) {
+            return nil
+        }
+
+        let coreAttributesCount = attributes?.count ?? 0
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
+
+        return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core,
+                                                  estimatedFeeBasis.core,
+                                                  coreAttributesCount,
+                                                  UnsafeMutablePointer (&coreAttributes))
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)
@@ -240,12 +311,13 @@ public final class Wallet: Equatable {
         var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
 
         // This `amount` is in the `unit` of `wallet`
-        guard let amount = cryptoWalletEstimateLimit (self.core,
-                                                      (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                                      target.core,
-                                                      fee.core,
-                                                      &needFeeEstimate,
-                                                      &isZeroIfInsuffientFunds)
+        guard let amount = cryptoWalletManagerEstimateLimit (self.manager.core,
+                                                             self.core,
+                                                             (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                             target.core,
+                                                             fee.core,
+                                                             &needFeeEstimate,
+                                                             &isZeroIfInsuffientFunds)
             .map ({ Amount (core: $0, take: false)})
             else {
                 // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
@@ -432,29 +504,33 @@ public final class Wallet: Equatable {
                              amount: Amount,
                              fee: NetworkFee,
                              completion: @escaping Wallet.EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasis (self.core,
-                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                      target.core,
-                                      amount.core,
-                                      fee.core)
+        // 'Redirect' up to the 'manager'
+        cryptoWalletManagerEstimateFeeBasis (self.manager.core,
+                                             self.core,
+                                             callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                             target.core,
+                                             amount.core,
+                                             fee.core)
     }
-
+    
     internal func estimateFee (sweeper: WalletSweeper,
                                fee: NetworkFee,
                                completion: @escaping EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
-                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                   sweeper.core,
-                                                   fee.core)
+        cryptoWalletManagerEstimateFeeBasisForWalletSweep (self.manager.core,
+                                                           self.core,
+                                                           callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                           sweeper.core,
+                                                           fee.core)
     }
-
+    
     internal func estimateFee (request: PaymentProtocolRequest,
                                fee: NetworkFee,
                                completion: @escaping EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
-                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                              request.core,
-                                                              fee.core)
+        cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (self.manager.core,
+                                                                      self.core,
+                                                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                                      request.core,
+                                                                      fee.core)
     }
 
     public enum FeeEstimationError: Error {

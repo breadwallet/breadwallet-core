@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.CryptoLibraryIndirect;
 import com.breadwallet.corenative.CryptoLibraryDirect;
 import com.breadwallet.corenative.utility.SizeT;
@@ -25,77 +24,30 @@ import java.util.List;
 
 public class BRCryptoNetwork extends PointerType {
 
-    public static BRCryptoNetwork createAsBtc(String uids, String name, boolean isMainnet) {
-        Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRMainNetParams" : "BRTestNetParams");
-        return new BRCryptoNetwork(
-                CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
-                        uids,
-                        name,
-                        (byte) (isMainnet ? 0x00 : 0x40),
-                        globalPtr.getPointer(0)
-                )
-        );
+    public static Optional<BRCryptoNetwork> findBuiltin (String uids) {
+        Pointer builtin = CryptoLibraryDirect.cryptoNetworkFindBuiltin (uids);
+        return (null == builtin
+                ? Optional.absent()
+                : Optional.of (new BRCryptoNetwork(builtin)));
     }
 
-    public static BRCryptoNetwork createAsBch(String uids, String name, boolean isMainnet) {
-        Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress(isMainnet ? "BRBCashParams" : "BRBCashTestNetParams");
-        return new BRCryptoNetwork(
-                CryptoLibraryDirect.cryptoNetworkCreateAsBTC(
-                        uids,
-                        name,
-                        (byte) (isMainnet ? 0x00 : 0x40),
-                        globalPtr.getPointer(0)
-                )
-        );
-    }
+    public static List<BRCryptoNetwork> installBuiltins () {
+        List<BRCryptoNetwork> builtins = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer builtinsPtr = CryptoLibraryDirect.cryptoNetworkInstallBuiltins(count);
 
-    public static Optional<BRCryptoNetwork> createAsEth(String uids, String name, boolean isMainnet) {
-        if (uids.contains("mainnet")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumMainnet");
-            return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
-                            uids,
-                            name,
-                            1,
-                            globalPtr.getPointer(0)
-                    )
-            ).transform(BRCryptoNetwork::new);
+        if (null != builtinsPtr) {
+            try {
+                int builtinsSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (Pointer builtinPtr : builtinsPtr.getPointerArray(0, builtinsSize)) {
+                    builtins.add(new BRCryptoNetwork(builtinPtr));
+                }
 
-        } else if (uids.contains("testnet") || uids.contains("ropsten")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumTestnet");
-            return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
-                            uids,
-                            name,
-                            3,
-                            globalPtr.getPointer(0)
-                    )
-            ).transform(BRCryptoNetwork::new);
-
-        } else if (uids.contains ("rinkeby")) {
-            Pointer globalPtr = CryptoLibrary.LIBRARY.getGlobalVariableAddress("ethereumRinkeby");
-            return Optional.of(
-                    CryptoLibraryDirect.cryptoNetworkCreateAsETH(
-                            uids,
-                            name,
-                            4,
-                            globalPtr.getPointer(0)
-                    )
-            ).transform(BRCryptoNetwork::new);
-
-        } else {
-            return Optional.absent();
+            } finally {
+                Native.free(Pointer.nativeValue(builtinsPtr));
+            }
         }
-    }
-
-    public static BRCryptoNetwork createAsGen(String uids, String name, boolean isMainnet) {
-        return new BRCryptoNetwork(
-                CryptoLibraryDirect.cryptoNetworkCreateAsGEN(
-                        uids,
-                        name,
-                        isMainnet ? (byte) 1 : 0
-                )
-        );
+        return builtins;
     }
 
     public BRCryptoNetwork() {
@@ -104,6 +56,13 @@ public class BRCryptoNetwork extends PointerType {
 
     public BRCryptoNetwork(Pointer address) {
         super(address);
+    }
+
+    public BRCryptoNetworkCanonicalType getCanonicalType () {
+        return BRCryptoNetworkCanonicalType.fromCore(
+                CryptoLibraryDirect.cryptoNetworkGetCanonicalType(
+                        this.getPointer())
+        );
     }
 
     public BRCryptoCurrency getCurrency() {
@@ -294,15 +253,76 @@ public class BRCryptoNetwork extends PointerType {
         ).transform(BRCryptoUnit::new);
     }
 
-    public Optional<BRCryptoAddress> addressFor(String address) {
+    public BRCryptoAddressScheme getDefaultAddressScheme() {
+        return BRCryptoAddressScheme.fromCore(
+                CryptoLibraryDirect.cryptoNetworkGetDefaultAddressScheme(
+                        this.getPointer())
+        );
+    }
+
+    public List<BRCryptoAddressScheme> getSupportedAddressSchemes() {
         Pointer thisPtr = this.getPointer();
 
-        return Optional.fromNullable(
-                CryptoLibraryDirect.cryptoNetworkCreateAddressFromString(
-                        thisPtr,
-                        address
-                )
-        ).transform(BRCryptoAddress::new);
+        List<BRCryptoAddressScheme> schemes = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer schemesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedAddressSchemes(thisPtr, count);
+        if (null != schemesPtr) {
+            try {
+                int schemesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (int schemeInt: schemesPtr.getIntArray(0, schemesSize)) {
+                    schemes.add(BRCryptoAddressScheme.fromCore(schemeInt));
+                }
+            } finally {
+                Native.free(Pointer.nativeValue(schemesPtr));
+            }
+        }
+        return schemes;
+    }
+
+    public boolean supportsAddressScheme(BRCryptoAddressScheme addressScheme) {
+        return CryptoLibraryDirect.cryptoNetworkSupportsAddressScheme (
+                this.getPointer(),
+                addressScheme.toCore()
+        );
+    }
+
+    public BRCryptoSyncMode getDefaultSyncMode() {
+        return BRCryptoSyncMode.fromCore(
+                CryptoLibraryDirect.cryptoNetworkGetDefaultSyncMode(
+                        this.getPointer())
+        );
+    }
+
+    public List<BRCryptoSyncMode> getSupportedSyncModes() {
+       Pointer thisPtr = this.getPointer();
+
+        List<BRCryptoSyncMode> modes = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer modesPtr = CryptoLibraryDirect.cryptoNetworkGetSupportedSyncModes(thisPtr, count);
+        if (null != modesPtr) {
+            try {
+                int modesSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (int modeInt: modesPtr.getIntArray(0, modesSize)) {
+                    modes.add(BRCryptoSyncMode.fromCore(modeInt));
+                }
+            } finally {
+                Native.free(Pointer.nativeValue(modesPtr));
+            }
+        }
+        return modes;
+    }
+
+    public boolean supportsSyncMode(BRCryptoSyncMode mode) {
+        return CryptoLibraryDirect.cryptoNetworkSupportsSyncMode(
+                this.getPointer(),
+                mode.toCore()
+        );
+    }
+
+    public boolean requiresMigration () {
+        return CryptoLibraryDirect.cryptoNetworkRequiresMigration(
+                this.getPointer()
+        );
     }
 
     public BRCryptoNetwork take() {

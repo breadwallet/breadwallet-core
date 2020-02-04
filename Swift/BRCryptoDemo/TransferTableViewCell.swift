@@ -62,7 +62,7 @@ class TransferTableViewCell: UITableViewCell {
             let hash = transfer.hash
 
             dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
-            addrLabel.text = "Hash: \(hash.map { $0.description } ?? "<pending>")"
+            addrLabel.text = hash.map { $0.description } ?? "<pending>"
             amountLabel.text = transfer.amountDirected.description
             feeLabel.text = "Fee: \(transfer.fee)"
             dotView.mainColor = colorForState()

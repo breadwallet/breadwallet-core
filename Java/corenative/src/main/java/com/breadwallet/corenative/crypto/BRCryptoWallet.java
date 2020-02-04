@@ -8,10 +8,12 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
-import com.breadwallet.corenative.utility.Cookie;
+import com.breadwallet.corenative.CryptoLibraryIndirect;
+import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -36,6 +38,22 @@ public class BRCryptoWallet extends PointerType {
         Pointer thisPtr = this.getPointer();
 
         return new BRCryptoAmount(CryptoLibraryDirect.cryptoWalletGetBalance(thisPtr));
+    }
+
+    public Optional<BRCryptoAmount> getBalanceMaximum () {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletGetBalanceMaximum(thisPtr)
+        ).transform(BRCryptoAmount::new);
+    }
+
+    public Optional<BRCryptoAmount> getBalanceMinimum () {
+        Pointer thisPtr = this.getPointer();
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletGetBalanceMinimum(thisPtr)
+        ).transform(BRCryptoAmount::new);
     }
 
     public List<BRCryptoTransfer> getTransfers() {
@@ -65,6 +83,70 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasTransfer(thisPtr, transfer.getPointer());
     }
 
+    public UnsignedLong getTransferAttributeCount(@Nullable BRCryptoAddress target) {
+        Pointer thisPtr = this.getPointer();
+        Pointer targetPtr = (null == target ? null : target.getPointer());
+
+        return UnsignedLong.fromLongBits(
+                CryptoLibraryDirect.cryptoWalletGetTransferAttributeCount(
+                        thisPtr,
+                        targetPtr
+                ).longValue()
+        );
+    }
+
+    public Optional<BRCryptoTransferAttribute> getTransferAttributeAt(@Nullable BRCryptoAddress target, UnsignedLong index) {
+        Pointer thisPtr = this.getPointer();
+        Pointer targetPtr = (null == target ? null : target.getPointer());
+
+        return Optional.fromNullable(
+                CryptoLibraryDirect.cryptoWalletGetTransferAttributeAt(
+                        thisPtr,
+                        targetPtr,
+                        new SizeT(index.longValue())
+                )
+        ).transform(BRCryptoTransferAttribute::new);
+    }
+
+    public Optional<BRCryptoTransferAttributeValidationError> validateTransferAttribute(BRCryptoTransferAttribute attribute) {
+        Pointer thisPtr = this.getPointer();
+
+        IntByReference validates = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+
+        BRCryptoTransferAttributeValidationError error = BRCryptoTransferAttributeValidationError.fromCore(
+                CryptoLibraryDirect.cryptoWalletValidateTransferAttribute(
+                        thisPtr,
+                        attribute.getPointer(),
+                        validates
+                ));
+
+        return (BRCryptoBoolean.CRYPTO_TRUE == validates.getValue()
+                ? Optional.absent()
+                : Optional.of(error));
+    }
+
+    public Optional<BRCryptoTransferAttributeValidationError> validateTransferAttributes(List<BRCryptoTransferAttribute> attributes) {
+        Pointer thisPtr = this.getPointer();
+
+        IntByReference validates = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+
+        int attributesCount  = attributes.size();
+        BRCryptoTransferAttribute[] attributeRefs = new BRCryptoTransferAttribute[attributesCount];
+        for (int i = 0; i < attributesCount; i++) attributeRefs[i] = attributes.get(i);
+
+        BRCryptoTransferAttributeValidationError error = BRCryptoTransferAttributeValidationError.fromCore(
+                CryptoLibraryIndirect.cryptoWalletValidateTransferAttributes(
+                        thisPtr,
+                        new SizeT(attributes.size()),
+                        attributeRefs,
+                        validates
+                ));
+
+        return (BRCryptoBoolean.CRYPTO_TRUE == validates.getValue()
+                ? Optional.absent()
+                : Optional.of(error));
+    }
+
     public BRCryptoCurrency getCurrency() {
         Pointer thisPtr = this.getPointer();
 
@@ -89,16 +171,17 @@ public class BRCryptoWallet extends PointerType {
         return BRCryptoWalletState.fromCore(CryptoLibraryDirect.cryptoWalletGetState(thisPtr));
     }
 
-    public BRCryptoAddress getSourceAddress(BRCryptoAddressScheme addressScheme) {
+    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
         Pointer thisPtr = this.getPointer();
 
         return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
     }
 
-    public BRCryptoAddress getTargetAddress(BRCryptoAddressScheme addressScheme) {
-        Pointer thisPtr = this.getPointer();
-
-        return new BRCryptoAddress(CryptoLibraryDirect.cryptoWalletGetAddress(thisPtr, addressScheme.toCore()));
+    public boolean containsAddress(BRCryptoAddress address) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibraryDirect.cryptoWalletHasAddress(
+                this.getPointer(),
+                address.getPointer()
+        );
     }
 
     public Optional<BRCryptoFeeBasis> createTransferFeeBasis(BRCryptoAmount pricePerCostFactor, double costFactor) {
@@ -114,15 +197,22 @@ public class BRCryptoWallet extends PointerType {
     }
 
     public Optional<BRCryptoTransfer> createTransfer(BRCryptoAddress target, BRCryptoAmount amount,
-                                                     BRCryptoFeeBasis estimatedFeeBasis) {
+                                                     BRCryptoFeeBasis estimatedFeeBasis,
+                                                     List<BRCryptoTransferAttribute> attributes) {
         Pointer thisPtr = this.getPointer();
 
+        int attributesCount  = attributes.size();
+        BRCryptoTransferAttribute[] attributeRefs = new BRCryptoTransferAttribute[attributesCount];
+        for (int i = 0; i < attributesCount; i++) attributeRefs[i] = attributes.get(i);
+
         return Optional.fromNullable(
-                CryptoLibraryDirect.cryptoWalletCreateTransfer(
+                CryptoLibraryIndirect.cryptoWalletCreateTransfer(
                         thisPtr,
                         target.getPointer(),
                         amount.getPointer(),
-                        estimatedFeeBasis.getPointer()
+                        estimatedFeeBasis.getPointer(),
+                        new SizeT(attributesCount),
+                        attributeRefs
                 )
         ).transform(BRCryptoTransfer::new);
     }
@@ -151,75 +241,7 @@ public class BRCryptoWallet extends PointerType {
         ).transform(BRCryptoTransfer::new);
     }
 
-    public void estimateFeeBasis(Cookie cookie,
-                                 BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasis(
-                thisPtr,
-                cookie.getPointer(),
-                target.getPointer(),
-                amount.getPointer(),
-                fee.getPointer());
-    }
-
-    public void estimateFeeBasisForWalletSweep(Cookie cookie, BRCryptoWalletSweeper sweeper,
-                                               BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForWalletSweep(
-                thisPtr,
-                cookie.getPointer(),
-                sweeper.getPointer(),
-                fee.getPointer());
-    }
-
-    public void estimateFeeBasisForPaymentProtocolRequest(Cookie cookie, BRCryptoPaymentProtocolRequest request,
-                                                          BRCryptoNetworkFee fee) {
-        Pointer thisPtr = this.getPointer();
-
-        CryptoLibraryDirect.cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(
-                thisPtr,
-                cookie.getPointer(),
-                request.getPointer(),
-                fee.getPointer());
-    }
-
-    public static class EstimateLimitResult {
-
-        public @Nullable BRCryptoAmount amount;
-        public boolean needFeeEstimate;
-        public boolean isZeroIfInsuffientFunds;
-
-        EstimateLimitResult(@Nullable BRCryptoAmount amount, boolean needFeeEstimate, boolean isZeroIfInsuffientFunds) {
-            this.amount = amount;
-            this.needFeeEstimate = needFeeEstimate;
-            this.isZeroIfInsuffientFunds = isZeroIfInsuffientFunds;
-        }
-    }
-
-    public EstimateLimitResult estimateLimit(boolean asMaximum, BRCryptoAddress coreAddress, BRCryptoNetworkFee coreFee) {
-        Pointer thisPtr = this.getPointer();
-
-        IntByReference needFeeEstimateRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        IntByReference isZeroIfInsuffientFundsRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        Optional<BRCryptoAmount> maybeAmount = Optional.fromNullable(CryptoLibraryDirect.cryptoWalletEstimateLimit(
-                thisPtr,
-                asMaximum ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE,
-                coreAddress.getPointer(),
-                coreFee.getPointer(),
-                needFeeEstimateRef,
-                isZeroIfInsuffientFundsRef
-        )).transform(BRCryptoAmount::new);
-
-        return new EstimateLimitResult(
-                maybeAmount.orNull(),
-                needFeeEstimateRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE,
-                isZeroIfInsuffientFundsRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE
-        );
-    }
-
-    public BRCryptoWallet take() {
+     public BRCryptoWallet take() {
         Pointer thisPtr = this.getPointer();
 
         return new BRCryptoWallet(CryptoLibraryDirect.cryptoWalletTake(thisPtr));

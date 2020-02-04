@@ -268,19 +268,6 @@ public class BlockChainDB {
                     confirmationsUntilFinal: confirmationsUntilFinal)
         }
 
-        static internal func updateBlockchainModelHeight (model: Model.Blockchain, height: UInt64) -> Model.Blockchain {
-            guard nil == model.blockHeight else { return model }
-
-            return (id: model.id,
-                    name: model.name,
-                    network: model.network,
-                    isMainnet: model.isMainnet,
-                    currency: model.currency,
-                    blockHeight: height,
-                    feeEstimates: model.feeEstimates,
-                    confirmationsUntilFinal: model.confirmationsUntilFinal)
-        }
-
         /// Currency & CurrencyDenomination
 
         public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)
@@ -308,7 +295,7 @@ public class BlockChainDB {
 
         static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
         static internal func lookupSymbol (_ code: String) -> String {
-            return currencySymbols[code] ?? code
+            return currencySymbols[code] ?? code.uppercased()
         }
 
         static private let currencyInternalAddress = "__native__"
@@ -352,7 +339,8 @@ public class BlockChainDB {
             acknowledgements: UInt64,
             index: UInt64,
             transactionId: String?,
-            blockchainId: String)
+            blockchainId: String,
+            metaData: Dictionary<String,String>?)
 
         static internal func asTransfer (json: JSON) -> Model.Transfer? {
             guard let id   = json.asString (name: "transfer_id"),
@@ -368,11 +356,13 @@ public class BlockChainDB {
             let source = json.asString (name: "from_address")
             let target = json.asString (name: "to_address")
             let tid    = json.asString (name: "transaction_id")
+            let meta   = json.asDict(name: "meta")?.mapValues { return $0 as! String }
 
             return (id: id, source: source, target: target,
                     amountValue: amountValue, amountCurrency: amountCurrency,
                     acknowledgements: acks, index: index,
-                    transactionId: tid, blockchainId: bid)
+                    transactionId: tid, blockchainId: bid,
+                    metaData: meta)
         }
 
         /// Transaction

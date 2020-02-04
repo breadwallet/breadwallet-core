@@ -12,8 +12,10 @@
 #define BRRipple_transaction_h
 
 #include "BRRippleBase.h"
+#include "BRRippleFeeBasis.h"
 #include "BRKey.h"
 #include "support/BRSet.h"
+#include "BRRippleAddress.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 
@@ -50,6 +52,9 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
  */
 extern BRRippleTransaction /* caller must free - rippleTransactionFree */
 rippleTransactionCreateFromBytes(uint8_t *bytes, int length);
+
+extern BRRippleTransaction
+rippleTransactionClone (BRRippleTransaction transaction);
 
 /**
  * Clean up any memory for this transaction
@@ -104,8 +109,12 @@ extern BRRippleUnitDrops rippleTransactionGetAmount(BRRippleTransaction transact
 extern BRRippleSequence rippleTransactionGetSequence(BRRippleTransaction transaction);
 extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction);
 extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction);
-extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
-extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
+
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransactionGetSource(BRRippleTransaction transaction);
+extern BRRippleAddress // caller owns object, must free with rippleAddressFree
+rippleTransactionGetTarget(BRRippleTransaction transaction);
+
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction);
 
 extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction);
@@ -115,4 +124,14 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 
 extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize);
+
+/// Transaction Attribute
+extern size_t rippleTransactionFieldRequiredCount;
+extern const char **rippleTransactionFieldRequiredNames;
+
+extern size_t rippleTransactionFieldOptionalCount;
+extern const char *rippleTransactionFieldOptionalNames[];
+
+extern void rippleTransactionSetDestinationTag (BRRippleTransaction transaction, BRRippleDestinationTag tag);
+extern void rippleTransactionSetInvoiceID (BRRippleTransaction transaction, UInt256 invoiceId);
 #endif

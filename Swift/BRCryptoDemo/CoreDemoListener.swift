@@ -99,11 +99,11 @@ class CoreDemoListener: SystemListener {
                 let currencyMode = self.networkCurrencyCodesToMode [network.currency.code] {
                 // Get a valid mode, ideally from `currencyMode`
 
-                let mode = system.supportsMode (network: network, currencyMode)
+                let mode = network.supportsMode (currencyMode)
                     ? currencyMode
-                    : system.defaultMode(network: network)
+                    : network.defaultMode
 
-                let scheme = system.defaultAddressScheme(network: network)
+                let scheme = network.defaultAddressScheme
 
                 let currencies = network.currencies
                     .filter { (c) in registerCurrencyCodes.contains { c.code == $0 } }

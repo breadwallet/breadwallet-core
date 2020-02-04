@@ -99,7 +99,7 @@ extern "C" {
     } BRCryptoWalletManagerEventType;
 
     extern const char *
-    BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
+    cryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
 
     typedef struct {
         BRCryptoWalletManagerEventType type;
@@ -261,6 +261,16 @@ extern "C" {
     cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
                                     BRCryptoSyncDepth depth);
 
+    // TODO: Workaround to create a TransferEvent.created for GEN (required CWM)
+    extern BRCryptoTransfer
+    cryptoWalletManagerCreateTransfer (BRCryptoWalletManager cwm,
+                                       BRCryptoWallet wallet,
+                                       BRCryptoAddress target,
+                                       BRCryptoAmount amount,
+                                       BRCryptoFeeBasis estimatedFeeBasis,
+                                       size_t attributesCount,
+                                       OwnershipKept BRCryptoTransferAttribute *attributes);
+
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,
                              BRCryptoWallet wallet,
@@ -283,6 +293,52 @@ extern "C" {
     cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
                                      BRCryptoWallet wallet,
                                      BRCryptoTransfer transfer);
+
+    /**
+     * Estimate the wallet's maximum or minimun transfer amount.
+     */
+    extern BRCryptoAmount
+    cryptoWalletManagerEstimateLimit (BRCryptoWalletManager manager,
+                                      BRCryptoWallet  wallet,
+                                      BRCryptoBoolean asMaximum,
+                                      BRCryptoAddress target,
+                                      BRCryptoNetworkFee fee,
+                                      BRCryptoBoolean *needEstimate,
+                                      BRCryptoBoolean *isZeroIfInsuffientFunds);
+
+    /**
+     * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
+     * represented in the wallet's fee currency.
+     *
+     * @param manager the manager
+     * @param wallet the wallet
+     * @param amount the amount to transfer
+     * @param feeBasis the fee basis for the transfer
+     *
+     * @return the fee
+     */
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager manager,
+                                         BRCryptoWallet  wallet,
+                                         BRCryptoCookie cookie,
+                                         BRCryptoAddress target,
+                                         BRCryptoAmount  amount,
+                                         BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasisForWalletSweep (BRCryptoWalletManager manager,
+                                                       BRCryptoWallet wallet,
+                                                       BRCryptoCookie cookie,
+                                                       BRCryptoWalletSweeper sweeper,
+                                                       BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWalletManager manager,
+                                                                  BRCryptoWallet wallet,
+                                                                  BRCryptoCookie cookie,
+                                                                  BRCryptoPaymentProtocolRequest request,
+                                                                  BRCryptoNetworkFee fee);
 
     extern void
     cryptoWalletManagerWipe (BRCryptoNetwork network,
@@ -322,7 +378,7 @@ extern "C" {
 
     extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
-                                          UInt256 hash,
+                                          BRCryptoData32 hash,
                                           uint32_t height,
                                           uint32_t nonce,
                                           uint32_t target,
@@ -330,9 +386,9 @@ extern "C" {
                                           uint32_t version,
                                           uint32_t timestamp,
                                           uint8_t *flags,  size_t flagsLen,
-                                          UInt256 *hashes, size_t hashesCount,
-                                          UInt256 merkleRoot,
-                                          UInt256 prevBlock);
+                                          BRCryptoData32 *hashes, size_t hashesCount,
+                                          BRCryptoData32 merkleRoot,
+                                          BRCryptoData32 prevBlock);
 
     extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleBlockBytesAsBTC (BRCryptoWalletMigrator migrator,

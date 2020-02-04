@@ -262,7 +262,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public void setAddressScheme(AddressScheme scheme) {
-        checkState(system.supportsAddressScheme(getNetwork(), scheme));
+        checkState(getNetwork().supportsAddressScheme(scheme));
         core.setAddressScheme(Utilities.addressSchemeToCrypto(scheme));
     }
 

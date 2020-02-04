@@ -19,7 +19,7 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     var target: Address?
     var minimum: Amount!
     var maximum: Amount!
-
+    
      override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -31,11 +31,13 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     }
 
     var isEthCurrency: Bool {
-        return wallet.currency.code.lowercased() == Currency.codeAsETH
+        return NetworkType.eth == wallet.manager.network.type
     }
     var isBitCurrency: Bool {
-        return wallet.currency.code.lowercased() == Currency.codeAsBTC ||
-            wallet.currency.code.lowercased() == Currency.codeAsBCH
+        switch wallet.manager.network.type {
+        case .btc, .bch: return true
+        default: return false
+        }
     }
 
     var isTokCurrency: Bool {
@@ -58,7 +60,9 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         self.minimum = Amount.create (double: 0.0, unit: wallet.unit)
         self.maximum = wallet.balance;
 
-        recvField.text = UIPasteboard.general.string
+        if nil == recvField.text || "" == recvField.text! {
+            recvField.text = UIPasteboard.general.string
+        }
         target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
 
         gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
@@ -80,6 +84,17 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         // Pass the selected object to the new view controller.
     }
     */
+    private func submitTransferFailed (_ message: String) {
+        let alert = UIAlertController (title: "Submit Transfer",
+                                       message: "Failed to submit transfer - \(message)",
+                                       preferredStyle: UIAlertController.Style.alert)
+        alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
+            self.dismiss(animated: true) {}
+        })
+
+        self.present (alert, animated: true) {}
+    }
+
     @IBAction func submit(_ sender: UIBarButtonItem) {
         print ("APP: TCC: Want to submit")
         let value = amount()
@@ -90,37 +105,30 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
 
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
-                else {
-                    let alert = UIAlertController (title: "Submit Transfer",
-                                                   message: "Failed to create transfer - invalid target address",
-                                                   preferredStyle: UIAlertController.Style.alert)
-                    alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
-                        self.dismiss(animated: true) {}
-                    })
-
-                    self.present (alert, animated: true) {}
-                    return
-            }
+                else { self.submitTransferFailed("invalid target address"); return }
 
             let unit = self.wallet.unit
             let amount = Amount.create (double: Double(value), unit: unit)
             print ("APP: TVV: Submit \(self.isBitCurrency ? "BTC/BCH" : "ETH") Amount: \(amount)");
 
-            // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
+            guard let transferFeeBasis = self.feeBasis
+                else { self.submitTransferFailed ("no fee basis"); return }
+
+            var attributes: Set<TransferAttribute> = Set()
+
+            if let destinationTagAttribute = self.wallet.transferAttributesFor (target: target)
+                .first (where: { "DestinationTag" == $0.key }) {
+                destinationTagAttribute.value = (self.recvField.text! == "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg"
+                    ? "739376465"
+                    : nil)
+                attributes.insert (destinationTagAttribute)
+            }
+
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             estimatedFeeBasis: self.feeBasis!)
-                else {
-                    let alert = UIAlertController (title: "Submit Transfer",
-                                               message: "Failed to create transfer - balance too low?",
-                                               preferredStyle: UIAlertController.Style.alert)
-                    alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
-                        self.dismiss(animated: true) {}
-                    })
-
-                    self.present (alert, animated: true) {}
-                    return
-            }
+                                                             estimatedFeeBasis: transferFeeBasis,
+                                                             attributes: attributes)
+                else { self.submitTransferFailed("balance too low?"); return }
 
             // Will generate a WalletEvent.transferSubmitted (transfer, success)
             self.wallet.manager.submit (transfer: transfer,
@@ -300,6 +308,10 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         }
     }
 
+    @IBAction func doUseCoinbase(_ sender: Any) {
+        recvField.text = "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg";
+        updateView()
+    }
     // Network Fee Picker
 
     func numberOfComponents(in pickerView: UIPickerView) -> Int {

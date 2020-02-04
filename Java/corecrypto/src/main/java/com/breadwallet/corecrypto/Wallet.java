@@ -14,12 +14,13 @@ import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolRequest;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoTransferAttribute;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
+import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletSweeper;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
-import com.breadwallet.crypto.errors.FeeEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.errors.LimitEstimationInsufficientFundsError;
 import com.breadwallet.crypto.errors.LimitEstimationServiceFailureError;
@@ -27,10 +28,15 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -89,11 +95,19 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     @Override
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
-                                             com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis) {
+                                             com.breadwallet.crypto.TransferFeeBasis estimatedFeeBasis,
+                                             @Nullable Set<com.breadwallet.crypto.TransferAttribute> attributes) {
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(estimatedFeeBasis).getCoreBRFeeBasis();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
-        return core.createTransfer(coreAddress, coreAmount, coreFeeBasis).transform(t -> Transfer.create(t, this));
+
+        List<BRCryptoTransferAttribute> coreAttributes = new ArrayList<>();
+        if (null != attributes)
+            for (com.breadwallet.crypto.TransferAttribute attribute : attributes) {
+                coreAttributes.add (TransferAttribute.from(attribute).getCoreBRCryptoTransferAttribute());
+            }
+
+        return core.createTransfer(coreAddress, coreAmount, coreFeeBasis, coreAttributes).transform(t -> Transfer.create(t, this));
     }
 
     /* package */
@@ -115,26 +129,29 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
                             com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         BRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
+        coreManager.estimateFeeBasis(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     /* package */
     void estimateFee(WalletSweeper sweeper,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoWalletSweeper coreSweeper = sweeper.getCoreBRWalletSweeper();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForWalletSweep(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
+        coreManager.estimateFeeBasisForWalletSweep(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreSweeper, coreFee);
     }
 
     /* package */
     void estimateFee(PaymentProtocolRequest request,
                      com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
         BRCryptoPaymentProtocolRequest coreRequest = request.getBRCryptoPaymentProtocolRequest();
         BRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasisForPaymentProtocolRequest(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreRequest, coreFee);
+        coreManager.estimateFeeBasisForPaymentProtocolRequest(core, callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreRequest, coreFee);
     }
 
     @Override
@@ -152,12 +169,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private void estimateLimit(boolean asMaximum,
                                com.breadwallet.crypto.Address target, com.breadwallet.crypto.NetworkFee fee,
                                CompletionHandler<com.breadwallet.crypto.Amount, LimitEstimationError> handler) {
+        BRCryptoWalletManager coreManager = getWalletManager().getCoreBRCryptoWalletManager();
+
         NetworkFee cryptoFee = NetworkFee.from(fee);
         BRCryptoNetworkFee coreFee = cryptoFee.getCoreBRCryptoNetworkFee();
         BRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
 
         // This `amount` is in the `unit` of `wallet`
-        BRCryptoWallet.EstimateLimitResult result = core.estimateLimit(asMaximum, coreAddress, coreFee);
+        BRCryptoWalletManager.EstimateLimitResult result = coreManager.estimateLimit(core, asMaximum, coreAddress, coreFee);
         if (result.amount == null) {
             // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
             callbackCoordinator.completeLimitEstimateWithError(handler, new LimitEstimationInsufficientFundsError());
@@ -342,6 +361,43 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
+    public Set<TransferAttribute> getTransferAttributesFor(@Nullable com.breadwallet.crypto.Address target) {
+        BRCryptoAddress coreTarget = (null == target ? null : Address.from(target).getCoreBRCryptoAddress());
+
+        Set<TransferAttribute> attributes = new HashSet<>();
+        UnsignedLong count = core.getTransferAttributeCount(coreTarget);
+
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            Optional<TransferAttribute> attribute = core.getTransferAttributeAt(coreTarget, i)
+                    .transform(TransferAttribute::create);  // Uses the 'take' from '...AttributeAt'
+            if (attribute.isPresent()) {
+                attributes.add (attribute.get().copy());
+            }
+        }
+        return attributes;
+    }
+
+    @Override
+    public Optional<TransferAttribute.Error> validateTransferAttribute(com.breadwallet.crypto.TransferAttribute attribute) {
+        BRCryptoTransferAttribute coreAttribute =
+                TransferAttribute.from(attribute).getCoreBRCryptoTransferAttribute();
+
+        return core.validateTransferAttribute(coreAttribute)
+                .transform(Utilities::transferAttributeErrorFromCrypto);
+    }
+
+    @Override
+    public Optional<TransferAttribute.Error> validateTransferAttributes(Set<com.breadwallet.crypto.TransferAttribute> attributes) {
+
+        List<BRCryptoTransferAttribute> coreAttributes = new ArrayList<>();
+        for (com.breadwallet.crypto.TransferAttribute attribute : attributes)
+            coreAttributes.add (TransferAttribute.from(attribute).getCoreBRCryptoTransferAttribute());
+
+        return core.validateTransferAttributes(coreAttributes)
+                .transform(Utilities::transferAttributeErrorFromCrypto);
+    }
+
+    @Override
     public Unit getUnit() {
         return unitSupplier.get();
     }
@@ -354,6 +410,18 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     @Override
     public Amount getBalance() {
         return Amount.create(core.getBalance());
+    }
+
+    @Override
+    public Optional<Amount> getBalanceMaximum() {
+        return core.getBalanceMaximum()
+                .transform(Amount::create);
+    }
+
+    @Override
+    public Optional<Amount> getBalanceMinimum() {
+        return core.getBalanceMinimum()
+                .transform(Amount::create);
     }
 
     @Override
@@ -372,8 +440,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     @Override
-    public Address getSource() {
-        return Address.create(core.getSourceAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
+    public boolean containsAddress(com.breadwallet.crypto.Address address) {
+        return core.containsAddress(Address.from(address).getCoreBRCryptoAddress());
     }
 
     @Override

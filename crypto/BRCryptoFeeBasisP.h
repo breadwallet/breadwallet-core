@@ -5,6 +5,8 @@
 //  Created by Ed Gamble on 11/22/19.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BRCryptoFeeBasisP_h
 #define BRCryptoFeeBasisP_h
@@ -27,10 +29,7 @@ struct BRCryptoFeeBasisRecord {
             uint32_t sizeInByte;
         } btc;
         BREthereumFeeBasis eth;
-        struct {
-            BRGenericWalletManager gwm;
-            BRGenericFeeBasis bid;
-        } gen;
+        BRGenericFeeBasis gen;
     } u;
     BRCryptoUnit unit;
     BRCryptoRef ref;
@@ -60,7 +59,6 @@ cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis);
 
  private_extern BRCryptoFeeBasis
  cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
-                            BRGenericWalletManager gwm,
                             OwnershipGiven BRGenericFeeBasis bid);
 
 #ifdef __cplusplus

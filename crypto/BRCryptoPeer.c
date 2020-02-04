@@ -78,9 +78,11 @@ cryptoPeerRelease (BRCryptoPeer peer) {
     free (peer);
 }
 
-extern UInt128
+extern BRCryptoData16
 cryptoPeerGetAddrAsInt (BRCryptoPeer peer) {
-    return peer->addressAsInt;
+    BRCryptoData16 addrAsInt;
+    memcpy (addrAsInt.data, peer->addressAsInt.u8, sizeof (addrAsInt.data));
+    return addrAsInt;
 }
 
 extern BRCryptoNetwork

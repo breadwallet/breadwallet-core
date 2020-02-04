@@ -19,6 +19,7 @@
 #include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
+#include "generic/BRGeneric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,32 +61,30 @@ typedef struct {
 
 struct BRCryptoNetworkRecord {
     pthread_mutex_t lock;
-
+    
     char *uids;
     char *name;
+    BRCryptoNetworkCanonicalType canonicalType;
     BRCryptoBlockChainHeight height;
     BRCryptoCurrency currency;
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
     BRArrayOf(BRCryptoNetworkFee) fees;
-
+    
     uint32_t confirmationsUntilFinal;
+
+    // Address Schemes
+    BRArrayOf(BRCryptoAddressScheme) addressSchemes;
+    BRCryptoAddressScheme defaultAddressScheme;
+
+    // Sync Modes
+    BRArrayOf(BRCryptoSyncMode) syncModes;
+    BRCryptoSyncMode defaultSyncMode;
 
     BRCryptoBlockChainType type;
     union {
-        struct {
-            uint8_t forkId;
-            const BRChainParams *params;
-        } btc;
-
-        struct {
-            uint32_t chainId;
-            BREthereumNetwork net;
-        } eth;
-
-        struct {
-            // TODO: TBD
-            uint8_t mainnet;
-        } gen;
+        const BRChainParams *btc;
+        BREthereumNetwork eth;
+        BRGenericNetwork gen;
     } u;
     BRCryptoRef ref;
 };
@@ -93,73 +92,56 @@ struct BRCryptoNetworkRecord {
 private_extern BRCryptoBlockChainType
 cryptoNetworkGetType (BRCryptoNetwork network);
 
- private_extern void
- cryptoNetworkAnnounce (BRCryptoNetwork network);
+private_extern void
+cryptoNetworkAnnounce (BRCryptoNetwork network);
 
- private_extern void
- cryptoNetworkSetHeight (BRCryptoNetwork network,
-                         BRCryptoBlockChainHeight height);
+private_extern void
+cryptoNetworkSetHeight (BRCryptoNetwork network,
+                        BRCryptoBlockChainHeight height);
 
- private_extern void
- cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
-                                          uint32_t confirmationsUntilFinal);
+private_extern void
+cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
+                                         uint32_t confirmationsUntilFinal);
 
- private_extern void
- cryptoNetworkSetCurrency (BRCryptoNetwork network,
-                           BRCryptoCurrency currency);
+private_extern void
+cryptoNetworkSetCurrency (BRCryptoNetwork network,
+                          BRCryptoCurrency currency);
 
- private_extern void
- cryptoNetworkAddCurrency (BRCryptoNetwork network,
-                           BRCryptoCurrency currency,
-                           BRCryptoUnit baseUnit,
-                           BRCryptoUnit defaultUnit);
+private_extern void
+cryptoNetworkAddCurrency (BRCryptoNetwork network,
+                          BRCryptoCurrency currency,
+                          BRCryptoUnit baseUnit,
+                          BRCryptoUnit defaultUnit);
 
- private_extern void
- cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
-                               BRCryptoCurrency currency,
-                               BRCryptoUnit unit);
+private_extern void
+cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
+                              BRCryptoCurrency currency,
+                              BRCryptoUnit unit);
 
- private_extern void
- cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
-                             BRCryptoNetworkFee fee);
+private_extern void
+cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
+                            BRCryptoNetworkFee fee);
 
- private_extern void
- cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
-                              const BRCryptoNetworkFee *fees,
-                              size_t count);
+private_extern void
+cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
+                             const BRCryptoNetworkFee *fees,
+                             size_t count);
 
- private_extern BREthereumNetwork
- cryptoNetworkAsETH (BRCryptoNetwork network);
+private_extern const BRChainParams *
+cryptoNetworkAsBTC (BRCryptoNetwork network);
 
- private_extern const BRChainParams *
- cryptoNetworkAsBTC (BRCryptoNetwork network);
+private_extern BREthereumNetwork
+cryptoNetworkAsETH (BRCryptoNetwork network);
 
- private_extern void *
- cryptoNetworkAsGEN (BRCryptoNetwork network);
+private_extern BRGenericNetwork
+cryptoNetworkAsGEN (BRCryptoNetwork network);
 
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsBTC (const char *uids,
-                           const char *name,
-                           uint8_t forkId,
-                           const BRChainParams *params);
+private_extern BRCryptoBlockChainType
+cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
 
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsETH (const char *uids,
-                           const char *name,
-                           uint32_t chainId,
-                           BREthereumNetwork net);
-
- private_extern BRCryptoNetwork
- cryptoNetworkCreateAsGEN (const char *uids,
-                           const char *name,
-                           uint8_t isMainnet);
-
- private_extern BRCryptoBlockChainType
- cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
-
- private_extern BRCryptoCurrency
- cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
-                                      BREthereumToken token);
+private_extern BRCryptoCurrency
+cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
+                                     BREthereumToken token);
 
 #ifdef __cplusplus
 }

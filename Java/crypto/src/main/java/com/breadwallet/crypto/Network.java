@@ -15,6 +15,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
+import java.lang.String;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +27,10 @@ public interface Network {
 
     Optional<Set<? extends Unit>> unitsFor(Currency currency);
 
+    /**
+     * @deprecated Replace with {@link Address#create(String, Network)}
+     */
+    @Deprecated
     Optional<? extends Address> addressFor(String address);
 
     Optional<Boolean> hasUnitFor(Currency currency, Unit unit);
@@ -50,10 +55,25 @@ public interface Network {
 
     boolean isMainnet();
 
+    NetworkType getType();
+
     UnsignedLong getHeight();
 
     UnsignedInteger getConfirmationsUntilFinal();
 
+    AddressScheme getDefaultAddressScheme();
+
+    List<AddressScheme> getSupportedAddressSchemes();
+
+    boolean supportsAddressScheme(AddressScheme addressScheme);
+
+    WalletManagerMode getDefaultWalletManagerMode();
+
+    List<WalletManagerMode> getSupportedWalletManagerModes();
+
+    boolean supportsWalletManagerMode(WalletManagerMode mode);
+
+    boolean requiresMigration();
     /**
      * Create a Network Peer for use in P2P modes when a WalletManager connects.
      *

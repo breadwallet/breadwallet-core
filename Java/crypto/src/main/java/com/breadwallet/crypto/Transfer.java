@@ -14,6 +14,8 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEven
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
+import java.util.Set;
+
 public interface Transfer {
 
     Wallet getWallet();
@@ -81,4 +83,6 @@ public interface Transfer {
     }
 
     TransferState getState();
+
+    Set<? extends TransferAttribute> getAttributes ();
 }

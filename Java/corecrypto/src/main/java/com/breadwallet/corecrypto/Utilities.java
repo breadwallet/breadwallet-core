@@ -8,9 +8,11 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkCanonicalType;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolError;
 import com.breadwallet.corenative.crypto.BRCryptoPaymentProtocolType;
 import com.breadwallet.corenative.crypto.BRCryptoStatus;
+import com.breadwallet.corenative.crypto.BRCryptoTransferAttributeValidationError;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
@@ -19,6 +21,7 @@ import com.breadwallet.corenative.crypto.BRCryptoSyncDepth;
 import com.breadwallet.corenative.crypto.BRCryptoSyncMode;
 import com.breadwallet.corenative.crypto.BRCryptoSyncStoppedReason;
 import com.breadwallet.crypto.AddressScheme;
+import com.breadwallet.crypto.NetworkType;
 import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
@@ -156,11 +159,46 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.blockNumber),
                             UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
-                            Optional.fromNullable(state.u.included.fee)
-                                    .transform(Amount::create)
+                            Optional.fromNullable(state.u.included.feeBasis)
+                                    .transform(TransferFeeBasis::create)
+                                    .transform(TransferFeeBasis::getFee)
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");
+        }
+    }
+
+    static TransferAttribute.Error transferAttributeErrorFromCrypto(BRCryptoTransferAttributeValidationError error) {
+        switch (error) {
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED:
+                return TransferAttribute.Error.REQUIRED_BUT_NOT_PROVIDED;
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE:
+                return TransferAttribute.Error.MISMATCHED_TYPE;
+            case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY:
+                return TransferAttribute.Error.RELATIONSHIP_INCONSISTENCY;
+            default: throw new IllegalArgumentException(("Unsupported TransferAttribute.Error"));
+            }
+    }
+
+    /* package */
+    static BRCryptoNetworkCanonicalType networkTypeToCrypto(NetworkType type) {
+        switch (type) {
+            case BTC: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_BTC;
+            case BCH: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_BCH;
+            case ETH: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_ETH;
+            case XRP: return BRCryptoNetworkCanonicalType.CRYPTO_NETWORK_TYPE_XRP;
+            default: throw new IllegalArgumentException("Unsupported type");
+        }
+    }
+
+    /* package */
+    static NetworkType networkTypeFromCrypto(BRCryptoNetworkCanonicalType type) {
+        switch (type) {
+            case CRYPTO_NETWORK_TYPE_BTC: return NetworkType.BTC;
+            case CRYPTO_NETWORK_TYPE_BCH: return NetworkType.BCH;
+            case CRYPTO_NETWORK_TYPE_ETH: return NetworkType.ETH;
+            case CRYPTO_NETWORK_TYPE_XRP: return NetworkType.XRP;
+            default: throw new IllegalArgumentException("Unsupported type");
         }
     }
 

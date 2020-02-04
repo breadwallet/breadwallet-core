@@ -109,6 +109,21 @@ public final class Transfer: Equatable {
         return TransferDirection (core: cryptoTransferGetDirection (self.core))
     }()
 
+    //
+    // The Set of TransferAttributes.  These are the attributes used when the transfer was
+    // created.  The attributes in the Set should be considered immutable; any mutations to the
+    // attribtues will not impact the transfer.  The returned set is possibly, likely emptyh.
+    //
+    public private(set) lazy var attributes: Set<TransferAttribute> = {
+        let coreAttributes = (0..<cryptoTransferGetAttributeCount(core))
+            .map { cryptoTransferGetAttributeAt (core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        // Make a copy so that any mutations of the attributes in the returned Set do not
+        // make it back into this transfer's attributes.  The attributes themselves are reference
+        // types and thus, even if the Set is immutable, it's elements won't be.
+        return Set (coreAttributes.map { TransferAttribute (core: cryptoTransferAttributeCopy($0), take: false) })
+    }()
 
     internal init (core: BRCryptoTransfer,
                    wallet: Wallet,
@@ -294,7 +309,7 @@ public enum TransferSubmitError: Equatable, Error {
         case CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRCryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
+                          message: cryptoTransferSubmitErrorGetMessage (&c).map{ asUTF8String($0, true) } )
         default: self = .unknown; preconditionFailure()
         }
     }
@@ -303,8 +318,90 @@ public enum TransferSubmitError: Equatable, Error {
 extension TransferSubmitError: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .unknown: return ".unknwon"
+        case .unknown: return ".unknown"
         case let .posix(errno, message): return ".posix(\(errno):\(message ?? ""))"
+        }
+    }
+}
+
+///
+/// A TransferAttribute is an arbitary {key, value} pair associated with a Transfer; the attribute
+/// may be either required or optional.  The `key` and `isRequired` fields in a `TransferAttribute`
+/// are immutable; the `value` is mutable and optional.
+///
+/// The `Transfer` field `attributes` is an immutable list of the attributes.
+/// The `Wallet`   field `attributes` is an immutable list of the wallet's supported attributes.
+///
+/// The `Wallet` function `createTransfer` takes an optional Set of TransferAttributes.
+///
+/// TransferAttributes exist to provide for blockchain specific customizations to Transfers.
+/// Specifically, for example, XRP provides a 'DestinationTag'.  Without this attributes concept
+/// there is no way to augment an XRP transfer with such a tag.
+///
+public class TransferAttribute: Hashable {
+    internal let core: BRCryptoTransferAttribute
+
+    public let key: String
+
+    public var value: String? {
+        get { return cryptoTransferAttributeGetValue (core).map (asUTF8String) }
+        set { cryptoTransferAttributeSetValue (core, newValue)}
+    }
+
+    public let isRequired: Bool
+
+    deinit {
+        cryptoTransferAttributeGive (core)
+    }
+
+    internal init (core: BRCryptoTransferAttribute, take: Bool) {
+        self.core = (take ? cryptoTransferAttributeTake (core) : core)
+
+        self.key = asUTF8String (cryptoTransferAttributeGetKey (core))
+        self.isRequired = CRYPTO_TRUE == cryptoTransferAttributeIsRequired (core)
+    }
+
+    public static func == (lhs: TransferAttribute, rhs: TransferAttribute) -> Bool {
+        return lhs.key == rhs.key
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine (key)
+    }
+}
+
+extension TransferAttribute: CustomStringConvertible {
+    public var description: String {
+        return "\(key)(\(isRequired ? "R" : "O")):\(value ?? "")"
+    }
+}
+
+public enum TransferAttributeValidationError {
+    case requiredButNotProvided
+    case mismatchedType
+    case relationshipInconsistency
+
+    internal var core: BRCryptoTransferAttributeValidationError {
+        switch self {
+        case .requiredButNotProvided:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED
+        case .mismatchedType:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE
+        case .relationshipInconsistency:
+            return CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+        }
+    }
+
+    internal init (core: BRCryptoTransferAttributeValidationError) {
+        switch core {
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED:
+            self = .requiredButNotProvided
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE:
+            self = .mismatchedType
+        case CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY:
+            self = .relationshipInconsistency
+        default:
+            preconditionFailure()
         }
     }
 }
@@ -322,6 +419,7 @@ public enum TransferState {
     case deleted
 
     internal init (core: BRCryptoTransferState) {
+        defer {  var mutableCore = core; cryptoTransferStateRelease (&mutableCore) }
         switch core.type {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
         case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed
@@ -330,7 +428,9 @@ public enum TransferState {
             confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
-                                                fee: core.u.included.fee.map { Amount (core: $0, take: false) }))
+                                                fee: core.u.included.feeBasis
+                                                    .map { cryptoFeeBasisGetFee ($0) }
+                                                    .map { Amount (core: $0, take: false) }))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; preconditionFailure()

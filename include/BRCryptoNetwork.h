@@ -11,12 +11,49 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
-#include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
+#include "BRCryptoSync.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    ///
+    /// Crypto Network Type
+    ///
+    /// Try as we might, there are certain circumstances where the type of the network needs to
+    /// be known.  Without this enumeration, one uses hack-arounds like:
+    ///    "btc" == network.currency.code
+    /// So, provide these and expect them to grow.
+    ///
+    /// Enumerations here need to be consistent with the networks defined in;
+    ///    crypto/BRCryptoConfig.h
+    ///
+    typedef enum {
+        CRYPTO_NETWORK_TYPE_BTC,
+        CRYPTO_NETWORK_TYPE_BCH,
+        CRYPTO_NETWORK_TYPE_ETH,
+        CRYPTO_NETWORK_TYPE_XRP,
+        // CRYPTO_NETWORK_TYPE_HBAR,
+        // CRYPTO_NETWORK_TYPE_XLM,
+    } BRCryptoNetworkCanonicalType;
+
+#  define NUMBER_OF_NETWORK_TYPES    (1 + CRYPTO_NETWORK_TYPE_XRP)
+
+    extern const char *
+    cryptoNetworkCanonicalTypeString (BRCryptoNetworkCanonicalType type);
+
+    /// MARK: - (Network) Address Scheme
+
+    typedef enum {
+        CRYPTO_ADDRESS_SCHEME_BTC_LEGACY,
+        CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT,
+        CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT,
+        CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
+    } BRCryptoAddressScheme;
+
+#define NUMBER_OF_ADDRESS_SCHEMES   (1 + CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
+
 
     // Same as: BRBlockHeight
     typedef uint64_t BRCryptoBlockChainHeight;
@@ -68,6 +105,9 @@ extern "C" {
     typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
 
     typedef void *BRCryptoNetworkListener;
+
+    extern BRCryptoNetworkCanonicalType
+    cryptoNetworkGetCanonicalType (BRCryptoNetwork network);
 
     extern const char *
     cryptoNetworkGetUids (BRCryptoNetwork network);
@@ -142,10 +182,6 @@ extern "C" {
     extern uint32_t
     cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network);
 
-    extern void
-    cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
-                                             uint32_t confirmationsUntilFinal);
-
     /**
      * Returns the number of network currencies.  This is the index exclusive limit to be used
      * in `cryptoNetworkGetCurrencyAt()`.
@@ -193,6 +229,14 @@ extern "C" {
     extern BRCryptoCurrency
     cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                      const char *code);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
+                                     const char *uids);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForIssuer (BRCryptoNetwork network,
+                                       const char *issuer);
 
     /**
      * Returns the number of units for network's `currency`.  This is the index exclusive limit to
@@ -242,11 +286,42 @@ extern "C" {
     cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                                 BRCryptoNetworkFee fee);
 
-    extern BRCryptoAddress
-    cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
-                                          const char *string);
+    // MARK: - Address Scheme
+
+    extern BRCryptoAddressScheme
+    cryptoNetworkGetDefaultAddressScheme (BRCryptoNetwork network);
+
+    extern const BRCryptoAddressScheme *
+    cryptoNetworkGetSupportedAddressSchemes (BRCryptoNetwork network,
+                                             BRCryptoCount *count);
+
+    extern BRCryptoBoolean
+    cryptoNetworkSupportsAddressScheme (BRCryptoNetwork network,
+                                        BRCryptoAddressScheme scheme);
+
+    // MARK: - Sync Mode
+
+    extern BRCryptoSyncMode
+    cryptoNetworkGetDefaultSyncMode (BRCryptoNetwork network);
+
+    extern const BRCryptoSyncMode *
+    cryptoNetworkGetSupportedSyncModes (BRCryptoNetwork network,
+                                        BRCryptoCount *count);
+
+    extern BRCryptoBoolean
+    cryptoNetworkSupportsSyncMode (BRCryptoNetwork network,
+                                   BRCryptoSyncMode scheme);
+
+    extern BRCryptoBoolean
+    cryptoNetworkRequiresMigration (BRCryptoNetwork network);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
+
+    extern BRCryptoNetwork *
+    cryptoNetworkInstallBuiltins (size_t *networksCount);
+
+    extern BRCryptoNetwork
+    cryptoNetworkFindBuiltin (const char *uids);
 
 #ifdef __cplusplus
 }

@@ -22,13 +22,13 @@ extern "C" {
 
     private_extern BRCryptoUnit
     cryptoUnitCreateAsBase (BRCryptoCurrency currency,
-                            const char *uids,
+                            const char *code,
                             const char *name,
                             const char *symbol);
 
     private_extern BRCryptoUnit
     cryptoUnitCreate (BRCryptoCurrency currency,
-                      const char *uids,
+                      const char *code,
                       const char *name,
                       const char *symbol,
                       BRCryptoUnit baseUnit,
