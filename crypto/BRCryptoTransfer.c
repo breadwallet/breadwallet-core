@@ -56,7 +56,7 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->unitForFee = cryptoUnitTake(unitForFee);
     transfer->feeBasisEstimated = NULL;
 
-    array_new (transfer->attributes, 0);
+    array_new (transfer->attributes, 1);
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
@@ -1003,11 +1003,12 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute)
 
 private_extern BRCryptoTransferAttribute
 cryptoTransferAttributeCreate (const char *key,
+                               const char *val,
                                BRCryptoBoolean isRequired) {
     BRCryptoTransferAttribute attribute = calloc (1, sizeof (struct BRCryptoTransferAttributeRecord));
 
     attribute->key   = strdup (key);
-    attribute->value = NULL;
+    attribute->value = (NULL == val ? NULL : strdup (val));
     attribute->isRequired = isRequired;
 
     attribute->ref = CRYPTO_REF_ASSIGN (cryptoTransferAttributeRelease);
@@ -1017,9 +1018,9 @@ cryptoTransferAttributeCreate (const char *key,
 
 extern BRCryptoTransferAttribute
 cryptoTransferAttributeCopy (BRCryptoTransferAttribute attribute) {
-    BRCryptoTransferAttribute copy = cryptoTransferAttributeCreate (attribute->key, attribute->isRequired);
-    cryptoTransferAttributeSetValue (copy, attribute->value);
-    return copy;
+    return cryptoTransferAttributeCreate (attribute->key,
+                                          attribute->value,
+                                          attribute->isRequired);
 }
 
 static void

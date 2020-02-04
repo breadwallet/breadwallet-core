@@ -49,6 +49,13 @@ static BRGenericTransferState
 genTransferStateDecode (BRRlpItem item,
                         BRRlpCoder Coder);
 
+static OwnershipGiven BRArrayOf(BRGenericTransferAttribute)
+genTransferAttributesDecode (BRRlpItem item,
+                             BRRlpCoder coder);
+
+static BRRlpItem
+genTransferAttributesEncode (OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes,
+                             BRRlpCoder coder);
 ///
 ///
 ///
@@ -129,7 +136,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (8 == itemsCount);
+    assert (9 == itemsCount);
 
     BRRlpData hashData = rlpDecodeBytes(coder, items[0]);
     char *strUids   = rlpDecodeString  (coder, items[1]);
@@ -139,6 +146,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     char *currency  = rlpDecodeString  (coder, items[5]);
     BRGenericFeeBasis feeBasis = genFeeBasisDecode (items[6], coder);
     BRGenericTransferState state = genTransferStateDecode (items[7], coder);
+    BRArrayOf(BRGenericTransferAttribute) attributes = genTransferAttributesDecode(items[8], coder);
 
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
@@ -169,8 +177,12 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                                                             currency,
                                                             strFee,
                                                             timestamp,
-                                                            blockHeight);
+                                                            blockHeight,
+                                                            GENERIC_TRANSFER_STATE_ERRORED == state.type);
 
+    genTransferSetAttributes (transfer, attributes);
+
+    genTransferAttributeReleaseAll(attributes);
     free (strFee);
     free (strAmount);
     free (strHash);
@@ -205,7 +217,7 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     char *strSource = genAddressAsString(source);
     char *strTarget = genAddressAsString(target);
 
-    BRRlpItem item = rlpEncodeList (coder, 8,
+    BRRlpItem item = rlpEncodeList (coder, 9,
                                     rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
                                     rlpEncodeString (coder, transfer->uids),
                                     rlpEncodeString (coder, strSource),
@@ -213,7 +225,8 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     rlpEncodeUInt256 (coder, amount, 0),
                                     rlpEncodeString (coder, transfer->type),
                                     genFeeBasisEncode (feeBasis, coder),
-                                    genTransferStateEncode (state, coder));
+                                    genTransferStateEncode (state, coder),
+                                    genTransferAttributesEncode (transfer->attributes, coder));
 
     BRRlpData data = rlpGetData (coder, item);
 
@@ -423,9 +436,10 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                            const char *currency,
                            const char *fee,
                            uint64_t timestamp,
-                           uint64_t blockHeight) {
+                           uint64_t blockHeight,
+                           int error) {
     BRGenericTransfer transfer = genTransferAllocAndInit (gwm->handlers->type,
-                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight));
+                                                          gwm->handlers->manager.transferRecover (hash, from, to, amount, currency, fee, timestamp, blockHeight, error));
 
     transfer->uids = strdup (uids);
 
@@ -616,7 +630,7 @@ genManagerAnnounceSubmit (BRGenericManager manager,
     // Event
 }
 
-/// MARK: - Transfer State & Transfer Fee Basis Encode/Decode
+/// MARK: - Transfer State, Fee Basis & Attribute Encode/Decode
 
 static BRRlpItem
 genFeeBasisEncode (BRGenericFeeBasis feeBasis,
@@ -702,6 +716,52 @@ genTransferStateDecode (BRRlpItem item,
         case GENERIC_TRANSFER_STATE_DELETED:
             return (BRGenericTransferState) { type };
     }
+}
+
+static OwnershipGiven BRArrayOf(BRGenericTransferAttribute)
+genTransferAttributesDecode (BRRlpItem item,
+                             BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+
+    BRArrayOf(BRGenericTransferAttribute) attributes;
+    array_new(attributes, itemsCount);
+    for (size_t index = 0; index < itemsCount; index++) {
+        size_t fieldCount = 0;
+        const BRRlpItem *fields = rlpDecodeList (coder, items[index], &fieldCount);
+        assert (3 == fieldCount);
+
+        char *key = rlpDecodeString (coder, fields[0]);
+        char *val = rlpDecodeString (coder, fields[1]);
+        int  isRequired = (int) rlpDecodeUInt64 (coder, fields[2], 1);
+
+        array_add (attributes, genTransferAttributeCreate (key, (0 == strlen(val) ? NULL : val), isRequired));
+
+        free (key);
+        free (val);
+    }
+
+    return attributes;
+}
+
+static BRRlpItem
+genTransferAttributesEncode (OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes,
+                             BRRlpCoder coder) {
+    size_t itemsCount = array_count(attributes);
+    BRRlpItem items[itemsCount];
+    for (size_t index = 0; index < itemsCount; index++) {
+        BRGenericTransferAttribute attribute = attributes[index];
+
+        const char *key = genTransferAttributeGetKey (attribute);
+        const char *val = genTransferAttributeGetVal (attribute);
+        int isRequired = genTransferAttributeIsRequired (attribute);
+
+        items[index] = rlpEncodeList (coder, 3,
+                                      rlpEncodeString (coder, key),
+                                      rlpEncodeString (coder, (NULL == val ? "" : val)),
+                                      rlpEncodeUInt64 (coder, isRequired, 1));
+    }
+    return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 /// MARK: - Events

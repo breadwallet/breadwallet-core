@@ -63,6 +63,7 @@ struct BRGenericTransferRecord {
     BRGenericTransferRef ref;
     BRGenericTransferState state;
     BRGenericTransferDirection direction;
+    BRArrayOf(BRGenericTransferAttribute) attributes;
 };
 
 private_extern BRGenericTransfer

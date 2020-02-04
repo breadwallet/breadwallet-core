@@ -228,6 +228,11 @@ genericRippleWalletRemTransfer (BRGenericWalletRef wallet,
 #define FIELD_OPTION_DESTINATION_TAG        "DestinationTag"
 #define FIELD_OPTION_INVOICE_ID             "InvoiceId"
 
+static int // 1 if equal, 0 if not.
+genericRippleCompareFieldOption (const char *t1, const char *t2) {
+    return 0 == strcasecmp (t1, t2);
+}
+
 static BRGenericTransferRef
 genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
                                    BRGenericAddressRef target,
@@ -245,14 +250,14 @@ genericRippleWalletCreateTransfer (BRGenericWalletRef wallet,
     BRRippleTransaction transaction = rippleTransferGetTransaction(transfer);
 
     for (size_t index = 0; index < attributeCount; index++) {
-        BRGenericTransferAttribute *attribute = &attributes[index];
-        if (NULL != attribute->value) {
-            if (0 == strcmp (attribute->key, FIELD_OPTION_DESTINATION_TAG)) {
+        BRGenericTransferAttribute attribute = attributes[index];
+        if (NULL != genTransferAttributeGetVal(attribute)) {
+            if (genericRippleCompareFieldOption (genTransferAttributeGetKey(attribute), FIELD_OPTION_DESTINATION_TAG)) {
                 BRCoreParseStatus tag;
-                sscanf (attribute->value, "%u", &tag);
+                sscanf (genTransferAttributeGetVal(attribute), "%u", &tag);
                 rippleTransactionSetDestinationTag (transaction, tag);
             }
-            else if (0 == strcmp (attribute->key, FIELD_OPTION_INVOICE_ID)) {
+            else if (genericRippleCompareFieldOption (genTransferAttributeGetKey(attribute), FIELD_OPTION_INVOICE_ID)) {
                 // TODO:
             }
             else {
@@ -298,7 +303,7 @@ genericRippleRequiresDestinationTag (BRRippleAddress address) {
     int isRequired = 0;
 
     for (size_t index = 0; NULL != knownDestinationTagRequiringAddresses[index]; index++)
-        if (0 == strcmp (addressAsString, knownDestinationTagRequiringAddresses[index])) {
+        if (0 == strcasecmp (addressAsString, knownDestinationTagRequiringAddresses[index])) {
             isRequired = 1;
             break;
         }
@@ -346,16 +351,19 @@ genericRippleWalletGetTransactionAttributeKeys (BRGenericWalletRef wallet,
 static int
 genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
                                                  BRGenericTransferAttribute attribute) {
-    // If attribute.value is NULL, we validate unless the attribute.value is required.
-    if (NULL == attribute.value) return !attribute.isRequired;
+    const char *key = genTransferAttributeGetKey (attribute);
+    const char *val = genTransferAttributeGetVal (attribute);
 
-    if (0 == strcmp (attribute.key, FIELD_OPTION_DESTINATION_TAG)) {
+    // If attribute.value is NULL, we validate unless the attribute.value is required.
+    if (NULL == val) return !genTransferAttributeIsRequired(attribute);
+
+    if (genericRippleCompareFieldOption (key, FIELD_OPTION_DESTINATION_TAG)) {
         uint32_t tag;
-        return 1 == sscanf(attribute.value, "%u", &tag);
+        return 1 == sscanf(val, "%u", &tag);
     }
-    else if (0 == strcmp (attribute.key, FIELD_OPTION_INVOICE_ID)) {
+    else if (genericRippleCompareFieldOption (key, FIELD_OPTION_INVOICE_ID)) {
         BRCoreParseStatus status;
-        createUInt256Parse(attribute.value, 10, &status);
+        createUInt256Parse(val, 10, &status);
         return CORE_PARSE_OK == status;
     }
     else return 0;
@@ -382,7 +390,8 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
                                            const char *currency,
                                            const char *fee,
                                            uint64_t timestamp,
-                                           uint64_t blockHeight) {
+                                           uint64_t blockHeight,
+                                           int error) {
     BRRippleUnitDrops amountDrops, feeDrops = 0;
     sscanf(amount, "%llu", &amountDrops);
     if (NULL != fee) sscanf(fee,    "%llu", &feeDrops);
@@ -392,7 +401,7 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
     BRRippleTransactionHash txId;
     decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
-    BRRippleTransfer transfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, feeDrops, txId, timestamp, blockHeight);
+    BRRippleTransfer transfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, feeDrops, txId, timestamp, blockHeight, error);
 
     rippleAddressFree (toAddress);
     rippleAddressFree (fromAddress);

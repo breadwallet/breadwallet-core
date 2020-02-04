@@ -146,6 +146,56 @@ genAddressRelease (BRGenericAddress address) {
     free (address);
 }
 
+// MARK: - Transfer Attribute
+
+struct BRGenericTransferAttributeRecord {
+        char *key;
+        char *val;
+        int isRequired;
+};
+
+extern BRGenericTransferAttribute
+genTransferAttributeCreate (const char *key, const char *val, int isRequired) {
+    assert (NULL != key);
+    BRGenericTransferAttribute attribute = calloc (1, sizeof (struct BRGenericTransferAttributeRecord));
+
+    attribute->key = strdup (key);
+    attribute->val = (NULL == val ? NULL : strdup(val));
+    attribute->isRequired = isRequired;
+
+    return attribute;
+}
+
+extern void
+genTransferAttributeRelease (BRGenericTransferAttribute attribute) {
+    free (attribute->key);
+    if (NULL != attribute->val) free (attribute->val);
+    memset (attribute, 0, sizeof (struct BRGenericTransferAttributeRecord));
+    free (attribute);
+}
+
+
+extern const char *
+genTransferAttributeGetKey (BRGenericTransferAttribute attribute) {
+    return attribute->key;
+}
+
+extern const char *
+genTransferAttributeGetVal (BRGenericTransferAttribute attribute) {
+    return attribute->val;
+}
+
+extern int
+genTransferAttributeIsRequired (BRGenericTransferAttribute attribute) {
+    return attribute->isRequired;
+}
+
+extern void
+genTransferAttributeReleaseAll (OwnershipGiven BRArrayOf(BRGenericTransferAttribute) attributes) {
+    if (NULL == attributes) return;
+    array_free_all (attributes, genTransferAttributeRelease);
+}
+
 // MARK: - Transfer
 
 private_extern BRGenericTransfer
@@ -158,19 +208,29 @@ genTransferAllocAndInit (const char *type,
     transfer->ref = ref;
     transfer->state = genTransferStateCreateOther (GENERIC_TRANSFER_STATE_CREATED);
     transfer->direction = GENERIC_TRANSFER_RECOVERED;
+    array_new(transfer->attributes, 0);
     return transfer;
 }
 
 extern BRGenericTransfer
 genTransferCopy (const BRGenericTransfer transfer) {
-    return genTransferAllocAndInit (transfer->type,
-                                    transfer->handlers.copy (transfer->ref));
+    BRGenericTransfer copy = genTransferAllocAndInit (transfer->type,
+                                                      transfer->handlers.copy (transfer->ref));
+    copy->uids = (NULL == transfer->uids ? NULL : strdup (transfer->uids));
+    copy->state = transfer->state;
+    copy->direction = transfer->direction;
+    genTransferSetAttributes (copy, transfer->attributes);
+
+    return copy;
 }
 
 extern void
 genTransferRelease (BRGenericTransfer transfer) {
     transfer->handlers.free (transfer->ref);
     if (NULL != transfer->uids) free (transfer->uids);
+    genTransferAttributeReleaseAll (transfer->attributes);
+
+    memset (transfer, 0, sizeof (struct BRGenericTransferRecord));
     free (transfer);
 }
 
@@ -230,6 +290,28 @@ extern void
 genTransferSetState (BRGenericTransfer transfer,
                      BRGenericTransferState state) {
     transfer->state = state;
+}
+
+extern OwnershipKept BRArrayOf(BRGenericTransferAttribute)
+genTransferGetAttributes (BRGenericTransfer transfer) {
+    return transfer->attributes;
+}
+
+extern void
+genTransferSetAttributes (BRGenericTransfer transfer,
+                          OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes) {
+    genTransferAttributeReleaseAll (transfer->attributes);
+
+    size_t attributesCount = (NULL == attributes ? 0 : array_count(attributes));
+
+    array_new (transfer->attributes, (attributesCount > 0 ? attributesCount : 1));
+    for (size_t index = 0; index < attributesCount; index++) {
+        BRGenericTransferAttribute attribute = attributes[index];
+        array_add (transfer->attributes,
+                   genTransferAttributeCreate (genTransferAttributeGetKey(attribute),
+                                               genTransferAttributeGetVal(attribute),
+                                               genTransferAttributeIsRequired(attribute)));
+    }
 }
 
 extern int
@@ -352,7 +434,7 @@ genWalletCreateTransfer (BRGenericWallet wallet,
                          BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount,
                          BRGenericFeeBasis estimatedFeeBasis) {
-    return genWalletCreateTransferWithAttributes (wallet, target, amount, estimatedFeeBasis, 0, NULL);
+    return genWalletCreateTransferWithAttributes (wallet, target, amount, estimatedFeeBasis, NULL);
 }
 
 extern BRGenericTransfer
@@ -360,9 +442,11 @@ genWalletCreateTransferWithAttributes (BRGenericWallet wallet,
                                        BRGenericAddress target,
                                        UInt256 amount,
                                        BRGenericFeeBasis estimatedFeeBasis,
-                                       size_t attributesCount,
-                                       BRGenericTransferAttribute *attributes) {
+                                       OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes) {
 
+    size_t attributesCount = (NULL == attributes ? 0 : array_count(attributes));
+
+    // Create the transfer (XRP, etc) with the provided attributes.
     BRGenericTransfer transfer = genTransferAllocAndInit (wallet->type,
                                                           wallet->handlers.createTransfer (wallet->ref,
                                                                                            target->ref,
@@ -370,6 +454,9 @@ genWalletCreateTransferWithAttributes (BRGenericWallet wallet,
                                                                                            estimatedFeeBasis,
                                                                                            attributesCount,
                                                                                            attributes));
+
+    // Save the attributes so that they can be persistently stored.
+    genTransferSetAttributes (transfer, attributes);
 
     int isSource = 1;
     int isTarget = genWalletHasAddress (wallet, target);
@@ -407,7 +494,7 @@ genWalletGetTransferAttributeCount (BRGenericWallet wallet,
     return countRequired + countOptional;
 }
 
-extern const BRGenericTransferAttribute
+extern OwnershipGiven BRGenericTransferAttribute
 genWalletGetTransferAttributeAt (BRGenericWallet wallet,
                                  BRGenericAddress target,
                                  size_t index) {
@@ -422,11 +509,62 @@ genWalletGetTransferAttributeAt (BRGenericWallet wallet,
     const char **keys      = (isRequired ? keysRequired : keysOptional);
     size_t       keysIndex = (isRequired ? index : (index - countRequired));
 
-    return (BRGenericTransferAttribute) {
-        keys[keysIndex],
-        NULL,
-        isRequired
-    };
+    return genTransferAttributeCreate (keys[keysIndex], NULL, isRequired);
+}
+
+static int // 1 if equal, 0 if not.
+genWalletCompareFieldOption (const char *t1, const char *t2) {
+    return 0 == strcasecmp (t1, t2);
+}
+
+extern BRCryptoBoolean
+genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
+                                     BRGenericAddress target,
+                                     const char *key,
+                                     const char **keyFound,
+                                     BRCryptoBoolean *isRequired) {
+    assert (NULL != keyFound);
+
+    size_t countRequired, countOptional;
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+    const char **keysOptional = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 0, &countOptional);
+
+    if (NULL != keysRequired)
+        for (size_t index = 0; index < countRequired; index++)
+            if (genWalletCompareFieldOption (key, keysRequired[index])) {
+                *keyFound = keysRequired[index];
+                *isRequired = CRYPTO_TRUE;
+                return CRYPTO_TRUE;
+            }
+
+    if (NULL != keysOptional)
+        for (size_t index = 0; index < countOptional; index++)
+            if (genWalletCompareFieldOption (key, keysOptional[index])) {
+                *keyFound = keysOptional[index];
+                *isRequired = CRYPTO_FALSE;
+                return CRYPTO_TRUE;
+            }
+
+    *keyFound = NULL;
+    *isRequired = CRYPTO_FALSE;
+    return CRYPTO_FALSE;
+}
+
+
+extern BRCryptoBoolean
+genWalletRequiresTransferAttributeForKey (BRGenericWallet wallet,
+                                          BRGenericAddress target,
+                                          const char *key) {
+    size_t countRequired;
+    BRGenericAddressRef targetRef = (NULL == target ? NULL : target->ref);
+    const char **keysRequired = wallet->handlers.getTransactionAttributeKeys (wallet->ref, targetRef, 1, &countRequired);
+
+    if (NULL != keysRequired)
+        for (size_t index = 0; NULL != keysRequired[index]; index++)
+            if (genWalletCompareFieldOption (key, keysRequired[index]))
+                return CRYPTO_TRUE;
+    return CRYPTO_FALSE;
 }
 
 extern BRCryptoBoolean
@@ -437,9 +575,9 @@ genWalletValidateTransferAttribute (BRGenericWallet wallet,
 
 extern BRCryptoBoolean
 genWalletValidateTransferAttributes (BRGenericWallet wallet,
-                                     size_t attributesCount,
-                                     BRGenericTransferAttribute *attributes) {
-    if (0 == attributesCount) return CRYPTO_TRUE;
-    
-    return wallet->handlers.validateTransactionAttributes (wallet->ref, attributesCount, attributes);
+                                     OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes) {
+    size_t attributesCount = (NULL == attributes ? 0 : array_count(attributes));
+
+    return AS_CRYPTO_BOOLEAN (0 == attributesCount
+                              || wallet->handlers.validateTransactionAttributes (wallet->ref, attributesCount, attributes));
 }

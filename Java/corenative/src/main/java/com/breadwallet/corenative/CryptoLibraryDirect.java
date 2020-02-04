@@ -370,10 +370,11 @@ public final class CryptoLibraryDirect {
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
     public static native void cwmAnnounceGetTransactionsComplete(Pointer cwm, Pointer callbackState, int success);
-    public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState,
-                                                            String hash, String uids, String sourceAddr, String targetAddr,
-                                                            String amount, String currency, String fee,
-                                                            long timestamp, long blockHeight);
+//  INDIRECT:   public static native void cwmAnnounceGetTransferItemGEN(Pointer cwm, Pointer callbackState, int status,
+//                                                            String hash, String uids, String sourceAddr, String targetAddr,
+//                                                            String amount, String currency, String fee,
+//                                                            long timestamp, long blockHeight,
+//                                                            int attributesCount, Pointer arrayOfAttributeKeys, Pointer arrayOfAttributeVals);
     public static native void cwmAnnounceGetTransfersComplete(Pointer cwm, Pointer callbackState, int success);
     public static native void cwmAnnounceSubmitTransferSuccess(Pointer cwm, Pointer callbackState);
     public static native void cwmAnnounceSubmitTransferSuccessForHash(Pointer cwm, Pointer callbackState, String hash);

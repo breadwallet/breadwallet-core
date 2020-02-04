@@ -82,12 +82,10 @@ class BRCryptoNetworkTests: XCTestCase {
 
         let btc = Currency (uids: "bitcoin-mainnet:__native__",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let fee1 = NetworkFee (timeIntervalInMilliseconds: 1 * 60 * 1000,
-                               pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))
-
         let network = Network.findBuiltin(uids: "ethereum-mainnet")!
 
-
+        let fee1 = NetworkFee (timeIntervalInMilliseconds: 1 * 60 * 1000,
+                               pricePerCostFactor: Amount.create(integer: 25000000000, unit: network.baseUnitFor(currency: network.currency)!))
 
         XCTAssertEqual ("Ethereum", network.description)
         XCTAssertTrue  (network.hasCurrency(eth))

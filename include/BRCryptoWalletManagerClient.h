@@ -108,6 +108,7 @@ typedef void
 extern void
 cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                BRCryptoClientCallbackState callbackState,
+                               BRCryptoTransferStateType status,
                                OwnershipKept const char *hash,
                                OwnershipKept const char *uids,
                                OwnershipKept const char *from,
@@ -116,7 +117,10 @@ cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
                                OwnershipKept const char *currency,
                                OwnershipKept const char *fee,
                                uint64_t timestamp,
-                               uint64_t blockHeight);
+                               uint64_t blockHeight,
+                               size_t attributesCount,
+                               OwnershipKept const char **attributeKeys,
+                               OwnershipKept const char **attributeVals);
 
 extern void
 cwmAnnounceGetTransactionsItemETH (OwnershipKept BRCryptoWalletManager cwm,

@@ -130,6 +130,13 @@ extern "C" {
     genTransferSetState (BRGenericTransfer transfer,
                          BRGenericTransferState state);
 
+    extern OwnershipKept BRArrayOf(BRGenericTransferAttribute)
+    genTransferGetAttributes (BRGenericTransfer transfer);
+
+    extern void
+    genTransferSetAttributes (BRGenericTransfer transfer,
+                              OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes);
+
     extern int
     genTransferEqual (BRGenericTransfer t1,
                       BRGenericTransfer t2);
@@ -201,8 +208,7 @@ extern "C" {
                                            BRGenericAddress target,
                                            UInt256 amount,
                                            BRGenericFeeBasis estimatedFeeBasis,
-                                           size_t attributesCount,
-                                           BRGenericTransferAttribute *attributes);
+                                           OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes);
 
     extern BRGenericFeeBasis
     genWalletEstimateTransferFee (BRGenericWallet wid,
@@ -214,10 +220,17 @@ extern "C" {
     genWalletGetTransferAttributeCount (BRGenericWallet wid,
                                         BRGenericAddress target);
 
-    extern const BRGenericTransferAttribute
+    extern OwnershipGiven BRGenericTransferAttribute
     genWalletGetTransferAttributeAt (BRGenericWallet wid,
                                      BRGenericAddress target,
                                      size_t index);
+
+    extern BRCryptoBoolean
+    genWalletHasTransferAttributeForKey (BRGenericWallet wallet,
+                                         BRGenericAddress target,
+                                         const char *key,
+                                         const char **keyFound,
+                                         BRCryptoBoolean *isRequired);
 
     extern BRCryptoBoolean
     genWalletValidateTransferAttribute (BRGenericWallet wid,
@@ -225,8 +238,7 @@ extern "C" {
 
     extern BRCryptoBoolean
     genWalletValidateTransferAttributes (BRGenericWallet wid,
-                                         size_t attributesCount,
-                                         BRGenericTransferAttribute *attributes);
+                                         OwnershipKept BRArrayOf(BRGenericTransferAttribute) attributes);
 
     // MARK: Generic (Wallet) Manager
 
@@ -289,7 +301,8 @@ extern "C" {
                                const char *currency,
                                const char *fee,
                                uint64_t timestamp,
-                               uint64_t blockHeight);
+                               uint64_t blockHeight,
+                               int error);
 
     extern void
     genManagerWipe (BRGenericNetwork network,

@@ -1118,6 +1118,15 @@ extension System {
         wid.map { cryptoWalletGive ($0) }
         tid.map { cryptoTransferGive ($0) }
     }
+
+    private static func getTransferStatus (_ modelStatus: String) -> BRCryptoTransferStateType {
+        switch modelStatus {
+        case "confirmed": return CRYPTO_TRANSFER_STATE_INCLUDED
+        case "submitted": return CRYPTO_TRANSFER_STATE_SUBMITTED
+        case "failed":    return CRYPTO_TRANSFER_STATE_ERRORED
+        default: preconditionFailure()
+        }
+    }
 }
 
 extension System {
@@ -1164,7 +1173,8 @@ extension System {
                             acknowledgements: transferWithFee.acknowledgements,
                             index: transferWithFee.index,
                             transactionId: transferWithFee.transactionId,
-                            blockchainId: transferWithFee.blockchainId)])
+                            blockchainId: transferWithFee.blockchainId,
+                            metaData: transferWithFee.metaData)])
 
                 // Hold the Id for the transfer that we'll add a fee to.
                 let transferForFeeId = transferMatchingFee.map { $0.id } ?? transferWithFee.id
@@ -1300,14 +1310,7 @@ extension System {
                                                         $0.forEach { (model: BlockChainDB.Model.Transaction) in
                                                             let timestamp = model.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                             let height    = model.blockHeight ?? 0
-                                                            guard let status = ("confirmed" == model.status
-                                                                ? CRYPTO_TRANSFER_STATE_INCLUDED
-                                                                : ("submitted" == model.status
-                                                                    ? CRYPTO_TRANSFER_STATE_SUBMITTED
-                                                                    : ("failed" == model.status
-                                                                        ? CRYPTO_TRANSFER_STATE_ERRORED
-                                                                        : nil)))
-                                                                else { preconditionFailure() }
+                                                            let status    = System.getTransferStatus (model.status)
 
                                                             if var data = model.raw {
                                                                 let bytesCount = data.count
@@ -1425,19 +1428,34 @@ extension System {
                                                             $0.forEach { (transaction: BlockChainDB.Model.Transaction) in
                                                                 let timestamp = transaction.timestamp.map { $0.asUnixTimestamp } ?? 0
                                                                 let height    = transaction.blockHeight ?? 0
+                                                                let status    = System.getTransferStatus (transaction.status)
 
                                                                 System.mergeTransfers (transaction.transfers, with: addresses)
                                                                     .forEach { (arg: (transfer: BlockChainDB.Model.Transfer, fee: String?)) in
                                                                         let (transfer, fee) = arg
-                                                                        cwmAnnounceGetTransferItemGEN(cwm, sid, transaction.hash,
-                                                                                                      transfer.id,
-                                                                                                      transfer.source,
-                                                                                                      transfer.target,
-                                                                                                      transfer.amountValue,
-                                                                                                      transfer.amountCurrency,
-                                                                                                      fee,
-                                                                                                      timestamp,
-                                                                                                      height)
+
+                                                                        var metaKeysPtr = (transfer.metaData.map { Array($0.keys)   } ?? [])
+                                                                            .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                        defer { metaKeysPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                                                        var metaValsPtr = (transfer.metaData.map { Array($0.values) } ?? [])
+                                                                            .map { UnsafePointer<Int8>(strdup($0)) }
+                                                                        defer { metaValsPtr.forEach { cryptoMemoryFree (UnsafeMutablePointer(mutating: $0)) } }
+
+                                                                        // Use MetaData to extract TransferAttribute
+                                                                        cwmAnnounceGetTransferItemGEN (cwm, sid, status,
+                                                                                                       transaction.hash,
+                                                                                                       transfer.id,
+                                                                                                       transfer.source,
+                                                                                                       transfer.target,
+                                                                                                       transfer.amountValue,
+                                                                                                       transfer.amountCurrency,
+                                                                                                       fee,
+                                                                                                       timestamp,
+                                                                                                       height,
+                                                                                                       metaKeysPtr.count,
+                                                                                                       &metaKeysPtr,
+                                                                                                       &metaValsPtr)
                                                                 }
                                                             }
                                                             cwmAnnounceGetTransfersComplete (cwm, sid, CRYPTO_TRUE) },

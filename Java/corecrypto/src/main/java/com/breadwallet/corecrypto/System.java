@@ -1901,10 +1901,19 @@ final class System implements com.breadwallet.crypto.System {
                                                     UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
                                                     UnsignedLong timestamp = transaction.getTimestamp().transform(Utilities::dateAsUnixTimestamp).or(UnsignedLong.ZERO);
 
+                                                    BRCryptoTransferStateType status = (transaction.getStatus().equals("confirmed")
+                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED
+                                                            : (transaction.getStatus().equals("submitted")
+                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED
+                                                            : (transaction.getStatus().equals("failed")
+                                                            ? BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORED
+                                                            : BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED)));  // Query API error
+
+
                                                     merged = System.mergeTransfers(transaction, addresses);
                                                     for (ObjectPair<com.breadwallet.crypto.blockchaindb.models.bdb.Transfer, String> o : merged) {
                                                         Log.log(Level.FINE, "BRCryptoCWMGenGetTransfersCallback  announcing " + o.o1.getId());
-                                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState,
+                                                        walletManager.getCoreBRCryptoWalletManager().announceGetTransfersItemGen(callbackState, status,
                                                                 transaction.getHash(),
                                                                 o.o1.getId(),
                                                                 o.o1.getFromAddress().orNull(),
@@ -1913,7 +1922,8 @@ final class System implements com.breadwallet.crypto.System {
                                                                 o.o1.getAmount().getCurrencyId(),
                                                                 o.o2,
                                                                 timestamp,
-                                                                blockHeight);
+                                                                blockHeight,
+                                                                o.o1.getMeta());
                                                     }
                                                 }
 

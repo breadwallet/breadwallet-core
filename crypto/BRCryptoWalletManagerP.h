@@ -121,7 +121,7 @@ cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
 
 extern void
 cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
-                                      BRGenericTransfer transferGeneric);
+                                      OwnershipGiven BRGenericTransfer transferGeneric);
 
 private_extern void
 cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,

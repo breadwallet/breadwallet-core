@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibraryDirect;
+import com.breadwallet.corenative.CryptoLibraryIndirect;
 import com.breadwallet.corenative.utility.Cookie;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
@@ -26,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -367,6 +369,7 @@ public class BRCryptoWalletManager extends PointerType {
     }
 
     public void announceGetTransfersItemGen(BRCryptoClientCallbackState callbackState,
+                                            BRCryptoTransferStateType status,
                                             String hash,
                                             String uids,
                                             String from,
@@ -375,12 +378,18 @@ public class BRCryptoWalletManager extends PointerType {
                                             String currency,
                                             String fee,
                                             UnsignedLong timestamp,
-                                            UnsignedLong blockHeight) {
+                                            UnsignedLong blockHeight,
+                                            Map<String, String> meta) {
         Pointer thisPtr = this.getPointer();
 
-        CryptoLibraryDirect.cwmAnnounceGetTransferItemGEN(
+        int metaCount = meta.size();
+        String[] metaKeys = meta.keySet().toArray(new String[metaCount]);
+        String[] metaVals = meta.values().toArray(new String[metaCount]);
+
+        CryptoLibraryIndirect.cwmAnnounceGetTransferItemGEN(
                 thisPtr,
                 callbackState.getPointer(),
+                status.toCore(),
                 hash,
                 uids,
                 from,
@@ -389,7 +398,10 @@ public class BRCryptoWalletManager extends PointerType {
                 currency,
                 fee,
                 timestamp.longValue(),
-                blockHeight.longValue());
+                blockHeight.longValue(),
+                new SizeT(metaCount),
+                metaKeys,
+                metaVals);
     }
 
     public void announceGetTransfersComplete(BRCryptoClientCallbackState callbackState, boolean success) {

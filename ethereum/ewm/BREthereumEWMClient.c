@@ -291,11 +291,12 @@ ewmHandlGasEstimateFailure (BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumCookie cookie,
                             BREthereumStatus status) {
+    assert (SUCCESS != status);
     ewmSignalWalletEvent (ewm,
                           wallet,
                           (BREthereumWalletEvent) {
                               WALLET_EVENT_FEE_ESTIMATED,
-                              SUCCESS,
+                              status,
                               {.feeEstimate = {cookie}}
                           });
 }
