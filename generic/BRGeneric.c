@@ -304,7 +304,7 @@ genTransferSetAttributes (BRGenericTransfer transfer,
 
     size_t attributesCount = (NULL == attributes ? 0 : array_count(attributes));
 
-    array_new (transfer->attributes, attributesCount);
+    array_new (transfer->attributes, (attributesCount > 0 ? attributesCount : 1));
     for (size_t index = 0; index < attributesCount; index++) {
         BRGenericTransferAttribute attribute = attributes[index];
         array_add (transfer->attributes,
