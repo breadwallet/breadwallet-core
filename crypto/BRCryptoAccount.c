@@ -35,7 +35,8 @@ randomBytes (void *bytes, size_t bytesCount);
 
 // Version 1: BTC (w/ BCH), ETH
 // Version 2: BTC (w/ BCH), ETH, XRP
-#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  2
+// Version 3: V2 + HBAR
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  3
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
