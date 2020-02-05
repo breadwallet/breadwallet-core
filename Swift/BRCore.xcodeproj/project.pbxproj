@@ -322,6 +322,8 @@
 		C338C83E2357836700DF3968 /* BRHederaCrypto.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C83C2357836600DF3968 /* BRHederaCrypto.c */; };
 		C338C8472358DA0700DF3968 /* BRHederaAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C338C8462358DA0700DF3968 /* BRHederaAccount.c */; };
 		C35019702360E2BA009AF0C3 /* BRHederaAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = C350196F2360E2BA009AF0C3 /* BRHederaAddress.c */; };
+		C39923D7238C5ABE00AB4576 /* BRGenericHedera.c in Sources */ = {isa = PBXBuildFile; fileRef = C39923D5238C5ABE00AB4576 /* BRGenericHedera.c */; };
+		C39923DA238C691E00AB4576 /* BRHederaFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = C39923D9238C691E00AB4576 /* BRHederaFeeBasis.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
 		CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */ = {isa = PBXBuildFile; fileRef = CE0DBEB823032F1A00FC72BD /* BRSyncManager.c */; };
 		CE179CA7233A4FF400633B97 /* BRCryptoCipher.c in Sources */ = {isa = PBXBuildFile; fileRef = CE179CA6233A4FF400633B97 /* BRCryptoCipher.c */; };
@@ -816,6 +818,10 @@
 		C350196F2360E2BA009AF0C3 /* BRHederaAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaAddress.c; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
+		C39923D5238C5ABE00AB4576 /* BRGenericHedera.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRGenericHedera.c; sourceTree = "<group>"; };
+		C39923D6238C5ABE00AB4576 /* BRGenericHedera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRGenericHedera.h; sourceTree = "<group>"; };
+		C39923D8238C691E00AB4576 /* BRHederaFeeBasis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRHederaFeeBasis.h; sourceTree = "<group>"; };
+		C39923D9238C691E00AB4576 /* BRHederaFeeBasis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRHederaFeeBasis.c; sourceTree = "<group>"; };
 		C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSerialize.c; sourceTree = "<group>"; };
 		C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleTransaction.c; sourceTree = "<group>"; };
 		C3C453DF226E2C62004CC0C7 /* BRRippleSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleSerialize.h; sourceTree = "<group>"; };
@@ -1464,6 +1470,8 @@
 				3C9B8DE422BD52930060C3A9 /* BRGenericBase.h */,
 				3C9B8DE322BD52930060C3A9 /* BRGenericHandlers.h */,
 				3C9B8DE622BD52940060C3A9 /* BRGenericHandlers.c */,
+				C39923D6238C5ABE00AB4576 /* BRGenericHedera.h */,
+				C39923D5238C5ABE00AB4576 /* BRGenericHedera.c */,
 				3C115A062354E8810075ACDA /* BRGenericClient.h */,
 				3C115A072354E8810075ACDA /* BRGenericClient.c */,
 				3C9B8DE022BD52930060C3A9 /* BRGeneric.h */,
@@ -1596,6 +1604,8 @@
 				C30E223C2358F5E700E584AC /* BRHederaBase.h */,
 				C338C83D2357836700DF3968 /* BRHederaCrypto.h */,
 				C338C83C2357836600DF3968 /* BRHederaCrypto.c */,
+				C39923D8238C691E00AB4576 /* BRHederaFeeBasis.h */,
+				C39923D9238C691E00AB4576 /* BRHederaFeeBasis.c */,
 				C30E223E2358FC0A00E584AC /* BRHederaSerialize.h */,
 				C30E223D2358FC0900E584AC /* BRHederaSerialize.c */,
 				C338C83823561DD900DF3968 /* BRHederaTransaction.h */,
@@ -2258,6 +2268,7 @@
 				CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */,
 				3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */,
 				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
+				C39923D7238C5ABE00AB4576 /* BRGenericHedera.c in Sources */,
 				3CCB136A2253C84E00ADCDB9 /* BRSyncMode.c in Sources */,
 				C35019702360E2BA009AF0C3 /* BRHederaAddress.c in Sources */,
 				3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */,
@@ -2268,6 +2279,7 @@
 				3CAB60CD20AF8D1A00810CE4 /* BREthereumEWM.c in Sources */,
 				3C25BF472236EE40004B093F /* BRBCashParams.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,
+				C39923DA238C691E00AB4576 /* BRHederaFeeBasis.c in Sources */,
 				3C7BE5A8230EFD2E005FD4CD /* BRCryptoTransfer.c in Sources */,
 				C30E2245235CC97500E584AC /* BRHederaWallet.c in Sources */,
 				C338C7AA2356195E00DF3968 /* TransactionBody.pb-c.c in Sources */,

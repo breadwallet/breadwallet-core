@@ -62,23 +62,15 @@ extern char * hederaAddressAsString (BRHederaAddress address)
 
 static bool hederaStringIsValid (const char * input)
 {
-    const char * largestInt64Number = "9223372036854775807";
-    bool valid = false;
-    char * testInput = strdup(input);
-    char * shard = strtok(testInput, ".");
-    if (shard && strlen(shard) <= 19 && strcmp(shard, largestInt64Number) <= 0) {
-        char * realm = strtok(NULL, ".");
-        if (realm && strlen(realm) <= 19 && strcmp(realm, largestInt64Number) <= 0) {
-            char * account = strtok(NULL, ".");
-            if (account && strlen(account) <= 19 && strcmp(account, largestInt64Number) <= 0) {
-                // Now we have all 3 values
-                valid = true;
-            }
-        }
+    //const char * largestInt64Number = "9223372036854775807";
+    int64_t shard = -1;
+    int64_t realm = -1;
+    int64_t account = -1;
+    sscanf(input, "%lld.%lld.%lld", &shard, &realm, &account);
+    if (shard >= 0 && realm >= 0 && account >= 0) {
+        return true;
     }
-
-    free (testInput);
-    return valid;
+    return false;
 }
 
 BRHederaAddress hederaAddressStringToAddress(const char* input)
@@ -112,6 +104,16 @@ hederaAddressCreateFromString(const char * hederaAddressString)
         // known as the acount ID (20 bytes)
         return hederaAddressStringToAddress (hederaAddressString);
     }
+}
+
+extern BRHederaAddress
+hederaAddressCreate(int64_t shard, int64_t realm, int64_t account_num)
+{
+    BRHederaAddress address = (BRHederaAddress) calloc(1, sizeof(struct BRHederaAddressRecord));
+    address->shard = shard;
+    address->realm = realm;
+    address->account = account_num;
+    return address;
 }
 
 extern int // 1 if equal
@@ -158,5 +160,21 @@ int64_t hederaAddressGetAccount (BRHederaAddress address)
 {
     assert (address);
     return address->account;
+}
+
+void hederaAddressSerialize(BRHederaAddress address, uint8_t * buffer, size_t sizeOfBuffer)
+{
+    assert(sizeOfBuffer == HEDERA_ADDRESS_SERIALIZED_SIZE);
+
+    // The Hedera account IDs are made up of 3 int64_t numbers
+    // Get the account id values convert to network order
+    int64_t shard = htonll(hederaAddressGetShard(address));
+    int64_t realm = htonll(hederaAddressGetRealm(address));
+    int64_t account = htonll(hederaAddressGetAccount(address));
+
+    // Copy the values to the buffer
+    memcpy(buffer, &shard, sizeof(int64_t));
+    memcpy(buffer + sizeof(int64_t), &realm, sizeof(int64_t));
+    memcpy(buffer + (2 * sizeof(int64_t)), &account, sizeof(int64_t));
 }
 

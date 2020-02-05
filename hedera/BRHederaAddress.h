@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#define HEDERA_ADDRESS_SERIALIZED_SIZE 24
+
 typedef struct BRHederaAddressRecord *BRHederaAddress;
 
 /**
@@ -38,6 +40,9 @@ hederaAddressAsString (BRHederaAddress address);
  */
 extern BRHederaAddress
 hederaAddressCreateFromString(const char * hederaAddressString);
+
+extern BRHederaAddress
+hederaAddressCreate(int64_t shard, int64_t realm, int64_t account_num);
 
 /**
  * Free the memory associated with a BRHederaAddress
@@ -90,6 +95,16 @@ extern BRHederaAddress hederaAddressClone (BRHederaAddress address);
  */
 extern int // 1 if equal
 hederaAddressEqual (BRHederaAddress a1, BRHederaAddress a2);
+
+/**
+ *   Serialize an Hedera address for storing
+ * @param address - the hedera address to serialize
+ * @param size_t* pointer to hold the size of the serialized bytes
+ *
+ * @return pointer to buffer holding bytes
+ */
+extern void
+hederaAddressSerialize(BRHederaAddress address, uint8_t * buffer, size_t bufferSize);
 
 #ifdef __cplusplus
 }

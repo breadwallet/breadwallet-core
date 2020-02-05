@@ -32,7 +32,7 @@ Proto__Timestamp * createTimeStamp  (BRHederaTimeStamp timeStamp)
     return ts;
 }
 
-Proto__TransactionID * createTransactionID (BRHederaAddress address, BRHederaTimeStamp timeStamp)
+Proto__TransactionID * createProtoTransactionID (BRHederaAddress address, BRHederaTimeStamp timeStamp)
 {
     Proto__TransactionID *txID = calloc(1, sizeof(Proto__TransactionID));
     proto__transaction_id__init(txID);
@@ -72,7 +72,7 @@ uint8_t * hederaTransactionBodyPack (BRHederaAddress source,
     proto__transaction_body__init(body);
 
     // Create a transaction ID
-    body->transactionid = createTransactionID(source, timeStamp);
+    body->transactionid = createProtoTransactionID(source, timeStamp);
     body->nodeaccountid = createAccountID(nodeAddress);
     body->transactionfee = fee;
     // Set the duration

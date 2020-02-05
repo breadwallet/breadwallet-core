@@ -26,8 +26,8 @@ extern "C" {
  * network and b) in `cryptoNetworkCreateBuiltin()` when creating the BRCryptoNetwork for this
  * generic network.
  */
-#   define GEN_NETWORK_TYPE_XRP        "xrp"
-//# define GEN_NETWORK_TYPE_HBAR       "hbar"
+#define GEN_NETWORK_TYPE_XRP        "xrp"
+#define GEN_NETWORK_TYPE_HBAR       "hbar"
 //# define GEN_NETWORK_TYPE_XLM        "xlm"
 
     typedef struct BRGenericAccountRecord  *BRGenericAccount;

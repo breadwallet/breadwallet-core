@@ -12,6 +12,8 @@
 #define BRHederaBase_h
 
 #include <inttypes.h>
+#include <stdbool.h>
+#include "BRCryptoBase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +28,7 @@ typedef struct __hedera_timestamp {
 } BRHederaTimeStamp;
 
 typedef struct {
-    uint8_t bytes[32];
+    uint8_t bytes[48];
 } BRHederaTransactionHash;
 
 #ifdef __cplusplus

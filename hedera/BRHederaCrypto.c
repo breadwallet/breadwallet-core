@@ -11,13 +11,11 @@
 // Forward declarations
 static BRKey deriveHederaKeyFromSeed (UInt512 seed, uint32_t index);
 
-BRKey hederaKeyGetPublicKey (BRKey key)
+void hederaKeyGetPublicKey (BRKey key, uint8_t * publicKey)
 {
-    BRKey publicKey;
     unsigned char privateKey[64] = {0};
-    ed25519_create_keypair(publicKey.pubKey, privateKey, key.secret.u8);
+    ed25519_create_keypair(publicKey, privateKey, key.secret.u8);
     memset(privateKey, 0x00, 64);
-    return publicKey;
 }
 
 BRKey hederaKeyCreate (UInt512 seed)
