@@ -266,7 +266,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumToken token = tokenLookupTest (tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
     UInt256 value = uint256CreateParse ("5968770000000000000000", 10, &status);
-    BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
+    BREthereumAmount amount = amountCreateToken(ethTokenQuantityCreate (token, value));
     
     walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS3_GAS_LIMIT));
     walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
@@ -447,7 +447,7 @@ void testTransactionCodingToken () {
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethNetworkMainnet, token);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
-    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, uint256Create(NODE_ETHER_AMOUNT)));
+    BREthereumAmount txAmount = amountCreateToken(ethTokenQuantityCreate(token, uint256Create(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
 

@@ -142,15 +142,15 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->token = optionalToken;
     wallet->balance = (AMOUNT_ETHER == type
                        ? amountCreateEther(etherCreate(UINT256_ZERO))
-                       : amountCreateToken(createTokenQuantity (wallet->token, UINT256_ZERO)));
+                       : amountCreateToken(ethTokenQuantityCreate (wallet->token, UINT256_ZERO)));
     
     wallet->defaultGasLimit = AMOUNT_ETHER == type
     ? walletCreateDefaultGasLimit(wallet)
-    : tokenGetGasLimit (optionalToken);
+    : ethTokenGetGasLimit (optionalToken);
     
     wallet->defaultGasPrice = AMOUNT_ETHER == type
     ? walletCreateDefaultGasPrice(wallet)
-    : tokenGetGasPrice (optionalToken);
+    : ethTokenGetGasPrice (optionalToken);
     
     array_new(wallet->transfers, DEFAULT_TRANSFER_CAPACITY);
     return wallet;
@@ -412,7 +412,7 @@ walletUpdateBalance (BREthereumWallet wallet) {
         wallet->balance = amountCreateEther (etherCreate(balance));
     }
     else
-        wallet->balance = amountCreateToken (createTokenQuantity(amountGetToken (wallet->balance), balance));
+        wallet->balance = amountCreateToken (ethTokenQuantityCreate(amountGetToken (wallet->balance), balance));
 }
 // Gas Limit
 
@@ -453,7 +453,7 @@ walletCreateDefaultGasPrice (BREthereumWallet wallet) {
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                                    DEFAULT_ETHER_GAS_PRICE_UNIT));
         case AMOUNT_TOKEN:
-            return tokenGetGasPrice (wallet->token);
+            return ethTokenGetGasPrice (wallet->token);
     }
 }
 
@@ -644,7 +644,7 @@ walletStateCreate (const BREthereumWallet wallet) {
         state->amount  = etherGetValue (amountGetEther(balance), WEI);
     }
     else {
-        state->address = tokenGetAddressRaw(token);
+        state->address = ethTokenGetAddressRaw(token);
         state->amount  = amountGetTokenQuantity(balance).valueAsInteger;
     }
 

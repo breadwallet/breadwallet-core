@@ -314,7 +314,7 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     UInt256 value = rlpDecodeUInt256(coder, item, 1);
     rlpItemRelease (coder, item);
 
-    BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
+    BREthereumAmount  amount = amountCreateToken (ethTokenQuantityCreate(token, value));
 
     // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
@@ -699,7 +699,7 @@ transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
             ethAddressFillEncodedString(transfer->targetAddress, 0, address);
             
             // Data is a HEX ENCODED string
-            return (char *) contractEncode (contractERC20, functionERC20Transfer,
+            return (char *) ethContractEncode (ethContractERC20, ethFunctionERC20Transfer,
                                             // Address
                                             (uint8_t *) &address[2], strlen(address) - 2,
                                             // Amount
@@ -715,7 +715,7 @@ transferProvideOriginatingTransactionTargetAddress (BREthereumTransfer transfer)
         case AMOUNT_ETHER:
             return transfer->targetAddress;
         case AMOUNT_TOKEN:
-            return tokenGetAddressRaw(amountGetToken(transfer->amount));
+            return ethTokenGetAddressRaw(amountGetToken(transfer->amount));
     }
 }
 

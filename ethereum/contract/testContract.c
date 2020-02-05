@@ -48,11 +48,11 @@ installTokensForTest (void) {
     BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
-    tokens = tokenSetCreate(10);
+    tokens = ethTokenSetCreate(10);
 
     BREthereumToken token;
 
-    token = tokenCreate (tokenBRDAddress,
+    token = ethTokenCreate (tokenBRDAddress,
                          "BRD",
                          "BRD Token",
                          "",
@@ -62,7 +62,7 @@ installTokensForTest (void) {
     BRSetAdd (tokens, token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenCreate (tokenTSTAddress,
+    token = ethTokenCreate (tokenTSTAddress,
                          "TST",
                          "Test Standard Token",
                          "TeST Standard Token (TST) for TeSTing (TST)",
@@ -72,7 +72,7 @@ installTokensForTest (void) {
     BRSetAdd (tokens, token);
 
 #endif
-    token = tokenCreate (tokenEOSAddress,
+    token = ethTokenCreate (tokenEOSAddress,
                          "EOS",
                          "EOS Token",
                          "",
@@ -81,7 +81,7 @@ installTokensForTest (void) {
                          defaultGasPrice);
     BRSetAdd (tokens, token);
 
-    token = tokenCreate (tokenKNCAddress,
+    token = ethTokenCreate (tokenKNCAddress,
                          "KNC",
                          "KNC token",
                          "",
@@ -103,10 +103,10 @@ runTokenParseTests () {
 
     address = ethAddressCreate (tokenBRDAddress);
     BREthereumToken token = BRSetGet (tokens, &address);
-    BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
+    BREthereumTokenQuantity valueInt = ethTokenQuantityCreateString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
     assert (CORE_PARSE_OK == status && uint256EQL(value, valueInt.valueAsInteger));
 
-    BREthereumTokenQuantity valueDec = createTokenQuantityString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
+    BREthereumTokenQuantity valueDec = ethTokenQuantityCreateString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
     assert (CORE_PARSE_OK == status && uint256EQL(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 

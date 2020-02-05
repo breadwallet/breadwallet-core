@@ -1187,7 +1187,7 @@ cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
 
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
+                                          ? amountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
                                           : amountCreateEther (etherCreate (ethValue)));
 
             ewmWalletEstimateTransferFeeForTransfer (ewm,

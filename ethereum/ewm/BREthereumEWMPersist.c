@@ -230,7 +230,7 @@ fileServiceTypeTokenV1Identifier (BRFileServiceContext context,
                                         BRFileService fs,
                                         const void *entity) {
     BREthereumToken token = (BREthereumToken) entity;
-    BREthereumHash hash = tokenGetHash(token);
+    BREthereumHash hash = ethTokenGetHash(token);
 
     UInt256 result;
     memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
@@ -245,7 +245,7 @@ fileServiceTypeTokenV1Writer (BRFileServiceContext context,
     BREthereumEWM ewm = context;
     BREthereumToken token = (BREthereumToken) entity;
 
-    BRRlpItem item = tokenEncode(token, ewm->coder);
+    BRRlpItem item = ethTokenRlpEncode(token, ewm->coder);
     BRRlpData data = rlpItemGetData (ewm->coder, item);
     rlpItemRelease (ewm->coder, item);
 
@@ -263,7 +263,7 @@ fileServiceTypeTokenV1Reader (BRFileServiceContext context,
     BRRlpData data = { bytesCount, bytes };
     BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
-    BREthereumToken token = tokenDecode(item, ewm->coder);
+    BREthereumToken token = ethTokenRlpDecode(item, ewm->coder);
     rlpItemRelease (ewm->coder, item);
 
     return token;

@@ -402,7 +402,7 @@ cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
         BRCryptoCurrency currency = network->associations[index].currency;
         const char *address = cryptoCurrencyGetIssuer (currency);
 
-        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address))) {
+        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (ethTokenHasAddress (token, address))) {
             tokenCurrency = cryptoCurrencyTake (currency);
             break;
         }

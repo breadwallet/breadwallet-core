@@ -63,14 +63,14 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
     if (!needInstall) return;
     needInstall = 0;
 
-    tokens = tokenSetCreate(10);
+    tokens = ethTokenSetCreate(10);
 
     BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
     BREthereumToken token;
 
-    token = tokenCreate (getTokenBRDAddress(network),
+    token = ethTokenCreate (getTokenBRDAddress(network),
                          "BRD",
                          "BRD Token",
                          "",
@@ -80,7 +80,7 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
     BRSetAdd (tokens, token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenCreate (getTokenTSTAddress(network),
+    token = ethTokenCreate (getTokenTSTAddress(network),
                          "TST",
                          "Test Standard Token",
                          "TeST Standard Token (TST) for TeSTing (TST)",
@@ -90,7 +90,7 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
     BRSetAdd (tokens, token);
 
 #endif
-    token = tokenCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+    token = ethTokenCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
                          "EOS",
                          "EOS Token",
                          "",
@@ -99,7 +99,7 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
                          defaultGasPrice);
     BRSetAdd (tokens, token);
 
-    token = tokenCreate ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+    token = ethTokenCreate ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
                          "KNC",
                          "KNC token",
                          "",

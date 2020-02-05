@@ -29,76 +29,76 @@ extern "C" {
 typedef struct BREthereumTokenRecord *BREthereumToken;
 
 extern BREthereumAddress
-tokenGetAddressRaw (BREthereumToken token);
-    
+ethTokenGetAddressRaw (BREthereumToken token);
+
 /**
  * Return the token address as a '0x'-prefixed string.  DO NOT FREE THIS.
  */
 extern const char *
-tokenGetAddress (BREthereumToken token);
+ethTokenGetAddress (BREthereumToken token);
 
 /**
  * Check if `token` has `address` which must be a '0x'-prefixed hex string.
  */
 extern BREthereumBoolean
-tokenHasAddress (BREthereumToken token,
-                 const char *address);
+ethTokenHasAddress (BREthereumToken token,
+                    const char *address);
 
 extern const char *
-tokenGetSymbol (BREthereumToken token);
+ethTokenGetSymbol (BREthereumToken token);
 
 extern const char *
-tokenGetName (BREthereumToken token);
+ethTokenGetName (BREthereumToken token);
 
 extern const char *
-tokenGetDescription(BREthereumToken token);
+ethTokenGetDescription(BREthereumToken token);
 
 extern int
-tokenGetDecimals (BREthereumToken token);
+ethTokenGetDecimals (BREthereumToken token);
 
 extern BREthereumGas
-tokenGetGasLimit (BREthereumToken token);
+ethTokenGetGasLimit (BREthereumToken token);
 
 extern BREthereumGasPrice
-tokenGetGasPrice (BREthereumToken token);
+ethTokenGetGasPrice (BREthereumToken token);
 
 extern BREthereumContract
-tokenGetContract (BREthereumToken token);
+ethTokenGetContract (BREthereumToken token);
 
 extern BREthereumHash
-tokenGetHash (BREthereumToken token);
+ethTokenGetHash (BREthereumToken token);
 
 extern BREthereumToken
-tokenCreate (const char *address,
-             const char *symbol,
-             const char *name,
-             const char *description,
-             int decimals,
-             BREthereumGas defaultGasLimit,
-             BREthereumGasPrice defaultGasPrice);
+ethTokenCreate (const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice);
 
 extern void
-tokenRelease (BREthereumToken token);
+ethTokenRelease (BREthereumToken token);
 
 extern void
-tokenUpdate (BREthereumToken token,
-             const char *symbol,
-             const char *name,
-             const char *description,
-             int decimals,
-             BREthereumGas defaultGasLimit,
-             BREthereumGasPrice defaultGasPrice);
+ethTokenUpdate (BREthereumToken token,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice);
 
 extern BRRlpItem
-tokenEncode (BREthereumToken token,
-             BRRlpCoder coder);
+ethTokenRlpEncode (BREthereumToken token,
+                   BRRlpCoder coder);
 
 extern BREthereumToken
-tokenDecode (BRRlpItem item,
-             BRRlpCoder coder);
+ethTokenRlpDecode (BRRlpItem item,
+                   BRRlpCoder coder);
 
 extern BRSetOf(BREthereumToken)
-tokenSetCreate (size_t capacity);
+ethTokenSetCreate (size_t capacity);
 
 //
 // Token Quantity
@@ -108,8 +108,8 @@ tokenSetCreate (size_t capacity);
  * A BREthereumTokenQuantityUnit defines the (external) representation of a token quantity
  */
 typedef enum {
-  TOKEN_QUANTITY_TYPE_DECIMAL,
-  TOKEN_QUANTITY_TYPE_INTEGER
+    TOKEN_QUANTITY_TYPE_DECIMAL,
+    TOKEN_QUANTITY_TYPE_INTEGER
 } BREthereumTokenQuantityUnit;
 
 /**
@@ -117,22 +117,22 @@ typedef enum {
  *
  */
 typedef struct {
-  BREthereumToken token;
-  UInt256 valueAsInteger;
+    BREthereumToken token;
+    UInt256 valueAsInteger;
 } BREthereumTokenQuantity;
 
 extern BREthereumTokenQuantity
-createTokenQuantity (BREthereumToken token,
-                     UInt256 valueAsInteger);
+ethTokenQuantityCreate (BREthereumToken token,
+                        UInt256 valueAsInteger);
 
 extern BREthereumTokenQuantity
-createTokenQuantityString (BREthereumToken token,
-                           const char *number,
-                           BREthereumTokenQuantityUnit unit,
-                           BRCoreParseStatus *status);
+ethTokenQuantityCreateString (BREthereumToken token,
+                              const char *number,
+                              BREthereumTokenQuantityUnit unit,
+                              BRCoreParseStatus *status);
 
 extern const BREthereumToken
-tokenQuantityGetToken (BREthereumTokenQuantity quantity);
+ethTokenQuantityGetToken (BREthereumTokenQuantity quantity);
 
 /**
  * A newly allocated string; you own it.
@@ -142,11 +142,11 @@ tokenQuantityGetToken (BREthereumTokenQuantity quantity);
  * @return
  */
 extern char *
-tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
-                            BREthereumTokenQuantityUnit unit);
+ethTokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
+                               BREthereumTokenQuantityUnit unit);
 
 extern BREthereumComparison
-tokenQuantityCompare (BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch);
+ethTokenQuantityCompare (BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch);
 
 #ifdef __cplusplus
 }

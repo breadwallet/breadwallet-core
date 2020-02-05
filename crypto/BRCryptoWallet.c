@@ -627,7 +627,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             UInt256 ethValue  = cryptoAmountGetValue (amount);
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
+                                          ? amountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
                                           : amountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 

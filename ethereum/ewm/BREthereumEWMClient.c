@@ -66,7 +66,7 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
                           int rid) {
     BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
                                ? amountCreateEther(etherCreate(value))
-                               : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+                               : amountCreateToken(ethTokenQuantityCreate(walletGetToken(wallet), value)));
 
     ewmSignalBalance(ewm, amount);
 }

@@ -1423,7 +1423,7 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
                                 cryptoWalletManagerTake (cwm),
                                 callbackState,
                                 &address, 1,
-                                (NULL == token ? NULL : tokenGetAddress (token)));
+                                (NULL == token ? NULL : ethTokenGetAddress (token)));
 
     cryptoWalletManagerGive (cwm);
 }

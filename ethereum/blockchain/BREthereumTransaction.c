@@ -644,11 +644,11 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
     eth_log (topic, "    Total : %s WEI", totalWEI);
     eth_log (topic, "    Data  : %s", transaction->data);
 
-    BREthereumContractFunction function = contractLookupFunctionForEncoding (contractERC20, transaction->data);
-    if (NULL != function && functionERC20Transfer == function) {
+    BREthereumContractFunction function = ethContractLookupFunctionForEncoding (ethContractERC20, transaction->data);
+    if (NULL != function && ethFunctionERC20Transfer == function) {
         BRCoreParseStatus status;
-        UInt256 funcAmount = functionERC20TransferDecodeAmount(function, transaction->data, &status);
-        char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
+        UInt256 funcAmount = ethFunctionERC20TransferDecodeAmount(function, transaction->data, &status);
+        char *funcAddr   = ethFunctionERC20TransferDecodeAddress (function, transaction->data);
         char *funcAmt    = uint256CoerceString(funcAmount, 10);
 
         // BREthereumToken token = tokenLookup(target);

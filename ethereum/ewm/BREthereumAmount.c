@@ -65,7 +65,7 @@ amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
         case AMOUNT_ETHER:
             return etherCompare(a1.u.ether, a2.u.ether);
         case AMOUNT_TOKEN:
-            return tokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
+            return ethTokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
     }
 }
 
@@ -75,7 +75,7 @@ amountGetGasEstimate (BREthereumAmount amount) {
         case AMOUNT_ETHER:
             return ethGasCreate (DEFAULT_ETHER_GAS_LIMIT);
         case AMOUNT_TOKEN:
-            return tokenGetGasLimit (amount.u.tokenQuantity.token);
+            return ethTokenGetGasLimit (amount.u.tokenQuantity.token);
     }
 }
 
@@ -98,7 +98,7 @@ amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
 
 extern BREthereumAmount
 amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
-    return amountCreateToken(createTokenQuantity(token, rlpDecodeUInt256(coder, item, 1)));
+    return amountCreateToken(ethTokenQuantityCreate(token, rlpDecodeUInt256(coder, item, 1)));
 }
  
 //
@@ -116,7 +116,7 @@ extern BREthereumAmount
 amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BRCoreParseStatus *status) {
     BREthereumAmount amount;
     amount.type = AMOUNT_TOKEN;
-    amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, status);
+    amount.u.tokenQuantity = ethTokenQuantityCreateString(token, number, unit, status);
     return amount;
 }
 
