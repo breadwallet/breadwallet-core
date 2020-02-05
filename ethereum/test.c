@@ -124,11 +124,11 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     
     BREthereumWallet  wallet = walletCreate(account, network);
     walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS1_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(ethEtherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        ethAddressCreate(TEST_TRANS1_TARGET_ADDRESS),
-                                                       ethAmountCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)));
+                                                       ethAmountCreateEther(ethEtherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)));
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS1_NONCE);
 
@@ -189,11 +189,11 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     
     BREthereumWallet  wallet = walletCreate(account, network);
     walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS2_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(ethEtherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        ethAddressCreate(TEST_TRANS2_TARGET_ADDRESS),
-                                                       ethAmountCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT,
+                                                       ethAmountCreateEther(ethEtherCreateNumber(TEST_TRANS2_ETHER_AMOUNT,
                                                                                            TEST_TRANS2_ETHER_AMOUNT_UNIT)));
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS2_NONCE);
@@ -269,7 +269,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumAmount amount = ethAmountCreateToken(ethTokenQuantityCreate (token, value));
     
     walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS3_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(ethEtherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        ethAddressCreate(TEST_TRANS3_TARGET_ADDRESS),
@@ -368,8 +368,8 @@ void testTransactionCodingEther () {
     BREthereumWallet wallet = walletCreate(account, ethNetworkMainnet);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
-    BREthereumAmount txAmount = ethAmountCreateEther(etherCreate(uint256Create(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
+    BREthereumAmount txAmount = ethAmountCreateEther(ethEtherCreate(uint256Create(NODE_ETHER_AMOUNT)));
+    BREthereumGasPrice txGasPrice = ethGasPriceCreate(ethEtherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);
@@ -399,7 +399,7 @@ void testTransactionCodingEther () {
                                                       transactionGetGasPrice(decodedTransaction)));
     assert (ETHEREUM_COMPARISON_EQ == ethGasCompare(transactionGetGasLimit(transaction),
                                                  transactionGetGasLimit(decodedTransaction)));
-    assert (ETHEREUM_COMPARISON_EQ == etherCompare(transactionGetAmount(transaction),
+    assert (ETHEREUM_COMPARISON_EQ == ethEtherCompare(transactionGetAmount(transaction),
                                                    transactionGetAmount(decodedTransaction)));
 
     assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual(transactionGetTargetAddress(transaction),
@@ -448,7 +448,7 @@ void testTransactionCodingToken () {
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = ethAmountCreateToken(ethTokenQuantityCreate(token, uint256Create(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
+    BREthereumGasPrice txGasPrice = ethGasPriceCreate(ethEtherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);

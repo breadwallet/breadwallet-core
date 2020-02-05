@@ -893,7 +893,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                     assert (PIP_REQUEST_ACCOUNT == outputs[index].identifier);
                     provisionAccounts[offset + index] =
                     accountStateCreate (outputs[index].u.account.nonce,
-                                        etherCreate(outputs[index].u.account.balance),
+                                        ethEtherCreate(outputs[index].u.account.balance),
                                         outputs[index].u.account.storageRootHash,
                                         outputs[index].u.account.codeHash);
                 }

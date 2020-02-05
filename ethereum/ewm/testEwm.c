@@ -66,7 +66,7 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
     tokens = ethTokenSetCreate(10);
 
     BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-    BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(ethEtherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
     BREthereumToken token;
 
@@ -593,7 +593,7 @@ runEWM_CONNECT_test (const char *paperKey,
     client.context = testContextCreate();
 
     BREthereumAmount balance;
-    BREthereumEther expectedBalance = etherCreate(uint256CreateParse("0x123f", 16, &status));
+    BREthereumEther expectedBalance = ethEtherCreate(uint256CreateParse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status);
 
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
@@ -609,7 +609,7 @@ runEWM_CONNECT_test (const char *paperKey,
 
     balance = ewmWalletGetBalance (ewm, wallet);
     assert (AMOUNT_ETHER == balance.type);
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), etherCreateZero()));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (ethAmountGetEther(balance), ethEtherCreateZero()));
 
     // Immediately dispatches callbacks for WalletManager and Wallet events. Notable, wallet
     // create and a wallet update balance events.
@@ -622,8 +622,8 @@ runEWM_CONNECT_test (const char *paperKey,
     waitForBalance(client.context);
     balance = ewmWalletGetBalance (ewm, wallet);
     assert (AMOUNT_ETHER == balance.type);
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), etherCreateZero()) ||
-            ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), expectedBalance));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (ethAmountGetEther(balance), ethEtherCreateZero()) ||
+            ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (ethAmountGetEther(balance), expectedBalance));
 
     ewmConnect(ewm);
 
@@ -638,7 +638,7 @@ runEWM_CONNECT_test (const char *paperKey,
 
     balance = ewmWalletGetBalance (ewm, wallet);
     assert (AMOUNT_ETHER == ethAmountGetType(balance));
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, ethAmountGetEther(balance)));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (expectedBalance, ethAmountGetEther(balance)));
 
     //    ewmUpdateTransactions(ewm);
 
@@ -678,7 +678,7 @@ void prepareTransaction (const char *paperKey,
     // END - One Time Code Block
     
     // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
+    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(ethEtherCreateNumber(gasPrice, GWEI)));
     ewmWalletSetDefaultGasLimit(ewm, wallet, ethGasCreate(gasLimit));
 
     BREthereumAmount amountAmountInEther =
@@ -744,7 +744,7 @@ testReallySend (const char *storagePath) {
     ethAccountSetAddressNonce(account, address, nonce, ETHEREUM_BOOLEAN_TRUE);
     
     // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
+    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(ethEtherCreateNumber(gasPrice, GWEI)));
     ewmWalletSetDefaultGasLimit(ewm, wallet, ethGasCreate(gasLimit));
     
     BRCoreParseStatus status;

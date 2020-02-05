@@ -26,7 +26,7 @@ ethFeeBasisGetGasLimit (BREthereumFeeBasis basis) {
 
 extern BREthereumGasPrice
 ethFeeBasisGetGasPrice (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : ethGasPriceCreate(etherCreateZero()));
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : ethGasPriceCreate(ethEtherCreateZero()));
 }
 
 extern BREthereumEther
@@ -35,10 +35,10 @@ ethFeeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumB
 
     switch (feeBasis.type) {
         case FEE_BASIS_NONE:
-            return etherCreateZero();
+            return ethEtherCreateZero();
 
         case FEE_BASIS_GAS:
-            return etherCreate (uint256Mul_Overflow (feeBasis.u.gas.price.etherPerGas.valueInWEI,
+            return ethEtherCreate (uint256Mul_Overflow (feeBasis.u.gas.price.etherPerGas.valueInWEI,
                                                      uint256Create (feeBasis.u.gas.limit.amountOfGas),
                                                      overflow));
     }

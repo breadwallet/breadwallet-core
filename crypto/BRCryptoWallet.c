@@ -628,7 +628,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
                                           ? ethAmountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
-                                          : ethAmountCreateEther (etherCreate (ethValue)));
+                                          : ethAmountCreateEther (ethEtherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
             char *addr = cryptoAddressAsString(target); // Target address
@@ -810,7 +810,7 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
 
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumGas gas = ethGasCreate((uint64_t) costFactor);
-            BREthereumGasPrice gasPrice = ethGasPriceCreate (etherCreate(value));
+            BREthereumGasPrice gasPrice = ethGasPriceCreate (ethEtherCreate(value));
 
             return cryptoFeeBasisCreateAsETH (wallet->unitForFee, gas, gasPrice);
         }

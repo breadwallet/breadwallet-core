@@ -65,7 +65,7 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
                           UInt256 value,
                           int rid) {
     BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
-                               ? ethAmountCreateEther(etherCreate(value))
+                               ? ethAmountCreateEther(ethEtherCreate(value))
                                : ethAmountCreateToken(ethTokenQuantityCreate(walletGetToken(wallet), value)));
 
     ewmSignalBalance(ewm, amount);
@@ -157,7 +157,7 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                            BREthereumWallet wallet,
                            UInt256 amount,
                            int rid) {
-    ewmSignalGasPrice(ewm, wallet, ethGasPriceCreate(etherCreate(amount)));
+    ewmSignalGasPrice(ewm, wallet, ethGasPriceCreate(ethEtherCreate(amount)));
 }
 
 extern BREthereumStatus
@@ -254,7 +254,7 @@ ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
         ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NUMERIC_PARSE);
 
     } else {
-        ewmSignalGasEstimateSuccess(ewm, wallet, cookie, ethGasCreate(estimate.u64[0]), ethGasPriceCreate(etherCreate(price)));
+        ewmSignalGasEstimateSuccess(ewm, wallet, cookie, ethGasCreate(estimate.u64[0]), ethGasPriceCreate(ethEtherCreate(price)));
     }
 
     return SUCCESS;
@@ -391,8 +391,8 @@ ewmHandleAnnounceTransaction (BREthereumEWM ewm,
             // TODO: Confirm we are not repeatedly creating transactions
             BREthereumTransaction transaction = transactionCreate (bundle->from,
                                                                    bundle->to,
-                                                                   etherCreate(bundle->amount),
-                                                                   ethGasPriceCreate(etherCreate(bundle->gasPrice)),
+                                                                   ethEtherCreate(bundle->amount),
+                                                                   ethGasPriceCreate(ethEtherCreate(bundle->gasPrice)),
                                                                    ethGasCreate(bundle->gasLimit),
                                                                    bundle->data,
                                                                    bundle->nonce);
@@ -862,7 +862,7 @@ ewmAnnounceToken(BREthereumEWM ewm,
     bundle->description = strdup (description);
     bundle->decimals    = decimals;
     bundle->gasLimit    = ethGasCreate(gasLimitValue);
-    bundle->gasPrice    = ethGasPriceCreate(etherCreate(gasPriceValue));
+    bundle->gasPrice    = ethGasPriceCreate(ethEtherCreate(gasPriceValue));
 
     ewmSignalAnnounceToken (ewm, bundle, rid);
 }

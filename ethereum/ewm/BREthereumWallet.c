@@ -141,7 +141,7 @@ walletCreateDetailed (BREthereumAccount account,
     
     wallet->token = optionalToken;
     wallet->balance = (AMOUNT_ETHER == type
-                       ? ethAmountCreateEther(etherCreate(UINT256_ZERO))
+                       ? ethAmountCreateEther(ethEtherCreate(UINT256_ZERO))
                        : ethAmountCreateToken(ethTokenQuantityCreate (wallet->token, UINT256_ZERO)));
     
     wallet->defaultGasLimit = AMOUNT_ETHER == type
@@ -220,7 +220,7 @@ walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
                                    BREthereumGasPrice price,
                                    BREthereumGas gas,
                                    int *overflow) {
-    return etherCreate (uint256Mul_Overflow (price.etherPerGas.valueInWEI,
+    return ethEtherCreate (uint256Mul_Overflow (price.etherPerGas.valueInWEI,
                                              uint256Create(gas.amountOfGas),
                                              overflow));
 }
@@ -409,7 +409,7 @@ walletUpdateBalance (BREthereumWallet wallet) {
 
     if (AMOUNT_ETHER == ethAmountGetType(wallet->balance)) {
         balance = uint256Sub_Negative(balance, fees, &negative);
-        wallet->balance = ethAmountCreateEther (etherCreate(balance));
+        wallet->balance = ethAmountCreateEther (ethEtherCreate(balance));
     }
     else
         wallet->balance = ethAmountCreateToken (ethTokenQuantityCreate(ethAmountGetToken (wallet->balance), balance));
@@ -449,7 +449,7 @@ static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
     switch (ethAmountGetType(wallet->balance)) {
         case AMOUNT_ETHER:
-            return ethGasPriceCreate(etherCreateNumber
+            return ethGasPriceCreate(ethEtherCreateNumber
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                                    DEFAULT_ETHER_GAS_PRICE_UNIT));
         case AMOUNT_TOKEN:
@@ -641,7 +641,7 @@ walletStateCreate (const BREthereumWallet wallet) {
 
     if (NULL == token) {
         state->address = FAKE_ETHER_ADDRESS_INIT;
-        state->amount  = etherGetValue (ethAmountGetEther(balance), WEI);
+        state->amount  = ethEtherGetValue (ethAmountGetEther(balance), WEI);
     }
     else {
         state->address = ethTokenGetAddressRaw(token);

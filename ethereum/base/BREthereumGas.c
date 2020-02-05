@@ -52,24 +52,24 @@ ethGasPriceCreate(BREthereumEther ether) {
 
 extern BREthereumComparison
 ethGasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2) {
-    return etherCompare(e1.etherPerGas, e2.etherPerGas);
+    return ethEtherCompare(e1.etherPerGas, e2.etherPerGas);
 }
 
 extern BREthereumEther
 ethGasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow) {
     assert (NULL != overflow);
     
-    return etherCreate (uint256Mul_Overflow (uint256Create(gas.amountOfGas), // gas
+    return ethEtherCreate (uint256Mul_Overflow (uint256Create(gas.amountOfGas), // gas
                                              price.etherPerGas.valueInWEI,   // WEI/gas
                                              overflow));
 }
 
 extern BRRlpItem
 ethGasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder) {
-    return etherRlpEncode(price.etherPerGas, coder);
+    return ethEtherRlpEncode(price.etherPerGas, coder);
 }
 
 extern BREthereumGasPrice
 ethGasPriceRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return ethGasPriceCreate(etherRlpDecode(item, coder));
+    return ethGasPriceCreate(ethEtherRlpDecode(item, coder));
 }

@@ -63,7 +63,7 @@ ethAmountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
     if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
     switch (a1.type) {
         case AMOUNT_ETHER:
-            return etherCompare(a1.u.ether, a2.u.ether);
+            return ethEtherCompare(a1.u.ether, a2.u.ether);
         case AMOUNT_TOKEN:
             return ethTokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
     }
@@ -83,7 +83,7 @@ extern BRRlpItem
 ethAmountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
     switch (amount.type) {
         case AMOUNT_ETHER:
-            return etherRlpEncode(amount.u.ether, coder);
+            return ethEtherRlpEncode(amount.u.ether, coder);
             
         case AMOUNT_TOKEN:
             // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
@@ -93,7 +93,7 @@ ethAmountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
 
 extern BREthereumAmount
 ethAmountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
-    return ethAmountCreateEther(etherRlpDecode(item, coder));
+    return ethAmountCreateEther(ethEtherRlpDecode(item, coder));
 }
 
 extern BREthereumAmount
@@ -108,7 +108,7 @@ extern BREthereumAmount
 ethAmountCreateEtherString (const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
     BREthereumAmount amount;
     amount.type = AMOUNT_ETHER;
-    amount.u.ether = etherCreateString(number, unit, status);
+    amount.u.ether = ethEtherCreateString(number, unit, status);
     return amount;
 }
 

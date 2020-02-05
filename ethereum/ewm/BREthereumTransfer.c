@@ -544,7 +544,7 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 
     // If we have a basis, then the transfer is confirmed; use the actual fee.
     if (TRANSFER_BASIS_LOG == transfer->basis.type && NULL != transfer->basis.u.log)
-        return etherCreateZero();
+        return ethEtherCreateZero();
 
     else if (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && NULL != transfer->basis.u.transaction)
         return transactionGetFee (transfer->basis.u.transaction, overflow);
@@ -552,7 +552,7 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
     else if (NULL != transfer->originatingTransaction)
         return transactionGetFee (transfer->originatingTransaction, overflow);
 
-    else return etherCreateZero();
+    else return ethEtherCreateZero();
 }
 
 /// MARK: - Basis
@@ -725,7 +725,7 @@ transferProvideOriginatingTransactionAmount (BREthereumTransfer transfer) {
         case AMOUNT_ETHER:
             return transfer->amount.u.ether;
         case AMOUNT_TOKEN:
-            return etherCreateZero();
+            return ethEtherCreateZero();
     }
 }
 
@@ -752,7 +752,7 @@ private_extern BREthereumEther
 transferGetEffectiveAmountInEther(BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
         case TRANSFER_BASIS_LOG:
-            return etherCreateZero();
+            return ethEtherCreateZero();
         case TRANSFER_BASIS_TRANSACTION:
             return transactionGetAmount(NULL != transfer->basis.u.transaction
                                         ? transfer->basis.u.transaction

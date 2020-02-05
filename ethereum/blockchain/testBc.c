@@ -406,7 +406,7 @@ runAccountStateTests (void) {
     printf ("==== Account State\n");
 
     BREthereumAccountState state = accountStateCreate(ACCOUNT_STATE_NONCE,
-                                                      etherCreateNumber(ACCOUNT_STATE_BALANCE, WEI),
+                                                      ethEtherCreateNumber(ACCOUNT_STATE_BALANCE, WEI),
                                                       emptyHash,
                                                       emptyHash);
     BRRlpCoder coder = rlpCoderCreate();
@@ -415,7 +415,7 @@ runAccountStateTests (void) {
     BREthereumAccountState decodedState = accountStateRlpDecode(encoding, coder);
 
     assert (accountStateGetNonce(state) == accountStateGetNonce(decodedState));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(accountStateGetBalance(state),
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethEtherIsEQ(accountStateGetBalance(state),
                                                accountStateGetBalance(decodedState))));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(accountStateGetStorageRoot(state),
                                                accountStateGetStorageRoot(decodedState))));

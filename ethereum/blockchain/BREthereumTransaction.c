@@ -351,7 +351,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
     items[1] = ethGasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = ethGasRlpEncode(transaction->gasLimit, coder);
     items[3] = ethAddressRlpEncode(transaction->targetAddress, coder);
-    items[4] = etherRlpEncode(transaction->amount, coder);
+    items[4] = ethEtherRlpEncode(transaction->amount, coder);
     items[5] = rlpEncodeHexString(coder, transaction->data);
     itemsCount = 6;
 
@@ -438,7 +438,7 @@ transactionRlpDecode (BRRlpItem item,
     transaction->gasLimit = ethGasRlpDecode(items[2], coder);
     
     transaction->targetAddress = ethAddressRlpDecode(items[3], coder);
-    transaction->amount = etherRlpDecode(items[4], coder);
+    transaction->amount = ethEtherRlpDecode(items[4], coder);
     transaction->data = rlpDecodeHexString (coder, items[5], "0x");
     
     transaction->chainId = ethNetworkGetChainId(network);
@@ -623,13 +623,13 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
     char *hash = ethHashAsString (transaction->hash);
     char *source = ethAddressGetEncodedString(transaction->sourceAddress, 1);
     char *target = ethAddressGetEncodedString(transactionGetTargetAddress(transaction), 1);
-    char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
-    char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
-    char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
+    char *amount = ethEtherGetValueString (transactionGetAmount(transaction), ETHER);
+    char *gasP   = ethEtherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
+    char *fee    = ethEtherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
 
-    BREthereumEther totalEth = etherCreate(uint256Add_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
-    char *total  = etherGetValueString (totalEth, ETHER);
-    char *totalWEI = etherGetValueString (totalEth, WEI);
+    BREthereumEther totalEth = ethEtherCreate(uint256Add_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
+    char *total  = ethEtherGetValueString (totalEth, ETHER);
+    char *totalWEI = ethEtherGetValueString (totalEth, WEI);
 
     eth_log (topic, "=== Transaction%s", "");
     eth_log (topic, "    Hash  : %s", hash);

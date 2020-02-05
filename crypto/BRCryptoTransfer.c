@@ -319,7 +319,7 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                 case AMOUNT_ETHER:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 etherGetValue(ethAmountGetEther(ethAmount), WEI));
+                                                 ethEtherGetValue(ethAmountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:

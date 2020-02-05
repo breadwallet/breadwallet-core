@@ -99,7 +99,7 @@ cryptoNetworkFeeAsBTC (BRCryptoNetworkFee networkFee) {
 private_extern BREthereumGasPrice
 cryptoNetworkFeeAsETH (BRCryptoNetworkFee networkFee) {
     UInt256 value = cryptoAmountGetValue (networkFee->pricePerCostFactor);
-    return ethGasPriceCreate (etherCreate(value));
+    return ethGasPriceCreate (ethEtherCreate(value));
 }
 
 private_extern uint64_t

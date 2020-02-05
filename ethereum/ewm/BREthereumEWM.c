@@ -358,7 +358,7 @@ ewmCreate (BREthereumNetwork network,
 
          // Get the balance
         BREthereumAmount balance = (NULL == token
-                                    ? ethAmountCreateEther (etherCreate (walletStateGetAmount (state)))
+                                    ? ethAmountCreateEther (ethEtherCreate (walletStateGetAmount (state)))
                                     : ethAmountCreateToken (ethTokenQuantityCreate (token, walletStateGetAmount (state))));
 
         // Finally, update the balance; this will create TOK wallets as required.
@@ -1335,14 +1335,14 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
 
     int overflow;
     BREthereumEther oldGasPrice = transactionGetGasPrice(oldTransaction).etherPerGas;
-    BREthereumEther newGasPrice = etherAdd (oldGasPrice, oldGasPrice, &overflow);
+    BREthereumEther newGasPrice = ethEtherAdd (oldGasPrice, oldGasPrice, &overflow);
 
     // Create a new transaction with: a) targetAddress to self (sourceAddress), b) 0 ETH, c)
     // gasPrice increased (to replacement value).
     BREthereumTransaction transaction =
     transactionCreate (transactionGetSourceAddress(oldTransaction),
                        transactionGetSourceAddress(oldTransaction),
-                       etherCreateZero(),
+                       ethEtherCreateZero(),
                        ethGasPriceCreate(newGasPrice),
                        transactionGetGasLimit(oldTransaction),
                        transactionGetData(oldTransaction),
@@ -1404,7 +1404,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
 
     BREthereumGasPrice gasPrice = transactionGetGasPrice(oldTransaction);
     if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasPrice)) {
-        gasPrice = ethGasPriceCreate (etherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
+        gasPrice = ethGasPriceCreate (ethEtherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
         assert (0 == overflow);
     }
 
@@ -1709,7 +1709,7 @@ ewmHandleBalance (BREthereumEWM ewm,
 
         {
             char *amountAsString = (AMOUNT_ETHER == ethAmountGetType(amount)
-                                    ? etherGetValueString (ethAmountGetEther(amount), WEI)
+                                    ? ethEtherGetValueString (ethAmountGetEther(amount), WEI)
                                     : ethTokenQuantityGetValueString (ethAmountGetTokenQuantity(amount), TOKEN_QUANTITY_TYPE_INTEGER));
             eth_log("EWM", "Balance: %s %s (%s)", amountAsString,
                     (AMOUNT_ETHER == ethAmountGetType(amount) ? "ETH" : ethTokenGetName(ethAmountGetToken(amount))),
@@ -2534,7 +2534,7 @@ ewmTransferGetAmountEther(BREthereumEWM ewm,
                           BREthereumEtherUnit unit) {
     BREthereumAmount amount = transferGetAmount(transfer);
     return (AMOUNT_ETHER == ethAmountGetType(amount)
-            ? etherGetValueString(ethAmountGetEther(amount), unit)
+            ? ethEtherGetValueString(ethAmountGetEther(amount), unit)
             : "");
 }
 
@@ -2740,14 +2740,14 @@ ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
                            BREthereumEtherUnit unit,
                            BRCoreParseStatus *status) {
-    return ethAmountCreateEther (etherCreateString(number, unit, status));
+    return ethAmountCreateEther (ethEtherCreateString(number, unit, status));
 }
 
 extern BREthereumAmount
 ewmCreateEtherAmountUnit(BREthereumEWM ewm,
                          uint64_t amountInUnit,
                          BREthereumEtherUnit unit) {
-    return ethAmountCreateEther (etherCreateNumber(amountInUnit, unit));
+    return ethAmountCreateEther (ethEtherCreateNumber(amountInUnit, unit));
 }
 
 extern BREthereumAmount
@@ -2763,7 +2763,7 @@ extern char *
 ewmCoerceEtherAmountToString(BREthereumEWM ewm,
                              BREthereumEther ether,
                              BREthereumEtherUnit unit) {
-    return etherGetValueString(ether, unit);
+    return ethEtherGetValueString(ether, unit);
 }
 
 extern char *
@@ -2778,7 +2778,7 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit) {
-    return ethGasPriceCreate(etherCreateNumber(value, unit));
+    return ethGasPriceCreate(ethEtherCreateNumber(value, unit));
 }
 
 extern BREthereumGas

@@ -41,7 +41,7 @@ extern BREthereumBoolean
 accountStateEqual (BREthereumAccountState s1,
                    BREthereumAccountState s2) {
     return AS_ETHEREUM_BOOLEAN(s1.nonce == s2.nonce &&
-                               ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(s1.balance, s2.balance)));
+                               ETHEREUM_BOOLEAN_IS_TRUE(ethEtherIsEQ(s1.balance, s2.balance)));
 }
 
 extern BREthereumAccountState
@@ -65,7 +65,7 @@ accountStateRlpEncode(BREthereumAccountState state, BRRlpCoder coder) {
     BRRlpItem items[4];
 
     items[0] = rlpEncodeUInt64(coder, state.nonce, 0);
-    items[1] = etherRlpEncode(state.balance, coder);
+    items[1] = ethEtherRlpEncode(state.balance, coder);
     items[2] = ethHashRlpEncode(state.storageRoot, coder);
     items[3] = ethHashRlpEncode(state.codeHash, coder);
 
@@ -81,7 +81,7 @@ accountStateRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     assert (4 == itemsCount);
 
     state.nonce = rlpDecodeUInt64(coder, items[0], 0);
-    state.balance = etherRlpDecode(items[1], coder);
+    state.balance = ethEtherRlpDecode(items[1], coder);
     state.storageRoot = ethHashRlpDecode(items[2], coder);
     state.codeHash = ethHashRlpDecode(items[3], coder);
 
