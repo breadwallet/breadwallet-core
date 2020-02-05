@@ -368,8 +368,8 @@ extension Network {
         case .bch: return (isMainnet ? "bitcoincash" : "bchtest")
         case .eth: return "ethereum"
         case .xrp: return "ripple"
-        case .hbar: return "Hedera"
-//        case .xlm:  return "Stellar"
+        case .hbar: return "hedera"
+//        case .xlm:  return "stellar"
         }
     }
 }

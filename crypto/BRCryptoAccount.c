@@ -80,7 +80,7 @@ static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
                              BREthereumAccount eth,
                              BRGenericAccount xrp,
-                             BRGenericAccount hedera,
+                             BRGenericAccount hbar,
                              uint64_t timestamp,
                              const char * uids) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
@@ -88,7 +88,7 @@ cryptoAccountCreateInternal (BRMasterPubKey btc,
     account->btc = btc;
     account->eth = eth;
     account->xrp = xrp;
-    account->hedera = hedera;
+    account->hbar = hbar;
     account->uids = strdup (uids);
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
@@ -205,16 +205,15 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     assert (NULL != xrp);
     BYTES_PTR_INCR_AND_CHECK (xrpSize); // Move the pointer to then end of the XRP account
 
-    // TODO (CORE-694) Use the version number to determine if we can load in the Hedera account
+    // HBAR
+    size_t hbarSize = UInt32GetBE(bytesPtr);
+    BYTES_PTR_INCR_AND_CHECK (szSize);
 
-    // Hedera
-    // size_t hederaSize = UInt32GetBE(bytesPtr);
-    // BYTES_PTR_INCR_AND_CHECK (szSize);
-    // BYTES_PTR_INCR_AND_CHECK (hederaSize); // Move the pointer to the end of the Hedera account
-    BRGenericAccount hedera = NULL; //genAccountCreateWithSerialization (genericHederaHandlers->type, bytesPtr, hederaSize);
-    // assert (NULL != hedera);
+    BRGenericAccount hbar = genAccountCreateWithSerialization (genericHederaHandlers->type, bytesPtr, hbarSize);
+    assert (NULL != hbar);
+    BYTES_PTR_INCR_AND_CHECK (hbarSize); // Move the pointer to the end of the Hedera account
 
-    return cryptoAccountCreateInternal (mpk, eth, xrp, hedera, timestamp, uids);
+    return cryptoAccountCreateInternal (mpk, eth, xrp, hbar, timestamp, uids);
 #undef BYTES_PTR_INCR_AND_CHECK
 }
 
@@ -222,7 +221,7 @@ static void
 cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);
     genAccountRelease(account->xrp);
-    genAccountRelease(account->hedera);
+    genAccountRelease(account->hbar);
 
     free (account->uids);
     memset (account, 0, sizeof(*account));
@@ -266,16 +265,16 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     size_t   xrpSize = 0;
     uint8_t *xrpBytes = genAccountGetSerialization (account->xrp, &xrpSize);
 
-    // Hedera
-    size_t   hederaSize = 0;
-    uint8_t *hederaBytes = genAccountGetSerialization (account->hedera, &hederaSize);
+    // HBAR
+    size_t   hbarSize = 0;
+    uint8_t *hbarBytes = genAccountGetSerialization (account->hbar, &hbarSize);
 
     // Overall size - summing all factors.
     *bytesCount = (chkSize + szSize + verSize + tsSize
                    + (szSize + mpkSize)
                    + (szSize + ethSize)
                    + (szSize + xrpSize)
-                   + (szSize + hederaSize));
+                   + (szSize + hbarSize));
     uint8_t *bytes = calloc (1, *bytesCount);
     uint8_t *bytesPtr = bytes;
 
@@ -317,12 +316,12 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     memcpy (bytesPtr, xrpBytes, xrpSize);
     bytesPtr += xrpSize;
 
-    // Hedera
-    UInt32SetBE (bytesPtr, (uint32_t) hederaSize);
+    // HBAR
+    UInt32SetBE (bytesPtr, (uint32_t) hbarSize);
     bytesPtr += szSize;
 
-    memcpy (bytesPtr, hederaBytes, hederaSize);
-    bytesPtr += hederaSize;
+    memcpy (bytesPtr, hbarBytes, hbarSize);
+    bytesPtr += hbarSize;
 
     // Avoid static analysis warning
     (void) bytesPtr;
@@ -407,7 +406,7 @@ private_extern BRGenericAccount
 cryptoAccountAsGEN (BRCryptoAccount account,
                     const char *type) {
     if (genAccountHasType (account->xrp, type)) return account->xrp;
-    if (genAccountHasType (account->hedera, type)) return account->hedera;
+    if (genAccountHasType (account->hbar, type)) return account->hbar;
     return NULL;
 }
 
