@@ -1013,7 +1013,7 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
                                            ethereumMainnet,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpItemGetData(coder, item);
 
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
@@ -1024,14 +1024,14 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
                                                       paperKey);
 
     transactionSign (transaction, signature);
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     rlpDataRelease(data);
 
     item = transactionRlpEncode (transaction,
                                            ethereumMainnet,
                                            RLP_TYPE_TRANSACTION_SIGNED,
                                            coder);
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
 
     //Request block headers 4732522, 4732523, 4732524
     lesSubmitTransaction (les, NODE_REFERENCE_ANY,
@@ -1074,20 +1074,20 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
     char *hex;
 
     item = blockHeaderRlpEncode (header_0, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
-    data = rlpGetDataSharedDontRelease(coder, item);
+    data = rlpItemGetDataSharedDontRelease(coder, item);
     hex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
-    rlpShowItem(coder, item, "BLOCK_0");
+    rlpItemShow(coder, item, "BLOCK_0");
     printf ("Block_0: %s\n", hex);
 
-    free (hex); rlpReleaseItem (coder, item);
+    free (hex); rlpItemRelease (coder, item);
 
     item = blockHeaderRlpEncode (header_1, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
-    data = rlpGetDataSharedDontRelease(coder, item);
+    data = rlpItemGetDataSharedDontRelease(coder, item);
     hex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
-    rlpShowItem(coder, item, "BLOCK_1");
+    rlpItemShow(coder, item, "BLOCK_1");
     printf ("Block_1: %s\n", hex);
 
-    free (hex); rlpReleaseItem (coder, item);
+    free (hex); rlpItemRelease (coder, item);
 
     _signalTestComplete();
 }

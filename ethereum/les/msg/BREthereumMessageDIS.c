@@ -263,7 +263,7 @@ messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHa
 
         ping.hash = hash;
     }
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
     return ping;
 }
 
@@ -297,7 +297,7 @@ messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseI
         pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
     }
 
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
     return pong;
 }
 
@@ -354,7 +354,7 @@ messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int rel
         message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
     }
 
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
 
     return message;
 }
@@ -408,7 +408,7 @@ messageDISDecode (BRRlpItem item,
 
     // Get the rlpItem from packet->data
     BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };
-    BRRlpItem messageItem = rlpGetItem (coder.rlp, messageData);
+    BRRlpItem messageItem = rlpDataGetItem (coder.rlp, messageData);
 
     switch (identifier) {
         case DIS_MESSAGE_PONG:
@@ -461,7 +461,7 @@ messageDISEncode (BREthereumDISMessage message,
     }
     BRKey key = message.privateKeyForSigning;
 
-    BRRlpData data = rlpGetDataSharedDontRelease (coder.rlp, bodyItem);
+    BRRlpData data = rlpItemGetDataSharedDontRelease (coder.rlp, bodyItem);
 
     // We are producing a 'packet' which as described above is a concatenation of a header and
     // data where the header IS NOT rlp encoded but the data IS rlp encoded.  We will take the
@@ -510,7 +510,7 @@ messageDISEncode (BREthereumDISMessage message,
         printf ("PACKET: %s\n", hexEncodeCreate(&ignore, packetMemory, packetSize));
     }
 #endif
-    rlpReleaseItem(coder.rlp, bodyItem);
+    rlpItemRelease(coder.rlp, bodyItem);
 
     // Now, finally, `packet` and `packetMemory` are complete.
     return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);

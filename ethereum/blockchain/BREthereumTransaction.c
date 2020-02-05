@@ -324,7 +324,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
     int success = 1;
 
     BRRlpItem item = transactionRlpEncode (transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpItemGetData(coder, item);
 
     BREthereumAddress address = signatureExtractAddress(transaction->signature,
                                    data.bytes,
@@ -332,7 +332,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
                                    &success);
     
     rlpDataRelease(data);
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     return address;
 }
 
@@ -402,7 +402,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
     BRRlpItem result = rlpEncodeListItems(coder, items, itemsCount);
 
     if (RLP_TYPE_TRANSACTION_SIGNED == type) {
-        BRRlpData data = rlpGetDataSharedDontRelease(coder, result);
+        BRRlpData data = rlpItemGetDataSharedDontRelease(coder, result);
         transaction->hash = hashCreateFromData(data);
     }
 
@@ -481,7 +481,7 @@ transactionRlpDecode (BRRlpItem item,
 
         case RLP_TYPE_TRANSACTION_SIGNED: {
             // With a SIGNED RLP encoding, we can extract the source address and compute the hash.
-            BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
+            BRRlpData result = rlpItemGetDataSharedDontRelease(coder, item);
             transaction->hash = hashCreateFromData(result);
 
             // :fingers-crossed:
@@ -504,9 +504,9 @@ transactionGetRlpData (BREthereumTransaction transaction,
                        BREthereumRlpType type) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item   = transactionRlpEncode (transaction, network, type, coder);
-    BRRlpData data   = rlpGetData (coder, item);
+    BRRlpData data   = rlpItemGetData (coder, item);
 
-    rlpReleaseItem  (coder, item);
+    rlpItemRelease  (coder, item);
     rlpCoderRelease (coder);
 
     return data;
@@ -521,7 +521,7 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode (transaction, network, type, coder);
-    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
 
     char *result;
 
@@ -534,7 +534,7 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
         hexEncode(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     }
 
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     rlpCoderRelease(coder);
     return result;
 }

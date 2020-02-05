@@ -350,7 +350,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
                     if (ETHEREUM_BOOLEAN_IS_TRUE (isValid)) {
                         // When valid extract [hash, totalDifficulty] from the MPT proof's value
-                        BRRlpItem item = rlpGetItem(coder, data);
+                        BRRlpItem item = rlpDataGetItem(coder, data);
 
                         size_t itemsCount = 0;
                         const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
@@ -359,7 +359,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                         proof->hash = hashRlpDecode(items[0], coder);
                         proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
 
-                        rlpReleaseItem(coder, item);
+                        rlpItemRelease(coder, item);
                         rlpDataRelease(data);
                     }
                     else {
@@ -453,9 +453,9 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                     BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
                     BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
                     if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
-                        BRRlpItem item = rlpGetItem (coder, data);
+                        BRRlpItem item = rlpDataGetItem (coder, data);
                         provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
-                        rlpReleaseItem (coder, item);
+                        rlpItemRelease (coder, item);
                     }
                     else provisionAccounts[offset + index] = accountStateCreateEmpty();
                     rlpDataRelease(data);
@@ -805,7 +805,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
                     // The MPT 'key' is the RLP encoding of the block number
                     BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
-                    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+                    BRRlpData data = rlpItemGetDataSharedDontRelease (coder, item);
                     BREthereumData key = { data.bytesCount, data.bytes };
 
                     BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
@@ -821,7 +821,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                         provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
                     }
 
-                    rlpReleaseItem (coder, item);
+                    rlpItemRelease (coder, item);
                     mptNodePathRelease (path);
                 }
                 rlpCoderRelease(coder);

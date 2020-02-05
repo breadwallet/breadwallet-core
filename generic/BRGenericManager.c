@@ -132,7 +132,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData  data  = (BRRlpData) { bytesCount, bytes };
-    BRRlpItem  item  = rlpGetItem (coder, data);
+    BRRlpItem  item  = rlpDataGetItem (coder, data);
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
@@ -191,7 +191,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     free (strSource);
     free (strUids);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
     rlpCoderRelease(coder);
 
     return transfer;
@@ -228,9 +228,9 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     genTransferStateEncode (state, coder),
                                     genTransferAttributesEncode (transfer->attributes, coder));
 
-    BRRlpData data = rlpGetData (coder, item);
+    BRRlpData data = rlpItemGetData (coder, item);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
     rlpCoderRelease (coder);
 
     free (strSource); genAddressRelease (source);

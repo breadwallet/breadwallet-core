@@ -59,12 +59,12 @@ testGetBlockHeader (const char *rlp) {
     data.bytes = hexDecodeCreate(&data.bytesCount, rlp, strlen (rlp));
 
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem blockItem = rlpGetItem(coder, data);
+    BRRlpItem blockItem = rlpDataGetItem(coder, data);
 
     BREthereumBlockHeader header = blockHeaderRlpDecode(blockItem, RLP_TYPE_NETWORK, coder);
 
     rlpDataRelease(data);
-    rlpReleaseItem (coder, blockItem);
+    rlpItemRelease (coder, blockItem);
     rlpCoderRelease(coder);
 
     return header;
@@ -76,12 +76,12 @@ testGetBlock (const char *rlp) {
     data.bytes = hexDecodeCreate(&data.bytesCount, rlp, strlen (rlp));
 
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem blockItem = rlpGetItem(coder, data);
+    BRRlpItem blockItem = rlpDataGetItem(coder, data);
 
     BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
 
     rlpDataRelease(data);
-    rlpReleaseItem (coder, blockItem);
+    rlpItemRelease (coder, blockItem);
     rlpCoderRelease(coder);
 
     return block;
@@ -173,7 +173,7 @@ runBlockTest0 (void) {
     data.bytes = hexDecodeCreate(&data.bytesCount, GENESIS_RLP, strlen (GENESIS_RLP));
 
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem blockItem = rlpGetItem(coder, data);
+    BRRlpItem blockItem = rlpDataGetItem(coder, data);
 
     BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
 
@@ -200,11 +200,11 @@ runBlockTest0 (void) {
      */
     assert (0 == blockGetOmmersCount(block));
     assert (0 == blockGetTransactionsCount(block));
-    rlpReleaseItem(coder, blockItem);
+    rlpItemRelease(coder, blockItem);
 
     blockItem = blockRlpEncode(block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
-    rlpShowItem(coder, blockItem, "BlockTest");
-    rlpReleaseItem(coder, blockItem);
+    rlpItemShow(coder, blockItem, "BlockTest");
+    rlpItemRelease(coder, blockItem);
     rlpDataRelease(data);
     blockRelease(block);
     blockHeaderRelease (genesis);
@@ -323,9 +323,9 @@ runLogTests (void) {
     data.bytes = hexDecodeCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
 
     BRRlpCoder coder  = rlpCoderCreate();
-    BRRlpItem logItem = rlpGetItem(coder, data);
+    BRRlpItem logItem = rlpDataGetItem(coder, data);
     BREthereumLog log = logRlpDecode(logItem, RLP_TYPE_NETWORK, coder);
-    rlpReleaseItem(coder, logItem);
+    rlpItemRelease(coder, logItem);
 
     BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
@@ -339,13 +339,13 @@ runLogTests (void) {
 
 
     logItem = logRlpEncode(log, RLP_TYPE_NETWORK, coder);
-    BRRlpData encodeData = rlpGetData(coder, logItem);
-    rlpReleaseItem(coder, logItem);
+    BRRlpData encodeData = rlpItemGetData(coder, logItem);
+    rlpItemRelease(coder, logItem);
 
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
 
-    rlpShow(data, "LogTest");
+    rlpDataShow(data, "LogTest");
 
     // Archive
     BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
@@ -364,7 +364,7 @@ runLogTests (void) {
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
     BREthereumLog logArchived = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransactionStatus statusArchived = logGetStatus(logArchived);
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
 
     assert (status.type == statusArchived.type);
 
@@ -423,7 +423,7 @@ runAccountStateTests (void) {
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
                                                accountStateGetCodeHash(decodedState))));
 
-    rlpReleaseItem(coder, encoding);
+    rlpItemRelease(coder, encoding);
     rlpCoderRelease(coder);
 }
 

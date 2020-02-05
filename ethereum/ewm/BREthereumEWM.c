@@ -2468,12 +2468,12 @@ ewmTransferFillRawData (BREthereumEWM ewm,
                                            ? RLP_TYPE_TRANSACTION_SIGNED
                                            : RLP_TYPE_TRANSACTION_UNSIGNED),
                                           ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
 
     *bytesCountPtr = data.bytesCount;
     *bytesPtr = data.bytes;
 
-    rlpReleaseItem(ewm->coder, item);
+    rlpItemRelease(ewm->coder, item);
 }
 
 extern const char *

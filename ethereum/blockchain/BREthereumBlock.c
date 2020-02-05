@@ -600,7 +600,7 @@ blockHeaderRlpDecode (BRRlpItem item,
     eth_log ("MEM", "Block Header Create RLP: %d", ++blockHeaderAllocCount);
 #endif
 
-    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
     header->hash = hashCreateFromData(data);
     // Safe to ignore data release.
 

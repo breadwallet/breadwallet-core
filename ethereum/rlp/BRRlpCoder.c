@@ -865,14 +865,14 @@ rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytes
 }
 
 extern BRRlpData
-rlpGetData (BRRlpCoder coder, BRRlpItem item) {
+rlpItemGetData (BRRlpCoder coder, BRRlpItem item) {
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     return data;
 }
 
 extern BRRlpData
-rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+rlpItemGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
     BRRlpData result = { item->bytesCount, item->bytes };
     return result;
@@ -905,7 +905,7 @@ rlpGetItem_FillData (BRRlpCoder coder, uint8_t *bytes) {
  * represent a list.
  */
 extern BRRlpItem
-rlpGetItem (BRRlpCoder coder, BRRlpData data) {
+rlpDataGetItem (BRRlpCoder coder, BRRlpData data) {
     assert (0 != data.bytesCount);
 
     BRRlpItem result = rlpCoderAcquireItem (coder);
@@ -946,7 +946,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
         while (bytes < bytesLimit) {
             // Get the `data` for this sub-item and then recurse
             BRRlpData d = rlpGetItem_FillData(coder, bytes);
-            items[itemsIndex++] = rlpGetItem (coder, d);
+            items[itemsIndex++] = rlpDataGetItem (coder, d);
 
             // Move to the next sub-item
             bytes += d.bytesCount;
@@ -976,7 +976,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
 #define RLP_SHOW_INDENT_INCREMENT  2
 
 static void
-rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int indent) {
+rlpItemShowInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int indent) {
     if (indent > 256) indent = 256;
     char spaces [257];
     memset (spaces, ' ', indent);
@@ -989,7 +989,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             else {
                 eth_log(topic, "%sL%3zu: [", spaces, context->itemsCount);
                 for (int i = 0; i < context->itemsCount; i++)
-                    rlpShowItemInternal(coder,
+                    rlpItemShowInternal(coder,
                                         context->items[i],
                                         topic,
                                         indent + RLP_SHOW_INDENT_INCREMENT);
@@ -1015,22 +1015,22 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
 }
 
 extern void
-rlpReleaseItem (BRRlpCoder coder, BRRlpItem item) {
+rlpItemRelease (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
     rlpCoderReleaseItem (coder, item);
 }
 
 extern void
-rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic) {
-    rlpShowItemInternal(coder, item, topic, 0);
+rlpItemShow (BRRlpCoder coder, BRRlpItem item, const char *topic) {
+    rlpItemShowInternal(coder, item, topic, 0);
 }
 
 extern void
-rlpShow (BRRlpData data, const char *topic) {
+rlpDataShow (BRRlpData data, const char *topic) {
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem(coder, data);
-    rlpShowItem (coder, item, topic);
-    rlpReleaseItem(coder, item);
+    BRRlpItem item = rlpDataGetItem(coder, data);
+    rlpItemShow (coder, item, topic);
+    rlpItemRelease(coder, item);
 }
 
 /*

@@ -458,7 +458,7 @@ logRlpDecode (BRRlpItem item,
     log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
 
-    log->data = rlpGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
+    log->data = rlpItemGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
 
     // 
     log->identifier.transactionReceiptIndex = LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN;
@@ -484,7 +484,7 @@ logRlpEncode(BREthereumLog log,
 
     items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
-    items[2] = rlpGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
+    items[2] = rlpDataGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
 
     if (RLP_TYPE_ARCHIVE == type) {
         items[3] = hashRlpEncode(log->identifier.transactionHash, coder);

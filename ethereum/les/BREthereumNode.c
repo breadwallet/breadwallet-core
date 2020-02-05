@@ -2021,7 +2021,7 @@ nodeSend (BREthereumNode node,
             if ((MESSAGE_PIP == message.identifier && PIP_MESSAGE_RELAY_TRANSACTIONS == message.u.pip.type) ||
                 (MESSAGE_LES == message.identifier && LES_MESSAGE_SEND_TX2 == message.u.les.identifier) ||
                 (MESSAGE_LES == message.identifier && LES_MESSAGE_SEND_TX  == message.u.les.identifier))
-                rlpShowItem (node->coder.rlp, item, "SEND");
+                rlpItemShow (node->coder.rlp, item, "SEND");
 #endif
             
             // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
@@ -2041,7 +2041,7 @@ nodeSend (BREthereumNode node,
             break;
         }
     }
-    rlpReleaseItem (node->coder.rlp, item);
+    rlpItemRelease (node->coder.rlp, item);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
     if (!error)
@@ -2091,7 +2091,7 @@ nodeRecv (BREthereumNode node,
             message = messageDecode (item, node->coder,
                                      MESSAGE_DIS,
                                      MESSAGE_DIS_IDENTIFIER_ANY);
-            rlpReleaseItem (node->coder.rlp, item);
+            rlpItemRelease (node->coder.rlp, item);
             break;
         }
 
@@ -2152,7 +2152,7 @@ nodeRecv (BREthereumNode node,
 
             // Identifier is at byte[0]
             BRRlpData identifierData = { 1, &bytes[0] };
-            BRRlpItem identifierItem = rlpGetItem (node->coder.rlp, identifierData);
+            BRRlpItem identifierItem = rlpDataGetItem (node->coder.rlp, identifierData);
             uint8_t value = (uint8_t) rlpDecodeUInt64 (node->coder.rlp, identifierItem, 1);
 
             BREthereumMessageIdentifier type;
@@ -2162,7 +2162,7 @@ nodeRecv (BREthereumNode node,
 
             // Actual body
             BRRlpData data = { headerCount - 1, &bytes[1] };
-            BRRlpItem item = rlpGetItem (node->coder.rlp, data);
+            BRRlpItem item = rlpDataGetItem (node->coder.rlp, data);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
             eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
@@ -2183,8 +2183,8 @@ nodeRecv (BREthereumNode node,
                 messageLESHasUse (&message.u.les, LES_MESSAGE_USE_RESPONSE))
                 node->credits = messageLESGetCredits (&message.u.les);
             
-            rlpReleaseItem (node->coder.rlp, item);
-            rlpReleaseItem (node->coder.rlp, identifierItem);
+            rlpItemRelease (node->coder.rlp, item);
+            rlpItemRelease (node->coder.rlp, identifierItem);
 
             break;
         }

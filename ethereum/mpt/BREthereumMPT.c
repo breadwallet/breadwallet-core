@@ -188,13 +188,13 @@ mptNodeDecode (BRRlpItem item,
         case 17: {
             node = mptNodeCreate(MPT_NODE_BRANCH);
             for (size_t index = 0; index < 16; index++) {
-                BRRlpData data = rlpGetDataSharedDontRelease (coder, items[index]);
+                BRRlpData data = rlpItemGetDataSharedDontRelease (coder, items[index]);
                 // Either a hash (0x<32 bytes>) or empty (0x)
                 node->u.branch.keys[index] = (0 == data.bytesCount || 1 == data.bytesCount
                                               ? EMPTY_HASH_INIT
                                               : hashRlpDecode(items[index], coder));
             }
-            node->u.branch.value = rlpGetData (coder, items[16]);
+            node->u.branch.value = rlpItemGetData (coder, items[16]);
             break;
         }
     }
@@ -258,12 +258,12 @@ mptNodePathDecodeFromBytes (BRRlpItem item,
         // items[index] holds bytes as the RLP encoding of MPT nodes.  We'll decode the bytes
         // and then RLP encode the bytes (but this time as RLP items.... got it??).
         BRRlpData data = rlpDecodeBytesSharedDontRelease (coder, items[index]);
-        BRRlpItem item = rlpGetItem(coder, data);
+        BRRlpItem item = rlpDataGetItem(coder, data);
         array_add (nodes, mptNodeDecode (item, coder));
 #if defined (MPT_SHOW_PROOF_NODES)
         rlpShowItem (coder, item, "MPTN");
 #endif
-        rlpReleaseItem (coder, item);
+        rlpItemRelease (coder, item);
     }
 
     // TODO: If any above item is decoded improperly, then `nodes` will have NULL values.

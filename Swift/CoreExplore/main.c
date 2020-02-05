@@ -64,8 +64,8 @@ handleTrans (BRRlpCoder coder, const char *input) {
 
     // Fill `data` and `item`
     data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
-    rlpShow(data, "Trans:");
+    item = rlpDataGetItem (coder, data);
+    rlpDataShow(data, "Trans:");
 
     // Extract a transaction
     BREthereumTransaction transaction = transactionRlpDecode (item, ethereumTestnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
@@ -87,9 +87,9 @@ handleRLP (BRRlpCoder coder, const char *input) {
 
     // Fill `data` and `item`
     data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
-    rlpShowItem (coder, item, "RLP");
-    rlpReleaseItem (coder, item);
+    item = rlpDataGetItem (coder, data);
+    rlpItemShow (coder, item, "RLP");
+    rlpItemRelease (coder, item);
     rlpDataRelease(data);
 }
 
@@ -126,7 +126,7 @@ handleRLPHuge (BRRlpCoder coder, const char *filename) {
 
     // Fill `data` and `item`
     data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
+    item = rlpDataGetItem (coder, data);
 
 #if 0
     // use to debug sub-itens
@@ -161,7 +161,7 @@ handleRLPHuge (BRRlpCoder coder, const char *filename) {
     eth_log("EXP", "L6...%s", "");
 #endif
     //    rlpShow(data, "RLP:");
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     eth_log("EXP", "released%s", "");
 }
 
@@ -245,8 +245,8 @@ handleEthTransactionDecode1 (BRRlpCoder coder, const char *rlpString) {
     uint8_t *rlpBytes = hexDecodeCreate (&rlpBytesCount, rlpString, strlen (rlpString));
 
     BRRlpData  data  = { rlpBytesCount, rlpBytes };
-    BRRlpItem  item  = rlpGetItem(coder, data);
-    rlpShowItem(coder, item, "FOO");
+    BRRlpItem  item  = rlpDataGetItem(coder, data);
+    rlpItemShow(coder, item, "FOO");
 
     BREthereumTransaction transaction = transactionRlpDecode (item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
     BREthereumSignature sig1 = transactionGetSignature(transaction);
@@ -377,8 +377,8 @@ handleAddressFromString (const char *hex, BRRlpCoder coder) {
     BREthereumAddress address = addressCreate(hex);
 
     BRRlpItem item = addressRlpEncode(address, coder);
-    rlpShowItem(coder, item, "ADDR");
-    rlpReleaseItem(coder, item);
+    rlpItemShow(coder, item, "ADDR");
+    rlpItemRelease(coder, item);
 }
 void handleLogDecode (BRRlpCoder coder) {
     FILE *foo = fopen ("/Users/ebg/log-item", "r");
@@ -390,11 +390,11 @@ void handleLogDecode (BRRlpCoder coder) {
 
     BRRlpData data = { bytesCount, bytes };
 
-    BRRlpItem  item  = rlpGetItem (coder, data);
+    BRRlpItem  item  = rlpDataGetItem (coder, data);
 
     BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
 
     logRelease(log);
 }

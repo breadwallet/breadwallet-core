@@ -310,9 +310,9 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     BREthereumAddress targetAddress = logTopicAsAddress(logGetTopic(log, 2));
 
     // Only at this point do we know that log->data is a number.
-    BRRlpItem  item  = rlpGetItem (coder, logGetDataShared(log));
+    BRRlpItem  item  = rlpDataGetItem (coder, logGetDataShared(log));
     UInt256 value = rlpDecodeUInt256(coder, item, 1);
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
 
     BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
 
@@ -429,7 +429,7 @@ transferSign (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
@@ -439,7 +439,7 @@ transferSign (BREthereumTransfer transfer,
                                                       data.bytesCount,
                                                       paperKey);
     
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
 
     // Attach the signature
     transactionSign (transfer->originatingTransaction, signature);
@@ -449,9 +449,9 @@ transferSign (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+                        hashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
 
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -472,7 +472,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+    BRRlpData data = rlpItemGetDataSharedDontRelease (coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
@@ -482,7 +482,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                                                     data.bytesCount,
                                                                     privateKey);
     
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
 
     // Attach the signature
     transactionSign(transfer->originatingTransaction, signature);
@@ -493,9 +493,9 @@ transferSignWithKey (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+                        hashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
 
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     rlpCoderRelease(coder);
 }
 

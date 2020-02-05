@@ -519,8 +519,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             BREthereumLog log = logCreate(bundle->contract,
                                           bundle->topicCount,
                                           topics,
-                                          rlpGetDataSharedDontRelease(ewm->coder, item));
-            rlpReleaseItem (ewm->coder, item);
+                                          rlpItemGetDataSharedDontRelease(ewm->coder, item));
+            rlpItemRelease (ewm->coder, item);
 
             // Given {hash,logIndex}, initialize the log's identifier
             assert (bundle->logIndex <= (uint64_t) SIZE_MAX);
