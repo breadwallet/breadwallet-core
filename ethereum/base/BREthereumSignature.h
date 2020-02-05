@@ -81,23 +81,23 @@ typedef struct {
 } BREthereumSignature;
 
 extern BREthereumSignature
-signatureCreate (BREthereumSignatureType type,
-                 uint8_t *bytes,
-                 size_t bytesCount,
-                 BRKey privateKeyUncompressed);
+ethSignatureCreate (BREthereumSignatureType type,
+                    uint8_t *bytes,
+                    size_t bytesCount,
+                    BRKey privateKeyUncompressed);
 
 extern BREthereumAddress
-signatureExtractAddress (const BREthereumSignature signature,
-                         const uint8_t *bytes,
-                         size_t bytesCount,
-                         int *success);
+ethSignatureExtractAddress (const BREthereumSignature signature,
+                            const uint8_t *bytes,
+                            size_t bytesCount,
+                            int *success);
 
 extern BREthereumBoolean
-signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
+ethSignatureEqual (BREthereumSignature s1, BREthereumSignature s2);
 
 extern void
-signatureClear (BREthereumSignature *s,
-                BREthereumSignatureType type);
+ethSignatureClear (BREthereumSignature *s,
+                   BREthereumSignatureType type);
 
 #ifdef __cplusplus
 }

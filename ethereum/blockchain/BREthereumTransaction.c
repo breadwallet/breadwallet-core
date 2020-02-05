@@ -114,7 +114,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasEstimate = gasLimit;
 
     // Ensure that `transactionIsSigned()` returns FALSE.
-    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
+    ethSignatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
@@ -326,7 +326,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
     BRRlpItem item = transactionRlpEncode (transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data = rlpItemGetData(coder, item);
 
-    BREthereumAddress address = signatureExtractAddress(transaction->signature,
+    BREthereumAddress address = ethSignatureExtractAddress(transaction->signature,
                                    data.bytes,
                                    data.bytesCount,
                                    &success);
@@ -446,7 +446,7 @@ transactionRlpDecode (BRRlpItem item,
     uint64_t eipChainId = rlpDecodeUInt64(coder, items[6], 1);
     
     // By default, ensure `transacdtionIsSigned()` returns FALSE.
-    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
+    ethSignatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
     
     // We have a signature - is this the proper logic?
     if (eipChainId != transaction->chainId) {

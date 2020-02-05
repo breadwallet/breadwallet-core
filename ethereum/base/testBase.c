@@ -174,7 +174,7 @@ static void runSignatureTests1 (void) {
 
     // VRS
     printf ("      SigVRS\n");
-    BREthereumSignature sigVRS = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
+    BREthereumSignature sigVRS = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                   signingBytes, signingBytesCount,
                                                   privateKeyUncompressed);
 
@@ -182,13 +182,13 @@ static void runSignatureTests1 (void) {
     assert (0 == memcmp (sigVRS.sig.vrs.r, sigRData, sigRDataLen));
     assert (0 == memcmp (sigVRS.sig.vrs.s, sigSData, sigSDataLen));
 
-    BREthereumAddress addrVRS = signatureExtractAddress (sigVRS, signingBytes, signingBytesCount, &success);
+    BREthereumAddress addrVRS = ethSignatureExtractAddress (sigVRS, signingBytes, signingBytesCount, &success);
     assert (1 ==  success);
 
 
     // RSV
     printf ("      SigRSV\n");
-    BREthereumSignature sigRSV = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
+    BREthereumSignature sigRSV = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
                                                   signingBytes, signingBytesCount,
                                                   privateKeyUncompressed);
 
@@ -196,7 +196,7 @@ static void runSignatureTests1 (void) {
     assert (0 == memcmp (sigRSV.sig.rsv.r, sigRData, sigRDataLen));
     assert (0 == memcmp (sigRSV.sig.rsv.s, sigSData, sigSDataLen));
 
-    BREthereumAddress addrRSV = signatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
+    BREthereumAddress addrRSV = ethSignatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
     assert (1 == success);
 
     assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual (addrVRS, addrRSV));

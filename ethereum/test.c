@@ -406,7 +406,7 @@ void testTransactionCodingEther () {
                                                   transactionGetTargetAddress(decodedTransaction)));
 
     // Signature
-    assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
+    assert (ETHEREUM_BOOLEAN_TRUE == ethSignatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
 
     // Address recovery
@@ -487,7 +487,7 @@ void testTransactionCodingToken () {
                                                      transactionGetTargetAddress(decodedTransaction)));
 #endif
     // Signature
-    assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
+    assert (ETHEREUM_BOOLEAN_TRUE == ethSignatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
 
     walletUnhandleTransfer(wallet, transfer);

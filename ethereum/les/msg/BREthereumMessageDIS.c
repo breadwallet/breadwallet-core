@@ -491,7 +491,7 @@ messageDISEncode (BREthereumDISMessage message,
     // Compute the signature over (identifier || data)
     size_t signatureSize = 65;
     BRRlpData signatureData = { 1 + data.bytesCount, (uint8_t *) &packet->identifier };
-    packet->signature = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
+    packet->signature = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
                                          signatureData.bytes, signatureData.bytesCount,
                                          key).sig.rsv;
 
