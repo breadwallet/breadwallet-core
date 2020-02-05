@@ -17,7 +17,7 @@
 #include "BREthereumEWMPrivate.h"
 
 extern BREthereumWalletEvent
-walletEventCreateError (BREthereumWalletEventType type,
+ethWalletEventCreateError (BREthereumWalletEventType type,
                         BREthereumStatus status,
                         const char *errorDescription) {
     BREthereumWalletEvent event = { type, status, {}, { '\0' } };
@@ -27,7 +27,7 @@ walletEventCreateError (BREthereumWalletEventType type,
 }
 
 extern BREthereumTransferEvent
-transferEventCreateError (BREthereumTransferEventType type,
+ethTransferEventCreateError (BREthereumTransferEventType type,
                           BREthereumStatus status,
                           const char *errorDescription) {
     BREthereumTransferEvent event = { type, status, { '\0' } };
@@ -121,13 +121,13 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
 
     if (NULL == wallet) {
         ewmSignalWalletEvent(ewm, wallet,
-                             walletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                             ethWalletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                                      ERROR_UNKNOWN_WALLET,
                                                      NULL));
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             walletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                             ethWalletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                                      ERROR_NODE_NOT_CONNECTED,
                                                      NULL));
 

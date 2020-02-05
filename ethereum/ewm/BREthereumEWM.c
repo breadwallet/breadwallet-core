@@ -1750,7 +1750,7 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
         ewmSignalTransferEvent (ewm, wallet, transfer,
-                                transferEventCreateError (TRANSFER_EVENT_ERRORED,
+                                ethTransferEventCreateError (TRANSFER_EVENT_ERRORED,
                                                           ERROR_TRANSACTION_SUBMISSION,
                                                           reason));
 
@@ -2168,13 +2168,13 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
 
     if (NULL == wallet) {
         ewmSignalWalletEvent (ewm, wallet,
-                              walletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
+                              ethWalletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
                                                       ERROR_UNKNOWN_WALLET,
                                                       NULL));
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             walletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
+                             ethWalletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
                                                      ERROR_NODE_NOT_CONNECTED,
                                                      NULL));
     } else {
