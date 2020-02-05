@@ -53,7 +53,7 @@ static BRSetOf(BREthereumToken) tokens;
 
 static BREthereumToken
 tokenLookupTestX (const char *address) {
-    BREthereumAddress addr = addressCreate(address);
+    BREthereumAddress addr = ethAddressCreate(address);
     return BRSetGet (tokens, &addr);
 }
 
@@ -702,8 +702,8 @@ void prepareTransaction (const char *paperKey,
     assert (NULL != transfers && NULL != transfers[0]);
     
     BREthereumTransfer transfer = transfers[0];
-    assert (0 == strcmp (fromAddr, addressGetEncodedString (ewmTransferGetSource(ewm, transfer), 1)) &&
-            0 == strcmp (recvAddr, addressGetEncodedString (ewmTransferGetTarget(ewm, transfer), 1)));
+    assert (0 == strcmp (fromAddr, ethAddressGetEncodedString (ewmTransferGetSource(ewm, transfer), 1)) &&
+            0 == strcmp (recvAddr, ethAddressGetEncodedString (ewmTransferGetTarget(ewm, transfer), 1)));
     
     free (fromAddr);
     ewmDestroy(ewm);

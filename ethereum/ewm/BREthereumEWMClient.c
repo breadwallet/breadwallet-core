@@ -203,8 +203,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                 BREthereumGasPrice gasPrice = ethFeeBasisGetGasPrice (feeBasis);
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
 
-                char *from = addressGetEncodedString (transferGetEffectiveSourceAddress(transfer), 0);
-                char *to   = addressGetEncodedString (transferGetEffectiveTargetAddress(transfer), 0);
+                char *from = ethAddressGetEncodedString (transferGetEffectiveSourceAddress(transfer), 0);
+                char *to   = ethAddressGetEncodedString (transferGetEffectiveTargetAddress(transfer), 0);
                 char *amount = uint256CoerceStringPrefaced (amountInEther.valueInWEI, 16, "0x");
                 char *price  = uint256CoerceStringPrefaced (gasPrice.etherPerGas.valueInWEI, 16, "0x");
                 char *data = (char *) transactionGetData(transaction);
@@ -338,7 +338,7 @@ ewmAnnounceNonce (BREthereumEWM ewm,
                   const char *strAddress,
                   const char *strNonce,
                   int rid) {
-    BREthereumAddress address = addressCreate(strAddress);
+    BREthereumAddress address = ethAddressCreate(strAddress);
     uint64_t nonce = strtoull (strNonce, NULL, 0);
     ewmSignalAnnounceNonce(ewm, address, nonce, rid);
     return SUCCESS;
@@ -453,11 +453,11 @@ ewmAnnounceTransaction(BREthereumEWM ewm,
 
     bundle->hash = ethHashCreate(hashString);
 
-    bundle->from = addressCreate(from);
-    bundle->to = addressCreate(to);
+    bundle->from = ethAddressCreate(from);
+    bundle->to = ethAddressCreate(to);
     bundle->contract = (NULL == contract || '\0' == contract[0]
                         ? EMPTY_ADDRESS_INIT
-                        : addressCreate(contract));
+                        : ethAddressCreate(contract));
 
     bundle->amount = uint256CreateParse(strAmount, 0, &parseStatus);
 
@@ -582,7 +582,7 @@ ewmAnnounceLog (BREthereumEWM ewm,
     BREthereumEWMClientAnnounceLogBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceLogBundle));
 
     bundle->hash = ethHashCreate(strHash);
-    bundle->contract = addressCreate(strContract);
+    bundle->contract = ethAddressCreate(strContract);
     bundle->topicCount = topicCount;
     bundle->arrayTopics = calloc (topicCount, sizeof (char *));
     for (int i = 0; i < topicCount; i++)

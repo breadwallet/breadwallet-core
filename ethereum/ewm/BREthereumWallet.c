@@ -389,7 +389,7 @@ walletUpdateBalance (BREthereumWallet wallet) {
                          ? amountGetEther(amount).valueInWEI
                          : amountGetTokenQuantity(amount).valueAsInteger);
 
-        if (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
+        if (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
             sent = uint256Add_Overflow(sent, value, &overflow);
 
             BREthereumEther fee = transferGetFee(transfer, &fee_overflow);
@@ -515,7 +515,7 @@ walletGetTransferByNonce(BREthereumWallet wallet,
                          uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transfers); i++)
         if (nonce == transferGetNonce (wallet->transfers[i])
-            && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transferGetSourceAddress(wallet->transfers[i]))))
+            && ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(sourceAddress, transferGetSourceAddress(wallet->transfers[i]))))
             return wallet->transfers [i];
     return NULL;
 }
@@ -658,7 +658,7 @@ walletStateRelease (BREthereumWalletState state) {
 
 extern BREthereumAddress
 walletStateGetAddress (const BREthereumWalletState walletState) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
+    return (ETHEREUM_BOOLEAN_IS_TRUE (ethAddressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
             ? EMPTY_ADDRESS_INIT
             : walletState->address);
 }
@@ -683,7 +683,7 @@ extern BRRlpItem
 walletStateEncode (const BREthereumWalletState state,
                    BRRlpCoder coder) {
     return rlpEncodeList (coder, 3,
-                          addressRlpEncode (state->address, coder),
+                          ethAddressRlpEncode (state->address, coder),
                           rlpEncodeUInt256 (coder, state->amount, 0),
                           rlpEncodeUInt64  (coder, state->nonce, 0));
 }
@@ -697,7 +697,7 @@ walletStateDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    state->address = addressRlpDecode (items[0], coder);
+    state->address = ethAddressRlpDecode (items[0], coder);
     state->amount  = rlpDecodeUInt256 (coder, items[1], 0);
     state->nonce   = rlpDecodeUInt64  (coder, items[2], 0);
 
@@ -706,18 +706,18 @@ walletStateDecode (BRRlpItem item,
 
 extern BREthereumHash
 walletStateGetHash (const BREthereumWalletState state) {
-    return addressGetHash (state->address);
+    return ethAddressGetHash (state->address);
 }
 
 static inline size_t
 walletStateHashValue (const void *t)
 {
-    return addressHashValue(((BREthereumWalletState) t)->address);
+    return ethAddressHashValue(((BREthereumWalletState) t)->address);
 }
 
 static inline int
 walletStateHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || addressHashEqual (((BREthereumWalletState) t1)->address,
+    return t1 == t2 || ethAddressHashEqual (((BREthereumWalletState) t1)->address,
                                          ((BREthereumWalletState) t2)->address);
 }
 

@@ -305,7 +305,7 @@ logGetAddress (BREthereumLog log) {
 extern BREthereumBoolean
 logHasAddress (BREthereumLog log,
                BREthereumAddress address) {
-    return addressEqual(log->address, address);
+    return ethAddressEqual(log->address, address);
 }
 
 extern size_t
@@ -455,7 +455,7 @@ logRlpDecode (BRRlpItem item,
     assert ((3 == itemsCount && RLP_TYPE_NETWORK == type) ||
             (6 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
-    log->address = addressRlpDecode(items[0], coder);
+    log->address = ethAddressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
 
     log->data = rlpItemGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
@@ -482,7 +482,7 @@ logRlpEncode(BREthereumLog log,
     
     BRRlpItem items[6]; // more than enough
 
-    items[0] = addressRlpEncode(log->address, coder);
+    items[0] = ethAddressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
     items[2] = rlpDataGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
 

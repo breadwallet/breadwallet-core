@@ -534,7 +534,7 @@ cryptoWalletManagerRegisterWallet (BRCryptoWalletManager cwm,
 
             case BLOCK_CHAIN_TYPE_ETH: {
                 const char *issuer = cryptoCurrencyGetIssuer (currency);
-                BREthereumAddress ethAddress = addressCreate (issuer);
+                BREthereumAddress ethAddress = ethAddressCreate (issuer);
                 BREthereumToken ethToken = ewmLookupToken (cwm->u.eth, ethAddress);
                 assert (NULL != ethToken);
                 ewmGetWalletHoldingToken (cwm->u.eth, ethToken);

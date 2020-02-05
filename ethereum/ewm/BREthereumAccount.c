@@ -121,8 +121,8 @@ addressDetailFillKey(BREthereumAddressDetail *address, const BRKey *key, uint32_
     memcpy(address->publicKey, &key->pubKey[1], sizeof (address->publicKey));
     
     
-    address->raw = addressCreateKey(key);
-    char *string = addressGetEncodedString(address->raw, 1);
+    address->raw = ethAddressCreateKey(key);
+    char *string = ethAddressGetEncodedString(address->raw, 1);
     memcpy (address->string, string, 42);
     address->string[42] = '\0';
     free (string);
@@ -155,7 +155,7 @@ addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
     address->index = 0;
     address->nonce = 0;
     strlcpy (&address->string[0], string, 43);
-    address->raw = addressCreate(string);
+    address->raw = ethAddressCreate(string);
 }
 #endif
 
@@ -291,7 +291,7 @@ accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compress
 extern BREthereumBoolean
 accountHasAddress(BREthereumAccount account,
                   BREthereumAddress address) {
-    return addressEqual(account->primaryAddress.raw, address);
+    return ethAddressEqual(account->primaryAddress.raw, address);
 }
 
 extern BREthereumSignature

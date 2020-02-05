@@ -696,7 +696,7 @@ transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
             UInt256 value = amountGetTokenQuantity(transfer->amount).valueAsInteger;
             
             char address[ADDRESS_ENCODED_CHARS];
-            addressFillEncodedString(transfer->targetAddress, 0, address);
+            ethAddressFillEncodedString(transfer->targetAddress, 0, address);
             
             // Data is a HEX ENCODED string
             return (char *) contractEncode (contractERC20, functionERC20Transfer,

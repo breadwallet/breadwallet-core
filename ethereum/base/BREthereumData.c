@@ -16,13 +16,13 @@
 extern BREthereumData
 ethDataCreateFromBytes (size_t count, uint8_t *bytes, int takeBytes) {
     uint8_t *data = bytes;  // take the bytes...
-    
+
     // ... oops, we can't, so copy.
     if (!takeBytes) {
         data = malloc (count);
         memcpy (data, bytes, count);
     }
-    
+
     return (BREthereumData) { count, data };
 }
 
@@ -72,10 +72,10 @@ extern BREthereumHashDataPair
 ethHashDataPairCreate (BREthereumHash hash,
                        BREthereumData data) {
     BREthereumHashDataPair pair = malloc (sizeof (struct BREthereumHashDataPairRecord));
-    
+
     pair->hash = hash;
     pair->data = data;
-    
+
     return pair;
 }
 
@@ -148,10 +148,10 @@ extern BRSetOf (BREthereumHashDataPair)
 ethHashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs) {
     size_t count = array_count (pairs);
     BRSetOf(BREthereumHashDataPair) set = ethHashDataPairSetCreateEmpty (count);
-    
+
     for (size_t index = 0; index < count; index++)
         BRSetAdd (set, pairs[index]);
-    
+
     array_free (pairs);
     return set;
 }
@@ -160,7 +160,7 @@ extern void
 ethHashDataPairSetRelease (BRSetOf (BREthereumHashDataPair) set) {
     size_t itemsCount = BRSetCount (set);
     void  *itemsAll [itemsCount];
-    
+
     BRSetAll (set, itemsAll,  itemsCount);
     for (size_t index = 0; index < itemsCount; index++)
         ethHashDataPairRelease ((BREthereumHashDataPair) itemsAll[index]);

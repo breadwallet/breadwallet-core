@@ -123,7 +123,7 @@ signatureExtractAddress(const BREthereumSignature signature,
 
     return (0 == *success
             ? (BREthereumAddress) EMPTY_ADDRESS_INIT
-            : addressCreateKey(&key));
+            : ethAddressCreateKey(&key));
 }
 
 extern void

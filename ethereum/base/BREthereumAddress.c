@@ -20,8 +20,8 @@
 // Address Raw
 //
 extern BREthereumAddress
-addressCreate (const char *address) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(addressValidateString(address))) return EMPTY_ADDRESS_INIT;
+ethAddressCreate (const char *address) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ethAddressValidateString(address))) return EMPTY_ADDRESS_INIT;
 
     BREthereumAddress raw;
     if (0 == strncmp ("0x", address, 2)) address = &address[2];
@@ -30,7 +30,7 @@ addressCreate (const char *address) {
 }
 
 extern BREthereumBoolean
-addressValidateString(const char *string) {
+ethAddressValidateString(const char *string) {
     return 42 == strlen(string)
            && '0' == string[0]
            && 'x' == string[1]
@@ -40,7 +40,7 @@ addressValidateString(const char *string) {
 }
 
 extern BREthereumAddress
-addressCreateKey (const BRKey *key) {
+ethAddressCreateKey (const BRKey *key) {
     BREthereumAddress address;
 
     // We interrupt your regularly scheduled programming...
@@ -74,14 +74,14 @@ addressCreateKey (const BRKey *key) {
 
 
 extern char *
-addressGetEncodedString (BREthereumAddress address, int useChecksum) {
+ethAddressGetEncodedString (BREthereumAddress address, int useChecksum) {
     char *string = calloc (1, ADDRESS_ENCODED_CHARS);
-    addressFillEncodedString(address, useChecksum, string);
+    ethAddressFillEncodedString(address, useChecksum, string);
     return string;
 }
 
 extern void
-addressFillEncodedString (BREthereumAddress address,
+ethAddressFillEncodedString (BREthereumAddress address,
                           int useChecksum,
                           char *string) {
 
@@ -148,13 +148,13 @@ addressFillEncodedString (BREthereumAddress address,
 }
 
 extern BREthereumHash
-addressGetHash (BREthereumAddress address) {
+ethAddressGetHash (BREthereumAddress address) {
     BRRlpData data = { 20, address.bytes };
     return ethHashCreateFromData(data);
 }
 
 extern BREthereumAddress
-addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+ethAddressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address = EMPTY_ADDRESS_INIT;
 
     BRRlpData data = rlpDecodeBytes(coder, item);
@@ -168,13 +168,13 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 extern BRRlpItem
-addressRlpEncode(BREthereumAddress address,
+ethAddressRlpEncode(BREthereumAddress address,
                  BRRlpCoder coder) {
     return rlpEncodeBytes(coder, address.bytes, 20);
 }
 
 extern BREthereumBoolean
-addressEqual (BREthereumAddress address1,
+ethAddressEqual (BREthereumAddress address1,
               BREthereumAddress address2) {
     return (0 == memcmp(address1.bytes, address2.bytes, 20)
             ? ETHEREUM_BOOLEAN_TRUE

@@ -199,7 +199,7 @@ static void runSignatureTests1 (void) {
     BREthereumAddress addrRSV = signatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
     assert (1 == success);
 
-    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addrVRS, addrRSV));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual (addrVRS, addrRSV));
 
 }
 

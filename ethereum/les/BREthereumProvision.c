@@ -422,7 +422,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
-            BREthereumHash hash = addressGetHash(provision->address);
+            BREthereumHash hash = ethAddressGetHash(provision->address);
             BREthereumData key  = { sizeof(BREthereumHash), hash.bytes };
 
             // We'll fill this - at the proper index if a multiple provision.
@@ -639,7 +639,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
 
-            BREthereumHash addressHash = addressGetHash(provision->address);
+            BREthereumHash addressHash = ethAddressGetHash(provision->address);
             BRArrayOf(BREthereumHash) hashes = provision->hashes;
             size_t hashesCount = array_count(hashes);
 

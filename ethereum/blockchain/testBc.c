@@ -23,8 +23,8 @@ extern void
 runBloomTests (void) {
     printf ("==== Bloom\n");
 
-    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(addressCreate(BLOOM_ADDR_1));
-    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(addressCreate(BLOOM_ADDR_2));
+    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(ethAddressCreate(BLOOM_ADDR_1));
+    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(ethAddressCreate(BLOOM_ADDR_2));
 
     BREthereumBloomFilter filter = bloomFilterOr(filter1, filter2);
     char *filterAsString = bloomFilterAsString(filter);
@@ -35,7 +35,7 @@ runBloomTests (void) {
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter1)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter2)));
-    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(addressCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(ethAddressCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
 
 }
 
@@ -237,9 +237,9 @@ runBlockTest1 () {
     {
         BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_1_BLOOM);
 
-        BREthereumAddress addressSource = addressCreate(BLOCK_1_TX_132_SOURCE);
-        BREthereumAddress addressTarget = addressCreate(BLOCK_1_TX_132_TARGET);
-        BREthereumAddress addressTokenC = addressCreate(BLOCK_1_TX_132_TOKENC);
+        BREthereumAddress addressSource = ethAddressCreate(BLOCK_1_TX_132_SOURCE);
+        BREthereumAddress addressTarget = ethAddressCreate(BLOCK_1_TX_132_TARGET);
+        BREthereumAddress addressTokenC = ethAddressCreate(BLOCK_1_TX_132_TOKENC);
 
         // 'LogsBloom' holds contact and topic info ...
         assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));
@@ -255,9 +255,9 @@ runBlockTest1 () {
     {
         BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_2_BLOOM);
 
-        BREthereumAddress addressSource = addressCreate(BLOCK_2_TX_53_SOURCE);
-        BREthereumAddress addressTarget = addressCreate(BLOCK_2_TX_53_TARGET);
-        BREthereumAddress addressTokenC = addressCreate(BLOCK_2_TX_53_TOKENC);
+        BREthereumAddress addressSource = ethAddressCreate(BLOCK_2_TX_53_SOURCE);
+        BREthereumAddress addressTarget = ethAddressCreate(BLOCK_2_TX_53_TARGET);
+        BREthereumAddress addressTokenC = ethAddressCreate(BLOCK_2_TX_53_TOKENC);
 
         // 'LogsBloom' holds contact and topic info ...
         assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));

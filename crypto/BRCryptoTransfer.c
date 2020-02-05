@@ -570,8 +570,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             BREthereumAddress source = ewmTransferGetSource (ewm, tid);
             BREthereumAddress target = ewmTransferGetTarget (ewm, tid);
 
-            BREthereumBoolean accountIsSource = addressEqual (source, transfer->u.eth.accountAddress);
-            BREthereumBoolean accountIsTarget = addressEqual (target, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsSource = ethAddressEqual (source, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsTarget = ethAddressEqual (target, transfer->u.eth.accountAddress);
 
             if (accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_TRUE) {
                 return CRYPTO_TRANSFER_RECOVERED;

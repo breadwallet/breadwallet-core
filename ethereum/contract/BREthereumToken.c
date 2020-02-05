@@ -78,7 +78,7 @@ tokenGetAddress(BREthereumToken token) {
 extern BREthereumBoolean
 tokenHasAddress (BREthereumToken token,
                  const char *address) {
-    return addressEqual (token->raw, addressCreate (address));
+    return ethAddressEqual (token->raw, ethAddressCreate (address));
 }
 
 extern const char *
@@ -119,7 +119,7 @@ tokenGetContract(BREthereumToken token) {
 
 extern BREthereumHash
 tokenGetHash (BREthereumToken token) {
-    return addressGetHash(token->raw);
+    return ethAddressGetHash(token->raw);
 }
 
 extern BREthereumToken
@@ -139,7 +139,7 @@ tokenCreate (const char *address,
     token->decimals    = decimals;
     token->gasLimit    = defaultGasLimit;
     token->gasPrice    = defaultGasPrice;
-    token->raw         = addressCreate (address);
+    token->raw         = ethAddressCreate (address);
 
     return token;
 }
@@ -173,12 +173,12 @@ tokenUpdate (BREthereumToken token,
 static inline size_t
 tokenHashValue (const void *t)
 {
-    return addressHashValue(((BREthereumToken) t)->raw);
+    return ethAddressHashValue(((BREthereumToken) t)->raw);
 }
 
 static inline int
 tokenHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || addressHashEqual (((BREthereumToken) t1)->raw,
+    return t1 == t2 || ethAddressHashEqual (((BREthereumToken) t1)->raw,
                                          ((BREthereumToken) t2)->raw);
 }
 
@@ -191,7 +191,7 @@ extern BRRlpItem
 tokenEncode (BREthereumToken token,
              BRRlpCoder coder) {
     return rlpEncodeList (coder, 7,
-                          addressRlpEncode (token->raw, coder),
+                          ethAddressRlpEncode (token->raw, coder),
                           rlpEncodeString (coder, token->symbol),
                           rlpEncodeString (coder, token->name),
                           rlpEncodeString (coder, token->description),
@@ -209,8 +209,8 @@ tokenDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (7 == itemsCount);
 
-    token->raw     = addressRlpDecode (items[0], coder);
-    token->address = addressGetEncodedString(token->raw, 1);
+    token->raw     = ethAddressRlpDecode (items[0], coder);
+    token->address = ethAddressGetEncodedString(token->raw, 1);
     token->symbol  = rlpDecodeString (coder, items[1]);
     token->name    = rlpDecodeString (coder, items[2]);
     token->description = rlpDecodeString(coder, items[3]);

@@ -988,7 +988,7 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
 
     BREthereumAccount account = createAccount (paperKey);
     BREthereumAddress sourceAddr = accountGetPrimaryAddress (account);
-    BREthereumAddress targetAddr = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    BREthereumAddress targetAddr = ethAddressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
 
 
     BRCoreParseStatus status;

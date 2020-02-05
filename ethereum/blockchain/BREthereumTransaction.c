@@ -164,8 +164,8 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
 extern BREthereumBoolean
 transactionHasAddress (BREthereumTransaction transaction,
                        BREthereumAddress address) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->sourceAddress))
-            || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
+    return (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(address, transaction->sourceAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(address, transaction->targetAddress))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
@@ -350,7 +350,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
     items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
     items[1] = ethGasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = ethGasRlpEncode(transaction->gasLimit, coder);
-    items[3] = addressRlpEncode(transaction->targetAddress, coder);
+    items[3] = ethAddressRlpEncode(transaction->targetAddress, coder);
     items[4] = etherRlpEncode(transaction->amount, coder);
     items[5] = rlpEncodeHexString(coder, transaction->data);
     itemsCount = 6;
@@ -391,7 +391,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
 
             // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
             if (RLP_TYPE_ARCHIVE == type) {
-                items[ 9] = addressRlpEncode(transaction->sourceAddress, coder);
+                items[ 9] = ethAddressRlpEncode(transaction->sourceAddress, coder);
                 items[10] = ethHashRlpEncode(transaction->hash, coder);
                 items[11] = transactionStatusRLPEncode(transaction->status, coder);
                 itemsCount += 3;
@@ -437,7 +437,7 @@ transactionRlpDecode (BRRlpItem item,
     transaction->gasPrice = ethGasPriceRlpDecode(items[1], coder);
     transaction->gasLimit = ethGasRlpDecode(items[2], coder);
     
-    transaction->targetAddress = addressRlpDecode(items[3], coder);
+    transaction->targetAddress = ethAddressRlpDecode(items[3], coder);
     transaction->amount = etherRlpDecode(items[4], coder);
     transaction->data = rlpDecodeHexString (coder, items[5], "0x");
     
@@ -474,7 +474,7 @@ transactionRlpDecode (BRRlpItem item,
     switch (type) {
         case RLP_TYPE_ARCHIVE:
             // Extract the archive-specific data
-            transaction->sourceAddress = addressRlpDecode(items[9], coder);
+            transaction->sourceAddress = ethAddressRlpDecode(items[9], coder);
             transaction->hash = ethHashRlpDecode(items[10], coder);
             transaction->status = transactionStatusRLPDecode(items[11], NULL, coder);
             break;
@@ -621,8 +621,8 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
     int overflow;
 
     char *hash = ethHashAsString (transaction->hash);
-    char *source = addressGetEncodedString(transaction->sourceAddress, 1);
-    char *target = addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
+    char *source = ethAddressGetEncodedString(transaction->sourceAddress, 1);
+    char *target = ethAddressGetEncodedString(transactionGetTargetAddress(transaction), 1);
     char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
     char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
     char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);

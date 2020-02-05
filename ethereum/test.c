@@ -72,7 +72,7 @@ void runAddressTests (BREthereumAccount account) {
     free ((void *) publicKeyString);
 #endif
     
-    const char *addressString = addressGetEncodedString(address, 1);
+    const char *addressString = ethAddressGetEncodedString(address, 1);
     printf ("       Address: %s\n", addressString);
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
@@ -127,7 +127,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
-                                                       addressCreate(TEST_TRANS1_TARGET_ADDRESS),
+                                                       ethAddressCreate(TEST_TRANS1_TARGET_ADDRESS),
                                                        amountCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)));
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS1_NONCE);
@@ -192,7 +192,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
-                                                       addressCreate(TEST_TRANS2_TARGET_ADDRESS),
+                                                       ethAddressCreate(TEST_TRANS2_TARGET_ADDRESS),
                                                        amountCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT,
                                                                                            TEST_TRANS2_ETHER_AMOUNT_UNIT)));
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
@@ -272,7 +272,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
-                                                       addressCreate(TEST_TRANS3_TARGET_ADDRESS),
+                                                       ethAddressCreate(TEST_TRANS3_TARGET_ADDRESS),
                                                        amount);
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS3_NONCE);
@@ -367,7 +367,7 @@ void testTransactionCodingEther () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
 
-    BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
+    BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateEther(etherCreate(uint256Create(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
@@ -402,7 +402,7 @@ void testTransactionCodingEther () {
     assert (ETHEREUM_COMPARISON_EQ == etherCompare(transactionGetAmount(transaction),
                                                    transactionGetAmount(decodedTransaction)));
 
-    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
+    assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual(transactionGetTargetAddress(transaction),
                                                   transactionGetTargetAddress(decodedTransaction)));
 
     // Signature
@@ -412,7 +412,7 @@ void testTransactionCodingEther () {
     // Address recovery
     BREthereumAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
     BREthereumAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
 
@@ -429,7 +429,7 @@ void testTransactionCodingEther () {
     rlpItemRelease(coder, item);
     BREthereumTransactionStatus archivedStatus = transactionGetStatus(archivedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(transactionStatusEqual(status, archivedStatus)));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionGetTargetAddress(transaction),
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(transactionGetTargetAddress(transaction),
                                                   transactionGetTargetAddress(archivedTransaction))));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(status.u.included.blockHash, someBlockHash)));
 
@@ -446,7 +446,7 @@ void testTransactionCodingToken () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 
-    BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
+    BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, uint256Create(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);

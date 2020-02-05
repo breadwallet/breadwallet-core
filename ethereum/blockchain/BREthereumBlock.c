@@ -540,7 +540,7 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
 
     items[ 0] = ethHashRlpEncode(header->parentHash, coder);
     items[ 1] = ethHashRlpEncode(header->ommersHash, coder);
-    items[ 2] = addressRlpEncode(header->beneficiary, coder);
+    items[ 2] = ethAddressRlpEncode(header->beneficiary, coder);
     items[ 3] = ethHashRlpEncode(header->stateRoot, coder);
     items[ 4] = ethHashRlpEncode(header->transactionsRoot, coder);
     items[ 5] = ethHashRlpEncode(header->receiptsRoot, coder);
@@ -574,7 +574,7 @@ blockHeaderRlpDecode (BRRlpItem item,
 
     header->parentHash = ethHashRlpDecode(items[0], coder);
     header->ommersHash = ethHashRlpDecode(items[1], coder);
-    header->beneficiary = addressRlpDecode(items[2], coder);
+    header->beneficiary = ethAddressRlpDecode(items[2], coder);
     header->stateRoot = ethHashRlpDecode(items[3], coder);
     header->transactionsRoot = ethHashRlpDecode(items[4], coder);
     header->receiptsRoot = ethHashRlpDecode(items[5], coder);
@@ -1524,7 +1524,7 @@ initializeGenesisBlocks (void) {
     header->hash = ethHashCreate("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
     header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = ethHashCreate("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544");
     header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
@@ -1567,7 +1567,7 @@ initializeGenesisBlocks (void) {
     header->hash = ethHashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
     header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = ethHashCreate("0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b");
     header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
@@ -1610,7 +1610,7 @@ initializeGenesisBlocks (void) {
     header->hash = ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
     header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = ethHashCreate("0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d");
     header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");

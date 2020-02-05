@@ -268,7 +268,7 @@ handleEthTransactionDecode (BRRlpCoder coder) {
 
     BREthereumAddress addr1 = handleEthTransactionDecode1 (coder, ETH_TRANS1);
     BREthereumAddress addr2 = handleEthTransactionDecode1 (coder, ETH_TRANS2);
-    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addr1, addr2));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual (addr1, addr2));
 }
 
 //
@@ -374,9 +374,9 @@ handleStringFromHex (const char *hex) {
 
 static void
 handleAddressFromString (const char *hex, BRRlpCoder coder) {
-    BREthereumAddress address = addressCreate(hex);
+    BREthereumAddress address = ethAddressCreate(hex);
 
-    BRRlpItem item = addressRlpEncode(address, coder);
+    BRRlpItem item = ethAddressRlpEncode(address, coder);
     rlpItemShow(coder, item, "ADDR");
     rlpItemRelease(coder, item);
 }

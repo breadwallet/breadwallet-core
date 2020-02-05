@@ -376,7 +376,7 @@ proofsSpecEncode (BREthereumLESMessageGetProofsSpec spec,
     return rlpEncodeList (coder.rlp, 4,
                           ethHashRlpEncode (spec.blockHash, coder.rlp),
                           rlpEncodeBytes(coder.rlp, NULL, 0),
-                          ethHashRlpEncode(addressGetHash(spec.address), coder.rlp),
+                          ethHashRlpEncode(ethAddressGetHash(spec.address), coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, spec.fromLevel, 1));
 }
 

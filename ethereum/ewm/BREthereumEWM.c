@@ -259,7 +259,7 @@ ewmCreate (BREthereumNetwork network,
 
     {
         char address [ADDRESS_ENCODED_CHARS];
-        addressFillEncodedString (accountGetPrimaryAddress(account), 1, address);
+        ethAddressFillEncodedString (accountGetPrimaryAddress(account), 1, address);
         eth_log ("EWM", "Account: %s", address);
     }
 
@@ -345,7 +345,7 @@ ewmCreate (BREthereumNetwork network,
         BREthereumAddress address = walletStateGetAddress (state);
 
         // If the WalletState address is EMPTY_ADDRESS_INIT, then the state is for ETHER
-        BREthereumBoolean addressIsForEther = addressEqual (EMPTY_ADDRESS_INIT, address);
+        BREthereumBoolean addressIsForEther = ethAddressEqual (EMPTY_ADDRESS_INIT, address);
 
         // See if we have a token.
         BREthereumToken token = (ETHEREUM_BOOLEAN_IS_TRUE (addressIsForEther)
@@ -857,8 +857,8 @@ ewmSyncToDepthGetLastConfirmedSendTransferHeightPredicate (ewmSyncToDepthGetLast
     BREthereumAddress source = transferGetSourceAddress (transfer);
     BREthereumAddress target = transferGetTargetAddress (transfer);
 
-    BREthereumBoolean accountIsSource = addressEqual (source, accountAddress);
-    BREthereumBoolean accountIsTarget = addressEqual (target, accountAddress);
+    BREthereumBoolean accountIsSource = ethAddressEqual (source, accountAddress);
+    BREthereumBoolean accountIsTarget = ethAddressEqual (target, accountAddress);
 
     uint64_t blockNumber = 0;
     // check that the transfer has been included, is a send and has been confirmed as final
@@ -1200,7 +1200,7 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-    transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
+    transfer = walletCreateTransfer(wallet, ethAddressCreate(recvAddress), amount);
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1225,7 +1225,7 @@ ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
 
     pthread_mutex_lock(&ewm->lock);
     transfer = walletCreateTransferGeneric(wallet,
-                                              addressCreate(recvAddress),
+                                              ethAddressCreate(recvAddress),
                                               amount,
                                               gasPrice,
                                               gasLimit,
@@ -1251,7 +1251,7 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
-    transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
+    transfer = walletCreateTransferWithFeeBasis (wallet, ethAddressCreate(recvAddress), amount, feeBasis);
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
@@ -1504,7 +1504,7 @@ extern BREthereumBoolean
 ewmWalletHasAddress (BREthereumEWM ewm,
                      BREthereumWallet wallet,
                      BREthereumAddress address) {
-    return addressEqual(address, walletGetAddress(wallet));
+    return ethAddressEqual(address, walletGetAddress(wallet));
 }
 
 extern BREthereumToken
@@ -2146,7 +2146,7 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
                     uint64_t blockStart,
                     uint64_t blockStop) {
 
-    char *strAddress = addressGetEncodedString(address, 0);
+    char *strAddress = ethAddressGetEncodedString(address, 0);
 
     ewm->client.funcGetBlocks (ewm->client.context,
                                ewm,
@@ -2181,7 +2181,7 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
         switch (ewm->mode) {
             case CRYPTO_SYNC_MODE_API_ONLY:
             case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
+                char *address = ethAddressGetEncodedString(walletGetAddress(wallet), 0);
 
                 ewm->client.funcGetBalance (ewm->client.context,
                                             ewm,
@@ -2226,7 +2226,7 @@ ewmUpdateNonce (BREthereumEWM ewm) {
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetNonce (ewm->client.context,
                                       ewm,
@@ -2257,7 +2257,7 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetTransactions (ewm->client.context,
                                              ewm,
@@ -2295,7 +2295,7 @@ ewmUpdateLogs (BREthereumEWM ewm,
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             const char *contract = ewmGetWalletContractAddress(ewm, wid);
 
             ewm->client.funcGetLogs (ewm->client.context,
@@ -2827,13 +2827,13 @@ ewmCreateToken (BREthereumEWM ewm,
                 BREthereumGas defaultGasLimit,
                 BREthereumGasPrice defaultGasPrice) {
     if (NULL == address || 0 == strlen(address)) return NULL;
-    if (ETHEREUM_BOOLEAN_FALSE == addressValidateString(address)) return NULL;
+    if (ETHEREUM_BOOLEAN_FALSE == ethAddressValidateString(address)) return NULL;
 
     // This function is called in potentially two threads.  One in EWM event handler (on
     // `ewmHandleAnnounceToken()`) and one in `cryptoWalletManagerInstall...()` (on some App
     // listener thread).  Such a description, used here, is troubling in and of itself.
 
-    BREthereumAddress addr = addressCreate(address);
+    BREthereumAddress addr = ethAddressCreate(address);
 
     // Lock over BRSetGet(), BRSetAdd() and tokenUpdate()
     pthread_mutex_lock (&ewm->lock);
