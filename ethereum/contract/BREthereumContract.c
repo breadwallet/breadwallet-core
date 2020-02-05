@@ -70,7 +70,7 @@ static void argumentEncodeAddress (uint8_t *bytes, size_t bytesCount, uint8_t *t
     memset (target, 0, targetCount);
 
     uint8_t decodedBytes[bytesCount/2];
-    decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
+    hexDecode(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
 
     memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
 }
@@ -382,7 +382,7 @@ contractEncode (BREthereumContract contract, BREthereumContractFunction function
         size_t  bytesCount = va_arg (args, size_t);
         (*function->argumentEncoders[i]) (bytes, bytesCount, targetBytes, 32);
         
-        encodeHex(&encoding[encodingIndex], 65, targetBytes, 32);
+        hexEncode(&encoding[encodingIndex], 65, targetBytes, 32);
         encodingIndex += 64;
     }
     encoding[encodingIndex] = '\0';

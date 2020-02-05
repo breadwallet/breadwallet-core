@@ -210,7 +210,7 @@ transferTestsBalance (void) {
         BRCryptoTransferTest *test = &transferTests[index];
 
         size_t   testRawSize;
-        uint8_t *testRawBytes = decodeHexCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
+        uint8_t *testRawBytes = hexDecodeCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
 
         transactions[index] = BRTransactionParse (testRawBytes, testRawSize);
         transactions[index]->blockHeight = test->blockHeight;
@@ -267,7 +267,7 @@ transferTestsAddress (void) {
         BRCryptoTransferTest *test = &transferTests[index];
 
         size_t   testRawSize;
-        uint8_t *testRawBytes = decodeHexCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
+        uint8_t *testRawBytes = hexDecodeCreate(&testRawSize, test->rawChars, strlen (test->rawChars));
 
         BRTransaction *tid = BRTransactionParse (testRawBytes, testRawSize);
         tid->blockHeight = test->blockHeight;

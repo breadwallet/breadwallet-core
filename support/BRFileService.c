@@ -81,7 +81,7 @@ static int needSQLiteCompileOptions = 1;
 #define encodeChar(u)           ((char)    _hexc(u))
 
 static void
-decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
+hexDecode (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
     assert (0 == sourceLen % 2);
     assert (2 * targetLen == sourceLen);
@@ -92,7 +92,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
 }
 
 static void
-encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
+hexEncode (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
 
     for (int i = 0; i < sourceLen; i++) {
@@ -577,7 +577,7 @@ _fileServiceSave (BRFileService fs,
     // Nex encode bytes
     size_t dataCount = 2 * bytesCount + 1;
     char *data = malloc (dataCount);
-    encodeHex (data, dataCount, bytes, bytesCount);
+    hexEncode (data, dataCount, bytes, bytesCount);
     free (bytes);
 
     // Fill out the SQL statement
@@ -683,7 +683,7 @@ fileServiceLoad (BRFileService fs,
         }
 
         // Actually decode `data` into `dataBytes`
-        decodeHex (dataBytes, dataCount/2, data, dataCount);
+        hexDecode (dataBytes, dataCount/2, data, dataCount);
 
         size_t offset = 0;
         BRFileServiceVersion version;

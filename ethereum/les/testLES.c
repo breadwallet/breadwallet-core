@@ -1075,7 +1075,7 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
 
     item = blockHeaderRlpEncode (header_0, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
     data = rlpGetDataSharedDontRelease(coder, item);
-    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    hex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     rlpShowItem(coder, item, "BLOCK_0");
     printf ("Block_0: %s\n", hex);
 
@@ -1083,7 +1083,7 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
 
     item = blockHeaderRlpEncode (header_1, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
     data = rlpGetDataSharedDontRelease(coder, item);
-    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    hex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     rlpShowItem(coder, item, "BLOCK_1");
     printf ("Block_1: %s\n", hex);
 
@@ -1164,7 +1164,7 @@ run_GetSomeBlocks (BREthereumLES les) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = blockRlpEncode (block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
     BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
-    char      *hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    char      *hex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("Block: %s\n", hex);
     rlpShowItem(coder, item, "BLOCK");
 

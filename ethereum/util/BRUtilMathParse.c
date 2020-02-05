@@ -321,7 +321,7 @@ uint256CoerceString (UInt256 x, int base) {
             // We'll just hex encode the UInt256 based on the (little endian) bytes.  This WILL produce
             // a result with an even number of characters - as 15 becomes 0f (aka 0x0f).  This is
             // actually correct (or at least reasonably correct); if only because, if you want to convert
-            // back to a value, the decodeHex() WILL expect an even number of characters.
+            // back to a value, the hexDecode() WILL expect an even number of characters.
         case 16: {
             // Reverse and 'strip zeros'
             UInt256 xr = UInt256Reverse(x);  // TODO: LITTLE ENDIAN only
@@ -330,7 +330,7 @@ uint256CoerceString (UInt256 x, int base) {
             // eventually has a non-zero value.
             while (0 == xr.u8[xrIndex]) xrIndex++;
             // Encode
-            return encodeHexCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
+            return hexEncodeCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
         }
             
             // Repeatedly divide by 10; append the result with the remainder.

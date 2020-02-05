@@ -134,11 +134,11 @@ static void runSignatureTests1 (void) {
     char *signingHash = SIGNATURE_SIGNING_HASH;
 
     size_t   signingBytesCount = 0;
-    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+    uint8_t *signingBytes = hexDecodeCreate(&signingBytesCount, signingData, strlen (signingData));
 
     BRKeccak256(&digest, signingBytes, signingBytesCount);
 
-    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    char *digestString = hexEncodeCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
     printf ("      Hex: %s\n", digestString);
     assert (0 == strcmp (digestString, signingHash));
 
@@ -156,7 +156,7 @@ static void runSignatureTests1 (void) {
                                     digest);
     assert (65 == signatureLen);
 
-    char *signatureHex = encodeHexCreate(NULL, signatureBytes, signatureLen);
+    char *signatureHex = hexEncodeCreate(NULL, signatureBytes, signatureLen);
     printf ("      SigRaw: %s\n", signatureHex);
     assert (130 == strlen(signatureHex));
     assert (0 == strncmp (&signatureHex[ 0], SIGNATURE_V, 2));
@@ -168,8 +168,8 @@ static void runSignatureTests1 (void) {
     size_t sigRDataLen, sigSDataLen;
     uint8_t *sigRData, *sigSData;
 
-    sigRData = decodeHexCreate(&sigRDataLen, SIGNATURE_R, strlen (SIGNATURE_R));
-    sigSData = decodeHexCreate(&sigSDataLen, SIGNATURE_S, strlen (SIGNATURE_S));
+    sigRData = hexDecodeCreate(&sigRDataLen, SIGNATURE_R, strlen (SIGNATURE_R));
+    sigSData = hexDecodeCreate(&sigSDataLen, SIGNATURE_S, strlen (SIGNATURE_S));
     assert (32 == sigRDataLen & 32 == sigSDataLen);
 
     // VRS
@@ -212,11 +212,11 @@ static void runSignatureTests2 (void) {
     char *signingHash = SIGNING_HASH_2;
 
     size_t   signingBytesCount = 0;
-    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+    uint8_t *signingBytes = hexDecodeCreate(&signingBytesCount, signingData, strlen (signingData));
 
     BRKeccak256(&digest, signingBytes, signingBytesCount);
 
-    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    char *digestString = hexEncodeCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
     printf ("      Hex: %s\n", digestString);
     assert (0 == strcmp (digestString, signingHash));
 

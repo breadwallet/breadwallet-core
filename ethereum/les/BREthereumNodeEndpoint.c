@@ -173,7 +173,7 @@ nodeEndpointCreateEnode (const char *enode) {
     memset (&key, 0, sizeof(BRKey));
     key.pubKey[0] = 0x04;
     key.compressed = 0;
-    decodeHex(&key.pubKey[1], 64, id, 128);
+    hexDecode(&key.pubKey[1], 64, id, 128);
 
     return nodeEndpointCreate((BREthereumDISNeighbor) { disEndpoint, key });
 }
@@ -464,7 +464,7 @@ nodeEndpointSendData (BREthereumNodeEndpoint endpoint,
 #if defined (NEED_TO_PRINT_SEND_DATA)
     {
         char hex[1 + 2 * bytesCount];
-        encodeHex(hex, 1 + 2 * bytesCount, bytes, bytesCount);
+        hexEncode(hex, 1 + 2 * bytesCount, bytes, bytesCount);
         printf ("Bytes: %s\n", hex);
     }
 #endif

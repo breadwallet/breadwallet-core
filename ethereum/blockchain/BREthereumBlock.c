@@ -1534,7 +1534,7 @@ initializeGenesisBlocks (void) {
     header->gasLimit = 0x1388;
     header->gasUsed = 0x0;
     header->timestamp = 0x0;
-    decodeHex(header->extraData, 32, "11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa", 64);
+    hexDecode(header->extraData, 32, "11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa", 64);
     header->extraDataCount = 32;
     header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000042;
@@ -1577,7 +1577,7 @@ initializeGenesisBlocks (void) {
     header->gasLimit = 0x1000000;
     header->gasUsed = 0x0;
     header->timestamp = 0x0;
-    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    hexDecode(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
     header->extraDataCount = 32;
     header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000042;
@@ -1621,7 +1621,7 @@ initializeGenesisBlocks (void) {
     header->gasUsed = 0x0;
     header->timestamp = 0x58ee40ba;
     // TODO: Rinkeby ExtraData is oversized... ignore.
-    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    hexDecode(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
     header->extraDataCount = 32;
     header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000000;

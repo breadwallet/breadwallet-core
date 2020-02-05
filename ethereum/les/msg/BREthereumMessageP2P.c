@@ -117,7 +117,7 @@ extern void
 messageP2PHelloShow (const BREthereumP2PMessageHello *hello) {
     size_t nodeIdLen = 2 * sizeof (hello->nodeId.u8) + 1;
     char nodeId[nodeIdLen];
-    encodeHex(nodeId, nodeIdLen, hello->nodeId.u8, sizeof (hello->nodeId.u8));
+    hexEncode(nodeId, nodeIdLen, hello->nodeId.u8, sizeof (hello->nodeId.u8));
 
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
     eth_log (LES_LOG_TOPIC, "    Version     : %" PRIu64, hello->version);

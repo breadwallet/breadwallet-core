@@ -67,7 +67,7 @@ typedef struct BREthereumAddressDetailRecord {
      * The 'official' ethereum address string for (the external representation of) this
      * BREthereum address.
      *
-     * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with encodeHex) string prefixed with
+     * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with hexEncode) string prefixed with
      * "0x".  Generally, when using this string, for example when RLP encoding, one needs to
      * convert back to the byte array (use rlpEncodeItemHexString())
      */
@@ -282,7 +282,7 @@ accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compress
     
     char *result = malloc (4 + 2 * sourceLen + 1);
     strcpy (result, prefix);  // encode properly...
-    encodeHex(&result[4], 2 * sourceLen + 1, account->primaryAddress.publicKey, sourceLen);
+    hexEncode(&result[4], 2 * sourceLen + 1, account->primaryAddress.publicKey, sourceLen);
     
     return result;
 }

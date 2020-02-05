@@ -776,7 +776,7 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
                 uint8_t *transactionBuf = malloc (transactionBufLen);
                 BRTransactionSerialize (protoPay->u.btcBitPay.transaction, transactionBuf, transactionBufLen);
                 size_t transactionHexLen = 0;
-                char *transactionHex = encodeHexCreate (&transactionHexLen, transactionBuf, transactionBufLen);
+                char *transactionHex = hexEncodeCreate (&transactionHexLen, transactionBuf, transactionBufLen);
 
                 array_add_array (encodedArray, transactionHex, transactionHexLen - 1);
 

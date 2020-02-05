@@ -93,7 +93,7 @@ cryptoHashString (BRCryptoHash hash) {
     switch (hash->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             UInt256 reversedHash = UInt256Reverse (hash->u.btc);
-            return _cryptoHashAddPrefix (encodeHexCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)), 1);
+            return _cryptoHashAddPrefix (hexEncodeCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)), 1);
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             return hashAsString (hash->u.eth);

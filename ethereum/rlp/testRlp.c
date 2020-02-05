@@ -118,7 +118,7 @@ void runRlpEncodeTest () {
     BRRlpData data = rlpGetData(coder, item);
     rlpReleaseItem(coder, item);
     printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
-    char *dataHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    char *dataHex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("    => %s\n", dataHex);
     assert (0 == strcasecmp (dataHex, "8a01439152d319e84d0000"));
     free (dataHex);

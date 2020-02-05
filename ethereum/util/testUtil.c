@@ -323,14 +323,14 @@ runMathParseTests () {
     assert (CORE_PARSE_OK != stringParseIsDecimal ("a"));
 
 
-    assert (1 == encodeHexValidate("ab"));
-    assert (1 == encodeHexValidate("ab01"));
-    assert (1 != encodeHexValidate(NULL));
-    assert (1 != encodeHexValidate(""));
-    assert (1 != encodeHexValidate("0"));
-    assert (1 != encodeHexValidate("f"));
-    assert (1 != encodeHexValidate("ff0"));
-    assert (1 != encodeHexValidate("1g"));
+    assert (1 == hexEncodeValidate("ab"));
+    assert (1 == hexEncodeValidate("ab01"));
+    assert (1 != hexEncodeValidate(NULL));
+    assert (1 != hexEncodeValidate(""));
+    assert (1 != hexEncodeValidate("0"));
+    assert (1 != hexEncodeValidate("f"));
+    assert (1 != hexEncodeValidate("ff0"));
+    assert (1 != hexEncodeValidate("1g"));
 
 
     // "0x09184e72a000" // 10000000000000

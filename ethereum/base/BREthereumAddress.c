@@ -25,7 +25,7 @@ addressCreate (const char *address) {
 
     BREthereumAddress raw;
     if (0 == strncmp ("0x", address, 2)) address = &address[2];
-    decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
+    hexDecode(raw.bytes, sizeof(raw.bytes), address, strlen(address));
     return raw;
 }
 
@@ -34,7 +34,7 @@ addressValidateString(const char *string) {
     return 42 == strlen(string)
            && '0' == string[0]
            && 'x' == string[1]
-           && encodeHexValidate (&string[2])
+           && hexEncodeValidate (&string[2])
            ? ETHEREUM_BOOLEAN_TRUE
            : ETHEREUM_BOOLEAN_FALSE;
 }
@@ -90,7 +90,7 @@ addressFillEncodedString (BREthereumAddress address,
     string[1] = 'x';
 
     // Offset '2' into address->string and account for the '\0' terminator.
-    encodeHex(&string[2], 40 + 1, address.bytes, 20);
+    hexEncode(&string[2], 40 + 1, address.bytes, 20);
 
     if (!useChecksum) return;
 
@@ -139,7 +139,7 @@ addressFillEncodedString (BREthereumAddress address,
     for (int i = 0; i < checksumAddrLen; i++) {
         // We should hex-encode the hash and then look character by character.  Instead
         // we'll extract 4 bits as the upper or lower nibble and compare to 8.  This is the
-        // same extracting that encodeHex performs, ultimately.
+        // same extracting that hexEncode performs, ultimately.
         int value = 0x0f & (hash[i / 2] >> ((0 == i % 2) ? 4 : 0));
         checksumAddr[i] = (value < 8
                            ? (char) tolower(checksumAddr[i])

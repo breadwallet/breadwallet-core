@@ -55,7 +55,7 @@ extern "C" {
 
     static inline char *
     genericHashAsString (BRGenericHash gen) {
-        return encodeHexCreate (NULL, gen.value.u8, sizeof (gen.value.u8));
+        return hexEncodeCreate (NULL, gen.value.u8, sizeof (gen.value.u8));
     }
 
     static inline uint32_t

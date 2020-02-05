@@ -399,7 +399,7 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
     BRRippleAddress fromAddress = rippleAddressCreateFromString(from);
     // Convert the hash string to bytes
     BRRippleTransactionHash txId;
-    decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
+    hexDecode(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
     BRRippleTransfer transfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, feeDrops, txId, timestamp, blockHeight, error);
 

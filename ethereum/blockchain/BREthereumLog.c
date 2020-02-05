@@ -47,7 +47,7 @@ logTopicCreateFromString (const char *string) {
     assert (0 == strncmp (string, "0x", 2) && (2 + 2 * LOG_TOPIC_BYTES_COUNT == stringLen));
 
     BREthereumLogTopic topic;
-    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
+    hexDecode(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
     return topic;
 }
 
@@ -93,7 +93,7 @@ logTopicAsString (BREthereumLogTopic topic) {
     BREthereumLogTopicString string;
     string.chars[0] = '0';
     string.chars[1] = 'x';
-    encodeHex(&string.chars[2], 65, topic.bytes, 32);
+    hexEncode(&string.chars[2], 65, topic.bytes, 32);
     return string;
 }
 

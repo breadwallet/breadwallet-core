@@ -56,7 +56,7 @@ runBloomTests (void) {
 static BREthereumBlockHeader
 testGetBlockHeader (const char *rlp) {
     BRRlpData data;
-    data.bytes = decodeHexCreate(&data.bytesCount, rlp, strlen (rlp));
+    data.bytes = hexDecodeCreate(&data.bytesCount, rlp, strlen (rlp));
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpGetItem(coder, data);
@@ -73,7 +73,7 @@ testGetBlockHeader (const char *rlp) {
 static BREthereumBlock
 testGetBlock (const char *rlp) {
     BRRlpData data;
-    data.bytes = decodeHexCreate(&data.bytesCount, rlp, strlen (rlp));
+    data.bytes = hexDecodeCreate(&data.bytesCount, rlp, strlen (rlp));
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpGetItem(coder, data);
@@ -170,7 +170,7 @@ runBlockTest0 (void) {
     //
     // Block
     //
-    data.bytes = decodeHexCreate(&data.bytesCount, GENESIS_RLP, strlen (GENESIS_RLP));
+    data.bytes = hexDecodeCreate(&data.bytesCount, GENESIS_RLP, strlen (GENESIS_RLP));
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpGetItem(coder, data);
@@ -320,7 +320,7 @@ runLogTests (void) {
     BRRlpData data;
 
     // Log
-    data.bytes = decodeHexCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
+    data.bytes = hexDecodeCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
 
     BRRlpCoder coder  = rlpCoderCreate();
     BRRlpItem logItem = rlpGetItem(coder, data);
@@ -329,7 +329,7 @@ runLogTests (void) {
 
     BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
-    uint8_t *addressBytes = decodeHexCreate(&addressBytesCount, LOG_1_ADDRESS, strlen(LOG_1_ADDRESS));
+    uint8_t *addressBytes = hexDecodeCreate(&addressBytesCount, LOG_1_ADDRESS, strlen(LOG_1_ADDRESS));
     assert (addressBytesCount == sizeof (address.bytes));
     assert (0 == memcmp (address.bytes, addressBytes, addressBytesCount));
     free (addressBytes);
@@ -454,7 +454,7 @@ runTransactionReceiptTests (void) {
 
     /*
      // Log
-     data.bytes = decodeHexCreate(&data.bytesCount, RECEIPT_1_RLP, strlen (RECEIPT_1_RLP));
+     data.bytes = hexDecodeCreate(&data.bytesCount, RECEIPT_1_RLP, strlen (RECEIPT_1_RLP));
 
      BREthereumTransactionReceipt receipt = transactionReceiptDecodeRLP(data);
      // assert

@@ -158,7 +158,7 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     callbackState->rid = rid;
 
     UInt256 txHash = UInt256Reverse (transactionHash);
-    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+    char *hashAsHex = hexEncodeCreate (NULL, txHash.u8, sizeof(txHash.u8));
 
     cwm->client.funcSubmitTransaction (cwm->client.context,
                                        cryptoWalletManagerTake (cwm),

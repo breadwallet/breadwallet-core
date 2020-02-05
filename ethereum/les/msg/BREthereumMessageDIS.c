@@ -196,7 +196,7 @@ neighborDISAsEnode (BREthereumDISNeighbor neighbor,
     BREthereumDISNeighborEnode enode = { '\0' };
 
     char nodeID [129];
-    encodeHex(nodeID, 129, &neighbor.key.pubKey[1], 64);
+    hexEncode(nodeID, 129, &neighbor.key.pubKey[1], 64);
 
     char IP [39];
     if (neighbor.node.domain == AF_INET)
@@ -502,12 +502,12 @@ messageDISEncode (BREthereumDISMessage message,
 #if defined (NEED_TO_PRINT_DIS_HEADER_DETAILS)
     {
         size_t ignore;
-        printf ("DATA     : %s\n", encodeHexCreate(&ignore, data.bytes, data.bytesCount));
-        printf ("SIG      : %s\n", encodeHexCreate(&ignore, (uint8_t*) &packet->signature, 65));
+        printf ("DATA     : %s\n", hexEncodeCreate(&ignore, data.bytes, data.bytesCount));
+        printf ("SIG      : %s\n", hexEncodeCreate(&ignore, (uint8_t*) &packet->signature, 65));
 
-        printf ("HASH DATA: %s\n", encodeHexCreate(&ignore, hashData.bytes, hashData.bytesCount));
+        printf ("HASH DATA: %s\n", hexEncodeCreate(&ignore, hashData.bytes, hashData.bytesCount));
         printf ("HASH RSLT: %s\n", hashAsString(packet->hash));
-        printf ("PACKET: %s\n", encodeHexCreate(&ignore, packetMemory, packetSize));
+        printf ("PACKET: %s\n", hexEncodeCreate(&ignore, packetMemory, packetSize));
     }
 #endif
     rlpReleaseItem(coder.rlp, bodyItem);

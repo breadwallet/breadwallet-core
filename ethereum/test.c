@@ -138,7 +138,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpData dataUnsignedTransaction = rlpGetData(coder, item);
 
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
-    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+    hexEncode(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx1 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS1_RESULT));
     rlpDataRelease(dataUnsignedTransaction);
@@ -205,12 +205,12 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpData data = rlpGetData(coder, item);
 
     char result[2 * data.bytesCount + 1];
-    encodeHex(result, 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+    hexEncode(result, 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     printf ("       Tx2 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
     rlpDataRelease(data);
 
-    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS2_RESULT_SIGNED, strlen (TEST_TRANS2_RESULT_SIGNED));
+    data.bytes = hexDecodeCreate(&data.bytesCount, TEST_TRANS2_RESULT_SIGNED, strlen (TEST_TRANS2_RESULT_SIGNED));
     rlpShow(data, "Trans2Test");
     rlpDataRelease(data);
 
@@ -282,7 +282,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction = rlpGetData (coder, item);
     
-    char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+    char *rawTx = hexEncodeCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
     assert (0 == strcasecmp(rawTx, (0 == strcmp (tokenBRDAddress, "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6") ? TEST_TRANS3_UNSIGNED_TX_MAINNET : TEST_TRANS3_UNSIGNED_TX_TESTNET)));
     free (rawTx);
@@ -301,7 +301,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 4\n");
 
     BRRlpData data;
-    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
+    data.bytes = hexDecodeCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
@@ -388,7 +388,7 @@ void testTransactionCodingEther () {
                                           RLP_TYPE_TRANSACTION_SIGNED,
                                           coder);
     BRRlpData data = rlpGetData (coder, item);
-    char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    char *rawTx = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
     BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
@@ -467,7 +467,7 @@ void testTransactionCodingToken () {
                                           RLP_TYPE_TRANSACTION_SIGNED,
                                           coder);
     BRRlpData data = rlpGetData (coder, item);
-    char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    char *rawTx = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
     BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
@@ -507,7 +507,7 @@ runPerfTestsCoder (int repeat, int many) {
     BRRlpCoder coderSaved = coder;
 
     BRRlpData data;
-    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
+    data.bytes = hexDecodeCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
 
     BRRlpItem item = rlpGetItem(coder, data);
     BREthereumTransaction transaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);

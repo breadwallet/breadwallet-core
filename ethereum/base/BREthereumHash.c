@@ -29,7 +29,7 @@ hashCreate (const char *string) {
             && (2 + 2 * ETHEREUM_HASH_BYTES) == strlen (string));
 
     BREthereumHash hash;
-    decodeHex(hash.bytes, ETHEREUM_HASH_BYTES, &string[2], 2 * ETHEREUM_HASH_BYTES);
+    hexDecode(hash.bytes, ETHEREUM_HASH_BYTES, &string[2], 2 * ETHEREUM_HASH_BYTES);
     return hash;
 }
 
@@ -59,7 +59,7 @@ hashAsString (BREthereumHash hash) {
     char result [2 + 2 * ETHEREUM_HASH_BYTES + 1];
     result[0] = '0';
     result[1] = 'x';
-    encodeHex(&result[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
+    hexEncode(&result[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
     return strdup (result);
 }
 
@@ -114,7 +114,7 @@ hashFillString (BREthereumHash hash,
                 BREthereumHashString string) {
     string[0] = '0';
     string[1] = 'x';
-    encodeHex(&string[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
+    hexEncode(&string[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
 }
 
 extern BRArrayOf(BREthereumHash)

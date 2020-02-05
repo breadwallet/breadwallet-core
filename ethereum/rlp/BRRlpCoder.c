@@ -750,12 +750,12 @@ rlpEncodeHexString (BRRlpCoder coder, const char *string) {
     else if (stringLen < (16 * 1024)) {
         size_t bytesCount = stringLen / 2;
         uint8_t bytes[bytesCount];
-        decodeHex(bytes, bytesCount, string, stringLen);
+        hexDecode(bytes, bytesCount, string, stringLen);
         return rlpEncodeBytes(coder, bytes, bytesCount);
     }
     else {
         size_t bytesCount = 0;
-        uint8_t *bytes = decodeHexCreate(&bytesCount, string, strlen(string));
+        uint8_t *bytes = hexDecodeCreate(&bytesCount, string, strlen(string));
         BRRlpItem item = rlpEncodeBytes(coder, bytes, bytesCount);
         free (bytes);
         return item;
@@ -769,7 +769,7 @@ rlpDecodeHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix) {
 
     char *result = malloc (strlen(prefix) + 2 * data.bytesCount + 1);
     strcpy (result, prefix);
-    encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+    hexEncode(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
 
     rlpDataRelease (data);
     return result;
@@ -1005,7 +1005,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             // We'll limit the display to a string of 1024 characters.
             size_t bytesCount = length > 512 ? 512 : length;
             char string[1024 + 1];
-            encodeHex(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
+            hexEncode(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
 
             eth_log(topic, "%sI%3zu: 0x%s%s", spaces, length, string,
                     (bytesCount == length ? "" : "..."));

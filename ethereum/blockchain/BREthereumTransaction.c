@@ -531,7 +531,7 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
         size_t resultLen = strlen(prefix) + 2 * data.bytesCount + 1;
         result = malloc (resultLen);
         strcpy (result, prefix);
-        encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+        hexEncode(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     }
 
     rlpReleaseItem(coder, item);

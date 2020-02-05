@@ -8,7 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "ethereum/util/BRUtil.h" // encodeHexCreate()
+#include "ethereum/util/BRUtil.h" // hexEncodeCreate()
 #include "BREthereumData.h"
 
 /// MARK: - Data
@@ -35,7 +35,7 @@ dataCreateFromRlpData (BRRlpData rlp,
 extern BREthereumData
 dataCreateFromString (const char *string) {
     BREthereumData data;
-    data.bytes = decodeHexCreate(&data.count, string, strlen (string));
+    data.bytes = hexDecodeCreate(&data.count, string, strlen (string));
     return data;
 }
 
@@ -51,7 +51,7 @@ dataRelease (BREthereumData data) {
 
 extern char *
 dataAsString (BREthereumData data) {
-    return encodeHexCreate (NULL, data.bytes, data.count);
+    return hexEncodeCreate (NULL, data.bytes, data.count);
 }
 
 extern BRRlpData
