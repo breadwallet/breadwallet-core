@@ -46,8 +46,8 @@ handlePaperKeyToAccount (void) {
 
     printf ("Read: %s\n", paperKey);
 
-    BREthereumAccount account = createAccount(paperKey);
-    char *publicAddress = accountGetPrimaryAddressString(account);
+    BREthereumAccount account = ethAccountCreate (paperKey);
+    char *publicAddress = ethAccountGetPrimaryAddressString(account);
     printf ("Public Address: %s\n", publicAddress);
     free (publicAddress);
 
@@ -253,8 +253,8 @@ handleEthTransactionDecode1 (BRRlpCoder coder, const char *rlpString) {
     BREthereumAddress   add1 = transactionExtractAddress (transaction, ethereumMainnet, coder);
 
     BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction, TRANSFER_BASIS_TRANSACTION);
-    BREthereumAccount  account = createAccount(ETH_PAPER_KEY);
-    BREthereumAddress  address = accountGetPrimaryAddress (account);
+    BREthereumAccount  account = ethAccountCreate (ETH_PAPER_KEY);
+    BREthereumAddress  address = ethAccountGetPrimaryAddress (account);
 
     transferSign (transfer, ethereumMainnet, account, address, ETH_PAPER_KEY);
     BREthereumSignature sig2 = transactionGetSignature (transferGetOriginatingTransaction(transfer));

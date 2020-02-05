@@ -259,7 +259,7 @@ ewmCreate (BREthereumNetwork network,
 
     {
         char address [ADDRESS_ENCODED_CHARS];
-        ethAddressFillEncodedString (accountGetPrimaryAddress(account), 1, address);
+        ethAddressFillEncodedString (ethAccountGetPrimaryAddress(account), 1, address);
         eth_log ("EWM", "Account: %s", address);
     }
 
@@ -365,8 +365,8 @@ ewmCreate (BREthereumNetwork network,
         ewmHandleBalance (ewm, balance);
 
         if (NULL == token) {
-            accountSetAddressNonce (ewm->account,
-                                    accountGetPrimaryAddress(ewm->account),
+            ethAccountSetAddressNonce (ewm->account,
+                                    ethAccountGetPrimaryAddress(ewm->account),
                                     walletStateGetNonce(state),
                                     ETHEREUM_BOOLEAN_TRUE);
         }
@@ -383,7 +383,7 @@ ewmCreate (BREthereumNetwork network,
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
             // Note: We'll create BCS even for the mode where we don't use it (BRD_ONLY).
             ewm->bcs = bcsCreate (network,
-                                  accountGetPrimaryAddress (account),
+                                  ethAccountGetPrimaryAddress (account),
                                   listener,
                                   mode,
                                   nodes,
@@ -481,7 +481,7 @@ ewmCreate (BREthereumNetwork network,
         case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC:  //
         case CRYPTO_SYNC_MODE_P2P_ONLY: {
             ewm->bcs = bcsCreate (network,
-                                  accountGetPrimaryAddress (account),
+                                  ethAccountGetPrimaryAddress (account),
                                   listener,
                                   mode,
                                   nodes,
@@ -509,7 +509,7 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        uint64_t blockHeight,
                        uint64_t confirmationsUntilFinal) {
     return ewmCreate (network,
-                      createAccount (paperKey),
+                      ethAccountCreate (paperKey),
                       accountTimestamp,
                       mode,
                       client,
@@ -528,7 +528,7 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         uint64_t blockHeight,
                         uint64_t confirmationsUntilFinal) {
     return ewmCreate (network,
-                      createAccountWithPublicKey(publicKey),
+                      ethAccountCreateWithPublicKey(publicKey),
                       accountTimestamp,
                       mode,
                       client,
@@ -771,18 +771,18 @@ ewmGetAccount (BREthereumEWM ewm) {
 
 extern char *
 ewmGetAccountPrimaryAddress(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressString(ewmGetAccount(ewm)); // constant
+    return ethAccountGetPrimaryAddressString(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey // key.pubKey
 ewmGetAccountPrimaryAddressPublicKey(BREthereumEWM ewm) {
-    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm)); // constant
+    return ethAccountGetPrimaryAddressPublicKey(ewmGetAccount(ewm)); // constant
 }
 
 extern BRKey
 ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                            const char *paperKey) {
-    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey); // constant
+    return ethAccountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey); // constant
 
 }
 
@@ -852,7 +852,7 @@ ewmSyncToDepthGetLastConfirmedSendTransferHeightPredicate (ewmSyncToDepthGetLast
                                                            BREthereumTransfer transfer,
                                                            unsigned int index) {
     BREthereumAccount account = ewmGetAccount (context->ewm);
-    BREthereumAddress accountAddress = accountGetPrimaryAddress (account);
+    BREthereumAddress accountAddress = ethAccountGetPrimaryAddress (account);
 
     BREthereumAddress source = transferGetSourceAddress (transfer);
     BREthereumAddress target = transferGetTargetAddress (transfer);
@@ -1045,7 +1045,7 @@ ewmUpdateMode (BREthereumEWM ewm,
         bcsDestroy (ewm->bcs);
 
         // Get some current state that we'll use when recreating BCS.
-        BREthereumAddress primaryAddress = accountGetPrimaryAddress(ewm->account);
+        BREthereumAddress primaryAddress = ethAccountGetPrimaryAddress(ewm->account);
         BREthereumBCSListener listener   = ewmCreateBCSListener (ewm);
 
         // Set the new mode
@@ -1395,11 +1395,11 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
     uint64_t nonce = transactionGetNonce(oldTransaction);
     if (ETHEREUM_BOOLEAN_IS_TRUE(updateNonce)) {
         // Nonce is 100% low.  Update the account's nonce to be at least nonce.
-        if (nonce <= accountGetAddressNonce (account, address))
-            accountSetAddressNonce (account, address, nonce + 1, ETHEREUM_BOOLEAN_TRUE);
+        if (nonce <= ethAccountGetAddressNonce (account, address))
+            ethAccountSetAddressNonce (account, address, nonce + 1, ETHEREUM_BOOLEAN_TRUE);
 
         // Nonce is surely 1 larger or more (if nonce was behind the account's nonce)
-        nonce = accountGetThenIncrementAddressNonce (account, address);
+        nonce = ethAccountGetThenIncrementAddressNonce (account, address);
     }
 
     BREthereumGasPrice gasPrice = transactionGetGasPrice(oldTransaction);
@@ -1685,7 +1685,7 @@ extern void
 ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
-    ewmHandleAnnounceNonce (ewm, accountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
+    ewmHandleAnnounceNonce (ewm, ethAccountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
     ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
 }
 
@@ -2070,8 +2070,8 @@ ewmHandleSaveWallet (BREthereumEWM ewm,
     // If this is the primaryWallet, hack in the nonce
     if (wallet == ewm->walletHoldingEther) {
         walletStateSetNonce (state,
-                             accountGetAddressNonce (ewm->account,
-                                                     accountGetPrimaryAddress(ewm->account)));
+                             ethAccountGetAddressNonce (ewm->account,
+                                                     ethAccountGetPrimaryAddress(ewm->account)));
     }
 
     BREthereumHash hash = walletStateGetHash(state);
@@ -2226,7 +2226,7 @@ ewmUpdateNonce (BREthereumEWM ewm) {
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(ethAccountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetNonce (ewm->client.context,
                                       ewm,
@@ -2257,7 +2257,7 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(ethAccountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetTransactions (ewm->client.context,
                                              ewm,
@@ -2295,7 +2295,7 @@ ewmUpdateLogs (BREthereumEWM ewm,
     switch (ewm->mode) {
         case CRYPTO_SYNC_MODE_API_ONLY:
         case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: {
-            char *address = ethAddressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *address = ethAddressGetEncodedString(ethAccountGetPrimaryAddress(ewm->account), 0);
             const char *contract = ewmGetWalletContractAddress(ewm, wid);
 
             ewm->client.funcGetLogs (ewm->client.context,

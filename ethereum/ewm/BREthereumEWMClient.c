@@ -359,12 +359,12 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
                         uint64_t newNonce,
                         int rid) {
     pthread_mutex_lock (&ewm->lock);
-    uint64_t oldNonce = accountGetAddressNonce (ewm->account, address);
+    uint64_t oldNonce = ethAccountGetAddressNonce (ewm->account, address);
     if (oldNonce != newNonce) {
         // This may not change the nonce
-        accountSetAddressNonce (ewm->account, address, newNonce, ETHEREUM_BOOLEAN_FALSE);
+        ethAccountSetAddressNonce (ewm->account, address, newNonce, ETHEREUM_BOOLEAN_FALSE);
         // Only save the primaryWallet if the nonce has, in fact, changed.
-        if (oldNonce != accountGetAddressNonce (ewm->account, address))
+        if (oldNonce != ethAccountGetAddressNonce (ewm->account, address))
             ewmHandleSaveWallet (ewm, ewmGetWallet(ewm), CLIENT_CHANGE_UPD);
     }
     pthread_mutex_unlock (&ewm->lock);

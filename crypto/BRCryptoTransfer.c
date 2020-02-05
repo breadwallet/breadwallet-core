@@ -179,7 +179,7 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 
     // cache the values that require the ewm
     BREthereumAccount account = ewmGetAccount (ewm);
-    transfer->u.eth.accountAddress = accountGetPrimaryAddress (account);
+    transfer->u.eth.accountAddress = ethAccountGetPrimaryAddress (account);
 
     // This function `cryptoTransferCreateAsETH()` includes an argument as
     // `BRCryptoFeeBasis feeBasisEstimated` whereas the analogous function

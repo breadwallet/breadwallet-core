@@ -739,9 +739,9 @@ testReallySend (const char *storagePath) {
     
     // A wallet amount Ether
     BREthereumWallet wallet = ewmGetWallet(ewm);
-    BREthereumAddress address = accountGetPrimaryAddress (account);
+    BREthereumAddress address = ethAccountGetPrimaryAddress (account);
     
-    accountSetAddressNonce(account, address, nonce, ETHEREUM_BOOLEAN_TRUE);
+    ethAccountSetAddressNonce(account, address, nonce, ETHEREUM_BOOLEAN_TRUE);
     
     // Optional - will provide listNodeWalletCreateTransactionDetailed.
     ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(etherCreateNumber(gasPrice, GWEI)));

@@ -421,7 +421,7 @@ transferSign (BREthereumTransfer transfer,
     
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transfer->originatingTransaction))
         transactionSetNonce (transfer->originatingTransaction,
-                             accountGetThenIncrementAddressNonce(account, address));
+                             ethAccountGetThenIncrementAddressNonce(account, address));
     
     // RLP Encode the UNSIGNED transfer
     BRRlpCoder coder = rlpCoderCreate();
@@ -432,7 +432,7 @@ transferSign (BREthereumTransfer transfer,
     BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
     
     // Sign the RLP Encoded bytes.
-    BREthereumSignature signature = accountSignBytes (account,
+    BREthereumSignature signature = ethAccountSignBytes (account,
                                                       address,
                                                       SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,
@@ -464,7 +464,7 @@ transferSignWithKey (BREthereumTransfer transfer,
     
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transfer->originatingTransaction))
         transactionSetNonce (transfer->originatingTransaction,
-                             accountGetThenIncrementAddressNonce(account, address));
+                             ethAccountGetThenIncrementAddressNonce(account, address));
     
     // RLP Encode the UNSIGNED transfer
     BRRlpCoder coder = rlpCoderCreate();
@@ -475,7 +475,7 @@ transferSignWithKey (BREthereumTransfer transfer,
     BRRlpData data = rlpItemGetDataSharedDontRelease (coder, item);
     
     // Sign the RLP Encoded bytes.
-    BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
+    BREthereumSignature signature = ethAccountSignBytesWithPrivateKey (account,
                                                                     address,
                                                                     SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                                     data.bytes,

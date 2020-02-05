@@ -334,7 +334,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             assert (CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT == addressScheme);
             BREthereumEWM ewm = wallet->u.eth.ewm;
 
-            BREthereumAddress ethAddress = accountGetPrimaryAddress (ewmGetAccount(ewm));
+            BREthereumAddress ethAddress = ethAccountGetPrimaryAddress (ewmGetAccount(ewm));
             return cryptoAddressCreateAsETH (ethAddress);
         }
 

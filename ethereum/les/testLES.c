@@ -986,8 +986,8 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
 
     _initTest(1);
 
-    BREthereumAccount account = createAccount (paperKey);
-    BREthereumAddress sourceAddr = accountGetPrimaryAddress (account);
+    BREthereumAccount account = ethAccountCreate (paperKey);
+    BREthereumAddress sourceAddr = ethAccountGetPrimaryAddress (account);
     BREthereumAddress targetAddr = ethAddressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
 
 
@@ -1016,7 +1016,7 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
     BRRlpData data = rlpItemGetData(coder, item);
 
     // Sign the RLP Encoded bytes.
-    BREthereumSignature signature = accountSignBytes (account,
+    BREthereumSignature signature = ethAccountSignBytes (account,
                                                       sourceAddr,
                                                       SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,

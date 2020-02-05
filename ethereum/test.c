@@ -59,14 +59,14 @@ tokenLookupTest (const char *address);
 #define TEST_ETH_PRIKEY   "0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d"
 
 void runAddressTests (BREthereumAccount account) {
-    BREthereumAddress address = accountGetPrimaryAddress(account);
+    BREthereumAddress address = ethAccountGetPrimaryAddress(account);
     
     printf ("== Address\n");
     printf ("        String: %p\n", &address);
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
 
 #if defined (DEBUG)
-    const char *publicKeyString = accountGetPrimaryAddressPublicKeyString(account, 1);
+    const char *publicKeyString = ethAccountGetPrimaryAddressPublicKeyString(account, 1);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
     assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
     free ((void *) publicKeyString);
@@ -77,15 +77,15 @@ void runAddressTests (BREthereumAccount account) {
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
 
-    assert (0 == accountGetAddressNonce(account, address));
-    assert (0 == accountGetThenIncrementAddressNonce(account, address));
-    assert (1 == accountGetAddressNonce(account, address));
-    accountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_FALSE);
-    assert (1 == accountGetAddressNonce(account, address));
-    accountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_TRUE);
-    assert (0 == accountGetAddressNonce(account, address));
-    accountSetAddressNonce(account, address, 2, ETHEREUM_BOOLEAN_FALSE);
-    assert (2 == accountGetAddressNonce(account, address));
+    assert (0 == ethAccountGetAddressNonce(account, address));
+    assert (0 == ethAccountGetThenIncrementAddressNonce(account, address));
+    assert (1 == ethAccountGetAddressNonce(account, address));
+    ethAccountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_FALSE);
+    assert (1 == ethAccountGetAddressNonce(account, address));
+    ethAccountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_TRUE);
+    assert (0 == ethAccountGetAddressNonce(account, address));
+    ethAccountSetAddressNonce(account, address, 2, ETHEREUM_BOOLEAN_FALSE);
+    assert (2 == ethAccountGetAddressNonce(account, address));
 
     free ((void *) addressString);
 }
@@ -328,14 +328,14 @@ void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) 
 //
 void runAccountTests () {
     
-    BREthereumAccount account = createAccount(TEST_PAPER_KEY);
+    BREthereumAccount account = ethAccountCreate (TEST_PAPER_KEY);
     BREthereumNetwork network = ethereumMainnet;
     
     printf ("==== Account: %p\n", account);
     runAddressTests(account);
     runTransactionTests(account, network);
     
-    accountFree (account);
+    ethAccountRelease (account);
     printf ("\n\n");
 }
 
@@ -364,7 +364,7 @@ void runAccountTests () {
 void testTransactionCodingEther () {
     printf ("     Coding Transaction\n");
 
-    BREthereumAccount account = createAccount (NODE_PAPER_KEY);
+    BREthereumAccount account = ethAccountCreate (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
@@ -414,7 +414,7 @@ void testTransactionCodingEther () {
     BREthereumAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethAccountHasAddress(account, transactionSourceAddress)));
 
     // Archive
     BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
@@ -443,7 +443,7 @@ void testTransactionCodingToken () {
     printf ("     Coding Transaction\n");
 
     BREthereumToken token = tokenLookupTest(tokenBRDAddress);
-    BREthereumAccount account = createAccount (NODE_PAPER_KEY);
+    BREthereumAccount account = ethAccountCreate (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);

@@ -161,7 +161,7 @@ walletCreate(BREthereumAccount account,
              BREthereumNetwork network)
 {
     return walletCreateDetailed (account,
-                                 accountGetPrimaryAddress(account),
+                                 ethAccountGetPrimaryAddress(account),
                                  network,
                                  AMOUNT_ETHER,
                                  NULL);
@@ -172,7 +172,7 @@ walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumNetwork network,
                          BREthereumToken token) {
     return walletCreateDetailed (account,
-                                 accountGetPrimaryAddress(account),
+                                 ethAccountGetPrimaryAddress(account),
                                  network,
                                  AMOUNT_TOKEN,
                                  token);
