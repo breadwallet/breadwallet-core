@@ -488,11 +488,11 @@ walletWalkTransfers (BREthereumWallet wallet,
 extern BREthereumTransfer
 walletGetTransferByIdentifier (BREthereumWallet wallet,
                                BREthereumHash hash) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))) return NULL;
+    if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, EMPTY_HASH_INIT))) return NULL;
 
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumHash identifier = transferGetIdentifier (wallet->transfers[i]);
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, identifier)))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, identifier)))
             return wallet->transfers[i];
     }
     return NULL;
@@ -503,7 +503,7 @@ walletGetTransferByOriginatingHash (BREthereumWallet wallet,
                                     BREthereumHash hash) {
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumTransaction transaction = transferGetOriginatingTransaction (wallet->transfers[i]);
-        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, transactionGetHash (transaction))))
+        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, transactionGetHash (transaction))))
             return wallet->transfers[i];
     }
     return NULL;

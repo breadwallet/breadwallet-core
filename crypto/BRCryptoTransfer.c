@@ -609,7 +609,7 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
             BREthereumTransfer tid = transfer->u.eth.tid;
 
             BREthereumHash hash = ewmTransferGetOriginatingTransactionHash (ewm, tid);
-            return (ETHEREUM_BOOLEAN_TRUE == hashEqual(hash, hashCreateEmpty())
+            return (ETHEREUM_BOOLEAN_TRUE == ethHashEqual(hash, ethHashCreateEmpty())
                     ? NULL
                     : cryptoHashCreateAsETH (hash));
         }

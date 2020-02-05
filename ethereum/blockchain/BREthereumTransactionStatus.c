@@ -90,7 +90,7 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
                                ((TRANSACTION_STATUS_INCLUDED != ts1.type && TRANSACTION_STATUS_ERRORED != ts1.type) ||
                                 (TRANSACTION_STATUS_INCLUDED == ts1.type &&
                                  ETHEREUM_COMPARISON_EQ == ethGasCompare(ts1.u.included.gasUsed, ts2.u.included.gasUsed) &&
-                                 ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(ts1.u.included.blockHash, ts2.u.included.blockHash)) &&
+                                 ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(ts1.u.included.blockHash, ts2.u.included.blockHash)) &&
                                  ts1.u.included.blockNumber == ts2.u.included.blockNumber &&
                                  ts1.u.included.transactionIndex == ts2.u.included.transactionIndex) ||
                                 (TRANSACTION_STATUS_ERRORED == ts1.type &&
@@ -148,7 +148,7 @@ transactionStatusRLPDecode (BRRlpItem item,
             // code with an existing archival value, we keep '3' around.
             assert (5 == othersCount || 3 == othersCount);
 
-            return transactionStatusCreateIncluded (hashRlpDecode(others[0], coder),
+            return transactionStatusCreateIncluded (ethHashRlpDecode(others[0], coder),
                                                     rlpDecodeUInt64(coder, others[1], 0),
                                                     rlpDecodeUInt64(coder, others[2], 0),
                                                     (3 == othersCount
@@ -186,7 +186,7 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
 
         case TRANSACTION_STATUS_INCLUDED:
             items[1] = rlpEncodeList (coder, 5,
-                                      hashRlpEncode(status.u.included.blockHash, coder),
+                                      ethHashRlpEncode(status.u.included.blockHash, coder),
                                       rlpEncodeUInt64(coder, status.u.included.blockNumber, 0),
                                       rlpEncodeUInt64(coder, status.u.included.transactionIndex, 0),
                                       rlpEncodeUInt64(coder, status.u.included.blockTimestamp, 0),

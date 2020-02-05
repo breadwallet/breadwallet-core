@@ -238,13 +238,13 @@ nodeEndpointGetNonce (BREthereumNodeEndpoint endpoint) {
 // Support BRSet
 extern size_t
 nodeEndpointHashValue (const void *h) {
-    return hashSetValue(&((BREthereumNodeEndpoint) h)->hash);
+    return ethHashSetValue(&((BREthereumNodeEndpoint) h)->hash);
 }
 
 // Support BRSet
 extern int
 nodeEndpointHashEqual (const void *h1, const void *h2) {
-    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint) h1)->hash,
+    return h1 == h2 || ethHashSetEqual (&((BREthereumNodeEndpoint) h1)->hash,
                                      &((BREthereumNodeEndpoint) h2)->hash);
 }
 

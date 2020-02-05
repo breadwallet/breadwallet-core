@@ -307,7 +307,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpItem item = rlpDataGetItem(coder, data);
     BREthereumTransaction tx = transactionRlpDecode(item, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual(transactionGetHash(tx), ethHashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
     transactionRelease(tx);
     rlpItemRelease(coder, item);
@@ -431,7 +431,7 @@ void testTransactionCodingEther () {
     assert (ETHEREUM_BOOLEAN_IS_TRUE(transactionStatusEqual(status, archivedStatus)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionGetTargetAddress(transaction),
                                                   transactionGetTargetAddress(archivedTransaction))));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.u.included.blockHash, someBlockHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(status.u.included.blockHash, someBlockHash)));
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);

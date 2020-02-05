@@ -180,7 +180,7 @@ runBlockTest0 (void) {
     BREthereumBlockHeader header = blockGetHeader(block);
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethereumMainnet);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockHeaderGetParentHash(header), blockHeaderGetParentHash(genesis))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(blockHeaderGetParentHash(header), blockHeaderGetParentHash(genesis))));
     assert(blockHeaderGetTimestamp(header) == blockHeaderGetTimestamp(genesis));
     assert(blockHeaderGetNumber(header) == blockHeaderGetNumber(genesis));
     //    assert(blockHeaderGetGasUsed(header) == blockHeaderGetGasUsed(genesis));
@@ -281,7 +281,7 @@ runBlockCheckpointTest (void) {
     hd1 = blockCheckpointCreatePartialBlockHeader(cp1);
     assert (cp1->number == blockHeaderGetNumber(hd1));
     assert (cp1->timestamp == blockHeaderGetTimestamp(hd1));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(cp1->hash, blockHeaderGetHash(hd1))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(cp1->hash, blockHeaderGetHash(hd1))));
     blockHeaderRelease(hd1);
 }
 
@@ -372,13 +372,13 @@ runLogTests (void) {
     size_t statusArchiveIndex;
     assert (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier(logArchived, &statusArchiveTxHash, &statusArchiveIndex)));
 //    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.identifier.transactionHash, statusArchiveTxHash)));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (someTxHash, statusArchiveTxHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual (someTxHash, statusArchiveTxHash)));
 
 //    assert (status.identifier.transactionReceiptIndex == statusArchiveIndex);
     assert (someTxIndex == statusArchiveIndex);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.u.included.blockHash, statusArchived.u.included.blockHash)));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(someBlockHash, statusArchived.u.included.blockHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(status.u.included.blockHash, statusArchived.u.included.blockHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(someBlockHash, statusArchived.u.included.blockHash)));
 
     assert (status.u.included.blockNumber == statusArchived.u.included.blockNumber);
     assert (someBlockNumber = statusArchived.u.included.blockNumber);
@@ -417,10 +417,10 @@ runAccountStateTests (void) {
     assert (accountStateGetNonce(state) == accountStateGetNonce(decodedState));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(accountStateGetBalance(state),
                                                accountStateGetBalance(decodedState))));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetStorageRoot(state),
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(accountStateGetStorageRoot(state),
                                                accountStateGetStorageRoot(decodedState))));
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(accountStateGetCodeHash(state),
                                                accountStateGetCodeHash(decodedState))));
 
     rlpItemRelease(coder, encoding);

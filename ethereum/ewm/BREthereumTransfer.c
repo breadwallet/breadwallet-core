@@ -449,7 +449,7 @@ transferSign (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        hashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
+                        ethHashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
 
     rlpItemRelease(coder, item);
     rlpCoderRelease(coder);
@@ -493,7 +493,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                  RLP_TYPE_TRANSACTION_SIGNED,
                                  coder);
     transactionSetHash (transfer->originatingTransaction,
-                        hashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
+                        ethHashCreateFromData (rlpItemGetDataSharedDontRelease (coder, item)));
 
     rlpItemRelease(coder, item);
     rlpCoderRelease(coder);

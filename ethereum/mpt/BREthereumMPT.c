@@ -105,7 +105,7 @@ mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
 
         case MPT_NODE_BRANCH: {
             // We'll consume one byte if the node's key is not an empty hash
-            return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (node->u.branch.keys[key[0]],
+            return (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (node->u.branch.keys[key[0]],
                                                          EMPTY_HASH_INIT))
                     ? 0
                     : 1);
@@ -176,7 +176,7 @@ mptNodeDecode (BRRlpItem item,
 
                 case MPT_NODE_EXTENSION:
                     node->u.extension.path = path;
-                    node->u.extension.key = hashRlpDecode (items[1], coder);
+                    node->u.extension.key = ethHashRlpDecode (items[1], coder);
                     break;
 
                 case MPT_NODE_BRANCH:
@@ -192,7 +192,7 @@ mptNodeDecode (BRRlpItem item,
                 // Either a hash (0x<32 bytes>) or empty (0x)
                 node->u.branch.keys[index] = (0 == data.bytesCount || 1 == data.bytesCount
                                               ? EMPTY_HASH_INIT
-                                              : hashRlpDecode(items[index], coder));
+                                              : ethHashRlpDecode(items[index], coder));
             }
             node->u.branch.value = rlpItemGetData (coder, items[16]);
             break;

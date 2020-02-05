@@ -356,7 +356,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                         const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
                         assert (2 == itemsCount);
 
-                        proof->hash = hashRlpDecode(items[0], coder);
+                        proof->hash = ethHashRlpDecode(items[0], coder);
                         proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
 
                         rlpItemRelease(coder, item);
@@ -1043,7 +1043,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .bodies = {
-                    hashesCopy(provision->u.bodies.hashes),
+                    ethHashesCopy(provision->u.bodies.hashes),
                     NULL }}
             };
 
@@ -1052,7 +1052,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .receipts = {
-                    hashesCopy(provision->u.receipts.hashes),
+                    ethHashesCopy(provision->u.receipts.hashes),
                     NULL }}
             };
 
@@ -1062,7 +1062,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->type,
                 { .accounts = {
                     provision->u.accounts.address,
-                    hashesCopy(provision->u.accounts.hashes),
+                    ethHashesCopy(provision->u.accounts.hashes),
                     NULL }}
             };
 
@@ -1071,7 +1071,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .statuses = {
-                    hashesCopy(provision->u.statuses.hashes),
+                    ethHashesCopy(provision->u.statuses.hashes),
                     NULL }}
             };
 

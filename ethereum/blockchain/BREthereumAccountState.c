@@ -66,8 +66,8 @@ accountStateRlpEncode(BREthereumAccountState state, BRRlpCoder coder) {
 
     items[0] = rlpEncodeUInt64(coder, state.nonce, 0);
     items[1] = etherRlpEncode(state.balance, coder);
-    items[2] = hashRlpEncode(state.storageRoot, coder);
-    items[3] = hashRlpEncode(state.codeHash, coder);
+    items[2] = ethHashRlpEncode(state.storageRoot, coder);
+    items[3] = ethHashRlpEncode(state.codeHash, coder);
 
     return rlpEncodeListItems(coder, items, 4);
 }
@@ -82,8 +82,8 @@ accountStateRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 
     state.nonce = rlpDecodeUInt64(coder, items[0], 0);
     state.balance = etherRlpDecode(items[1], coder);
-    state.storageRoot = hashRlpDecode(items[2], coder);
-    state.codeHash = hashRlpDecode(items[3], coder);
+    state.storageRoot = ethHashRlpDecode(items[2], coder);
+    state.codeHash = ethHashRlpDecode(items[3], coder);
 
     return state;
 }

@@ -498,7 +498,7 @@ static int
 bcsLookupPendingTransaction (BREthereumBCS bcs,
                              BREthereumHash hash) {
     for (int i = 0; i < array_count(bcs->pendingTransactions); i++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingTransactions[i], hash)))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual(bcs->pendingTransactions[i], hash)))
             return i;
     return -1;
 }
@@ -523,7 +523,7 @@ static int
 bcsLookupPendingLog (BREthereumBCS bcs,
                      BREthereumHash hash) {
     for (int i = 0; i < array_count(bcs->pendingLogs); i++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingLogs[i], hash)))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual(bcs->pendingLogs[i], hash)))
             return i;
     return -1;
 }
@@ -564,7 +564,7 @@ bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
         if (NULL != log) {
             BREthereumHash txHash;
             if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &txHash, NULL)) &&
-                ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(txHash, hash))) {
+                ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual(txHash, hash))) {
                 if (NULL == logs) array_new (logs, 1);
                 array_add (logs, log);
             }
@@ -887,7 +887,7 @@ bcsChainOrphans (BREthereumBCS bcs) {
         // Select the preferred block to chain by looking through all orphans for ...
         FOR_SET(BREthereumBlock, orphan, bcs->orphans) {
             // ... an orphan with a parent hash that matches `bcs->chain`.
-            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockGetHash (bcs->chain),
+            if (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(blockGetHash (bcs->chain),
                                                    blockHeaderGetParentHash(blockGetHeader(orphan)))))
                 block = bcsSelectPreferredBlock(bcs, block, orphan);
         }
@@ -997,8 +997,8 @@ bcsShowBlockForChain (BREthereumBCS bcs,
                       BREthereumBlock block,
                       const char *preface) {
     BREthereumHashString parent, hash;
-    hashFillString (blockGetHash(block), hash);
-    hashFillString (blockHeaderGetParentHash(blockGetHeader(block)), parent);
+    ethHashFillString (blockGetHash(block), hash);
+    ethHashFillString (blockHeaderGetParentHash(blockGetHeader(block)), parent);
     eth_log ("BCS", "%s: %" PRIu64 ", Hash: %s, Parent: %s",
              preface,
              blockGetNumber (block),
@@ -1932,7 +1932,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
     // Get the hash string - soley for eth_log() output.
     BREthereumHashString hashString;
-    hashFillString(transactionHash, hashString);
+    ethHashFillString(transactionHash, hashString);
 
     // Boolean to indicate if we need to update the transaction's status;
     int needStatus = 1;
@@ -1998,7 +1998,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
         if (NULL != logs) {
             for (size_t index = 0; index < array_count(logs); index++) {
                 logSetStatus (logs[index], status);
-                hashFillString (logGetHash(logs[index]), hashString);
+                ethHashFillString (logGetHash(logs[index]), hashString);
                 eth_log("BCS", "Log: \"%s\", Status: %d, Pending: %s%s%s",
                         hashString,
                         status.type,
@@ -2052,7 +2052,7 @@ bcsPeriodicDispatcher (BREventHandler handler,
         if (NULL != log) {
             BREthereumHash hash;
             if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &hash, NULL)) &&
-                -1 == hashesIndex(hashes, hash))
+                -1 == ethHashesIndex(hashes, hash))
                 array_add (hashes, hash);
         }
     }

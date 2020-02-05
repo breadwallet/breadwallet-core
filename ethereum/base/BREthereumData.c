@@ -82,7 +82,7 @@ hashDataPairCreate (BREthereumHash hash,
 extern BREthereumHashDataPair
 hashDataPairCreateFromString (const char *hashString,
                               const char *dataString) {
-    return hashDataPairCreate (hashCreate (hashString),
+    return hashDataPairCreate (ethHashCreate (hashString),
                                dataCreateFromString (dataString));
 }
 
@@ -100,7 +100,7 @@ hashDataPairGetHash (BREthereumHashDataPair pair) {
 // The hex-encoded hash.  You own this.
 extern char *
 hashDataPairGetHashAsString (BREthereumHashDataPair pair) {
-    return hashAsString (pair->hash);
+    return ethHashAsString (pair->hash);
 }
 
 // YOU DO NOT OWN THE RETURNED DATA
@@ -125,14 +125,14 @@ hashDataPairExtractStrings (BREthereumHashDataPair pair,
 extern size_t
 hashDataPairHashValue (const void *t)
 {
-    return hashSetValue(&((BREthereumHashDataPair) t)->hash);
+    return ethHashSetValue(&((BREthereumHashDataPair) t)->hash);
 }
 
 
 extern int
 hashDataPairHashEqual (const void *t1,
                        const void *t2) {
-    return t1 == t2 || hashSetEqual (&((BREthereumHashDataPair) t1)->hash,
+    return t1 == t2 || ethHashSetEqual (&((BREthereumHashDataPair) t1)->hash,
                                      &((BREthereumHashDataPair) t2)->hash);
 }
 

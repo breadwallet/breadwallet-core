@@ -195,7 +195,7 @@ logCreate (BREthereumAddress address,
            BRRlpData data) {
     BREthereumLog log = calloc (1, sizeof(struct BREthereumLogRecord));
 
-    log->hash = hashCreateEmpty();
+    log->hash = ethHashCreateEmpty();
     log->address = address;
 
     array_new(log->topics, topicsCount);
@@ -221,7 +221,7 @@ logInitializeIdentifier (BREthereumLog log,
     log->identifier.transactionReceiptIndex = transactionReceiptIndex;
 
     BRRlpData data = { sizeof (log->identifier), (uint8_t*) &log->identifier };
-    log->hash = hashCreateFromData(data);
+    log->hash = ethHashCreateFromData(data);
 }
 
 extern BREthereumBoolean
@@ -359,7 +359,7 @@ logIsErrored (BREthereumLog log) {
 extern size_t
 logHashValue (const void *l) {
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l)->identifier.transactionReceiptIndex);
-    return hashSetValue(&((BREthereumLog) l)->hash);
+    return ethHashSetValue(&((BREthereumLog) l)->hash);
 }
 
 // Support BRSet
@@ -369,7 +369,7 @@ logHashEqual (const void *l1, const void *l2) {
 
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l1)->identifier.transactionReceiptIndex);
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l2)->identifier.transactionReceiptIndex);
-    return hashSetEqual (&((BREthereumLog) l1)->hash,
+    return ethHashSetEqual (&((BREthereumLog) l1)->hash,
                          &((BREthereumLog) l2)->hash);
 }
 
@@ -464,7 +464,7 @@ logRlpDecode (BRRlpItem item,
     log->identifier.transactionReceiptIndex = LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN;
 
     if (RLP_TYPE_ARCHIVE == type) {
-        BREthereumHash hash = hashRlpDecode(items[3], coder);
+        BREthereumHash hash = ethHashRlpDecode(items[3], coder);
 
         uint64_t transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
         assert (transactionReceiptIndex <= (uint64_t) SIZE_MAX);
@@ -487,7 +487,7 @@ logRlpEncode(BREthereumLog log,
     items[2] = rlpDataGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
 
     if (RLP_TYPE_ARCHIVE == type) {
-        items[3] = hashRlpEncode(log->identifier.transactionHash, coder);
+        items[3] = ethHashRlpEncode(log->identifier.transactionHash, coder);
         items[4] = rlpEncodeUInt64(coder, log->identifier.transactionReceiptIndex, 0);
         items[5] = transactionStatusRLPEncode(log->status, coder);
     }

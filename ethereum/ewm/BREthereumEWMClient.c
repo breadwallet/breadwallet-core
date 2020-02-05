@@ -451,7 +451,7 @@ ewmAnnounceTransaction(BREthereumEWM ewm,
     BRCoreParseStatus parseStatus;
     BREthereumEWMClientAnnounceTransactionBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceTransactionBundle));
 
-    bundle->hash = hashCreate(hashString);
+    bundle->hash = ethHashCreate(hashString);
 
     bundle->from = addressCreate(from);
     bundle->to = addressCreate(to);
@@ -469,7 +469,7 @@ ewmAnnounceTransaction(BREthereumEWM ewm,
     bundle->gasUsed = strtoull(strGasUsed, NULL, 0);
 
     bundle->blockNumber = strtoull(strBlockNumber, NULL, 0);
-    bundle->blockHash = hashCreate (strBlockHash);
+    bundle->blockHash = ethHashCreate (strBlockHash);
     bundle->blockConfirmations = strtoull(strBlockConfirmations, NULL, 0);
     bundle->blockTransactionIndex = (unsigned int) strtoul(strBlockTransactionIndex, NULL, 0);
     bundle->blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
@@ -527,7 +527,7 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             logInitializeIdentifier(log, bundle->hash, (size_t) bundle->logIndex);
 
             BREthereumTransactionStatus status =
-            transactionStatusCreateIncluded (hashCreateEmpty(),
+            transactionStatusCreateIncluded (ethHashCreateEmpty(),
                                              bundle->blockNumber,
                                              bundle->blockTransactionIndex,
                                              bundle->blockTimestamp,
@@ -581,7 +581,7 @@ ewmAnnounceLog (BREthereumEWM ewm,
     BRCoreParseStatus parseStatus;
     BREthereumEWMClientAnnounceLogBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceLogBundle));
 
-    bundle->hash = hashCreate(strHash);
+    bundle->hash = ethHashCreate(strHash);
     bundle->contract = addressCreate(strContract);
     bundle->topicCount = topicCount;
     bundle->arrayTopics = calloc (topicCount, sizeof (char *));
@@ -667,7 +667,7 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
                                                      ? RLP_TYPE_TRANSACTION_SIGNED
                                                      : RLP_TYPE_TRANSACTION_UNSIGNED));
 
-            char *transactionHash = hashAsString (transactionGetHash(transaction));
+            char *transactionHash = ethHashAsString (transactionGetHash(transaction));
 
             ewm->client.funcSubmitTransaction (ewm->client.context,
                                                ewm,
@@ -744,10 +744,10 @@ ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
     if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
 
     if (NULL != strHash) {
-        BREthereumHash hash = hashCreate(strHash);
+        BREthereumHash hash = ethHashCreate(strHash);
         // We announce a submitted transfer => there is an originating transaction.
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))
-            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, ewmTransferGetOriginatingTransactionHash (ewm, transfer))))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, EMPTY_HASH_INIT))
+            || ETHEREUM_BOOLEAN_IS_FALSE (ethHashEqual (hash, ewmTransferGetOriginatingTransactionHash (ewm, transfer))))
             return ERROR_TRANSACTION_HASH_MISMATCH;
     }
 
@@ -946,7 +946,7 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
 
         // If we have a hash, then we've got something to save.
         BREthereumHash hash = transferGetIdentifier(transfer);
-        if (ETHEREUM_BOOLEAN_IS_FALSE (hashCompare (hash, EMPTY_HASH_INIT))) {
+        if (ETHEREUM_BOOLEAN_IS_FALSE (ethHashCompare (hash, EMPTY_HASH_INIT))) {
 
             // One of `transaction` or `log` will always be null
             assert (NULL == transaction || NULL == log);

@@ -49,7 +49,7 @@ bloomFilterCreateHash (const BREthereumHash hash) {
 
 extern BREthereumBloomFilter
 bloomFilterCreateData (const BRRlpData data) {
-    return bloomFilterCreateHash(hashCreateFromData(data));
+    return bloomFilterCreateHash(ethHashCreateFromData(data));
 }
 
 extern BREthereumBloomFilter
@@ -57,7 +57,7 @@ bloomFilterCreateAddress (const BREthereumAddress address) {
     BRRlpData data;
     data.bytes = (uint8_t *)  address.bytes;
     data.bytesCount = sizeof (address.bytes);
-    return bloomFilterCreateHash(hashCreateFromData(data));
+    return bloomFilterCreateHash(ethHashCreateFromData(data));
 }
 
 extern BREthereumBloomFilter

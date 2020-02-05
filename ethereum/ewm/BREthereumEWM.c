@@ -1782,7 +1782,7 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
             // If this transaction is the transfer's originatingTransaction, then update the
             // originatingTransaction's status.
             BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
-            if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
+            if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual (transactionGetHash(original),
                                                                         transactionGetHash(transaction))))
             transactionSetStatus (original, transactionGetStatus(transaction));
 
@@ -1832,7 +1832,7 @@ ewmHandleLogFeeBasis (BREthereumEWM ewm,
                 if (NULL != log) {
                     BREthereumHash transactionHash;
                     if (ETHEREUM_BOOLEAN_TRUE == logExtractIdentifier (log, &transactionHash, NULL) &&
-                        ETHEREUM_BOOLEAN_TRUE == hashEqual (transactionHash, hash))
+                        ETHEREUM_BOOLEAN_TRUE == ethHashEqual (transactionHash, hash))
                         ewmHandleLogFeeBasis (ewm, hash, transferTransaction, transferLog);
                 }
             }
@@ -1897,7 +1897,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
         // If this transaction is the transfer's originatingTransaction, then update the
         // originatingTransaction's status.
         BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
-        if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
+        if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual (transactionGetHash(original),
                                                                     transactionGetHash(transaction))))
             transactionSetStatus (original, transactionGetStatus(transaction));
 
@@ -1906,7 +1906,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
 
     if (needStatusEvent) {
         BREthereumHashString hashString;
-        hashFillString(hash, hashString);
+        ethHashFillString(hash, hashString);
         eth_log ("EWM", "Transaction: \"%s\", Change: %s, Status: %d", hashString,
                  BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
                  transactionGetStatus(transaction).type);
@@ -1981,10 +1981,10 @@ ewmHandleLog (BREthereumEWM ewm,
 
     if (needStatusEvent) {
         BREthereumHashString logHashString;
-        hashFillString(logHash, logHashString);
+        ethHashFillString(logHash, logHashString);
 
         BREthereumHashString transactionHashString;
-        hashFillString(transactionHash, transactionHashString);
+        ethHashFillString(transactionHash, transactionHashString);
 
         eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s, Status: %d",
                  logHashString, transactionHashString, logIndex,
@@ -2027,7 +2027,7 @@ ewmHandleSaveTransaction (BREthereumEWM ewm,
                           BREthereumClientChangeType type) {
     BREthereumHash hash = transactionGetHash(transaction);
     BREthereumHashString fileName;
-    hashFillString(hash, fileName);
+    ethHashFillString(hash, fileName);
 
     eth_log("EWM", "Transaction: Save: %s: %s",
             CLIENT_CHANGE_TYPE_NAME (type),
@@ -2047,7 +2047,7 @@ ewmHandleSaveLog (BREthereumEWM ewm,
                   BREthereumClientChangeType type) {
     BREthereumHash hash = logGetHash(log);
     BREthereumHashString filename;
-    hashFillString(hash, filename);
+    ethHashFillString(hash, filename);
 
     eth_log("EWM", "Log: Save: %s: %s",
             CLIENT_CHANGE_TYPE_NAME (type),
@@ -2076,7 +2076,7 @@ ewmHandleSaveWallet (BREthereumEWM ewm,
 
     BREthereumHash hash = walletStateGetHash(state);
     BREthereumHashString filename;
-    hashFillString(hash, filename);
+    ethHashFillString(hash, filename);
 
     eth_log ("EWM", "Wallet: Save: %s: %s",
              CLIENT_CHANGE_TYPE_NAME (type),
@@ -2608,7 +2608,7 @@ ewmTransferGetBlockHash(BREthereumEWM ewm,
     BREthereumHash blockHash;
     return (transferExtractStatusIncluded(transfer, &blockHash, NULL, NULL, NULL, NULL)
             ? blockHash
-            : hashCreateEmpty());
+            : ethHashCreateEmpty());
 }
 
 extern uint64_t

@@ -335,8 +335,8 @@ messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
 extern void
 messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
     BREthereumHashString headHashString, genesisHashString;
-    hashFillString (message->headHash, headHashString);
-    hashFillString (message->genesisHash, genesisHashString);
+    ethHashFillString (message->headHash, headHashString);
+    ethHashFillString (message->genesisHash, genesisHashString);
 
     char *headTotalDifficulty = uint256CoerceString (message->headTd, 10);
 
@@ -413,7 +413,7 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
     items[index++] = rlpEncodeList2(coder.rlp,
                                     rlpEncodeString(coder.rlp, "headHash"),
-                                    hashRlpEncode(status->headHash, coder.rlp));
+                                    ethHashRlpEncode(status->headHash, coder.rlp));
 
     items[index++] = rlpEncodeList2(coder.rlp,
                                     rlpEncodeString(coder.rlp, "headNum"),
@@ -421,7 +421,7 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
     items[index++] = rlpEncodeList2 (coder.rlp,
                                      rlpEncodeString(coder.rlp, "genesisHash"),
-                                     hashRlpEncode(status->genesisHash, coder.rlp));
+                                     ethHashRlpEncode(status->genesisHash, coder.rlp));
 
     for (size_t pi = 0; NULL != status->pairs && pi < array_count(status->pairs); pi++) { // Pair-Index
         BREthereumP2PMessageStatusKeyValuePair *pair = &status->pairs[pi];
@@ -523,13 +523,13 @@ messageP2PStatusDecode (BRRlpItem item,
                 status.headTd = rlpDecodeUInt256(coder.rlp, keyPairs[1], 1);
             }
             else if (strcmp(key, "headHash") == 0) {
-                status.headHash = hashRlpDecode(keyPairs[1], coder.rlp);
+                status.headHash = ethHashRlpDecode(keyPairs[1], coder.rlp);
             }
             else if (strcmp(key, "headNum") == 0) {
                 status.headNum = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             }
             else if (strcmp(key, "genesisHash") == 0) {
-                status.genesisHash = hashRlpDecode(keyPairs[1], coder.rlp);
+                status.genesisHash = ethHashRlpDecode(keyPairs[1], coder.rlp);
             }
             // Optional
 

@@ -22,8 +22,8 @@ static BREthereumHash emptyHash;
  * begin with '0x'.
  */
 extern BREthereumHash
-hashCreate (const char *string) {
-    if (NULL == string || '\0' == string[0] || 0 == strcmp (string, "0x")) return hashCreateEmpty();
+ethHashCreate (const char *string) {
+    if (NULL == string || '\0' == string[0] || 0 == strcmp (string, "0x")) return ethHashCreateEmpty();
 
     assert (0 == strncmp (string, "0x", 2)
             && (2 + 2 * ETHEREUM_HASH_BYTES) == strlen (string));
@@ -37,7 +37,7 @@ hashCreate (const char *string) {
  * Create an empty (all zeros) Hash
  */
 extern BREthereumHash
-hashCreateEmpty (void) {
+ethHashCreateEmpty (void) {
     return emptyHash;
 }
 
@@ -45,7 +45,7 @@ hashCreateEmpty (void) {
  * Creata a Hash by computing it from a arbitrary data set (using Keccak256)
  */
 extern BREthereumHash
-hashCreateFromData (BRRlpData data) {
+ethHashCreateFromData (BRRlpData data) {
     BREthereumHash hash;
     BRKeccak256(hash.bytes, data.bytes, data.bytesCount);
     return hash;
@@ -55,7 +55,7 @@ hashCreateFromData (BRRlpData data) {
  * Return the hex-encoded string
  */
 extern char *
-hashAsString (BREthereumHash hash) {
+ethHashAsString (BREthereumHash hash) {
     char result [2 + 2 * ETHEREUM_HASH_BYTES + 1];
     result[0] = '0';
     result[1] = 'x';
@@ -64,12 +64,12 @@ hashAsString (BREthereumHash hash) {
 }
 
 extern BREthereumHash
-hashCopy(BREthereumHash hash) {
+ethHashCopy(BREthereumHash hash) {
     return hash;
 }
 
 extern BREthereumComparison
-hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
+ethHashCompare(BREthereumHash hash1, BREthereumHash hash2) {
     for (int i = 0; i < ETHEREUM_HASH_BYTES; i++) {
         if (hash1.bytes[i] > hash2.bytes[i]) return ETHEREUM_COMPARISON_GT;
         else if (hash1.bytes[i] < hash2.bytes[i]) return ETHEREUM_COMPARISON_LT;
@@ -78,17 +78,17 @@ hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
 }
 
 extern BREthereumBoolean
-hashEqual (BREthereumHash hash1, BREthereumHash hash2) {
+ethHashEqual (BREthereumHash hash1, BREthereumHash hash2) {
     return AS_ETHEREUM_BOOLEAN (0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES));
 }
 
 extern BRRlpItem
-hashRlpEncode(BREthereumHash hash, BRRlpCoder coder) {
+ethHashRlpEncode(BREthereumHash hash, BRRlpCoder coder) {
     return rlpEncodeBytes(coder, hash.bytes, ETHEREUM_HASH_BYTES);
 }
 
 extern BREthereumHash
-hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+ethHashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumHash hash;
 
     BRRlpData data = rlpDecodeBytes(coder, item);
@@ -101,24 +101,24 @@ hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 extern BRRlpItem
-hashEncodeList (BRArrayOf (BREthereumHash) hashes, BRRlpCoder coder) {
+ethHashEncodeList (BRArrayOf (BREthereumHash) hashes, BRRlpCoder coder) {
     size_t itemCount = array_count(hashes);
     BRRlpItem items[itemCount];
     for (size_t index = 0; index < itemCount; index++)
-        items[index] = hashRlpEncode(hashes[index], coder);
+        items[index] = ethHashRlpEncode(hashes[index], coder);
     return rlpEncodeListItems (coder, items, itemCount);
 }
 
 extern void
-hashFillString (BREthereumHash hash,
-                BREthereumHashString string) {
+ethHashFillString (BREthereumHash hash,
+                   BREthereumHashString string) {
     string[0] = '0';
     string[1] = 'x';
     hexEncode(&string[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
 }
 
 extern BRArrayOf(BREthereumHash)
-hashesCopy (BRArrayOf(BREthereumHash) hashes) {
+ethHashesCopy (BRArrayOf(BREthereumHash) hashes) {
     BRArrayOf(BREthereumHash) result;
     array_new (result, array_count(hashes));
     array_add_array (result, hashes, array_count(hashes));
@@ -126,10 +126,10 @@ hashesCopy (BRArrayOf(BREthereumHash) hashes) {
 }
 
 extern ssize_t
-hashesIndex (BRArrayOf(BREthereumHash) hashes,
-              BREthereumHash hash) {
+ethHashesIndex (BRArrayOf(BREthereumHash) hashes,
+                BREthereumHash hash) {
     for (size_t index = 0; index < array_count(hashes); index++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, hashes[index])))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, hashes[index])))
             return index;
     return -1;
 }

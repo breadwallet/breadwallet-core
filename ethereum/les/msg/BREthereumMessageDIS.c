@@ -165,7 +165,7 @@ neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 extern BREthereumHash
 neighborDISHash (BREthereumDISNeighbor neighbor) {
     BRRlpData data = { sizeof (BREthereumDISNeighbor), (uint8_t *) &neighbor };
-    return hashCreateFromData(data);
+    return ethHashCreateFromData(data);
 }
 
 extern UInt256
@@ -182,8 +182,8 @@ neighborDISDistance (BREthereumDISNeighbor n1,
     memcpy (val2.u8, &n2.key.pubKey[1], 64);
 
     // This hash is a 'Keccak256' hash.
-    BREthereumHash hash1 = hashCreateFromData((BRRlpData) { 64, val1.u8});
-    BREthereumHash hash2 = hashCreateFromData((BRRlpData) { 64, val2.u8});
+    BREthereumHash hash1 = ethHashCreateFromData((BRRlpData) { 64, val1.u8});
+    BREthereumHash hash2 = ethHashCreateFromData((BRRlpData) { 64, val2.u8});
 
     return uint256Bitwise (INT_BITWISE_XOR,
                            (UInt256*) hash1.bytes,
@@ -280,7 +280,7 @@ static BRRlpItem
 messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 3,
                           endpointDISEncode (&message.to, coder.rlp),
-                          hashRlpEncode (message.pingHash, coder.rlp),
+                          ethHashRlpEncode (message.pingHash, coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
@@ -293,7 +293,7 @@ messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseI
     if (3 != itemsCount) rlpCoderSetFailed(coder.rlp);
     else {
         pong.to = endpointDISDecode (items[0], coder.rlp);
-        pong.pingHash = hashRlpDecode (items[1], coder.rlp);
+        pong.pingHash = ethHashRlpDecode (items[1], coder.rlp);
         pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
     }
 
@@ -497,7 +497,7 @@ messageDISEncode (BREthereumDISMessage message,
 
     // Compute the hash over ( signature || identifier || data )
     BRRlpData hashData = { signatureSize + 1 + data.bytesCount, (uint8_t*) &packet->signature };
-    packet->hash = hashCreateFromData (hashData);
+    packet->hash = ethHashCreateFromData (hashData);
 
 #if defined (NEED_TO_PRINT_DIS_HEADER_DETAILS)
     {

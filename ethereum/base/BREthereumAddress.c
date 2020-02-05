@@ -150,7 +150,7 @@ addressFillEncodedString (BREthereumAddress address,
 extern BREthereumHash
 addressGetHash (BREthereumAddress address) {
     BRRlpData data = { 20, address.bytes };
-    return hashCreateFromData(data);
+    return ethHashCreateFromData(data);
 }
 
 extern BREthereumAddress

@@ -185,49 +185,49 @@ static BlockHeaderTestData _blockHeaderTestData[5];
 static void _initBlockHeaderTestData(void){
     
     //Block Number: 4732524
-    _blockHeaderTestData[0].hash = hashCreate("0x3a510c07862ebce419a14bfcd95620f924d188a935654c5ad0f4d5d7ee429193");
+    _blockHeaderTestData[0].hash = ethHashCreate("0x3a510c07862ebce419a14bfcd95620f924d188a935654c5ad0f4d5d7ee429193");
     _blockHeaderTestData[0].blockNum = 4732524;
     _blockHeaderTestData[0].difficulty = uint256Create(1645417372907632);
     _blockHeaderTestData[0].gasUsed = 7996865;
-    _blockHeaderTestData[0].parent = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
+    _blockHeaderTestData[0].parent = ethHashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[0].transactionCount = 331;
     _blockHeaderTestData[0].ommersCount = 0;
     
     //Block Number: 4732523
-    _blockHeaderTestData[1].hash = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
+    _blockHeaderTestData[1].hash = ethHashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[1].blockNum = 4732523;
     _blockHeaderTestData[1].difficulty = uint256Create(1645417372874864);
     _blockHeaderTestData[1].gasUsed = 7998505;
-    _blockHeaderTestData[1].parent = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
+    _blockHeaderTestData[1].parent = ethHashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[1].transactionCount = 193;
     _blockHeaderTestData[1].ommersCount = 0;
     
     //Block Number: 4732522
-    _blockHeaderTestData[2].hash = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
+    _blockHeaderTestData[2].hash = ethHashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[2].blockNum = 4732522;
     _blockHeaderTestData[2].difficulty = uint256Create(1646221191783396);
     _blockHeaderTestData[2].gasUsed = 8003540;
-    _blockHeaderTestData[2].parent = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
+    _blockHeaderTestData[2].parent = ethHashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[2].transactionCount = 186;
     _blockHeaderTestData[2].ommersCount = 0;
     
     
     //Block Number: 4732521
-    _blockHeaderTestData[3].hash = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
+    _blockHeaderTestData[3].hash = ethHashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[3].blockNum = 4732521;
     _blockHeaderTestData[3].difficulty = uint256Create(1647025403373368);
     _blockHeaderTestData[3].gasUsed = 7996801;
-    _blockHeaderTestData[3].parent = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
+    _blockHeaderTestData[3].parent = ethHashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[3].transactionCount = 316;
     _blockHeaderTestData[3].ommersCount = 0;
     
     
     //Block Number: 4732520
-    _blockHeaderTestData[4].hash = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
+    _blockHeaderTestData[4].hash = ethHashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[4].blockNum = 4732520;
     _blockHeaderTestData[4].difficulty = uint256Create(1647830007836613);
     _blockHeaderTestData[4].gasUsed = 7986707;
-    _blockHeaderTestData[4].parent = hashCreate("0xe8f5d7cd81ad8ae3a677f6df6d87438ee5c98ead11f8df1b90b788f059a7deab");
+    _blockHeaderTestData[4].parent = ethHashCreate("0xe8f5d7cd81ad8ae3a677f6df6d87438ee5c98ead11f8df1b90b788f059a7deab");
     _blockHeaderTestData[4].transactionCount = 169;
     _blockHeaderTestData[4].ommersCount = 0;
 }
@@ -246,9 +246,9 @@ static BREthereumBoolean _checkBlockHeader(BREthereumBlockHeader header,
     
     
     return (gotBlockNumber == expectedBlockNumber &&
-            hashSetEqual(&gotHash, &expectedHash)  &&
+            ethHashSetEqual(&gotHash, &expectedHash)  &&
             gotGasUsed == expectedGasUsed &&
-            (hashSetEqual(&gotParentHash, &expectedParenthash)
+            (ethHashSetEqual(&gotParentHash, &expectedParenthash)
              ? ETHEREUM_BOOLEAN_TRUE
              : ETHEREUM_BOOLEAN_FALSE));
     
@@ -425,7 +425,7 @@ void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
 
     if (*context1 == _GetBlockProofs_Context1) {  // 6000000
         BRCoreParseStatus status;
-        assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(hash, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"))));
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual(hash, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"))));
         assert (UInt256Eq (totalDifficulty, uint256CreateParse ("5484495551037046114587", 0, &status)));
     }
 
@@ -481,13 +481,13 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
     
     //Check to make sure we get back the right transaction
     BREthereumHash expectedTransactionHashes[] = {
-        hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c"),
-        hashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5")
+        ethHashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c"),
+        ethHashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5")
     };
 
     BREthereumHash expectedBlockHashes[] = {
-        hashCreate("0xf16becb908162df51c3789fab0e6ba52568fa7ee7d0127eb51bfaa0bcd40fb1b"),
-        hashCreate("0x0a4b16bac21b6dfeb51ccb522d8c34840844ae78ed0bc177670c501c18d35ff2")
+        ethHashCreate("0xf16becb908162df51c3789fab0e6ba52568fa7ee7d0127eb51bfaa0bcd40fb1b"),
+        ethHashCreate("0x0a4b16bac21b6dfeb51ccb522d8c34840844ae78ed0bc177670c501c18d35ff2")
     };
 
     uint64_t expectedBlockNumbers[] = {
@@ -501,12 +501,12 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
     };
 
     for (size_t index = 0; index < 2; index++) {
-        assert(hashSetEqual(&hashes[index], &expectedTransactionHashes[index]));
+        assert(ethHashSetEqual(&hashes[index], &expectedTransactionHashes[index]));
 
         assert (TRANSACTION_STATUS_INCLUDED == statusesByHash[index].type);
 
 
-        assert(hashSetEqual(&statusesByHash[index].u.included.blockHash, &expectedBlockHashes[index]));
+        assert(ethHashSetEqual(&statusesByHash[index].u.included.blockHash, &expectedBlockHashes[index]));
 
         assert(statusesByHash[index].u.included.blockNumber == expectedBlockNumbers[index]);
         assert(statusesByHash[index].u.included.transactionIndex == expectedTransactionIndexes[index]);
@@ -540,11 +540,11 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
     assert(*context1 == _GetTxStatus_Context1); //Check to make sure the context is correct
 
     BREthereumHash expectedTransactionHashes[] = {
-        hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c"),
+        ethHashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c"),
     };
 
     BREthereumHash expectedBlockHashes[] = {
-        hashCreate("0xf16becb908162df51c3789fab0e6ba52568fa7ee7d0127eb51bfaa0bcd40fb1b"),
+        ethHashCreate("0xf16becb908162df51c3789fab0e6ba52568fa7ee7d0127eb51bfaa0bcd40fb1b"),
     };
 
     uint64_t expectedBlockNumbers[] = {
@@ -556,12 +556,12 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
     };
 
     for (size_t index = 0; index < 1; index++) {
-        assert(hashSetEqual(&hashes[index], &expectedTransactionHashes[index]));
+        assert(ethHashSetEqual(&hashes[index], &expectedTransactionHashes[index]));
 
         assert (TRANSACTION_STATUS_INCLUDED == statusesByHash[index].type);
 
 
-        assert(hashSetEqual(&statusesByHash[index].u.included.blockHash, &expectedBlockHashes[index]));
+        assert(ethHashSetEqual(&statusesByHash[index].u.included.blockHash, &expectedBlockHashes[index]));
 
         assert(statusesByHash[index].u.included.blockNumber == expectedBlockNumbers[index]);
         assert(statusesByHash[index].u.included.transactionIndex == expectedTransactionIndexes[index]);
@@ -575,8 +575,8 @@ static void
 run_GetTxStatus_Tests (BREthereumLES les) {
     
     // Prepare values to be given to a send tranactions status message
-    BREthereumHash transaction1Hash = hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c");
-    BREthereumHash transaction2Hash = hashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5");
+    BREthereumHash transaction1Hash = ethHashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c");
+    BREthereumHash transaction2Hash = ethHashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5");
     
     //Initilize testing state
     _initTest(2);
@@ -628,7 +628,7 @@ _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
     assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
     
     //Check Block Hash
-    assert(hashSetEqual(&hashes[0], &_blockHeaderTestData[_GetBlockBodies_Context1].hash));
+    assert(ethHashSetEqual(&hashes[0], &_blockHeaderTestData[_GetBlockBodies_Context1].hash));
     
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(pairs[0].transactions) == _blockHeaderTestData[_GetBlockBodies_Context1].transactionCount);
@@ -659,7 +659,7 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
 
     for (size_t index = 0; index < 2; index++) {
         //Check Block Hash
-        assert(hashSetEqual(&hashes[index], &_blockHeaderTestData[_GetBlockBodies_Context2 + index].hash));
+        assert(ethHashSetEqual(&hashes[index], &_blockHeaderTestData[_GetBlockBodies_Context2 + index].hash));
     
         //Check to make sure we got back the right number of transactions and ommers
         assert(array_count(pairs[index].transactions) == _blockHeaderTestData[_GetBlockBodies_Context2 + index].transactionCount);
@@ -727,7 +727,7 @@ _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
     assert(*context1 == _GetReceipts_Context1); //Check to make sure the context is correct
     
     //Check Block Hash
-    assert(hashSetEqual(&hashes[0], &_blockHeaderTestData[_GetReceipts_Context1].hash));
+    assert(ethHashSetEqual(&hashes[0], &_blockHeaderTestData[_GetReceipts_Context1].hash));
     
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(receiptsByHash[0]) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
@@ -758,7 +758,7 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
 
     for (size_t index = 0; index < 2; index++) {
         //Check Block Hash
-        assert(hashSetEqual(&hashes[index], &_blockHeaderTestData[_GetReceipts_Context2 + index].hash));
+        assert(ethHashSetEqual(&hashes[index], &_blockHeaderTestData[_GetReceipts_Context2 + index].hash));
     
         //Check to make sure we got back the right number of receipts
         assert(array_count(receiptsByHash[index]) == _blockHeaderTestData[_GetReceipts_Context2 + index].transactionCount);
@@ -1177,12 +1177,12 @@ runLESTests (const char *paperKey) {
     
     //Prepare values to be given to a LES context
     char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    BREthereumHash headHash = hashCreate(headHashStr);
+    BREthereumHash headHash = ethHashCreate(headHashStr);
     
     uint64_t headNumber = 0;
     UInt256 headTD = uint256Create (0x400000000);
     
-    BREthereumHash genesisHash = hashCreate(headHashStr);
+    BREthereumHash genesisHash = ethHashCreate(headHashStr);
     
     // Create an LES context
     BREthereumLES les = lesCreate (ethereumMainnet,

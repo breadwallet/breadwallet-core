@@ -628,13 +628,13 @@ nodeSetStateErrorProtocol (BREthereumNode node,
 // Support BRSet
 extern size_t
 nodeHashValue (const void *h) {
-    return hashSetValue(&((BREthereumNode) h)->hash);
+    return ethHashSetValue(&((BREthereumNode) h)->hash);
 }
 
 // Support BRSet
 extern int
 nodeHashEqual (const void *h1, const void *h2) {
-    return h1 == h2 || hashSetEqual (&((BREthereumNode) h1)->hash,
+    return h1 == h2 || ethHashSetEqual (&((BREthereumNode) h1)->hash,
                                      &((BREthereumNode) h2)->hash);
 }
 

@@ -287,26 +287,26 @@ networkInitilizeAllIfAppropriate (void) {
         // Mainnet
 
         ethereumMainnetRecord.genesisBlockHeaderHash =
-        hashCreate ("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
+        ethHashCreate ("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
 
         ethereumMainnetRecord.trustedCheckpointBlockHeaderHash =
-        hashCreate("0x04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63");
+        ethHashCreate("0x04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63");
 
         // Testnet / 'Ropsten'
 
         ethereumTestnetRecord.genesisBlockHeaderHash =
-        hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
+        ethHashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
 
         ethereumTestnetRecord.trustedCheckpointBlockHeaderHash =
-        hashCreate("0x1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419");
+        ethHashCreate("0x1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419");
 
         // Rinkeby
 
         ethereumRinkebyRecord.genesisBlockHeaderHash =
-        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+        ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
         
         ethereumRinkebyRecord.trustedCheckpointBlockHeaderHash =
-        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+        ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
 
         // Notable RACE
         needsInitialization = 0;

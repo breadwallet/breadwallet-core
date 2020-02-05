@@ -110,7 +110,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->data = (NULL == data ? NULL : strdup (data));
     transaction->nonce = nonce;
     transaction->chainId = 0;
-    transaction->hash = hashCreateEmpty();
+    transaction->hash = ethHashCreateEmpty();
     transaction->gasEstimate = gasLimit;
 
     // Ensure that `transactionIsSigned()` returns FALSE.
@@ -253,12 +253,12 @@ transactionSetNonce (BREthereumTransaction transaction,
 extern size_t
 transactionHashValue (const void *t)
 {
-    return hashSetValue(&((BREthereumTransaction) t)->hash);
+    return ethHashSetValue(&((BREthereumTransaction) t)->hash);
 }
 
 extern int
 transactionHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || hashSetEqual (&((BREthereumTransaction) t1)->hash,
+    return t1 == t2 || ethHashSetEqual (&((BREthereumTransaction) t1)->hash,
                                      &((BREthereumTransaction) t2)->hash);
 }
 
@@ -392,7 +392,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
             // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
             if (RLP_TYPE_ARCHIVE == type) {
                 items[ 9] = addressRlpEncode(transaction->sourceAddress, coder);
-                items[10] = hashRlpEncode(transaction->hash, coder);
+                items[10] = ethHashRlpEncode(transaction->hash, coder);
                 items[11] = transactionStatusRLPEncode(transaction->status, coder);
                 itemsCount += 3;
             }
@@ -403,7 +403,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
 
     if (RLP_TYPE_TRANSACTION_SIGNED == type) {
         BRRlpData data = rlpItemGetDataSharedDontRelease(coder, result);
-        transaction->hash = hashCreateFromData(data);
+        transaction->hash = ethHashCreateFromData(data);
     }
 
     return result;
@@ -475,14 +475,14 @@ transactionRlpDecode (BRRlpItem item,
         case RLP_TYPE_ARCHIVE:
             // Extract the archive-specific data
             transaction->sourceAddress = addressRlpDecode(items[9], coder);
-            transaction->hash = hashRlpDecode(items[10], coder);
+            transaction->hash = ethHashRlpDecode(items[10], coder);
             transaction->status = transactionStatusRLPDecode(items[11], NULL, coder);
             break;
 
         case RLP_TYPE_TRANSACTION_SIGNED: {
             // With a SIGNED RLP encoding, we can extract the source address and compute the hash.
             BRRlpData result = rlpItemGetDataSharedDontRelease(coder, item);
-            transaction->hash = hashCreateFromData(result);
+            transaction->hash = ethHashCreateFromData(result);
 
             // :fingers-crossed:
             transaction->sourceAddress = transactionExtractAddress (transaction, network, coder);
@@ -620,7 +620,7 @@ extern void
 transactionShow (BREthereumTransaction transaction, const char *topic) {
     int overflow;
 
-    char *hash = hashAsString (transaction->hash);
+    char *hash = ethHashAsString (transaction->hash);
     char *source = addressGetEncodedString(transaction->sourceAddress, 1);
     char *target = addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
     char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
