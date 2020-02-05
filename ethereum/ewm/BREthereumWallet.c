@@ -449,7 +449,7 @@ static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
     switch (amountGetType(wallet->balance)) {
         case AMOUNT_ETHER:
-            return gasPriceCreate(etherCreateNumber
+            return ethGasPriceCreate(etherCreateNumber
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                                    DEFAULT_ETHER_GAS_PRICE_UNIT));
         case AMOUNT_TOKEN:

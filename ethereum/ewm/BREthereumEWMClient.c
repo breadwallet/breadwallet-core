@@ -157,7 +157,7 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                            BREthereumWallet wallet,
                            UInt256 amount,
                            int rid) {
-    ewmSignalGasPrice(ewm, wallet, gasPriceCreate(etherCreate(amount)));
+    ewmSignalGasPrice(ewm, wallet, ethGasPriceCreate(etherCreate(amount)));
 }
 
 extern BREthereumStatus
@@ -254,7 +254,7 @@ ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
         ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NUMERIC_PARSE);
 
     } else {
-        ewmSignalGasEstimateSuccess(ewm, wallet, cookie, gasCreate(estimate.u64[0]), gasPriceCreate(etherCreate(price)));
+        ewmSignalGasEstimateSuccess(ewm, wallet, cookie, ethGasCreate(estimate.u64[0]), ethGasPriceCreate(etherCreate(price)));
     }
 
     return SUCCESS;
@@ -392,8 +392,8 @@ ewmHandleAnnounceTransaction (BREthereumEWM ewm,
             BREthereumTransaction transaction = transactionCreate (bundle->from,
                                                                    bundle->to,
                                                                    etherCreate(bundle->amount),
-                                                                   gasPriceCreate(etherCreate(bundle->gasPrice)),
-                                                                   gasCreate(bundle->gasLimit),
+                                                                   ethGasPriceCreate(etherCreate(bundle->gasPrice)),
+                                                                   ethGasCreate(bundle->gasLimit),
                                                                    bundle->data,
                                                                    bundle->nonce);
 
@@ -409,7 +409,7 @@ ewmHandleAnnounceTransaction (BREthereumEWM ewm,
                                                                                   bundle->blockNumber,
                                                                                   bundle->blockTransactionIndex,
                                                                                   bundle->blockTimestamp,
-                                                                                  gasCreate(bundle->gasUsed));
+                                                                                  ethGasCreate(bundle->gasUsed));
             transactionSetStatus (transaction, status);
 
             // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
@@ -531,7 +531,7 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                                              bundle->blockNumber,
                                              bundle->blockTransactionIndex,
                                              bundle->blockTimestamp,
-                                             gasCreate(bundle->gasUsed));
+                                             ethGasCreate(bundle->gasUsed));
             logSetStatus(log, status);
 
             // If we had a `bcs` we might think about `bcsSignalLog(ewm->bcs, log);`
@@ -861,8 +861,8 @@ ewmAnnounceToken(BREthereumEWM ewm,
     bundle->name        = strdup (name);
     bundle->description = strdup (description);
     bundle->decimals    = decimals;
-    bundle->gasLimit    = gasCreate(gasLimitValue);
-    bundle->gasPrice    = gasPriceCreate(etherCreate(gasPriceValue));
+    bundle->gasLimit    = ethGasCreate(gasLimitValue);
+    bundle->gasPrice    = ethGasPriceCreate(etherCreate(gasPriceValue));
 
     ewmSignalAnnounceToken (ewm, bundle, rid);
 }

@@ -1770,7 +1770,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                                                                         blockGetNumber(block),
                                                                         ti,
                                                                         blockGetTimestamp(block),
-                                                                        gasCreate(0)));
+                                                                        ethGasCreate(0)));
                     
                     if (NULL == neededLogs) array_new(neededLogs, 3);
                     array_add(neededLogs, log);
@@ -1794,7 +1794,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     for (size_t ti = 0; ti < receiptsCount; ti++) {
         uint64_t gasUsed = (transactionReceiptGetGasUsed(receipts[ti]) -
                             (ti == 0 ? 0 : transactionReceiptGetGasUsed(receipts[ti-1])));
-        array_add (gasUsedByTransaction, gasCreate (gasUsed));
+        array_add (gasUsedByTransaction, ethGasCreate (gasUsed));
     }
 
     bcsReleaseReceiptsFully(bcs, receipts);

@@ -217,7 +217,7 @@ transactionGetGasLimit (BREthereumTransaction transaction) {
 
 static BREthereumGas
 gasLimitApplyMargin (BREthereumGas gas) {
-    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+    return ethGasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
 }
 
 extern BREthereumGas
@@ -234,7 +234,7 @@ transactionSetGasEstimate (BREthereumTransaction transaction,
     // unless the gasEstimate is 21000 (special case for ETH transfers).
     BREthereumGas gasLimitWithMargin = (21000 != gasEstimate.amountOfGas
                                         ? gasLimitApplyMargin (gasEstimate)
-                                        : gasCreate(21000));
+                                        : ethGasCreate(21000));
     if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
         transaction->gasLimit = gasLimitWithMargin;
 }
@@ -348,8 +348,8 @@ transactionRlpEncode(BREthereumTransaction transaction,
     size_t itemsCount = 0;
 
     items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
-    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
-    items[2] = gasRlpEncode(transaction->gasLimit, coder);
+    items[1] = ethGasPriceRlpEncode(transaction->gasPrice, coder);
+    items[2] = ethGasRlpEncode(transaction->gasLimit, coder);
     items[3] = addressRlpEncode(transaction->targetAddress, coder);
     items[4] = etherRlpEncode(transaction->amount, coder);
     items[5] = rlpEncodeHexString(coder, transaction->data);
@@ -434,8 +434,8 @@ transactionRlpDecode (BRRlpItem item,
     //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
     
     transaction->nonce = rlpDecodeUInt64(coder, items[0], 1);
-    transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
-    transaction->gasLimit = gasRlpDecode(items[2], coder);
+    transaction->gasPrice = ethGasPriceRlpDecode(items[1], coder);
+    transaction->gasLimit = ethGasRlpDecode(items[2], coder);
     
     transaction->targetAddress = addressRlpDecode(items[3], coder);
     transaction->amount = etherRlpDecode(items[4], coder);

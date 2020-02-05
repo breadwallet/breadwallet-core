@@ -809,8 +809,8 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {
-            BREthereumGas gas = gasCreate((uint64_t) costFactor);
-            BREthereumGasPrice gasPrice = gasPriceCreate (etherCreate(value));
+            BREthereumGas gas = ethGasCreate((uint64_t) costFactor);
+            BREthereumGasPrice gasPrice = ethGasPriceCreate (etherCreate(value));
 
             return cryptoFeeBasisCreateAsETH (wallet->unitForFee, gas, gasPrice);
         }

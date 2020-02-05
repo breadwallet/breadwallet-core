@@ -1343,7 +1343,7 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
     transactionCreate (transactionGetSourceAddress(oldTransaction),
                        transactionGetSourceAddress(oldTransaction),
                        etherCreateZero(),
-                       gasPriceCreate(newGasPrice),
+                       ethGasPriceCreate(newGasPrice),
                        transactionGetGasLimit(oldTransaction),
                        transactionGetData(oldTransaction),
                        transactionGetNonce(oldTransaction));
@@ -1404,13 +1404,13 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
 
     BREthereumGasPrice gasPrice = transactionGetGasPrice(oldTransaction);
     if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasPrice)) {
-        gasPrice = gasPriceCreate (etherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
+        gasPrice = ethGasPriceCreate (etherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
         assert (0 == overflow);
     }
 
     BREthereumGas gasLimit = transactionGetGasLimit (oldTransaction);
     if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasLimit))
-        gasLimit = gasCreate (gasLimit.amountOfGas + gasLimit.amountOfGas); // double
+        gasLimit = ethGasCreate (gasLimit.amountOfGas + gasLimit.amountOfGas); // double
 
     BREthereumTransaction transaction =
     transactionCreate (transactionGetSourceAddress(oldTransaction),
@@ -2645,7 +2645,7 @@ ewmTransferGetGasUsed(BREthereumEWM ewm,
     BREthereumGas gasUsed;
     return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, NULL, &gasUsed)
             ? gasUsed
-            : gasCreate(0));
+            : ethGasCreate(0));
 }
 
 extern uint64_t
@@ -2778,12 +2778,12 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit) {
-    return gasPriceCreate(etherCreateNumber(value, unit));
+    return ethGasPriceCreate(etherCreateNumber(value, unit));
 }
 
 extern BREthereumGas
 ewmCreateGas (uint64_t value) {
-    return gasCreate(value);
+    return ethGasCreate(value);
 }
 
 extern void

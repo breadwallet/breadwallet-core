@@ -607,8 +607,8 @@ cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
                 case BLOCK_CHAIN_TYPE_ETH: {
                     const char *address = cryptoCurrencyGetIssuer(c);
                     if (NULL != address) {
-                        BREthereumGas      ethGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-                        BREthereumGasPrice ethGasPrice = gasPriceCreate(etherCreate(uint256Create(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
+                        BREthereumGas      ethGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+                        BREthereumGasPrice ethGasPrice = ethGasPriceCreate(etherCreate(uint256Create(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
 
                         // This has the perhaps surprising side-effect of updating the properties
                         // of an existing token.  That is, `address` is used to locate a token and

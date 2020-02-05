@@ -123,8 +123,8 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 1\n");
     
     BREthereumWallet  wallet = walletCreate(account, network);
-    walletSetDefaultGasLimit(wallet, gasCreate(TEST_TRANS1_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)));
+    walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS1_GAS_LIMIT));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        addressCreate(TEST_TRANS1_TARGET_ADDRESS),
@@ -188,8 +188,8 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 2\n");
     
     BREthereumWallet  wallet = walletCreate(account, network);
-    walletSetDefaultGasLimit(wallet, gasCreate(TEST_TRANS2_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)));
+    walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS2_GAS_LIMIT));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        addressCreate(TEST_TRANS2_TARGET_ADDRESS),
@@ -268,8 +268,8 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     UInt256 value = uint256CreateParse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
     
-    walletSetDefaultGasLimit(wallet, gasCreate(TEST_TRANS3_GAS_LIMIT));
-    walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
+    walletSetDefaultGasLimit(wallet, ethGasCreate(TEST_TRANS3_GAS_LIMIT));
+    walletSetDefaultGasPrice(wallet, ethGasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)));
 
     BREthereumTransfer transfer = walletCreateTransfer(wallet,
                                                        addressCreate(TEST_TRANS3_TARGET_ADDRESS),
@@ -369,8 +369,8 @@ void testTransactionCodingEther () {
 
     BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateEther(etherCreate(uint256Create(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
-    BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
+    BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
+    BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
@@ -395,9 +395,9 @@ void testTransactionCodingEther () {
     rlpItemRelease(coder, item);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
-    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
+    assert (ETHEREUM_COMPARISON_EQ == ethGasPriceCompare(transactionGetGasPrice(transaction),
                                                       transactionGetGasPrice(decodedTransaction)));
-    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction),
+    assert (ETHEREUM_COMPARISON_EQ == ethGasCompare(transactionGetGasLimit(transaction),
                                                  transactionGetGasLimit(decodedTransaction)));
     assert (ETHEREUM_COMPARISON_EQ == etherCompare(transactionGetAmount(transaction),
                                                    transactionGetAmount(decodedTransaction)));
@@ -422,7 +422,7 @@ void testTransactionCodingEther () {
                                                                          11592,
                                                                          21,
                                                                          0,
-                                                                         gasCreate(0));
+                                                                         ethGasCreate(0));
     transactionSetStatus(transaction, status);
     item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
@@ -448,8 +448,8 @@ void testTransactionCodingToken () {
 
     BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, uint256Create(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
-    BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
+    BREthereumGasPrice txGasPrice = ethGasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
+    BREthereumGas txGas = ethGasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
@@ -474,9 +474,9 @@ void testTransactionCodingToken () {
     rlpItemRelease(coder, item);
     
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
-    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
+    assert (ETHEREUM_COMPARISON_EQ == ethGasPriceCompare(transactionGetGasPrice(transaction),
                                                       transactionGetGasPrice(decodedTransaction)));
-    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction),
+    assert (ETHEREUM_COMPARISON_EQ == ethGasCompare(transactionGetGasLimit(transaction),
                                                  transactionGetGasLimit(decodedTransaction)));
 //    int typeMismatch = 0;
 #if defined (TRANSACTION_ENCODE_TOKEN)

@@ -65,8 +65,8 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
 
     tokens = tokenSetCreate(10);
 
-    BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-    BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+    BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
     BREthereumToken token;
 
@@ -678,8 +678,8 @@ void prepareTransaction (const char *paperKey,
     // END - One Time Code Block
     
     // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ewmWalletSetDefaultGasPrice(ewm, wallet, gasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
-    ewmWalletSetDefaultGasLimit(ewm, wallet, gasCreate(gasLimit));
+    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
+    ewmWalletSetDefaultGasLimit(ewm, wallet, ethGasCreate(gasLimit));
 
     BREthereumAmount amountAmountInEther =
     ewmCreateEtherAmountUnit(ewm, amount, WEI);
@@ -744,8 +744,8 @@ testReallySend (const char *storagePath) {
     accountSetAddressNonce(account, address, nonce, ETHEREUM_BOOLEAN_TRUE);
     
     // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ewmWalletSetDefaultGasPrice(ewm, wallet, gasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
-    ewmWalletSetDefaultGasLimit(ewm, wallet, gasCreate(gasLimit));
+    ewmWalletSetDefaultGasPrice(ewm, wallet, ethGasPriceCreate(etherCreateNumber(gasPrice, GWEI)));
+    ewmWalletSetDefaultGasLimit(ewm, wallet, ethGasCreate(gasLimit));
     
     BRCoreParseStatus status;
     BREthereumAmount amountAmountInEther =

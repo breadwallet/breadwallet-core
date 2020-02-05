@@ -21,12 +21,12 @@ feeBasisCreate (BREthereumGas limit,
 
 extern BREthereumGas
 feeBasisGetGasLimit (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : ethGasCreate(0));
 }
 
 extern BREthereumGasPrice
 feeBasisGetGasPrice (BREthereumFeeBasis basis) {
-    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : ethGasPriceCreate(etherCreateZero()));
 }
 
 extern BREthereumEther
@@ -54,7 +54,7 @@ feeBasisEqual (const BREthereumFeeBasis *feeBasis1,
             return ETHEREUM_BOOLEAN_TRUE;
 
         case FEE_BASIS_GAS:
-            return AS_ETHEREUM_BOOLEAN (ETHEREUM_COMPARISON_EQ == gasCompare (feeBasis1->u.gas.limit, feeBasis2->u.gas.limit) &&
-                                        ETHEREUM_COMPARISON_EQ == gasPriceCompare(feeBasis1->u.gas.price, feeBasis2->u.gas.price));
+            return AS_ETHEREUM_BOOLEAN (ETHEREUM_COMPARISON_EQ == ethGasCompare (feeBasis1->u.gas.limit, feeBasis2->u.gas.limit) &&
+                                        ETHEREUM_COMPARISON_EQ == ethGasPriceCompare(feeBasis1->u.gas.price, feeBasis2->u.gas.price));
     }
 }

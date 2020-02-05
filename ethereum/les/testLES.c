@@ -993,8 +993,8 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
 
     BRCoreParseStatus status;
     BREthereumEther amount = etherCreateString("0.001", ETHER, &status);
-    BREthereumGasPrice gasPrice = gasPriceCreate (etherCreateString("5.0", GWEI, &status));
-    BREthereumGas gasLimit = gasCreate(21000);
+    BREthereumGasPrice gasPrice = ethGasPriceCreate (etherCreateString("5.0", GWEI, &status));
+    BREthereumGas gasLimit = ethGasCreate(21000);
 
     uint64_t nonce = 9;
 

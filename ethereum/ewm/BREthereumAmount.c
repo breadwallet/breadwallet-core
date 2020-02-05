@@ -73,7 +73,7 @@ extern BREthereumGas
 amountGetGasEstimate (BREthereumAmount amount) {
     switch (amount.type) {
         case AMOUNT_ETHER:
-            return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
+            return ethGasCreate (DEFAULT_ETHER_GAS_LIMIT);
         case AMOUNT_TOKEN:
             return tokenGetGasLimit (amount.u.tokenQuantity.token);
     }

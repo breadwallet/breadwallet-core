@@ -196,8 +196,8 @@ tokenEncode (BREthereumToken token,
                           rlpEncodeString (coder, token->name),
                           rlpEncodeString (coder, token->description),
                           rlpEncodeUInt64 (coder, token->decimals, 0),
-                          gasRlpEncode (token->gasLimit, coder),
-                          gasPriceRlpEncode (token->gasPrice, coder));
+                          ethGasRlpEncode (token->gasLimit, coder),
+                          ethGasPriceRlpEncode (token->gasPrice, coder));
 }
 
 extern BREthereumToken
@@ -215,8 +215,8 @@ tokenDecode (BRRlpItem item,
     token->name    = rlpDecodeString (coder, items[2]);
     token->description = rlpDecodeString(coder, items[3]);
     token->decimals    = (unsigned int) rlpDecodeUInt64 (coder, items[4], 0);
-    token->gasLimit    = gasRlpDecode (items[5], coder);
-    token->gasPrice    = gasPriceRlpDecode (items[6], coder);
+    token->gasLimit    = ethGasRlpDecode (items[5], coder);
+    token->gasPrice    = ethGasPriceRlpDecode (items[6], coder);
 
     return token;
 }

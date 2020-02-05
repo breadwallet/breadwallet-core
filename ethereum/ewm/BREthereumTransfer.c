@@ -194,7 +194,7 @@ transferCreateDetailed (BREthereumAddress sourceAddress,
     transfer->targetAddress = targetAddress;
     transfer->amount = amount;
     transfer->feeBasis = feeBasis;
-    transfer->gasEstimate = gasCreate(0);
+    transfer->gasEstimate = ethGasCreate(0);
     transfer->originatingTransaction = originatingTransaction;
     transfer->status = TRANSFER_STATUS_CREATED;
 

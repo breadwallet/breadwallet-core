@@ -45,8 +45,8 @@ installTokensForTest (void) {
     if (!needInstall) return;
     needInstall = 0;
     
-    BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-    BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+    BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
     tokens = tokenSetCreate(10);
 
