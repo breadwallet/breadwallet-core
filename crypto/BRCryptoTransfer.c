@@ -315,17 +315,17 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumAmount ethAmount = ewmTransferGetAmount (transfer->u.eth.ewm,
                                                                transfer->u.eth.tid);
-            switch (amountGetType(ethAmount)) {
+            switch (ethAmountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 etherGetValue(amountGetEther(ethAmount), WEI));
+                                                 etherGetValue(ethAmountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
                     amount = cryptoAmountCreate (transfer->unit,
                                                isNegative,
-                                               amountGetTokenQuantity(ethAmount).valueAsInteger);
+                                               ethAmountGetTokenQuantity(ethAmount).valueAsInteger);
                     break;
 
                 default: assert(0);

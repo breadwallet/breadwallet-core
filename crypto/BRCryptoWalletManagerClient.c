@@ -1032,9 +1032,9 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
 
                 // ... and then the 'raw integer' (UInt256) value
-                UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
-                                 ? amountGetEther(amount).valueInWEI
-                                 : amountGetTokenQuantity(amount).valueAsInteger);
+                UInt256 value = (AMOUNT_ETHER == ethAmountGetType(amount)
+                                 ? ethAmountGetEther(amount).valueInWEI
+                                 : ethAmountGetTokenQuantity(amount).valueAsInteger);
 
                 // Create a cryptoAmount in the wallet's unit.
                 BRCryptoAmount cryptoAmount = cryptoAmountCreate (unit, CRYPTO_FALSE, value);

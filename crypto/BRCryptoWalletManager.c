@@ -1091,9 +1091,9 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
 
                 // NOTE: We know ETH has a minimum balance of zero.
 
-                amount = (AMOUNT_ETHER == amountGetType(ethAmount)
-                          ? amountGetEther(ethAmount).valueInWEI
-                          : amountGetTokenQuantity(ethAmount).valueAsInteger);
+                amount = (AMOUNT_ETHER == ethAmountGetType(ethAmount)
+                          ? ethAmountGetEther(ethAmount).valueInWEI
+                          : ethAmountGetTokenQuantity(ethAmount).valueAsInteger);
             }
             break;
         }
@@ -1187,8 +1187,8 @@ cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
 
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
-                                          : amountCreateEther (etherCreate (ethValue)));
+                                          ? ethAmountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
+                                          : ethAmountCreateEther (etherCreate (ethValue)));
 
             ewmWalletEstimateTransferFeeForTransfer (ewm,
                                                      wid,

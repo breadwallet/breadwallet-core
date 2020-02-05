@@ -251,7 +251,7 @@ transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction t
     // Use `transaction` as the `originatingTransaction`; takes ownership
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
-                                                          amountCreateEther (transactionGetAmount(transaction)),
+                                                          ethAmountCreateEther (transactionGetAmount(transaction)),
                                                           feeBasis,
                                                           transaction);
 
@@ -278,7 +278,7 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
     // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
-                                                          amountCreateEther (transactionGetAmount(transaction)),
+                                                          ethAmountCreateEther (transactionGetAmount(transaction)),
                                                           feeBasis,
                                                           NULL);
     // Basis - the transfer now owns the transaction.
@@ -314,7 +314,7 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     UInt256 value = rlpDecodeUInt256(coder, item, 1);
     rlpItemRelease (coder, item);
 
-    BREthereumAmount  amount = amountCreateToken (ethTokenQuantityCreate(token, value));
+    BREthereumAmount  amount = ethAmountCreateToken (ethTokenQuantityCreate(token, value));
 
     // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
@@ -358,8 +358,8 @@ transferGetAmount (BREthereumTransfer transfer) {
 
 extern BREthereumToken
 transferGetToken (BREthereumTransfer transfer) {
-    return (AMOUNT_TOKEN == amountGetType(transfer->amount)
-            ? amountGetToken(transfer->amount)
+    return (AMOUNT_TOKEN == ethAmountGetType(transfer->amount)
+            ? ethAmountGetToken(transfer->amount)
             : NULL);
 }
 
@@ -689,11 +689,11 @@ transferExtractStatusErrorType (BREthereumTransfer transfer,
 
 static char *
 transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
-    switch (amountGetType(transfer->amount)) {
+    switch (ethAmountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return strdup ("");
         case AMOUNT_TOKEN: {
-            UInt256 value = amountGetTokenQuantity(transfer->amount).valueAsInteger;
+            UInt256 value = ethAmountGetTokenQuantity(transfer->amount).valueAsInteger;
             
             char address[ADDRESS_ENCODED_CHARS];
             ethAddressFillEncodedString(transfer->targetAddress, 0, address);
@@ -711,17 +711,17 @@ transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
 
 static BREthereumAddress
 transferProvideOriginatingTransactionTargetAddress (BREthereumTransfer transfer) {
-    switch (amountGetType(transfer->amount)) {
+    switch (ethAmountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return transfer->targetAddress;
         case AMOUNT_TOKEN:
-            return ethTokenGetAddressRaw(amountGetToken(transfer->amount));
+            return ethTokenGetAddressRaw(ethAmountGetToken(transfer->amount));
     }
 }
 
 static BREthereumEther
 transferProvideOriginatingTransactionAmount (BREthereumTransfer transfer) {
-    switch (amountGetType(transfer->amount)) {
+    switch (ethAmountGetType(transfer->amount)) {
         case AMOUNT_ETHER:
             return transfer->amount.u.ether;
         case AMOUNT_TOKEN:

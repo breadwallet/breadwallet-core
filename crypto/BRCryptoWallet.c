@@ -627,8 +627,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             UInt256 ethValue  = cryptoAmountGetValue (amount);
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
-                                          : amountCreateEther (etherCreate (ethValue)));
+                                          ? ethAmountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
+                                          : ethAmountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
             char *addr = cryptoAddressAsString(target); // Target address

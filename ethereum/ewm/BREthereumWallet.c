@@ -141,8 +141,8 @@ walletCreateDetailed (BREthereumAccount account,
     
     wallet->token = optionalToken;
     wallet->balance = (AMOUNT_ETHER == type
-                       ? amountCreateEther(etherCreate(UINT256_ZERO))
-                       : amountCreateToken(ethTokenQuantityCreate (wallet->token, UINT256_ZERO)));
+                       ? ethAmountCreateEther(etherCreate(UINT256_ZERO))
+                       : ethAmountCreateToken(ethTokenQuantityCreate (wallet->token, UINT256_ZERO)));
     
     wallet->defaultGasLimit = AMOUNT_ETHER == type
     ? walletCreateDefaultGasLimit(wallet)
@@ -207,7 +207,7 @@ walletEstimateTransferFee (BREthereumWallet wallet,
     return walletEstimateTransferFeeDetailed (wallet,
                                               amount,
                                               wallet->defaultGasPrice,
-                                              amountGetGasEstimate(amount),
+                                              ethAmountGetGasEstimate(amount),
                                               overflow);
 }
 
@@ -384,10 +384,10 @@ walletUpdateBalance (BREthereumWallet wallet) {
     for (size_t index = 0; index < array_count (wallet->transfers); index++) {
         BREthereumTransfer transfer = wallet->transfers[index];
         BREthereumAmount   amount = transferGetAmount(transfer);
-        assert (amountGetType(wallet->balance) == amountGetType(amount));
-        UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
-                         ? amountGetEther(amount).valueInWEI
-                         : amountGetTokenQuantity(amount).valueAsInteger);
+        assert (ethAmountGetType(wallet->balance) == ethAmountGetType(amount));
+        UInt256 value = (AMOUNT_ETHER == ethAmountGetType(amount)
+                         ? ethAmountGetEther(amount).valueInWEI
+                         : ethAmountGetTokenQuantity(amount).valueAsInteger);
 
         if (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
             sent = uint256Add_Overflow(sent, value, &overflow);
@@ -407,12 +407,12 @@ walletUpdateBalance (BREthereumWallet wallet) {
     // and shouldn't we also ensure that an event is generated (like all calls to
     // walletSetBalance() ensure)?
 
-    if (AMOUNT_ETHER == amountGetType(wallet->balance)) {
+    if (AMOUNT_ETHER == ethAmountGetType(wallet->balance)) {
         balance = uint256Sub_Negative(balance, fees, &negative);
-        wallet->balance = amountCreateEther (etherCreate(balance));
+        wallet->balance = ethAmountCreateEther (etherCreate(balance));
     }
     else
-        wallet->balance = amountCreateToken (ethTokenQuantityCreate(amountGetToken (wallet->balance), balance));
+        wallet->balance = ethAmountCreateToken (ethTokenQuantityCreate(ethAmountGetToken (wallet->balance), balance));
 }
 // Gas Limit
 
@@ -429,7 +429,7 @@ walletSetDefaultGasLimit(BREthereumWallet wallet,
 
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet) {
-    return amountGetGasEstimate(wallet->balance);
+    return ethAmountGetGasEstimate(wallet->balance);
 }
 
 // Gas Price
@@ -447,7 +447,7 @@ walletSetDefaultGasPrice(BREthereumWallet wallet,
 
 static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
-    switch (amountGetType(wallet->balance)) {
+    switch (ethAmountGetType(wallet->balance)) {
         case AMOUNT_ETHER:
             return ethGasPriceCreate(etherCreateNumber
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
@@ -641,11 +641,11 @@ walletStateCreate (const BREthereumWallet wallet) {
 
     if (NULL == token) {
         state->address = FAKE_ETHER_ADDRESS_INIT;
-        state->amount  = etherGetValue (amountGetEther(balance), WEI);
+        state->amount  = etherGetValue (ethAmountGetEther(balance), WEI);
     }
     else {
         state->address = ethTokenGetAddressRaw(token);
-        state->amount  = amountGetTokenQuantity(balance).valueAsInteger;
+        state->amount  = ethAmountGetTokenQuantity(balance).valueAsInteger;
     }
 
     return state;

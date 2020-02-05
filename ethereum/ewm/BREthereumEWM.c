@@ -358,8 +358,8 @@ ewmCreate (BREthereumNetwork network,
 
          // Get the balance
         BREthereumAmount balance = (NULL == token
-                                    ? amountCreateEther (etherCreate (walletStateGetAmount (state)))
-                                    : amountCreateToken (ethTokenQuantityCreate (token, walletStateGetAmount (state))));
+                                    ? ethAmountCreateEther (etherCreate (walletStateGetAmount (state)))
+                                    : ethAmountCreateToken (ethTokenQuantityCreate (token, walletStateGetAmount (state))));
 
         // Finally, update the balance; this will create TOK wallets as required.
         ewmHandleBalance (ewm, balance);
@@ -1686,19 +1686,19 @@ ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
     eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
     ewmHandleAnnounceNonce (ewm, ethAccountGetPrimaryAddress(ewm->account), accountState.nonce, 0);
-    ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
+    ewmSignalBalance(ewm, ethAmountCreateEther(accountState.balance));
 }
 
 extern void
 ewmHandleBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
-    BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
+    BREthereumWallet wallet = (AMOUNT_ETHER == ethAmountGetType(amount)
                                ? ewmGetWallet(ewm)
-                               : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
+                               : ewmGetWalletHoldingToken(ewm, ethAmountGetToken (amount)));
 
     int amountTypeMismatch;
 
-    if (ETHEREUM_COMPARISON_EQ != amountCompare(amount, walletGetBalance(wallet), &amountTypeMismatch)) {
+    if (ETHEREUM_COMPARISON_EQ != ethAmountCompare(amount, walletGetBalance(wallet), &amountTypeMismatch)) {
         walletSetBalance(wallet, amount);
         ewmSignalWalletEvent (ewm,
                               wallet,
@@ -1708,12 +1708,12 @@ ewmHandleBalance (BREthereumEWM ewm,
                               });
 
         {
-            char *amountAsString = (AMOUNT_ETHER == amountGetType(amount)
-                                    ? etherGetValueString (amountGetEther(amount), WEI)
-                                    : ethTokenQuantityGetValueString (amountGetTokenQuantity(amount), TOKEN_QUANTITY_TYPE_INTEGER));
+            char *amountAsString = (AMOUNT_ETHER == ethAmountGetType(amount)
+                                    ? etherGetValueString (ethAmountGetEther(amount), WEI)
+                                    : ethTokenQuantityGetValueString (ethAmountGetTokenQuantity(amount), TOKEN_QUANTITY_TYPE_INTEGER));
             eth_log("EWM", "Balance: %s %s (%s)", amountAsString,
-                    (AMOUNT_ETHER == amountGetType(amount) ? "ETH" : ethTokenGetName(amountGetToken(amount))),
-                    (AMOUNT_ETHER == amountGetType(amount) ? "WEI"    : "INTEGER"));
+                    (AMOUNT_ETHER == ethAmountGetType(amount) ? "ETH" : ethTokenGetName(ethAmountGetToken(amount))),
+                    (AMOUNT_ETHER == ethAmountGetType(amount) ? "WEI"    : "INTEGER"));
             free (amountAsString);
         }
     }
@@ -2533,8 +2533,8 @@ ewmTransferGetAmountEther(BREthereumEWM ewm,
                           BREthereumTransfer transfer,
                           BREthereumEtherUnit unit) {
     BREthereumAmount amount = transferGetAmount(transfer);
-    return (AMOUNT_ETHER == amountGetType(amount)
-            ? etherGetValueString(amountGetEther(amount), unit)
+    return (AMOUNT_ETHER == ethAmountGetType(amount)
+            ? etherGetValueString(ethAmountGetEther(amount), unit)
             : "");
 }
 
@@ -2543,8 +2543,8 @@ ewmTransferGetAmountTokenQuantity(BREthereumEWM ewm,
                                   BREthereumTransfer transfer,
                                   BREthereumTokenQuantityUnit unit) {
     BREthereumAmount amount = transferGetAmount(transfer);
-    return (AMOUNT_TOKEN == amountGetType(amount)
-            ? ethTokenQuantityGetValueString(amountGetTokenQuantity(amount), unit)
+    return (AMOUNT_TOKEN == ethAmountGetType(amount)
+            ? ethTokenQuantityGetValueString(ethAmountGetTokenQuantity(amount), unit)
             : "");
 }
 
@@ -2740,14 +2740,14 @@ ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
                            BREthereumEtherUnit unit,
                            BRCoreParseStatus *status) {
-    return amountCreateEther (etherCreateString(number, unit, status));
+    return ethAmountCreateEther (etherCreateString(number, unit, status));
 }
 
 extern BREthereumAmount
 ewmCreateEtherAmountUnit(BREthereumEWM ewm,
                          uint64_t amountInUnit,
                          BREthereumEtherUnit unit) {
-    return amountCreateEther (etherCreateNumber(amountInUnit, unit));
+    return ethAmountCreateEther (etherCreateNumber(amountInUnit, unit));
 }
 
 extern BREthereumAmount
@@ -2756,7 +2756,7 @@ ewmCreateTokenAmountString(BREthereumEWM ewm,
                            const char *number,
                            BREthereumTokenQuantityUnit unit,
                            BRCoreParseStatus *status) {
-    return amountCreateTokenQuantityString(token, number, unit, status);
+    return ethAmountCreateTokenQuantityString(token, number, unit, status);
 }
 
 extern char *

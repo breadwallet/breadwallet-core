@@ -609,7 +609,7 @@ runEWM_CONNECT_test (const char *paperKey,
 
     balance = ewmWalletGetBalance (ewm, wallet);
     assert (AMOUNT_ETHER == balance.type);
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), etherCreateZero()));
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), etherCreateZero()));
 
     // Immediately dispatches callbacks for WalletManager and Wallet events. Notable, wallet
     // create and a wallet update balance events.
@@ -622,8 +622,8 @@ runEWM_CONNECT_test (const char *paperKey,
     waitForBalance(client.context);
     balance = ewmWalletGetBalance (ewm, wallet);
     assert (AMOUNT_ETHER == balance.type);
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), etherCreateZero()) ||
-            ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), expectedBalance));
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), etherCreateZero()) ||
+            ETHEREUM_BOOLEAN_TRUE == etherIsEQ (ethAmountGetEther(balance), expectedBalance));
 
     ewmConnect(ewm);
 
@@ -637,8 +637,8 @@ runEWM_CONNECT_test (const char *paperKey,
     //    ewmUpdateWalletBalance (ewm, wallet, &status);
 
     balance = ewmWalletGetBalance (ewm, wallet);
-    assert (AMOUNT_ETHER == amountGetType(balance));
-    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+    assert (AMOUNT_ETHER == ethAmountGetType(balance));
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, ethAmountGetEther(balance)));
 
     //    ewmUpdateTransactions(ewm);
 

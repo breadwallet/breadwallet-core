@@ -65,8 +65,8 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
                           UInt256 value,
                           int rid) {
     BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
-                               ? amountCreateEther(etherCreate(value))
-                               : amountCreateToken(ethTokenQuantityCreate(walletGetToken(wallet), value)));
+                               ? ethAmountCreateEther(etherCreate(value))
+                               : ethAmountCreateToken(ethTokenQuantityCreate(walletGetToken(wallet), value)));
 
     ewmSignalBalance(ewm, amount);
 }
@@ -99,7 +99,7 @@ ewmHandleUpdateWalletBalances (BREthereumEWM ewm) {
         walletUpdateBalance (wallet);
         BREthereumAmount newBalance = walletGetBalance (wallet);
 
-        BREthereumComparison comparison = amountCompare (oldBalance, newBalance, &typeMismatch);
+        BREthereumComparison comparison = ethAmountCompare (oldBalance, newBalance, &typeMismatch);
         assert (0 == typeMismatch);
 
         if (ETHEREUM_COMPARISON_EQ != comparison)
