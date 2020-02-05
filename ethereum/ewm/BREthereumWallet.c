@@ -220,8 +220,8 @@ walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
                                    BREthereumGasPrice price,
                                    BREthereumGas gas,
                                    int *overflow) {
-    return etherCreate (mulUInt256_Overflow (price.etherPerGas.valueInWEI,
-                                             createUInt256(gas.amountOfGas),
+    return etherCreate (uint256Mul_Overflow (price.etherPerGas.valueInWEI,
+                                             uint256Create(gas.amountOfGas),
                                              overflow));
 }
 
@@ -390,25 +390,25 @@ walletUpdateBalance (BREthereumWallet wallet) {
                          : amountGetTokenQuantity(amount).valueAsInteger);
 
         if (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
-            sent = addUInt256_Overflow(sent, value, &overflow);
+            sent = uint256Add_Overflow(sent, value, &overflow);
 
             BREthereumEther fee = transferGetFee(transfer, &fee_overflow);
-            fees = addUInt256_Overflow(fees, fee.valueInWEI, &fee_overflow);
+            fees = uint256Add_Overflow(fees, fee.valueInWEI, &fee_overflow);
         }
         else
-            recv = addUInt256_Overflow(recv, value, &overflow);
+            recv = uint256Add_Overflow(recv, value, &overflow);
 
         assert (!overflow);
     }
 
-    UInt256 balance = subUInt256_Negative(recv, sent, &negative);
+    UInt256 balance = uint256Sub_Negative(recv, sent, &negative);
 
     // If we are going to be changing the balance here then 1) shouldn't we call walletSetBalance()
     // and shouldn't we also ensure that an event is generated (like all calls to
     // walletSetBalance() ensure)?
 
     if (AMOUNT_ETHER == amountGetType(wallet->balance)) {
-        balance = subUInt256_Negative(balance, fees, &negative);
+        balance = uint256Sub_Negative(balance, fees, &negative);
         wallet->balance = amountCreateEther (etherCreate(balance));
     }
     else

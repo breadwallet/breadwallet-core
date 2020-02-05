@@ -374,7 +374,7 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     uint32_t rem; int overflow = 0;
 
     // z = P(H)_Hd / 2048
-    UInt256 x = divUInt256_Small(parent->difficulty, 2048, &rem);
+    UInt256 x = uint256Div_Small(parent->difficulty, 2048, &rem);
 
     int64_t sigma_2 = blockHeaderCanonicalDifficulty_GetSigma2 (header->number,
                                                                 header->timestamp,
@@ -392,22 +392,22 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     // epsilon = floor (2 ^ epsilon_exponent)
      UInt256 epsilon = (epsilon_exponent < 0
                         ? UINT256_ZERO
-                        : createUInt256Power2 (epsilon_exponent));
+                        : uint256CreatePower2 (epsilon_exponent));
 
     // D(H) = P(H)d + x * sigma_2 + epsilon
 
-    UInt256 x_sigma = mulUInt256_Small(x, (uint32_t) xbs (sigma_2), &overflow);
+    UInt256 x_sigma = uint256Mul_Small(x, (uint32_t) xbs (sigma_2), &overflow);
     assert (0 == overflow);
 
     UInt256 r = (sigma_2 >= 0
-                 ? addUInt256_Overflow (parent->difficulty, x_sigma, &overflow)
-                 : subUInt256_Negative( parent->difficulty, x_sigma, &overflow));
+                 ? uint256Add_Overflow (parent->difficulty, x_sigma, &overflow)
+                 : uint256Sub_Negative( parent->difficulty, x_sigma, &overflow));
     assert (0 == overflow);
 
-    r = addUInt256_Overflow(r, epsilon, &overflow);
+    r = uint256Add_Overflow(r, epsilon, &overflow);
     assert (0 == overflow);
 
-    return gtUInt256 (r, Dzero) ? r : Dzero;
+    return uint256GT (r, Dzero) ? r : Dzero;
 }
 #endif
 
@@ -449,7 +449,7 @@ blockHeaderValidateDifficulty (BREthereumBlockHeader this,
                                BREthereumBlockHeader parent,
                                size_t parentOmmersCount,
                                BREthereumBlockHeader genesis) {
-    return eqUInt256 (this->difficulty,
+    return uint256EQL (this->difficulty,
                       blockHeaderCanonicalDifficulty (this, parent, parentOmmersCount, genesis));
 }
 #endif
@@ -476,7 +476,7 @@ blockHeaderValidatePoWNFactor (BREthereumBlockHeader this,
     // TODO: Does this account for '='?  What are the odds? (guaranteed to 'hit them')
 
     int overflow = 0;
-    mulUInt256_Overflow (powNFactor, this->difficulty, &overflow);
+    uint256Mul_Overflow (powNFactor, this->difficulty, &overflow);
     return 0 == overflow; /* || result == 2^256 */
 }
 
@@ -863,7 +863,7 @@ blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block) {
 
         // Note: on overflow the return value is UINT256_ZERO
         block->totalDifficulty = (NULL != block->next
-                                  ? addUInt256_Overflow (blockGetDifficulty (block),
+                                  ? uint256Add_Overflow (blockGetDifficulty (block),
                                                          blockRecursivelyPropagateTotalDifficulty (block->next),
                                                          &overflow)
                                   : UINT256_ZERO);
@@ -1529,7 +1529,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x400000000);
+    header->difficulty = uint256Create (0x400000000);
     header->number = 0x0;
     header->gasLimit = 0x1388;
     header->gasUsed = 0x0;
@@ -1572,7 +1572,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x100000);
+    header->difficulty = uint256Create (0x100000);
     header->number = 0x0;
     header->gasLimit = 0x1000000;
     header->gasUsed = 0x0;
@@ -1615,7 +1615,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x1);
+    header->difficulty = uint256Create (0x1);
     header->number = 0x0;
     header->gasLimit = 0x47b760;
     header->gasUsed = 0x0;
@@ -1667,19 +1667,19 @@ static void blockCheckpointInitialize (void) {
 
         for (size_t index = 0; index < CHECKPOINT_MAINNET_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumMainnetCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
 
         for (size_t index = 0; index < CHECKPOINT_TESTNET_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumTestnetCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
 
         for (size_t index = 0; index < CHECKPOINT_RINKEBY_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumRinkebyCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
     }

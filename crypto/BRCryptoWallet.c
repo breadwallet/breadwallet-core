@@ -154,7 +154,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = wallet->u.btc.wid;
 
-            UInt256 value = createUInt256 (BRWalletBalance (wid));
+            UInt256 value = uint256Create (BRWalletBalance (wid));
             BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
@@ -179,10 +179,10 @@ extern BRCryptoAmount /* nullable */
 cryptoWalletGetBalanceMinimum (BRCryptoWallet wallet) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, uint256Create(0));
 
         case BLOCK_CHAIN_TYPE_ETH:
-            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, uint256Create(0));
 
         case BLOCK_CHAIN_TYPE_GEN: {
             BRCryptoBoolean hasLimit = 0;
@@ -801,7 +801,7 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
 
             // Expect all other fields in `value` to be zero
             value.u32[0] = 0;
-            if (!eqUInt256 (value, UINT256_ZERO)) return NULL;
+            if (!uint256EQL (value, UINT256_ZERO)) return NULL;
 
             uint32_t sizeInBytes = (uint32_t) (1000 * costFactor);
 
@@ -1037,7 +1037,7 @@ cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper) {
 
     switch (sweeper->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
-            UInt256 value = createUInt256 (BRWalletSweeperGetBalance (sweeper->u.btc.sweeper));
+            UInt256 value = uint256Create (BRWalletSweeperGetBalance (sweeper->u.btc.sweeper));
             amount = cryptoAmountCreate (sweeper->unit, CRYPTO_FALSE, value);
             break;
         }

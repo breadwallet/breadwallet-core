@@ -38,8 +38,8 @@ feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBool
             return etherCreateZero();
 
         case FEE_BASIS_GAS:
-            return etherCreate (mulUInt256_Overflow (feeBasis.u.gas.price.etherPerGas.valueInWEI,
-                                                     createUInt256 (feeBasis.u.gas.limit.amountOfGas),
+            return etherCreate (uint256Mul_Overflow (feeBasis.u.gas.price.etherPerGas.valueInWEI,
+                                                     uint256Create (feeBasis.u.gas.limit.amountOfGas),
                                                      overflow));
     }
 }

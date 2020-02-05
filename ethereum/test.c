@@ -265,7 +265,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BRCoreParseStatus status;
     BREthereumToken token = tokenLookupTest (tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
-    UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
+    UInt256 value = uint256CreateParse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
     
     walletSetDefaultGasLimit(wallet, gasCreate(TEST_TRANS3_GAS_LIMIT));
@@ -368,8 +368,8 @@ void testTransactionCodingEther () {
     BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
 
     BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
-    BREthereumAmount txAmount = amountCreateEther(etherCreate(createUInt256(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
+    BREthereumAmount txAmount = amountCreateEther(etherCreate(uint256Create(NODE_ETHER_AMOUNT)));
+    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);
@@ -447,8 +447,8 @@ void testTransactionCodingToken () {
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 
     BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
-    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, createUInt256(NODE_ETHER_AMOUNT)));
-    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
+    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, uint256Create(NODE_ETHER_AMOUNT)));
+    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(uint256Create(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
 
     walletSetDefaultGasPrice(wallet, txGasPrice);

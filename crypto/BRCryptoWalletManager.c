@@ -608,7 +608,7 @@ cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm) {
                     const char *address = cryptoCurrencyGetIssuer(c);
                     if (NULL != address) {
                         BREthereumGas      ethGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-                        BREthereumGasPrice ethGasPrice = gasPriceCreate(etherCreate(createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
+                        BREthereumGasPrice ethGasPrice = gasPriceCreate(etherCreate(uint256Create(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
 
                         // This has the perhaps surprising side-effect of updating the properties
                         // of an existing token.  That is, `address` is used to locate a token and
@@ -1073,7 +1073,7 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             if (amountInSAT + fee > balance)
                 amountInSAT = 0;
 
-            amount = createUInt256(amountInSAT);
+            amount = uint256Create(amountInSAT);
             break;
         }
 
@@ -1085,7 +1085,7 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             *needEstimate = CRYPTO_TRUE;
 
             if (CRYPTO_FALSE == asMaximum)
-                amount = createUInt256(0);
+                amount = uint256Create(0);
             else {
                 BREthereumAmount ethAmount = ewmWalletGetBalance (ewm, wid);
 
@@ -1103,7 +1103,7 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
             *needEstimate = CRYPTO_FALSE;
 
             if (CRYPTO_FALSE == asMaximum)
-                amount = createUInt256(0);
+                amount = uint256Create(0);
             else {
                 int negative = 0, overflow = 0;
 
@@ -1116,7 +1116,7 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
                 UInt256 balanceMinimum = genWalletGetBalanceLimit (wallet->u.gen, CRYPTO_FALSE, &hasMinimum);
 
                 if (CRYPTO_TRUE == hasMinimum) {
-                    balance = subUInt256_Negative(balance, balanceMinimum, &negative);
+                    balance = uint256Sub_Negative(balance, balanceMinimum, &negative);
                     if (negative) balance = UINT256_ZERO;
                 }
 
@@ -1134,7 +1134,7 @@ cryptoWalletManagerEstimateLimit (BRCryptoWalletManager cwm,
                 UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
                 assert (!overflow);
 
-                amount = subUInt256_Negative (balance, fee, &negative);
+                amount = uint256Sub_Negative (balance, fee, &negative);
                 if (negative) amount = UINT256_ZERO;
 
                 genAddressRelease(address);
@@ -1208,7 +1208,7 @@ cryptoWalletManagerEstimateFeeBasis (BRCryptoWalletManager cwm,
             BRGenericAddress genAddress = cryptoAddressAsGEN (target);
 
             UInt256 genValue = cryptoAmountGetValue(amount);
-            UInt256 genPricePerCostFactor = createUInt256 (cryptoNetworkFeeAsGEN(fee));
+            UInt256 genPricePerCostFactor = uint256Create (cryptoNetworkFeeAsGEN(fee));
 
             BRGenericFeeBasis genFeeBasis = genWalletEstimateTransferFee (genWallet,
                                                                           genAddress,

@@ -598,7 +598,7 @@ rlpDecodeUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
 //
 extern BRRlpItem
 rlpEncodeUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString) {
-    return (1 == zeroAsEmptyString && 0 == compareUInt256 (value, UINT256_ZERO)
+    return (1 == zeroAsEmptyString && 0 == uint256Compare (value, UINT256_ZERO)
             ? rlpEncodeString(coder, "")
             : coderEncodeUInt256(coder, value));
 }

@@ -593,7 +593,7 @@ runEWM_CONNECT_test (const char *paperKey,
     client.context = testContextCreate();
 
     BREthereumAmount balance;
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    BREthereumEther expectedBalance = etherCreate(uint256CreateParse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status);
 
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,

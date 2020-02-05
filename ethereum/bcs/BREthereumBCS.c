@@ -859,9 +859,9 @@ bcsSelectPreferredBlock (BREthereumBCS bcs,
     BREthereumBlockHeader header1 = blockGetHeader(block1);
     BREthereumBlockHeader header2 = blockGetHeader(block2);
 
-    return (gtUInt256 (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
+    return (uint256GT (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
             ? block1
-            : (ltUInt256 (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
+            : (uint256LT (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
                ? block2
                : (blockHeaderGetTimestamp(header1) <= blockHeaderGetTimestamp(header2)
                   ? block1
@@ -1631,7 +1631,7 @@ bcsHandleBlockProof (BREthereumBCS bcs,
     // the point of CHT handling, maybe we won't
     //
     // We really, really need to find the block and mark the block.  Can be multiple blocks...
-    if (1 == eqUInt256 (proof.totalDifficulty, UINT256_ZERO)) {
+    if (1 == uint256EQL (proof.totalDifficulty, UINT256_ZERO)) {
         eth_log ("BCS", "Block %" PRIu64 " Proof Failed", number);
         return;
     }
@@ -1651,11 +1651,11 @@ bcsHandleBlockProof (BREthereumBCS bcs,
     // logs, etc) are complete and then process
 
     // If block has no totalDifficulty, assign it...
-    if (1 == eqUInt256 (blockGetTotalDifficulty (block), UINT256_ZERO))
+    if (1 == uint256EQL (blockGetTotalDifficulty (block), UINT256_ZERO))
         blockSetTotalDifficulty (block, proof.totalDifficulty);
 
     // ... otherwise, if the difficulties do not match
-    else if (0 == eqUInt256 (blockGetTotalDifficulty (block), proof.totalDifficulty)) {
+    else if (0 == uint256EQL (blockGetTotalDifficulty (block), proof.totalDifficulty)) {
         // TODO: This SHOULD indicate a problem...
         eth_log ("BCS", "Block %" PRIu64 " Overwrite Difficulty (Proof)", number);
         blockSetTotalDifficulty (block, proof.totalDifficulty);

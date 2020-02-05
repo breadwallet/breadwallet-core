@@ -187,7 +187,7 @@ static void _initBlockHeaderTestData(void){
     //Block Number: 4732524
     _blockHeaderTestData[0].hash = hashCreate("0x3a510c07862ebce419a14bfcd95620f924d188a935654c5ad0f4d5d7ee429193");
     _blockHeaderTestData[0].blockNum = 4732524;
-    _blockHeaderTestData[0].difficulty = createUInt256(1645417372907632);
+    _blockHeaderTestData[0].difficulty = uint256Create(1645417372907632);
     _blockHeaderTestData[0].gasUsed = 7996865;
     _blockHeaderTestData[0].parent = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[0].transactionCount = 331;
@@ -196,7 +196,7 @@ static void _initBlockHeaderTestData(void){
     //Block Number: 4732523
     _blockHeaderTestData[1].hash = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[1].blockNum = 4732523;
-    _blockHeaderTestData[1].difficulty = createUInt256(1645417372874864);
+    _blockHeaderTestData[1].difficulty = uint256Create(1645417372874864);
     _blockHeaderTestData[1].gasUsed = 7998505;
     _blockHeaderTestData[1].parent = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[1].transactionCount = 193;
@@ -205,7 +205,7 @@ static void _initBlockHeaderTestData(void){
     //Block Number: 4732522
     _blockHeaderTestData[2].hash = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[2].blockNum = 4732522;
-    _blockHeaderTestData[2].difficulty = createUInt256(1646221191783396);
+    _blockHeaderTestData[2].difficulty = uint256Create(1646221191783396);
     _blockHeaderTestData[2].gasUsed = 8003540;
     _blockHeaderTestData[2].parent = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[2].transactionCount = 186;
@@ -215,7 +215,7 @@ static void _initBlockHeaderTestData(void){
     //Block Number: 4732521
     _blockHeaderTestData[3].hash = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[3].blockNum = 4732521;
-    _blockHeaderTestData[3].difficulty = createUInt256(1647025403373368);
+    _blockHeaderTestData[3].difficulty = uint256Create(1647025403373368);
     _blockHeaderTestData[3].gasUsed = 7996801;
     _blockHeaderTestData[3].parent = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[3].transactionCount = 316;
@@ -225,7 +225,7 @@ static void _initBlockHeaderTestData(void){
     //Block Number: 4732520
     _blockHeaderTestData[4].hash = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[4].blockNum = 4732520;
-    _blockHeaderTestData[4].difficulty = createUInt256(1647830007836613);
+    _blockHeaderTestData[4].difficulty = uint256Create(1647830007836613);
     _blockHeaderTestData[4].gasUsed = 7986707;
     _blockHeaderTestData[4].parent = hashCreate("0xe8f5d7cd81ad8ae3a677f6df6d87438ee5c98ead11f8df1b90b788f059a7deab");
     _blockHeaderTestData[4].transactionCount = 169;
@@ -426,7 +426,7 @@ void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
     if (*context1 == _GetBlockProofs_Context1) {  // 6000000
         BRCoreParseStatus status;
         assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(hash, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"))));
-        assert (UInt256Eq (totalDifficulty, createUInt256Parse ("5484495551037046114587", 0, &status)));
+        assert (UInt256Eq (totalDifficulty, uint256CreateParse ("5484495551037046114587", 0, &status)));
     }
 
     //    assert(context1 == &_GetBlockHeaders_Context1); //Check to make sure the context is correct
@@ -1180,7 +1180,7 @@ runLESTests (const char *paperKey) {
     BREthereumHash headHash = hashCreate(headHashStr);
     
     uint64_t headNumber = 0;
-    UInt256 headTD = createUInt256 (0x400000000);
+    UInt256 headTD = uint256Create (0x400000000);
     
     BREthereumHash genesisHash = hashCreate(headHashStr);
     

@@ -113,7 +113,7 @@ void runRlpEncodeTest () {
 
     BRCoreParseStatus status = CORE_PARSE_OK;
     char *value = "5968770000000000000000";
-    UInt256 r = createUInt256Parse(value, 10, &status);
+    UInt256 r = uint256CreateParse(value, 10, &status);
     BRRlpItem item = rlpEncodeUInt256(coder, r, 0);
     BRRlpData data = rlpGetData(coder, item);
     rlpReleaseItem(coder, item);

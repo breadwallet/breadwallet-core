@@ -338,7 +338,7 @@ messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
     hashFillString (message->headHash, headHashString);
     hashFillString (message->genesisHash, genesisHashString);
 
-    char *headTotalDifficulty = coerceString (message->headTd, 10);
+    char *headTotalDifficulty = uint256CoerceString (message->headTd, 10);
 
     BREthereumP2PMessageStatusValue value;
 

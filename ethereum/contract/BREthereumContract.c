@@ -172,7 +172,7 @@ private_extern UInt256
 eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
                                  const char *number,
                                  BRCoreParseStatus *status) {
-    return createUInt256Parse(number, 16, status);
+    return uint256CreateParse(number, 16, status);
 }
 
 extern const char *
@@ -339,7 +339,7 @@ functionERC20TransferDecodeAmount (BREthereumContractFunction function,
     assert (function == functionERC20Transfer);
     // Second argument - skip selector + 1st argument
     data = &data [strlen(function->selector) + 1 * 64];
-    return createUInt256Parse(data, 16, status);
+    return uint256CreateParse(data, 16, status);
 }
 
 private_extern char *

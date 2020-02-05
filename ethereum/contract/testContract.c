@@ -94,7 +94,7 @@ installTokensForTest (void) {
 static void
 runTokenParseTests () {
     BRCoreParseStatus status = CORE_PARSE_OK;
-    UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
+    UInt256 value = uint256CreateParse ("5968770000000000000000", 10, &status);
 
     //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
     //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
@@ -104,10 +104,10 @@ runTokenParseTests () {
     address = addressCreate (tokenBRDAddress);
     BREthereumToken token = BRSetGet (tokens, &address);
     BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
-    assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
+    assert (CORE_PARSE_OK == status && uint256EQL(value, valueInt.valueAsInteger));
 
     BREthereumTokenQuantity valueDec = createTokenQuantityString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
-    assert (CORE_PARSE_OK == status && eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
+    assert (CORE_PARSE_OK == status && uint256EQL(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 
 void runTokenLookupTests () {

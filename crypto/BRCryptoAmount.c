@@ -61,7 +61,7 @@ cryptoAmountCreateUInt256 (UInt256 v,
     uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
 
     if (0 != decimals)
-        v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
+        v = uint256Mul_Overflow (v, uint256CreatePower(decimals, &powOverflow), &mulOverflow);
 
     return (powOverflow || mulOverflow ? NULL
             : cryptoAmountCreateInternal (unit, isNegative, v, 1));
@@ -71,7 +71,7 @@ extern BRCryptoAmount
 cryptoAmountCreateDouble (double value,
                           BRCryptoUnit unit) {
     int overflow;
-    UInt256 valueAsUInt256 = createUInt256Double (value, cryptoUnitGetBaseDecimalOffset (unit), &overflow);
+    UInt256 valueAsUInt256 = uint256CreateDouble (value, cryptoUnitGetBaseDecimalOffset (unit), &overflow);
 
     return (overflow
             ? NULL
@@ -85,7 +85,7 @@ extern BRCryptoAmount
 cryptoAmountCreateInteger (int64_t value,
                            BRCryptoUnit unit) {
 
-    UInt256 v = createUInt256 (value < 0 ? -value : value);
+    UInt256 v = uint256Create (value < 0 ? -value : value);
     return cryptoAmountCreateUInt256 (v, (value < 0 ? CRYPTO_TRUE : CRYPTO_FALSE), unit);
 }
 
@@ -97,11 +97,11 @@ cryptoAmountCreateString (const char *value,
     BRCoreParseStatus status;
 
     // Try to parse as an integer
-    v = createUInt256Parse (value, 0, &status);
+    v = uint256CreateParse (value, 0, &status);
 
     // if that fails, try to parse as a decimal
     if (CORE_PARSE_OK != status) {
-        v = createUInt256ParseDecimal (value, cryptoUnitGetBaseDecimalOffset (unit), &status);
+        v = uint256CreateParseDecimal (value, cryptoUnitGetBaseDecimalOffset (unit), &status);
         unit = cryptoUnitGetBaseUnit(unit);
         cryptoUnitGive(unit);
     }
@@ -146,12 +146,12 @@ cryptoAmountIsCompatible (BRCryptoAmount a1,
 
 extern BRCryptoBoolean
 cryptoAmountIsZero (BRCryptoAmount amount) {
-    return AS_CRYPTO_BOOLEAN (eqUInt256 (amount->value, UINT256_ZERO));
+    return AS_CRYPTO_BOOLEAN (uint256EQL (amount->value, UINT256_ZERO));
 }
 
 static BRCryptoComparison
 cryptoCompareUInt256 (UInt256 v1, UInt256 v2) {
-    switch (compareUInt256 (v1, v2)) {
+    switch (uint256Compare (v1, v2)) {
         case -1: return CRYPTO_COMPARE_LT;
         case  0: return CRYPTO_COMPARE_EQ;
         case +1: return CRYPTO_COMPARE_GT;
@@ -186,21 +186,21 @@ cryptoAmountAdd (BRCryptoAmount a1,
 
     if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE != a2->isNegative) {
         // (-x) + y = (y - x)
-        UInt256 value = subUInt256_Negative (a2->value, a1->value, &negative);
+        UInt256 value = uint256Sub_Negative (a2->value, a1->value, &negative);
         return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
     else if (CRYPTO_TRUE != a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // x + (-y) = x - y
-        UInt256 value = subUInt256_Negative (a1->value, a2->value, &negative);
+        UInt256 value = uint256Sub_Negative (a1->value, a2->value, &negative);
         return cryptoAmountCreate(a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
     else if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // (-x) + (-y) = - (x + y)
-        UInt256 value = addUInt256_Overflow (a2->value, a1->value, &overflow);
+        UInt256 value = uint256Add_Overflow (a2->value, a1->value, &overflow);
         return overflow ? NULL :  cryptoAmountCreate (a1->unit, CRYPTO_TRUE, value);
     }
     else {
-        UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
+        UInt256 value = uint256Add_Overflow (a1->value, a2->value, &overflow);
         return overflow ? NULL :  cryptoAmountCreate (a1->unit, CRYPTO_FALSE, value);
     }
 }
@@ -215,21 +215,21 @@ cryptoAmountSub (BRCryptoAmount a1,
 
     if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE != a2->isNegative) {
         // (-x) - y = - (x + y)
-        UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
+        UInt256 value = uint256Add_Overflow (a1->value, a2->value, &overflow);
         return overflow ? NULL : cryptoAmountCreate (a1->unit, CRYPTO_TRUE, value);
     }
     else if (CRYPTO_TRUE != a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // x - (-y) = x + y
-        UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
+        UInt256 value = uint256Add_Overflow (a1->value, a2->value, &overflow);
         return overflow ? NULL : cryptoAmountCreate(a1->unit, CRYPTO_FALSE, value);
     }
     else if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // (-x) - (-y) = y - x
-        UInt256 value = subUInt256_Negative (a2->value, a1->value, &negative);
+        UInt256 value = uint256Sub_Negative (a2->value, a1->value, &negative);
         return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
     else {
-        UInt256 value = subUInt256_Negative (a1->value, a2->value, &negative);
+        UInt256 value = uint256Sub_Negative (a1->value, a2->value, &negative);
         return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
 }
@@ -255,7 +255,7 @@ cryptoAmountGetDouble (BRCryptoAmount amount,
                        BRCryptoBoolean *overflow) {
     assert (NULL != overflow);
     long double power  = powl (10.0, cryptoUnitGetBaseDecimalOffset(unit));
-    long double result = coerceDouble (amount->value, (int*) overflow) / power;
+    long double result = uint256CoerceDouble (amount->value, (int*) overflow) / power;
     return (CRYPTO_TRUE == amount->isNegative ? -result : result);
 }
 
@@ -272,7 +272,7 @@ extern char *
 cryptoAmountGetStringPrefaced (BRCryptoAmount amount,
                                int base,
                                const char *preface) {
-    return coerceStringPrefaced (amount->value, base, preface);
+    return uint256CoerceStringPrefaced (amount->value, base, preface);
 }
 
 extern UInt256

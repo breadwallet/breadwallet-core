@@ -555,7 +555,7 @@ nodeGetLocalEndpoint (BREthereumNode node) {
 static BREthereumComparison
 nodeNeighborCompare (BREthereumNode n1,
                      BREthereumNode n2) {
-    switch (compareUInt256 (n1->distance, n2->distance)) {
+    switch (uint256Compare (n1->distance, n2->distance)) {
         case -1: return ETHEREUM_COMPARISON_LT;
         case  0: return ETHEREUM_COMPARISON_EQ;
         case +1: return ETHEREUM_COMPARISON_GT;

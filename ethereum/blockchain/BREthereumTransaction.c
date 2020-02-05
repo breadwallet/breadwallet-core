@@ -627,7 +627,7 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
     char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
     char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
 
-    BREthereumEther totalEth = etherCreate(addUInt256_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
+    BREthereumEther totalEth = etherCreate(uint256Add_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
     char *total  = etherGetValueString (totalEth, ETHER);
     char *totalWEI = etherGetValueString (totalEth, WEI);
 
@@ -649,7 +649,7 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
         BRCoreParseStatus status;
         UInt256 funcAmount = functionERC20TransferDecodeAmount(function, transaction->data, &status);
         char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
-        char *funcAmt    = coerceString(funcAmount, 10);
+        char *funcAmt    = uint256CoerceString(funcAmount, 10);
 
         // BREthereumToken token = tokenLookup(target);
 

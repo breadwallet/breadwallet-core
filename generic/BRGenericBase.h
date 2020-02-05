@@ -45,12 +45,12 @@ extern "C" {
 
     static inline int
     genericHashEqual (BRGenericHash gen1, BRGenericHash gen2) {
-        return eqUInt256 (gen1.value, gen2.value);
+        return uint256EQL (gen1.value, gen2.value);
     }
 
     static inline int
     genericHashIsEmpty (BRGenericHash gen) {
-        return eqUInt256 (gen.value, UINT256_ZERO);
+        return uint256EQL (gen.value, UINT256_ZERO);
     }
 
     static inline char *
@@ -93,7 +93,7 @@ extern "C" {
         double rem;
         int negative;
 
-        return mulUInt256_Double (feeBasis->pricePerCostFactor,
+        return uint256Mul_Double (feeBasis->pricePerCostFactor,
                                   feeBasis->costFactor,
                                   overflow,
                                   &negative,
@@ -102,7 +102,7 @@ extern "C" {
 
     static inline int genFeeBasisIsEqual (const BRGenericFeeBasis *fb1,
                                           const BRGenericFeeBasis *fb2) {
-        return (eqUInt256 (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
+        return (uint256EQL (fb1->pricePerCostFactor, fb2->pricePerCostFactor) &&
                 fb1->costFactor == fb2->costFactor);
     }
 

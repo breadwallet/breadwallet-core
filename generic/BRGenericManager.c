@@ -151,12 +151,12 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
 
-    char *strAmount = coerceString (amount, 10);
+    char *strAmount = uint256CoerceString (amount, 10);
 
     int overflow = 0;
     UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
     assert (!overflow);
-    char *strFee = coerceString (fee,    10);
+    char *strFee = uint256CoerceString (fee,    10);
 
     uint64_t timestamp = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
                           ? state.u.included.timestamp

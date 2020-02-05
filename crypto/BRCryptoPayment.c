@@ -403,7 +403,7 @@ cryptoPaymentProtocolRequestGetTotalAmount (BRCryptoPaymentProtocolRequest proto
             }
 
             BRCryptoUnit baseUnit = cryptoNetworkGetUnitAsBase (protoReq->cryptoNetwork, protoReq->cryptoCurrency);
-            amount = cryptoAmountCreate (baseUnit, CRYPTO_FALSE, createUInt256 (satoshis));
+            amount = cryptoAmountCreate (baseUnit, CRYPTO_FALSE, uint256Create (satoshis));
             cryptoUnitGive (baseUnit);
             break;
         }

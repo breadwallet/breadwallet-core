@@ -292,19 +292,19 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                 case CRYPTO_TRANSFER_RECOVERED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(send));
+                                                 uint256Create(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(send - fee - recv));
+                                                 uint256Create(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(recv));
+                                                 uint256Create(recv));
                     break;
 
                 default: assert(0);
@@ -466,11 +466,11 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
                 case CRYPTO_TRANSFER_RECOVERED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               createUInt256(fee));
+                                               uint256Create(fee));
                 case CRYPTO_TRANSFER_SENT:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               createUInt256(fee));
+                                               uint256Create(fee));
                 case CRYPTO_TRANSFER_RECEIVED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,

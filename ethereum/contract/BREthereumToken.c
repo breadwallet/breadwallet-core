@@ -243,14 +243,14 @@ createTokenQuantityString(BREthereumToken token,
                           BRCoreParseStatus *status) {
     UInt256 valueAsInteger;
 
-    if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != parseIsDecimal(number))
-        || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != parseIsInteger(number))) {
+    if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != stringParseIsDecimal(number))
+        || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != stringParseIsInteger(number))) {
         *status = CORE_PARSE_STRANGE_DIGITS;
         valueAsInteger = UINT256_ZERO;
     } else {
         valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
-                          ? createUInt256ParseDecimal(number, token->decimals, status)
-                          : createUInt256Parse(number, 10, status));
+                          ? uint256CreateParseDecimal(number, token->decimals, status)
+                          : uint256CreateParse(number, 10, status));
     }
 
     return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
@@ -265,15 +265,15 @@ extern char *
 tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
                             BREthereumTokenQuantityUnit unit) {
     return TOKEN_QUANTITY_TYPE_INTEGER == unit
-           ? coerceString(quantity.valueAsInteger, 10)
-           : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
+           ? uint256CoerceString(quantity.valueAsInteger, 10)
+           : uint256CoerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }
 
 extern BREthereumComparison
 tokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch) {
     *typeMismatch = (q1.token != q2.token);
     if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
-    switch (compareUInt256(q1.valueAsInteger, q2.valueAsInteger)) {
+    switch (uint256Compare(q1.valueAsInteger, q2.valueAsInteger)) {
         case -1:
             return ETHEREUM_COMPARISON_LT;
         case 0:

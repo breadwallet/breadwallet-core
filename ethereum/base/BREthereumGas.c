@@ -59,7 +59,7 @@ extern BREthereumEther
 gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow) {
     assert (NULL != overflow);
     
-    return etherCreate (mulUInt256_Overflow (createUInt256(gas.amountOfGas), // gas
+    return etherCreate (uint256Mul_Overflow (uint256Create(gas.amountOfGas), // gas
                                              price.etherPerGas.valueInWEI,   // WEI/gas
                                              overflow));
 }

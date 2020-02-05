@@ -17,13 +17,13 @@
 #define AS_UINT64(x)  ((uint64_t) (x))
 
 extern UInt256
-createUInt256 (uint64_t value) {
+uint256Create (uint64_t value) {
     UInt256 result = { .u64 = { value, 0, 0, 0}};
     return result;
 }
 
 extern UInt256
-createUInt256Double (double value, int decimals, int *overflow) {
+uint256CreateDouble (double value, int decimals, int *overflow) {
     assert (NULL != overflow);
 
     UInt256 result = UINT256_ZERO;
@@ -39,13 +39,13 @@ createUInt256Double (double value, int decimals, int *overflow) {
 }
 
 extern UInt256
-createUInt256Power (uint8_t digits, int *overflow) {
+uint256CreatePower (uint8_t digits, int *overflow) {
     if (digits < 20) {    // 10^19 fits in uint64_t
         uint64_t value = 1;
         while (digits-- > 0)
             value *= 10;      // slowest possible integer algorithm... still fast enough.
         *overflow = 0;
-        return createUInt256(value);
+        return uint256Create(value);
     }
     else {
         *overflow = 1;
@@ -54,7 +54,7 @@ createUInt256Power (uint8_t digits, int *overflow) {
 }
 
 extern UInt256
-createUInt256Power2 (uint8_t power) {  // always power < 256, as it must be.
+uint256CreatePower2 (uint8_t power) {  // always power < 256, as it must be.
     uint8_t word  = power / 64;
     uint8_t shift = power % 64;
 
@@ -65,7 +65,7 @@ createUInt256Power2 (uint8_t power) {  // always power < 256, as it must be.
 }
 
 extern UInt256
-addUInt256_Overflow (const UInt256 y, const UInt256 x, int *overflow) {
+uint256Add_Overflow (const UInt256 y, const UInt256 x, int *overflow) {
     assert (overflow != NULL);
     
     UInt256 z = UINT256_ZERO;
@@ -88,7 +88,7 @@ addUInt256_Overflow (const UInt256 y, const UInt256 x, int *overflow) {
 }
 
 extern UInt512
-addUInt256 (UInt256 x, UInt256 y) {
+uint256Add (UInt256 x, UInt256 y) {
     UInt512 z = UINT512_ZERO;
     unsigned int count = sizeof (UInt256) / sizeof(uint32_t);
     
@@ -106,7 +106,7 @@ addUInt256 (UInt256 x, UInt256 y) {
 }
 
 static UInt256
-subUInt256_x_gt_y (UInt256 x, UInt256 y) {
+uint256Sub_x_gt_y (UInt256 x, UInt256 y) {
     UInt256 z = UINT256_ZERO;
     unsigned int count = sizeof (UInt256) / sizeof(uint32_t);
     
@@ -127,25 +127,25 @@ subUInt256_x_gt_y (UInt256 x, UInt256 y) {
 }
 
 extern UInt256
-subUInt256_Negative (UInt256 x, UInt256 y, int *negative) {
+uint256Sub_Negative (UInt256 x, UInt256 y, int *negative) {
     assert (negative != NULL);
-    if (eqUInt256(x, y)) {
+    if (uint256EQL(x, y)) {
         *negative = 0;
         return UINT256_ZERO;
     }
-    else if (gtUInt256(x, y)) {
+    else if (uint256GT(x, y)) {
         *negative = 0;
-        return subUInt256_x_gt_y(x, y);
+        return uint256Sub_x_gt_y(x, y);
     }
     else {
         *negative = 1;
-        return subUInt256_x_gt_y(y, x);
+        return uint256Sub_x_gt_y(y, x);
     }
 }
 
 
 extern UInt512
-mulUInt256 (const UInt256 x, const UInt256 y) {
+uint256Mul (const UInt256 x, const UInt256 y) {
     //  assert (__LITTLE_ENDIAN__ == BYTE_ORDER);
     UInt512 z = UINT512_ZERO;
     
@@ -169,17 +169,17 @@ mulUInt256 (const UInt256 x, const UInt256 y) {
 }
 
 extern UInt256
-mulUInt256_Overflow (UInt256 x, UInt256 y, int *overflow) {
-    return coerceUInt256 (mulUInt256 (x, y), overflow);
+uint256Mul_Overflow (UInt256 x, UInt256 y, int *overflow) {
+    return uint256Coerce (uint256Mul (x, y), overflow);
 }
 
 extern UInt256
-mulUInt256_Small (UInt256 x, uint32_t y, int *overflow) {
-    return mulUInt256_Overflow(x, createUInt256 (y), overflow);
+uint256Mul_Small (UInt256 x, uint32_t y, int *overflow) {
+    return uint256Mul_Overflow(x, uint256Create (y), overflow);
 }
 
 extern UInt256
-mulUInt256_Double (UInt256 x, double y, int *overflow, int *negative, double *rem) {
+uint256Mul_Double (UInt256 x, double y, int *overflow, int *negative, double *rem) {
     assert (NULL != overflow && NULL != negative);
 
     *negative = (y < 0.0);
@@ -237,7 +237,7 @@ mulUInt256_Double (UInt256 x, double y, int *overflow, int *negative, double *re
 }
 
 extern UInt256
-divUInt256_Small (UInt256 x, uint32_t y, uint32_t *rem) {
+uint256Div_Small (UInt256 x, uint32_t y, uint32_t *rem) {
     assert (NULL != rem);
     UInt256 z = UINT256_ZERO;
     uint64_t remainder = 0;
@@ -259,7 +259,7 @@ tooBigUInt256 (UInt512 x) {
 }
 
 extern UInt256
-coerceUInt256 (UInt512  x, int *overflow) {
+uint256Coerce (UInt512  x, int *overflow) {
     assert (NULL != overflow);
     
     *overflow = tooBigUInt256(x);
@@ -274,16 +274,16 @@ coerceUInt256 (UInt512  x, int *overflow) {
 }
 
 extern int
-compareUInt256 (UInt256 x, UInt256 y) {
-    return (eqUInt256(x, y)
+uint256Compare (UInt256 x, UInt256 y) {
+    return (uint256EQL(x, y)
             ? 0
-            : (gtUInt256(x, y)
+            : (uint256GT(x, y)
                ? +1
                : -1));
 }
 
 extern uint64_t
-coerceUInt64 (UInt256 value, int *overflow) {
+uint64Coerce (UInt256 value, int *overflow) {
     *overflow = (0 != value.u64[3] ||
                  0 != value.u64[2] ||
                  0 != value.u64[1]);
@@ -291,15 +291,15 @@ coerceUInt64 (UInt256 value, int *overflow) {
 }
 
 extern double
-coerceDouble (UInt256 value, int *overflow) {
-    long double result = coerceLongDouble (value, overflow);
+uint256CoerceDouble (UInt256 value, int *overflow) {
+    long double result = uint256CoerceLongDouble (value, overflow);
     if (!*overflow)
         *overflow = !isfinite ((double) result);
     return (double) result;
 }
 
 extern long double
-coerceLongDouble (UInt256 value, int *overflow) {
+uint256CoerceLongDouble (UInt256 value, int *overflow) {
     long double scale = powl ((long double) 2.0, (long double) 64.0);
     long double result = 0;
     for (ssize_t index = 3; index >= 0; index--)

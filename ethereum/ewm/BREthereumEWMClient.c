@@ -80,7 +80,7 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
 
     // Passed in `balance` can be base 10 or 16.  Let UInt256Prase decide.
     BRCoreParseStatus parseStatus;
-    UInt256 value = createUInt256Parse(balance, 0, &parseStatus);
+    UInt256 value = uint256CreateParse(balance, 0, &parseStatus);
     if (CORE_PARSE_OK != parseStatus) { return ERROR_NUMERIC_PARSE; }
 
     ewmSignalAnnounceBalance(ewm, wallet, value, rid);
@@ -168,7 +168,7 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
 
     BRCoreParseStatus parseStatus;
-    UInt256 amount = createUInt256Parse(gasPrice, 0, &parseStatus);
+    UInt256 amount = uint256CreateParse(gasPrice, 0, &parseStatus);
     if (CORE_PARSE_OK != parseStatus) { return ERROR_NUMERIC_PARSE; }
 
     ewmSignalAnnounceGasPrice(ewm, wallet, amount, rid);
@@ -205,8 +205,8 @@ ewmGetGasEstimate (BREthereumEWM ewm,
 
                 char *from = addressGetEncodedString (transferGetEffectiveSourceAddress(transfer), 0);
                 char *to   = addressGetEncodedString (transferGetEffectiveTargetAddress(transfer), 0);
-                char *amount = coerceStringPrefaced (amountInEther.valueInWEI, 16, "0x");
-                char *price  = coerceStringPrefaced (gasPrice.etherPerGas.valueInWEI, 16, "0x");
+                char *amount = uint256CoerceStringPrefaced (amountInEther.valueInWEI, 16, "0x");
+                char *price  = uint256CoerceStringPrefaced (gasPrice.etherPerGas.valueInWEI, 16, "0x");
                 char *data = (char *) transactionGetData(transaction);
 
                 ewm->client.funcEstimateGas (ewm->client.context,
@@ -246,8 +246,8 @@ ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
                                int rid) {
     BRCoreParseStatus estimateStatus        = CORE_PARSE_OK;
     BRCoreParseStatus priceStatus           = CORE_PARSE_OK;
-    UInt256 estimate                        = createUInt256Parse(gasEstimate, 0, &estimateStatus);
-    UInt256 price                           = createUInt256Parse(gasPrice, 0, &priceStatus);
+    UInt256 estimate                        = uint256CreateParse(gasEstimate, 0, &estimateStatus);
+    UInt256 price                           = uint256CreateParse(gasPrice, 0, &priceStatus);
 
     if (CORE_PARSE_OK != estimateStatus || 0 != estimate.u64[1] || 0 != estimate.u64[2] || 0 != estimate.u64[3] ||
         CORE_PARSE_OK != priceStatus    || 0 != price.u64[1]    || 0 != price.u64[2]    || 0 != price.u64[3]) {
@@ -459,10 +459,10 @@ ewmAnnounceTransaction(BREthereumEWM ewm,
                         ? EMPTY_ADDRESS_INIT
                         : addressCreate(contract));
 
-    bundle->amount = createUInt256Parse(strAmount, 0, &parseStatus);
+    bundle->amount = uint256CreateParse(strAmount, 0, &parseStatus);
 
     bundle->gasLimit = strtoull(strGasLimit, NULL, 0);
-    bundle->gasPrice = createUInt256Parse(strGasPrice, 0, &parseStatus);
+    bundle->gasPrice = uint256CreateParse(strGasPrice, 0, &parseStatus);
     bundle->data = strdup(data);
 
     bundle->nonce = strtoull(strNonce, NULL, 0); // TODO: Assumes `nonce` is uint64_t; which it is for now
@@ -511,7 +511,7 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             // thing, somehow
 
             BRCoreParseStatus parseStatus = CORE_PARSE_OK;
-            UInt256 value = createUInt256Parse(bundle->data, 0, &parseStatus);
+            UInt256 value = uint256CreateParse(bundle->data, 0, &parseStatus);
             assert (CORE_PARSE_OK == parseStatus);
 
             BRRlpItem  item  = rlpEncodeUInt256 (ewm->coder, value, 1);
@@ -588,7 +588,7 @@ ewmAnnounceLog (BREthereumEWM ewm,
     for (int i = 0; i < topicCount; i++)
         bundle->arrayTopics[i] = strdup (arrayTopics[i]);
     bundle->data = strdup (strData);
-    bundle->gasPrice = createUInt256Parse(strGasPrice, 0, &parseStatus);
+    bundle->gasPrice = uint256CreateParse(strGasPrice, 0, &parseStatus);
     bundle->gasUsed = strtoull(strGasUsed, NULL, 0);
     bundle->logIndex = strtoull(strLogIndex, NULL, 0);
     bundle->blockNumber = strtoull(strBlockNumber, NULL, 0);
@@ -850,9 +850,9 @@ ewmAnnounceToken(BREthereumEWM ewm,
     BRCoreParseStatus status = CORE_PARSE_STRANGE_DIGITS;
     UInt256 gasPriceValue = UINT256_ZERO;
     if (NULL != strDefaultGasPrice)
-        gasPriceValue = createUInt256Parse(strDefaultGasPrice, 0, &status);
+        gasPriceValue = uint256CreateParse(strDefaultGasPrice, 0, &status);
     if (status != CORE_PARSE_OK)
-        gasPriceValue = createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
+        gasPriceValue = uint256Create(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
 
     BREthereumEWMClientAnnounceTokenBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceTokenBundle));
 
