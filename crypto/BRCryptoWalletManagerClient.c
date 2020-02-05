@@ -1300,8 +1300,8 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
 
                 BRCryptoUnit unit = cryptoTransferGetUnitForFee(transfer);
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit,
-                                                                                feeBasisGetGasLimit(ethFeeBasis),
-                                                                                feeBasisGetGasPrice(ethFeeBasis));
+                                                                                ethFeeBasisGetGasLimit(ethFeeBasis),
+                                                                                ethFeeBasisGetGasPrice(ethFeeBasis));
 
                 ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (blockNumber,

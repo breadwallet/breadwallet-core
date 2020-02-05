@@ -200,7 +200,7 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
                 BREthereumFeeBasis feeBasis = transferGetFeeBasis (transfer);
-                BREthereumGasPrice gasPrice = feeBasisGetGasPrice (feeBasis);
+                BREthereumGasPrice gasPrice = ethFeeBasisGetGasPrice (feeBasis);
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
 
                 char *from = addressGetEncodedString (transferGetEffectiveSourceAddress(transfer), 0);

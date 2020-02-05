@@ -11,8 +11,8 @@
 #include "BREthereumFeeBasis.h"
 
 extern BREthereumFeeBasis
-feeBasisCreate (BREthereumGas limit,
-                BREthereumGasPrice price) {
+ethFeeBasisCreate (BREthereumGas limit,
+                   BREthereumGasPrice price) {
     return (BREthereumFeeBasis) {
         FEE_BASIS_GAS,
         { .gas = { limit, price }}
@@ -20,17 +20,17 @@ feeBasisCreate (BREthereumGas limit,
 }
 
 extern BREthereumGas
-feeBasisGetGasLimit (BREthereumFeeBasis basis) {
+ethFeeBasisGetGasLimit (BREthereumFeeBasis basis) {
     return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : ethGasCreate(0));
 }
 
 extern BREthereumGasPrice
-feeBasisGetGasPrice (BREthereumFeeBasis basis) {
+ethFeeBasisGetGasPrice (BREthereumFeeBasis basis) {
     return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : ethGasPriceCreate(etherCreateZero()));
 }
 
 extern BREthereumEther
-feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBoolean
+ethFeeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBoolean
     *overflow = 0;
 
     switch (feeBasis.type) {
@@ -45,8 +45,8 @@ feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBool
 }
 
 extern BREthereumBoolean
-feeBasisEqual (const BREthereumFeeBasis *feeBasis1,
-               const BREthereumFeeBasis *feeBasis2) {
+ethFeeBasisEqual (const BREthereumFeeBasis *feeBasis1,
+                  const BREthereumFeeBasis *feeBasis2) {
     if (feeBasis1 == feeBasis2) return ETHEREUM_BOOLEAN_TRUE;
     if (feeBasis1->type != feeBasis2->type) return ETHEREUM_BOOLEAN_FALSE;
     switch (feeBasis1->type) {

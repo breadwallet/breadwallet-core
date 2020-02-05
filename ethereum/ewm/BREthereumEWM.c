@@ -2558,13 +2558,13 @@ extern BREthereumGasPrice
 ewmTransferGetGasPrice(BREthereumEWM ewm,
                        BREthereumTransfer transfer,
                        BREthereumEtherUnit unit) {
-    return feeBasisGetGasPrice (transferGetFeeBasis(transfer));
+    return ethFeeBasisGetGasPrice (transferGetFeeBasis(transfer));
 }
 
 extern BREthereumGas
 ewmTransferGetGasLimit(BREthereumEWM ewm,
                        BREthereumTransfer transfer) {
-    return feeBasisGetGasLimit(transferGetFeeBasis(transfer));
+    return ethFeeBasisGetGasLimit(transferGetFeeBasis(transfer));
 }
 
 extern BREthereumFeeBasis

@@ -740,8 +740,8 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer) {
     transactionCreate (transfer->sourceAddress,
                        transferProvideOriginatingTransactionTargetAddress (transfer),
                        transferProvideOriginatingTransactionAmount (transfer),
-                       feeBasisGetGasPrice(transfer->feeBasis),
-                       feeBasisGetGasLimit(transfer->feeBasis),
+                       ethFeeBasisGetGasPrice(transfer->feeBasis),
+                       ethFeeBasisGetGasLimit(transfer->feeBasis),
                        data,
                        TRANSACTION_NONCE_IS_NOT_ASSIGNED);
     free (data);

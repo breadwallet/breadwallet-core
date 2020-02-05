@@ -189,7 +189,7 @@ transactionGetFeeBasis (BREthereumTransaction transaction) {
 
 extern BREthereumEther
 transactionGetFee (BREthereumTransaction transaction, int *overflow) {
-    return feeBasisGetFee (transactionGetFeeBasis(transaction), overflow);
+    return ethFeeBasisGetFee (transactionGetFeeBasis(transaction), overflow);
 }
 
 extern BREthereumFeeBasis
@@ -202,7 +202,7 @@ transactionGetFeeBasisLimit (BREthereumTransaction transaction) {
 
 extern BREthereumEther
 transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow) {
-    return feeBasisGetFee (transactionGetFeeBasisLimit(transaction), overflow);
+    return ethFeeBasisGetFee (transactionGetFeeBasisLimit(transaction), overflow);
 }
 
 extern BREthereumGasPrice

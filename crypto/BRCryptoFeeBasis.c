@@ -163,7 +163,7 @@ cryptoFeeBasisIsIdentical (BRCryptoFeeBasis feeBasis1,
                                       feeBasis1->u.btc.sizeInByte == feeBasis2->u.btc.sizeInByte);
 
         case BLOCK_CHAIN_TYPE_ETH:
-            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (feeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (ethFeeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
 
         case BLOCK_CHAIN_TYPE_GEN:
             return AS_CRYPTO_BOOLEAN (genFeeBasisIsEqual (&feeBasis1->u.gen, &feeBasis2->u.gen));
