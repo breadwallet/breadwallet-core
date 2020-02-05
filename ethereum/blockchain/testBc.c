@@ -78,7 +78,7 @@ testGetBlock (const char *rlp) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpDataGetItem(coder, data);
 
-    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
+    BREthereumBlock block = blockRlpDecode(blockItem, ethNetworkMainnet, RLP_TYPE_NETWORK, coder);
 
     rlpDataRelease(data);
     rlpItemRelease (coder, blockItem);
@@ -175,10 +175,10 @@ runBlockTest0 (void) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpDataGetItem(coder, data);
 
-    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
+    BREthereumBlock block = blockRlpDecode(blockItem, ethNetworkMainnet, RLP_TYPE_NETWORK, coder);
 
     BREthereumBlockHeader header = blockGetHeader(block);
-    BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethereumMainnet);
+    BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethNetworkMainnet);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(ethHashEqual(blockHeaderGetParentHash(header), blockHeaderGetParentHash(genesis))));
     assert(blockHeaderGetTimestamp(header) == blockHeaderGetTimestamp(genesis));
@@ -202,7 +202,7 @@ runBlockTest0 (void) {
     assert (0 == blockGetTransactionsCount(block));
     rlpItemRelease(coder, blockItem);
 
-    blockItem = blockRlpEncode(block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
+    blockItem = blockRlpEncode(block, ethNetworkMainnet, RLP_TYPE_NETWORK, coder);
     rlpItemShow(coder, blockItem, "BlockTest");
     rlpItemRelease(coder, blockItem);
     rlpDataRelease(data);
@@ -275,7 +275,7 @@ runBlockCheckpointTest (void) {
     const BREthereumBlockCheckpoint *cp1;
     BREthereumBlockHeader hd1;
 
-    cp1 = blockCheckpointLookupLatest(ethereumMainnet);
+    cp1 = blockCheckpointLookupLatest(ethNetworkMainnet);
     //    assert (5750000 == cp1->number);
 
     hd1 = blockCheckpointCreatePartialBlockHeader(cp1);

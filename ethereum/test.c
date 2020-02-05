@@ -132,7 +132,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS1_NONCE);
 
-    assert (1 == networkGetChainId(network));
+    assert (1 == ethNetworkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction = rlpItemGetData(coder, item);
@@ -198,7 +198,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS2_NONCE);
 
-    assert (1 == networkGetChainId(network));
+    assert (1 == ethNetworkGetChainId(network));
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
@@ -277,7 +277,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, TEST_TRANS3_NONCE);
 
-    assert (1 == networkGetChainId(network));
+    assert (1 == ethNetworkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction = rlpItemGetData (coder, item);
@@ -329,7 +329,7 @@ void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) 
 void runAccountTests () {
     
     BREthereumAccount account = ethAccountCreate (TEST_PAPER_KEY);
-    BREthereumNetwork network = ethereumMainnet;
+    BREthereumNetwork network = ethNetworkMainnet;
     
     printf ("==== Account: %p\n", account);
     runAddressTests(account);
@@ -365,7 +365,7 @@ void testTransactionCodingEther () {
     printf ("     Coding Transaction\n");
 
     BREthereumAccount account = ethAccountCreate (NODE_PAPER_KEY);
-    BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
+    BREthereumWallet wallet = walletCreate(account, ethNetworkMainnet);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateEther(etherCreate(uint256Create(NODE_ETHER_AMOUNT)));
@@ -384,14 +384,14 @@ void testTransactionCodingEther () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction,
-                                          ethereumMainnet,
+                                          ethNetworkMainnet,
                                           RLP_TYPE_TRANSACTION_SIGNED,
                                           coder);
     BRRlpData data = rlpItemGetData (coder, item);
     char *rawTx = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
     rlpItemRelease(coder, item);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
@@ -424,8 +424,8 @@ void testTransactionCodingEther () {
                                                                          0,
                                                                          ethGasCreate(0));
     transactionSetStatus(transaction, status);
-    item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
-    BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
+    item = transactionRlpEncode(transaction, ethNetworkMainnet, RLP_TYPE_ARCHIVE, coder);
+    BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethNetworkMainnet, RLP_TYPE_ARCHIVE, coder);
     rlpItemRelease(coder, item);
     BREthereumTransactionStatus archivedStatus = transactionGetStatus(archivedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(transactionStatusEqual(status, archivedStatus)));
@@ -444,7 +444,7 @@ void testTransactionCodingToken () {
 
     BREthereumToken token = tokenLookupTest(tokenBRDAddress);
     BREthereumAccount account = ethAccountCreate (NODE_PAPER_KEY);
-    BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
+    BREthereumWallet wallet = walletCreateHoldingToken(account, ethNetworkMainnet, token);
 
     BREthereumAddress txRecvAddr = ethAddressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, uint256Create(NODE_ETHER_AMOUNT)));
@@ -463,14 +463,14 @@ void testTransactionCodingToken () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction,
-                                          ethereumMainnet,
+                                          ethNetworkMainnet,
                                           RLP_TYPE_TRANSACTION_SIGNED,
                                           coder);
     BRRlpData data = rlpItemGetData (coder, item);
     char *rawTx = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
     rlpItemRelease(coder, item);
     
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
@@ -510,17 +510,17 @@ runPerfTestsCoder (int repeat, int many) {
     data.bytes = hexDecodeCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
 
     BRRlpItem item = rlpDataGetItem(coder, data);
-    BREthereumTransaction transaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction transaction = transactionRlpDecode(item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     BRRlpItem items [100];
 
     while (repeat-- > 0) {
         if (many) coder = rlpCoderCreate();
         for (int i = 0; i < 100; i++)
-            items[i] = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+            items[i] = transactionRlpEncode(transaction, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
         for (int i = 0; i < 100; i++)
-            transactionRelease(transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder));
+            transactionRelease(transactionRlpDecode(item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder));
 
         for (int i = 0; i < 100; i++)
             rlpItemRelease(coder, items[i]);

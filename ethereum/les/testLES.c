@@ -1010,7 +1010,7 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode (transaction,
-                                           ethereumMainnet,
+                                           ethNetworkMainnet,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
     BRRlpData data = rlpItemGetData(coder, item);
@@ -1028,7 +1028,7 @@ run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
     rlpDataRelease(data);
 
     item = transactionRlpEncode (transaction,
-                                           ethereumMainnet,
+                                           ethNetworkMainnet,
                                            RLP_TYPE_TRANSACTION_SIGNED,
                                            coder);
     rlpItemRelease(coder, item);
@@ -1185,7 +1185,7 @@ runLESTests (const char *paperKey) {
     BREthereumHash genesisHash = ethHashCreate(headHashStr);
     
     // Create an LES context
-    BREthereumLES les = lesCreate (ethereumMainnet,
+    BREthereumLES les = lesCreate (ethNetworkMainnet,
                                    NULL, _announceCallback, _statusCallback, _saveNodesCallback,
                                    headHash, headNumber, headTD, genesisHash,
                                    NULL,

@@ -68,7 +68,7 @@ handleTrans (BRRlpCoder coder, const char *input) {
     rlpDataShow(data, "Trans:");
 
     // Extract a transaction
-    BREthereumTransaction transaction = transactionRlpDecode (item, ethereumTestnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction transaction = transactionRlpDecode (item, ethNetworkTestnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     transactionShow(transaction, "EXP");
     eth_log ("EXP", "    Raw   : %s", input);
@@ -248,17 +248,17 @@ handleEthTransactionDecode1 (BRRlpCoder coder, const char *rlpString) {
     BRRlpItem  item  = rlpDataGetItem(coder, data);
     rlpItemShow(coder, item, "FOO");
 
-    BREthereumTransaction transaction = transactionRlpDecode (item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction transaction = transactionRlpDecode (item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
     BREthereumSignature sig1 = transactionGetSignature(transaction);
-    BREthereumAddress   add1 = transactionExtractAddress (transaction, ethereumMainnet, coder);
+    BREthereumAddress   add1 = transactionExtractAddress (transaction, ethNetworkMainnet, coder);
 
     BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction, TRANSFER_BASIS_TRANSACTION);
     BREthereumAccount  account = ethAccountCreate (ETH_PAPER_KEY);
     BREthereumAddress  address = ethAccountGetPrimaryAddress (account);
 
-    transferSign (transfer, ethereumMainnet, account, address, ETH_PAPER_KEY);
+    transferSign (transfer, ethNetworkMainnet, account, address, ETH_PAPER_KEY);
     BREthereumSignature sig2 = transactionGetSignature (transferGetOriginatingTransaction(transfer));
-    BREthereumAddress   add2 = transactionExtractAddress (transferGetOriginatingTransaction(transfer), ethereumMainnet, coder);
+    BREthereumAddress   add2 = transactionExtractAddress (transferGetOriginatingTransaction(transfer), ethNetworkMainnet, coder);
 
     return add2;
 }

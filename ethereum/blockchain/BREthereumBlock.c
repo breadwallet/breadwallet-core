@@ -1468,11 +1468,11 @@ networkGetGenesisBlockHeader (BREthereumNetwork network) {
     }
 
     BREthereumBlockHeader genesisHeader =
-    (network == ethereumMainnet
+    (network == ethNetworkMainnet
      ? ethereumMainnetBlockHeader
-     : (network == ethereumTestnet
+     : (network == ethNetworkTestnet
         ? ethereumTestnetBlockHeader
-        : (network == ethereumRinkeby
+        : (network == ethNetworkRinkeby
            ? ethereumRinkebyBlockHeader
            : NULL)));
 
@@ -1691,17 +1691,17 @@ blockCheckpointFindForNetwork (BREthereumNetwork network,
     blockCheckpointInitialize();
     assert (NULL != count);
 
-    if (network == ethereumMainnet) {
+    if (network == ethNetworkMainnet) {
         *count = CHECKPOINT_MAINNET_COUNT;
         return ethereumMainnetCheckpoints;
     }
 
-    if (network == ethereumTestnet) {
+    if (network == ethNetworkTestnet) {
         *count = CHECKPOINT_TESTNET_COUNT;
         return ethereumTestnetCheckpoints;
     }
 
-    if (network == ethereumRinkeby) {
+    if (network == ethNetworkRinkeby) {
         *count = CHECKPOINT_RINKEBY_COUNT;
         return ethereumRinkebyCheckpoints;
     }

@@ -290,7 +290,7 @@ ewmCreate (BREthereumNetwork network,
 
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
-    ewm->fs = fileServiceCreateFromTypeSpecfications (storagePath, "eth", networkGetName(network),
+    ewm->fs = fileServiceCreateFromTypeSpecfications (storagePath, "eth", ethNetworkGetName (network),
                                                       ewm,
                                                       ewmFileServiceErrorHandler,
                                                       ewmFileServiceSpecificationsCount,
@@ -1097,7 +1097,7 @@ ewmUpdateMode (BREthereumEWM ewm,
 extern void
 ewmWipe (BREthereumNetwork network,
          const char *storagePath) {
-    fileServiceWipe (storagePath, "eth", networkGetName(network));
+    fileServiceWipe (storagePath, "eth", ethNetworkGetName (network));
 }
 
 /// MARK: - Blocks

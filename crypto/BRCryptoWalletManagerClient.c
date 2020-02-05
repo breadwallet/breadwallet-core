@@ -1443,7 +1443,7 @@ cwmGetGasPriceAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetGasPriceETH (cwm->client.context,
                                     cryptoWalletManagerTake (cwm),
@@ -1476,7 +1476,7 @@ cwmGetGasEstimateAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcEstimateGasETH (cwm->client.context,
                                     cryptoWalletManagerTake (cwm),
@@ -1591,7 +1591,7 @@ cwmGetBlocksAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetBlocksETH (cwm->client.context,
                                   cryptoWalletManagerTake (cwm),
@@ -1658,7 +1658,7 @@ cwmGetNonceAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetNonceETH (cwm->client.context,
                                  cryptoWalletManagerTake (cwm),

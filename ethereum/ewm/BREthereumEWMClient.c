@@ -763,13 +763,13 @@ extern void
 ewmUpdateTokens (BREthereumEWM ewm) {
     unsigned int rid = ++ewm->requestId;
 
-    if (ethereumMainnet == ewm->network)
+    if (ethNetworkMainnet == ewm->network)
         ewm->client.funcGetTokens
         (ewm->client.context,
          ewm,
          rid);
 
-    else if (ethereumTestnet == ewm->network) {
+    else if (ethNetworkTestnet == ewm->network) {
         ewmAnnounceToken (ewm, rid,
                           "0x7108ca7c4718efa810457f228305c9c71390931a",
                           "BRD",
@@ -789,7 +789,7 @@ ewmUpdateTokens (BREthereumEWM ewm) {
         ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
     }
 
-    else if (ethereumRinkeby == ewm->network)
+    else if (ethNetworkRinkeby == ewm->network)
         ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
 
     else

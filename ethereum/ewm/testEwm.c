@@ -35,7 +35,7 @@
 
 static const char *
 getTokenBRDAddress (BREthereumNetwork network) {
-    return (network == ethereumMainnet
+    return (network == ethNetworkMainnet
             ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
             : "0x7108ca7c4718efa810457f228305c9c71390931a");
 }
@@ -43,7 +43,7 @@ getTokenBRDAddress (BREthereumNetwork network) {
 #if defined (BITCOIN_DEBUG)
 static const char *
 getTokenTSTAddress (BREthereumNetwork network) {
-    return (network == ethereumMainnet
+    return (network == ethNetworkMainnet
             ? "0x3efd578b271d034a69499e4a2d933c631d44b9ad"
             : "0x722dd3f80bac40c951b51bdd28dd19d435762180");
 }
@@ -596,7 +596,7 @@ runEWM_CONNECT_test (const char *paperKey,
     BREthereumEther expectedBalance = etherCreate(uint256CreateParse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status);
 
-    BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumEWM ewm = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                CRYPTO_SYNC_MODE_API_ONLY,
                                                client,
                                                storagePath,
@@ -667,7 +667,7 @@ void prepareTransaction (const char *paperKey,
     // START - One Time Code Block
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
-    BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumEWM ewm = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                CRYPTO_SYNC_MODE_P2P_ONLY,
                                                client,
                                                storagePath,
@@ -729,7 +729,7 @@ testReallySend (const char *storagePath) {
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %" PRIu64 "\nGasPrice: %" PRIu64 " GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
     
     alarmClockCreateIfNecessary (1);
-    BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumEWM ewm = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                CRYPTO_SYNC_MODE_P2P_ONLY,
                                                client,
                                                storagePath,
@@ -803,8 +803,8 @@ runEWM_TOKEN_test (const char *paperKey,
     
     BRCoreParseStatus status;
     
-    BREthereumToken token = tokenLookupTestX(getTokenBRDAddress(ethereumMainnet));
-    BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumToken token = tokenLookupTestX(getTokenBRDAddress(ethNetworkMainnet));
+    BREthereumEWM ewm = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                CRYPTO_SYNC_MODE_P2P_ONLY,
                                                client,
                                                storagePath,
@@ -841,7 +841,7 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
                         const char *storagePath) {
     printf ("====   PUBLIC KEY\n");
 
-    BREthereumEWM ewm1 = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumEWM ewm1 = ewmCreateWithPaperKey (ethNetworkMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                 CRYPTO_SYNC_MODE_P2P_ONLY,
                                                 client,
                                                 storagePath,
@@ -850,7 +850,7 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
     BRKey publicKey = ewmGetAccountPrimaryAddressPublicKey (ewm1);
     char *addr1 = ewmGetAccountPrimaryAddress (ewm1);
     
-    BREthereumEWM ewm2 = ewmCreateWithPublicKey (ethereumMainnet, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+    BREthereumEWM ewm2 = ewmCreateWithPublicKey (ethNetworkMainnet, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                  CRYPTO_SYNC_MODE_P2P_ONLY,
                                                  client,
                                                  storagePath,
@@ -884,7 +884,7 @@ runSyncTest (BREthereumNetwork network,
     
     alarmClockCreateIfNecessary (1);
 
-    ewm = ewmCreate (ethereumMainnet, account, accountTimestamp, mode, client, storagePath, 0, 6);
+    ewm = ewmCreate (ethNetworkMainnet, account, accountTimestamp, mode, client, storagePath, 0, 6);
 
     
     char *address = ewmGetAccountPrimaryAddress(ewm);
@@ -910,12 +910,12 @@ runSyncTest (BREthereumNetwork network,
 extern void
 runEWMTests (const char *paperKey,
              const char *storagePath) {
-    installTokensForTestOnNetwork(ethereumMainnet);
+    installTokensForTestOnNetwork(ethNetworkMainnet);
     printf ("==== EWM\n");
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     if (NULL == paperKey) paperKey = NODE_PAPER_KEY;
 
 //    runEWM_CONNECT_test(paperKey, storagePath);
     runEWM_TOKEN_test (paperKey, storagePath);
-    runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey, storagePath);
+    runEWM_PUBLIC_KEY_test (ethNetworkMainnet, paperKey, storagePath);
 }
