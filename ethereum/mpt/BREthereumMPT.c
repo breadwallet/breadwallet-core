@@ -49,12 +49,12 @@ mptNodeRelease (BREthereumMPTNode node) {
     if (NULL == node) return;  // On RLP coding error during 'nodes' processing
     switch (node->type) {
         case MPT_NODE_LEAF:
-            dataRelease(node->u.leaf.path);
+            ethDataRelease(node->u.leaf.path);
             rlpDataRelease(node->u.leaf.value);
             break;
 
         case MPT_NODE_EXTENSION:
-            dataRelease (node->u.extension.path);
+            ethDataRelease (node->u.extension.path);
             break;
 
         case MPT_NODE_BRANCH:

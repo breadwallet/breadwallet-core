@@ -366,7 +366,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                         proof->hash = EMPTY_HASH_INIT;
                         proof->totalDifficulty = UINT256_ZERO;
                     }
-                    dataRelease(key);
+                    ethDataRelease(key);
                 }
                 rlpCoderRelease(coder);
             }
