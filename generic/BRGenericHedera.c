@@ -257,7 +257,8 @@ genericHederaWalletManagerRecoverTransfer (const char *hash,
                                            const char *currency,
                                            const char *fee,
                                            uint64_t timestamp,
-                                           uint64_t blockHeight) {
+                                           uint64_t blockHeight,
+                                           int error) {
     BRHederaUnitTinyBar amountHbar, feeHbar = 0;
     sscanf(amount, "%llu", &amountHbar);
     if (NULL != fee) sscanf(fee,    "%llu", &feeHbar);
@@ -275,7 +276,8 @@ genericHederaWalletManagerRecoverTransfer (const char *hash,
     }
 
     BRHederaTransaction transfer = hederaTransactionCreate(fromAddress, toAddress, amountHbar,
-                                                           feeHbar, NULL, txHash, timestamp, blockHeight);
+                                                           feeHbar, NULL, txHash, timestamp, blockHeight,
+                                                           error);
 
     hederaAddressFree (toAddress);
     hederaAddressFree (fromAddress);

@@ -54,7 +54,8 @@ hederaTransactionCreateNew(BRHederaAddress source, BRHederaAddress target,
 extern BRHederaTransaction /* caller must free - hederaTransactionFree */
 hederaTransactionCreate(BRHederaAddress source, BRHederaAddress target,
                         BRHederaUnitTinyBar amount, BRHederaUnitTinyBar fee, const char *txID,
-                        BRHederaTransactionHash hash, uint64_t timestamp, uint64_t blockHeight);
+                        BRHederaTransactionHash hash, uint64_t timestamp, uint64_t blockHeight,
+                        int error);
 
 extern BRHederaTransaction /* caller must free - hederaTrasactionFree */
 hederaTransactionClone (BRHederaTransaction transaction);
