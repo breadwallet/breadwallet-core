@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRKey.h"
+#include "BRBase.h"
 #include "BRBase58.h"
 #include <stdio.h>
 #include <string.h>
@@ -564,7 +565,7 @@ int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, s
     assert(sigLen == 65);
     
     if (sigLen == 65) {
-        compressed = 0;
+        compressed = 0;         ANALYZER_IGNORE_UNREAD_VARIABLE(compressed);
         recid = ((uint8_t *)compactSig)[64];
         if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig, recid) &&
             secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
