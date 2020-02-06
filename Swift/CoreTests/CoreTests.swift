@@ -106,7 +106,7 @@ class CoreTests: XCTestCase {
             ? accountSpecification.paperKey
             : "ginger settle marine tissue robot crane night number ramp coast roast critic")
 
-        account = createAccount (nil != accountSpecification
+        account = ethAccountCreate (nil != accountSpecification
             ? accountSpecification.paperKey
             : fakeEthAccount)
 
@@ -130,7 +130,7 @@ class CoreTests: XCTestCase {
             fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
         }
 
-        account = createAccount (nil != paperKey ? paperKey : fakeEthAccount)
+        account = ethAccountCreate (nil != paperKey ? paperKey : fakeEthAccount)
 
         #endif
         coreDataDir = FileManager.default

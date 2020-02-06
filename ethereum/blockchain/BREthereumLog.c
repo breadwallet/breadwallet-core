@@ -47,7 +47,7 @@ logTopicCreateFromString (const char *string) {
     assert (0 == strncmp (string, "0x", 2) && (2 + 2 * LOG_TOPIC_BYTES_COUNT == stringLen));
 
     BREthereumLogTopic topic;
-    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
+    hexDecode(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
     return topic;
 }
 
@@ -93,7 +93,7 @@ logTopicAsString (BREthereumLogTopic topic) {
     BREthereumLogTopicString string;
     string.chars[0] = '0';
     string.chars[1] = 'x';
-    encodeHex(&string.chars[2], 65, topic.bytes, 32);
+    hexEncode(&string.chars[2], 65, topic.bytes, 32);
     return string;
 }
 
@@ -195,7 +195,7 @@ logCreate (BREthereumAddress address,
            BRRlpData data) {
     BREthereumLog log = calloc (1, sizeof(struct BREthereumLogRecord));
 
-    log->hash = hashCreateEmpty();
+    log->hash = ethHashCreateEmpty();
     log->address = address;
 
     array_new(log->topics, topicsCount);
@@ -221,7 +221,7 @@ logInitializeIdentifier (BREthereumLog log,
     log->identifier.transactionReceiptIndex = transactionReceiptIndex;
 
     BRRlpData data = { sizeof (log->identifier), (uint8_t*) &log->identifier };
-    log->hash = hashCreateFromData(data);
+    log->hash = ethHashCreateFromData(data);
 }
 
 extern BREthereumBoolean
@@ -305,7 +305,7 @@ logGetAddress (BREthereumLog log) {
 extern BREthereumBoolean
 logHasAddress (BREthereumLog log,
                BREthereumAddress address) {
-    return addressEqual(log->address, address);
+    return ethAddressEqual(log->address, address);
 }
 
 extern size_t
@@ -359,7 +359,7 @@ logIsErrored (BREthereumLog log) {
 extern size_t
 logHashValue (const void *l) {
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l)->identifier.transactionReceiptIndex);
-    return hashSetValue(&((BREthereumLog) l)->hash);
+    return ethHashSetValue(&((BREthereumLog) l)->hash);
 }
 
 // Support BRSet
@@ -369,7 +369,7 @@ logHashEqual (const void *l1, const void *l2) {
 
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l1)->identifier.transactionReceiptIndex);
     assert (LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN != ((BREthereumLog) l2)->identifier.transactionReceiptIndex);
-    return hashSetEqual (&((BREthereumLog) l1)->hash,
+    return ethHashSetEqual (&((BREthereumLog) l1)->hash,
                          &((BREthereumLog) l2)->hash);
 }
 
@@ -455,16 +455,16 @@ logRlpDecode (BRRlpItem item,
     assert ((3 == itemsCount && RLP_TYPE_NETWORK == type) ||
             (6 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
-    log->address = addressRlpDecode(items[0], coder);
+    log->address = ethAddressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
 
-    log->data = rlpGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
+    log->data = rlpItemGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
 
     // 
     log->identifier.transactionReceiptIndex = LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN;
 
     if (RLP_TYPE_ARCHIVE == type) {
-        BREthereumHash hash = hashRlpDecode(items[3], coder);
+        BREthereumHash hash = ethHashRlpDecode(items[3], coder);
 
         uint64_t transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
         assert (transactionReceiptIndex <= (uint64_t) SIZE_MAX);
@@ -482,12 +482,12 @@ logRlpEncode(BREthereumLog log,
     
     BRRlpItem items[6]; // more than enough
 
-    items[0] = addressRlpEncode(log->address, coder);
+    items[0] = ethAddressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
-    items[2] = rlpGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
+    items[2] = rlpDataGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
 
     if (RLP_TYPE_ARCHIVE == type) {
-        items[3] = hashRlpEncode(log->identifier.transactionHash, coder);
+        items[3] = ethHashRlpEncode(log->identifier.transactionHash, coder);
         items[4] = rlpEncodeUInt64(coder, log->identifier.transactionReceiptIndex, 0);
         items[5] = transactionStatusRLPEncode(log->status, coder);
     }

@@ -82,7 +82,7 @@ static UInt256
 cryptoFeeBasisGetPricePerCostFactorAsUInt256 (BRCryptoFeeBasis feeBasis) {
     switch (feeBasis->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return createUInt256(feeBasis->u.btc.feePerKB);
+            return uint256Create(feeBasis->u.btc.feePerKB);
 
         case BLOCK_CHAIN_TYPE_ETH:
             return feeBasis->u.eth.u.gas.price.etherPerGas.valueInWEI;
@@ -126,7 +126,7 @@ cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis) {
             double fee = (((double) feeBasis->u.btc.feePerKB) * feeBasis->u.btc.sizeInByte) / 1000.0;
             return cryptoAmountCreateInternal (feeBasis->unit,
                                                CRYPTO_FALSE,
-                                               createUInt256 (round (fee)),
+                                               uint256Create (round (fee)),
                                                1);
         }
             
@@ -138,7 +138,7 @@ cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis) {
             int overflow = 0, negative = 0;
             double rem;
 
-            UInt256 value = mulUInt256_Double (pricePerCostFactor, costFactor, &overflow, &negative, &rem);
+            UInt256 value = uint256Mul_Double (pricePerCostFactor, costFactor, &overflow, &negative, &rem);
 
             return (overflow
                     ? NULL
@@ -163,7 +163,7 @@ cryptoFeeBasisIsIdentical (BRCryptoFeeBasis feeBasis1,
                                       feeBasis1->u.btc.sizeInByte == feeBasis2->u.btc.sizeInByte);
 
         case BLOCK_CHAIN_TYPE_ETH:
-            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (feeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (ethFeeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
 
         case BLOCK_CHAIN_TYPE_GEN:
             return AS_CRYPTO_BOOLEAN (genFeeBasisIsEqual (&feeBasis1->u.gen, &feeBasis2->u.gen));

@@ -598,7 +598,7 @@ rlpDecodeUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
 //
 extern BRRlpItem
 rlpEncodeUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString) {
-    return (1 == zeroAsEmptyString && 0 == compareUInt256 (value, UINT256_ZERO)
+    return (1 == zeroAsEmptyString && 0 == uint256Compare (value, UINT256_ZERO)
             ? rlpEncodeString(coder, "")
             : coderEncodeUInt256(coder, value));
 }
@@ -750,12 +750,12 @@ rlpEncodeHexString (BRRlpCoder coder, const char *string) {
     else if (stringLen < (16 * 1024)) {
         size_t bytesCount = stringLen / 2;
         uint8_t bytes[bytesCount];
-        decodeHex(bytes, bytesCount, string, stringLen);
+        hexDecode(bytes, bytesCount, string, stringLen);
         return rlpEncodeBytes(coder, bytes, bytesCount);
     }
     else {
         size_t bytesCount = 0;
-        uint8_t *bytes = decodeHexCreate(&bytesCount, string, strlen(string));
+        uint8_t *bytes = hexDecodeCreate(&bytesCount, string, strlen(string));
         BRRlpItem item = rlpEncodeBytes(coder, bytes, bytesCount);
         free (bytes);
         return item;
@@ -769,7 +769,7 @@ rlpDecodeHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix) {
 
     char *result = malloc (strlen(prefix) + 2 * data.bytesCount + 1);
     strcpy (result, prefix);
-    encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+    hexEncode(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
 
     rlpDataRelease (data);
     return result;
@@ -865,14 +865,14 @@ rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytes
 }
 
 extern BRRlpData
-rlpGetData (BRRlpCoder coder, BRRlpItem item) {
+rlpItemGetData (BRRlpCoder coder, BRRlpItem item) {
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     return data;
 }
 
 extern BRRlpData
-rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+rlpItemGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
     BRRlpData result = { item->bytesCount, item->bytes };
     return result;
@@ -905,7 +905,7 @@ rlpGetItem_FillData (BRRlpCoder coder, uint8_t *bytes) {
  * represent a list.
  */
 extern BRRlpItem
-rlpGetItem (BRRlpCoder coder, BRRlpData data) {
+rlpDataGetItem (BRRlpCoder coder, BRRlpData data) {
     assert (0 != data.bytesCount);
 
     BRRlpItem result = rlpCoderAcquireItem (coder);
@@ -946,7 +946,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
         while (bytes < bytesLimit) {
             // Get the `data` for this sub-item and then recurse
             BRRlpData d = rlpGetItem_FillData(coder, bytes);
-            items[itemsIndex++] = rlpGetItem (coder, d);
+            items[itemsIndex++] = rlpDataGetItem (coder, d);
 
             // Move to the next sub-item
             bytes += d.bytesCount;
@@ -976,7 +976,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
 #define RLP_SHOW_INDENT_INCREMENT  2
 
 static void
-rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int indent) {
+rlpItemShowInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int indent) {
     if (indent > 256) indent = 256;
     char spaces [257];
     memset (spaces, ' ', indent);
@@ -989,7 +989,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             else {
                 eth_log(topic, "%sL%3zu: [", spaces, context->itemsCount);
                 for (int i = 0; i < context->itemsCount; i++)
-                    rlpShowItemInternal(coder,
+                    rlpItemShowInternal(coder,
                                         context->items[i],
                                         topic,
                                         indent + RLP_SHOW_INDENT_INCREMENT);
@@ -1005,7 +1005,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             // We'll limit the display to a string of 1024 characters.
             size_t bytesCount = length > 512 ? 512 : length;
             char string[1024 + 1];
-            encodeHex(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
+            hexEncode(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
 
             eth_log(topic, "%sI%3zu: 0x%s%s", spaces, length, string,
                     (bytesCount == length ? "" : "..."));
@@ -1015,22 +1015,22 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
 }
 
 extern void
-rlpReleaseItem (BRRlpCoder coder, BRRlpItem item) {
+rlpItemRelease (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
     rlpCoderReleaseItem (coder, item);
 }
 
 extern void
-rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic) {
-    rlpShowItemInternal(coder, item, topic, 0);
+rlpItemShow (BRRlpCoder coder, BRRlpItem item, const char *topic) {
+    rlpItemShowInternal(coder, item, topic, 0);
 }
 
 extern void
-rlpShow (BRRlpData data, const char *topic) {
+rlpDataShow (BRRlpData data, const char *topic) {
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem(coder, data);
-    rlpShowItem (coder, item, topic);
-    rlpReleaseItem(coder, item);
+    BRRlpItem item = rlpDataGetItem(coder, data);
+    rlpItemShow (coder, item, topic);
+    rlpItemRelease(coder, item);
 }
 
 /*

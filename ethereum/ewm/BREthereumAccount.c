@@ -67,7 +67,7 @@ typedef struct BREthereumAddressDetailRecord {
      * The 'official' ethereum address string for (the external representation of) this
      * BREthereum address.
      *
-     * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with encodeHex) string prefixed with
+     * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with hexEncode) string prefixed with
      * "0x".  Generally, when using this string, for example when RLP encoding, one needs to
      * convert back to the byte array (use rlpEncodeItemHexString())
      */
@@ -121,8 +121,8 @@ addressDetailFillKey(BREthereumAddressDetail *address, const BRKey *key, uint32_
     memcpy(address->publicKey, &key->pubKey[1], sizeof (address->publicKey));
     
     
-    address->raw = addressCreateKey(key);
-    char *string = addressGetEncodedString(address->raw, 1);
+    address->raw = ethAddressCreateKey(key);
+    char *string = ethAddressGetEncodedString(address->raw, 1);
     memcpy (address->string, string, 42);
     address->string[42] = '\0';
     free (string);
@@ -155,7 +155,7 @@ addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
     address->index = 0;
     address->nonce = 0;
     strlcpy (&address->string[0], string, 43);
-    address->raw = addressCreate(string);
+    address->raw = ethAddressCreate(string);
 }
 #endif
 
@@ -179,7 +179,7 @@ struct BREthereumAccountRecord {
 };
 
 extern BREthereumAccount
-createAccountWithBIP32Seed (UInt512 seed) {
+ethAccountCreateWithBIP32Seed (UInt512 seed) {
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
     
     // Assign the key; create the primary address.
@@ -191,7 +191,7 @@ createAccountWithBIP32Seed (UInt512 seed) {
 }
 
 extern BREthereumAccount
-createAccountWithPublicKey (const BRKey key) { // 65 bytes, 0x04-prefixed, uncompressed public key
+ethAccountCreateWithPublicKey (const BRKey key) { // 65 bytes, 0x04-prefixed, uncompressed public key
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
     
     // Assign the key; create the primary address.
@@ -202,7 +202,7 @@ createAccountWithPublicKey (const BRKey key) { // 65 bytes, 0x04-prefixed, uncom
 }
 
 extern BREthereumAccount
-createAccountDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
+ethAccountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
     
     // Validate arguments
     if (NULL == paperKey || NULL == wordList || BIP39_WORDLIST_COUNT != wordListLength)
@@ -219,54 +219,54 @@ createAccountDetailed(const char *paperKey, const char *wordList[], const int wo
 
         // Use a well-known public paper key, but overwrite the address.  This won't work for
         // signing, but will work for viewing.
-        BREthereumAccount account = createAccountWithBIP32Seed(deriveSeedFromPaperKey(DEBUG_PAPER_KEY));
+        BREthereumAccount account = ethAccountCreateWithBIP32Seed(deriveSeedFromPaperKey(DEBUG_PAPER_KEY));
         addressDetailFillRaw (&account->primaryAddress, paperKey);
         return account;
     }
 #endif
     // Generate the 512bit private key using a BIP39 paperKey
-    return createAccountWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
+    return ethAccountCreateWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
 }
 
 extern BREthereumAccount
-createAccount(const char *paperKey) {
+ethAccountCreate (const char *paperKey) {
     if (NULL == sharedWordList)
         installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     
-    return createAccountDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
+    return ethAccountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
 
 extern void
-accountFree (BREthereumAccount account) {
+ethAccountRelease (BREthereumAccount account) {
     free (account);
 }
 
 extern BREthereumAddress
-accountGetPrimaryAddress(BREthereumAccount account) {
+ethAccountGetPrimaryAddress(BREthereumAccount account) {
     return account->primaryAddress.raw;
 }
 
 extern char *
-accountGetPrimaryAddressString (BREthereumAccount account) {
+ethAccountGetPrimaryAddressString (BREthereumAccount account) {
     return strdup(account->primaryAddress.string);
     
 }
 
 extern BRKey
-accountGetPrimaryAddressPublicKey (BREthereumAccount account) {
+ethAccountGetPrimaryAddressPublicKey (BREthereumAccount account) {
     return addressDetailGetPublicKey(&account->primaryAddress);
 }
 
 extern BRKey
-accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
-                                    const char *paperKey) {
+ethAccountGetPrimaryAddressPrivateKey (BREthereumAccount account,
+                                       const char *paperKey) {
     return derivePrivateKeyFromSeed(deriveSeedFromPaperKey(paperKey),
                                     account->primaryAddress.index);
 }
 
 #if defined (DEBUG)
 extern const char *
-accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed) {
+ethAccountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed) {
     // The byte array at address->publicKey has the '04' 'uncompressed' prefix removed.  Thus
     // the value in publicKey is uncompressed and 64 bytes.  As a string, this result will have
     // an 0x0<n> prefix where 'n' is in { 4: uncompressed, 2: compressed even, 3: compressed odd }.
@@ -282,43 +282,43 @@ accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compress
     
     char *result = malloc (4 + 2 * sourceLen + 1);
     strcpy (result, prefix);  // encode properly...
-    encodeHex(&result[4], 2 * sourceLen + 1, account->primaryAddress.publicKey, sourceLen);
+    hexEncode(&result[4], 2 * sourceLen + 1, account->primaryAddress.publicKey, sourceLen);
     
     return result;
 }
 #endif
 
 extern BREthereumBoolean
-accountHasAddress(BREthereumAccount account,
-                  BREthereumAddress address) {
-    return addressEqual(account->primaryAddress.raw, address);
+ethAccountHasAddress(BREthereumAccount account,
+                     BREthereumAddress address) {
+    return ethAddressEqual(account->primaryAddress.raw, address);
 }
 
 extern BREthereumSignature
-accountSignBytesWithPrivateKey(BREthereumAccount account,
-                               BREthereumAddress address,
-                               BREthereumSignatureType type,
-                               uint8_t *bytes,
-                               size_t bytesCount,
-                               BRKey privateKey) {
-    return signatureCreate(type, bytes, bytesCount, privateKey);
+ethAccountSignBytesWithPrivateKey(BREthereumAccount account,
+                                  BREthereumAddress address,
+                                  BREthereumSignatureType type,
+                                  uint8_t *bytes,
+                                  size_t bytesCount,
+                                  BRKey privateKey) {
+    return ethSignatureCreate(type, bytes, bytesCount, privateKey);
 }
 
 extern BREthereumSignature
-accountSignBytes(BREthereumAccount account,
-                 BREthereumAddress address,
-                 BREthereumSignatureType type,
-                 uint8_t *bytes,
-                 size_t bytesCount,
-                 const char *paperKey) {
+ethAccountSignBytes(BREthereumAccount account,
+                    BREthereumAddress address,
+                    BREthereumSignatureType type,
+                    uint8_t *bytes,
+                    size_t bytesCount,
+                    const char *paperKey) {
     UInt512 seed = deriveSeedFromPaperKey(paperKey);
     // TODO: Account has Address
-    return accountSignBytesWithPrivateKey(account,
-                                          address,
-                                          type,
-                                          bytes,
-                                          bytesCount,
-                                          derivePrivateKeyFromSeed(seed, account->primaryAddress.index));
+    return ethAccountSignBytesWithPrivateKey(account,
+                                             address,
+                                             type,
+                                             bytes,
+                                             bytesCount,
+                                             derivePrivateKeyFromSeed(seed, account->primaryAddress.index));
 }
 
 //
@@ -354,33 +354,33 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
 // New
 //
 extern uint32_t
-accountGetAddressIndex (BREthereumAccount account,
-                        BREthereumAddress address) {
+ethAccountGetAddressIndex (BREthereumAccount account,
+                           BREthereumAddress address) {
     // TODO: Lookup address, assert address
     return account->primaryAddress.index;
 }
 
 extern uint64_t
-accountGetAddressNonce (BREthereumAccount account,
-                        BREthereumAddress address) {
+ethAccountGetAddressNonce (BREthereumAccount account,
+                           BREthereumAddress address) {
     // TODO: Lookup address, assert address
     return account->primaryAddress.nonce;
     
 }
 
 private_extern void
-accountSetAddressNonce(BREthereumAccount account,
-                       BREthereumAddress address,
-                       uint64_t nonce,
-                       BREthereumBoolean force) {
+ethAccountSetAddressNonce(BREthereumAccount account,
+                          BREthereumAddress address,
+                          uint64_t nonce,
+                          BREthereumBoolean force) {
     // TODO: Lookup address, assert address
     if (ETHEREUM_BOOLEAN_IS_TRUE(force) || nonce > account->primaryAddress.nonce)
         account->primaryAddress.nonce = nonce;
 }
 
 private_extern uint64_t
-accountGetThenIncrementAddressNonce(BREthereumAccount account,
-                                    BREthereumAddress address) {
+ethAccountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                       BREthereumAddress address) {
     // TODO: Lookup address, assert address
     return account->primaryAddress.nonce++;
 }

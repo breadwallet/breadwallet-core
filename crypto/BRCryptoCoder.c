@@ -65,7 +65,7 @@ cryptoCoderEncodeLength (BRCryptoCoder coder,
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
-            length = encodeHexLength (srcLen);
+            length = hexEncodeLength (srcLen);
             break;
         }
         case CRYPTO_CODER_BASE58: {
@@ -103,7 +103,7 @@ cryptoCoderEncode (BRCryptoCoder coder,
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
-            encodeHex (dst, dstLen, src, srcLen);
+            hexEncode (dst, dstLen, src, srcLen);
             result = CRYPTO_TRUE;
             break;
         }
@@ -138,7 +138,7 @@ cryptoCoderDecodeLength (BRCryptoCoder coder,
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
             size_t strLen = strlen (src);
-            length = (0 == strLen % 2) ? decodeHexLength (strLen) : 0;
+            length = (0 == strLen % 2) ? hexDecodeLength (strLen) : 0;
             break;
         }
         case CRYPTO_CODER_BASE58: {
@@ -176,7 +176,7 @@ cryptoCoderDecode (BRCryptoCoder coder,
 
     switch (coder->type) {
         case CRYPTO_CODER_HEX: {
-            decodeHex (dst, dstLen, src, strlen (src));
+            hexDecode (dst, dstLen, src, strlen (src));
             result = CRYPTO_TRUE;
             break;
         }

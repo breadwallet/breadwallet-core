@@ -39,8 +39,8 @@ fileServiceTypeTransactionV1Writer (BRFileServiceContext context,
     BREthereumTransaction transaction = (BREthereumTransaction) entity;
 
     BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -54,10 +54,10 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
     BREthereumTransaction transaction = transactionRlpDecode(item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     return transaction;
 }
@@ -91,8 +91,8 @@ fileServiceTypeLogV1Writer (BRFileServiceContext context,
     BREthereumLog log = (BREthereumLog) entity;
 
     BRRlpItem item = logRlpEncode (log, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -106,10 +106,10 @@ fileServiceTypeLogV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
     BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     return log;
 }
@@ -142,8 +142,8 @@ fileServiceTypeBlockV1Writer (BRFileServiceContext context,
     BREthereumBlock block = (BREthereumBlock) entity;
 
     BRRlpItem item = blockRlpEncode(block, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -157,10 +157,10 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
     BREthereumBlock block = blockRlpDecode (item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     return block;
 }
@@ -194,8 +194,8 @@ fileServiceTypeNodeV1Writer (BRFileServiceContext context,
     const BREthereumNodeConfig node = (BREthereumNodeConfig) entity;
 
     BRRlpItem item = nodeConfigEncode (node, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -209,10 +209,10 @@ fileServiceTypeNodeV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
     BREthereumNodeConfig node = nodeConfigDecode (item, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     return node;
 }
@@ -230,7 +230,7 @@ fileServiceTypeTokenV1Identifier (BRFileServiceContext context,
                                         BRFileService fs,
                                         const void *entity) {
     BREthereumToken token = (BREthereumToken) entity;
-    BREthereumHash hash = tokenGetHash(token);
+    BREthereumHash hash = ethTokenGetHash(token);
 
     UInt256 result;
     memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
@@ -245,9 +245,9 @@ fileServiceTypeTokenV1Writer (BRFileServiceContext context,
     BREthereumEWM ewm = context;
     BREthereumToken token = (BREthereumToken) entity;
 
-    BRRlpItem item = tokenEncode(token, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpItem item = ethTokenRlpEncode(token, ewm->coder);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -261,10 +261,10 @@ fileServiceTypeTokenV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
-    BREthereumToken token = tokenDecode(item, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    BREthereumToken token = ethTokenRlpDecode(item, ewm->coder);
+    rlpItemRelease (ewm->coder, item);
 
     return token;
 }
@@ -298,8 +298,8 @@ fileServiceTypeWalletV1Writer (BRFileServiceContext context,
     BREthereumWalletState state = (BREthereumWalletState) entity;
 
     BRRlpItem item = walletStateEncode (state, ewm->coder);
-    BRRlpData data = rlpGetData (ewm->coder, item);
-    rlpReleaseItem (ewm->coder, item);
+    BRRlpData data = rlpItemGetData (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     *bytesCount = (uint32_t) data.bytesCount;
     return data.bytes;
@@ -313,10 +313,10 @@ fileServiceTypeWalletV1Reader (BRFileServiceContext context,
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
-    BRRlpItem item = rlpGetItem (ewm->coder, data);
+    BRRlpItem item = rlpDataGetItem (ewm->coder, data);
 
     BREthereumWalletState state = walletStateDecode(item, ewm->coder);
-    rlpReleaseItem (ewm->coder, item);
+    rlpItemRelease (ewm->coder, item);
 
     return state;
 }

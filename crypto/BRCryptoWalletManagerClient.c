@@ -158,7 +158,7 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     callbackState->rid = rid;
 
     UInt256 txHash = UInt256Reverse (transactionHash);
-    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+    char *hashAsHex = hexEncodeCreate (NULL, txHash.u8, sizeof(txHash.u8));
 
     cwm->client.funcSubmitTransaction (cwm->client.context,
                                        cryptoWalletManagerTake (cwm),
@@ -1032,9 +1032,9 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
 
                 // ... and then the 'raw integer' (UInt256) value
-                UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
-                                 ? amountGetEther(amount).valueInWEI
-                                 : amountGetTokenQuantity(amount).valueAsInteger);
+                UInt256 value = (AMOUNT_ETHER == ethAmountGetType(amount)
+                                 ? ethAmountGetEther(amount).valueInWEI
+                                 : ethAmountGetTokenQuantity(amount).valueAsInteger);
 
                 // Create a cryptoAmount in the wallet's unit.
                 BRCryptoAmount cryptoAmount = cryptoAmountCreate (unit, CRYPTO_FALSE, value);
@@ -1300,8 +1300,8 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
 
                 BRCryptoUnit unit = cryptoTransferGetUnitForFee(transfer);
                 BRCryptoFeeBasis feeBasisConfirmed = cryptoFeeBasisCreateAsETH (unit,
-                                                                                feeBasisGetGasLimit(ethFeeBasis),
-                                                                                feeBasisGetGasPrice(ethFeeBasis));
+                                                                                ethFeeBasisGetGasLimit(ethFeeBasis),
+                                                                                ethFeeBasisGetGasPrice(ethFeeBasis));
 
                 ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (blockNumber,
@@ -1423,7 +1423,7 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
                                 cryptoWalletManagerTake (cwm),
                                 callbackState,
                                 &address, 1,
-                                (NULL == token ? NULL : tokenGetAddress (token)));
+                                (NULL == token ? NULL : ethTokenGetAddress (token)));
 
     cryptoWalletManagerGive (cwm);
 }
@@ -1443,7 +1443,7 @@ cwmGetGasPriceAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetGasPriceETH (cwm->client.context,
                                     cryptoWalletManagerTake (cwm),
@@ -1476,7 +1476,7 @@ cwmGetGasEstimateAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcEstimateGasETH (cwm->client.context,
                                     cryptoWalletManagerTake (cwm),
@@ -1591,7 +1591,7 @@ cwmGetBlocksAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetBlocksETH (cwm->client.context,
                                   cryptoWalletManagerTake (cwm),
@@ -1658,7 +1658,7 @@ cwmGetNonceAsETH (BREthereumClientContext context,
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = networkCopyNameAsLowercase (network);
+    char *networkName = ethNetworkCopyNameAsLowercase (network);
 
     cwm->client.funcGetNonceETH (cwm->client.context,
                                  cryptoWalletManagerTake (cwm),

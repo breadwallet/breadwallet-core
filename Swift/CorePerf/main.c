@@ -40,7 +40,7 @@ runSyncMany (BREthereumNetwork newtork,
 
         assert (phraseLen == BRBIP39Encode(phrase, sizeof(phrase), BRBIP39WordsEn, entropy.u8, sizeof(entropy)));
 
-        BREthereumAccount account = createAccount(phrase);
+        BREthereumAccount account = ethAccountCreate (phrase);
 
         char storagePath[100];
         sprintf (storagePath, "many%d", i);
@@ -54,7 +54,7 @@ runSyncMany (BREthereumNetwork newtork,
 
         clients[i] = runEWM_createClient();
 
-        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath, 0, 6);
+        ewm = ewmCreate (ethNetworkMainnet, account, timestamp, mode, clients[i], storagePath, 0, 6);
         ewms[i] = ewm;
 
         char *address = ewmGetAccountPrimaryAddress(ewm);
@@ -84,12 +84,12 @@ int main(int argc, const char * argv[]) {
     BRCryptoSyncMode mode = CRYPTO_SYNC_MODE_API_WITH_P2P_SEND;
 
     const char *paperKey = (argc > 1 ? argv[1] : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
-    BREthereumAccount account = createAccount(paperKey);
+    BREthereumAccount account = ethAccountCreate (paperKey);
     BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
     const char *path = "core";
 
 
-    runSyncTest (ethereumMainnet,  account, mode, timestamp,  5 * 60, path);
+    runSyncTest (ethNetworkMainnet,  account, mode, timestamp,  5 * 60, path);
 
 //    runSyncMany(ethereumMainnet, mode, 10 * 60, 1000);
 

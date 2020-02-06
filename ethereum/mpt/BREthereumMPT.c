@@ -49,12 +49,12 @@ mptNodeRelease (BREthereumMPTNode node) {
     if (NULL == node) return;  // On RLP coding error during 'nodes' processing
     switch (node->type) {
         case MPT_NODE_LEAF:
-            dataRelease(node->u.leaf.path);
+            ethDataRelease(node->u.leaf.path);
             rlpDataRelease(node->u.leaf.value);
             break;
 
         case MPT_NODE_EXTENSION:
-            dataRelease (node->u.extension.path);
+            ethDataRelease (node->u.extension.path);
             break;
 
         case MPT_NODE_BRANCH:
@@ -105,7 +105,7 @@ mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
 
         case MPT_NODE_BRANCH: {
             // We'll consume one byte if the node's key is not an empty hash
-            return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (node->u.branch.keys[key[0]],
+            return (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (node->u.branch.keys[key[0]],
                                                          EMPTY_HASH_INIT))
                     ? 0
                     : 1);
@@ -176,7 +176,7 @@ mptNodeDecode (BRRlpItem item,
 
                 case MPT_NODE_EXTENSION:
                     node->u.extension.path = path;
-                    node->u.extension.key = hashRlpDecode (items[1], coder);
+                    node->u.extension.key = ethHashRlpDecode (items[1], coder);
                     break;
 
                 case MPT_NODE_BRANCH:
@@ -188,13 +188,13 @@ mptNodeDecode (BRRlpItem item,
         case 17: {
             node = mptNodeCreate(MPT_NODE_BRANCH);
             for (size_t index = 0; index < 16; index++) {
-                BRRlpData data = rlpGetDataSharedDontRelease (coder, items[index]);
+                BRRlpData data = rlpItemGetDataSharedDontRelease (coder, items[index]);
                 // Either a hash (0x<32 bytes>) or empty (0x)
                 node->u.branch.keys[index] = (0 == data.bytesCount || 1 == data.bytesCount
                                               ? EMPTY_HASH_INIT
-                                              : hashRlpDecode(items[index], coder));
+                                              : ethHashRlpDecode(items[index], coder));
             }
-            node->u.branch.value = rlpGetData (coder, items[16]);
+            node->u.branch.value = rlpItemGetData (coder, items[16]);
             break;
         }
     }
@@ -258,12 +258,12 @@ mptNodePathDecodeFromBytes (BRRlpItem item,
         // items[index] holds bytes as the RLP encoding of MPT nodes.  We'll decode the bytes
         // and then RLP encode the bytes (but this time as RLP items.... got it??).
         BRRlpData data = rlpDecodeBytesSharedDontRelease (coder, items[index]);
-        BRRlpItem item = rlpGetItem(coder, data);
+        BRRlpItem item = rlpDataGetItem(coder, data);
         array_add (nodes, mptNodeDecode (item, coder));
 #if defined (MPT_SHOW_PROOF_NODES)
         rlpShowItem (coder, item, "MPTN");
 #endif
-        rlpReleaseItem (coder, item);
+        rlpItemRelease (coder, item);
     }
 
     // TODO: If any above item is decoded improperly, then `nodes` will have NULL values.

@@ -109,7 +109,7 @@ messagePIPAnnounceDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     if (5 != itemsCount && 4 != itemsCount) rlpCoderSetFailed (coder.rlp);
     else {
-        message.headHash = hashRlpDecode (items[0], coder.rlp);
+        message.headHash = ethHashRlpDecode (items[0], coder.rlp);
         message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
         message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
         message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
@@ -146,7 +146,7 @@ messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
                                   loose(coder.rlp, 0,
                                         (input.u.headers.useBlockNumber
                                          ? rlpEncodeUInt64 (coder.rlp, input.u.headers.block.number, 1)
-                                         : hashRlpEncode (input.u.headers.block.hash, coder.rlp))),
+                                         : ethHashRlpEncode (input.u.headers.block.hash, coder.rlp))),
                                   rlpEncodeUInt64 (coder.rlp, input.u.headers.skip, 1),
                                   rlpEncodeUInt64 (coder.rlp, input.u.headers.max, 1),
                                   rlpEncodeUInt64 (coder.rlp, ETHEREUM_BOOLEAN_IS_TRUE (input.u.headers.reverse), 1));
@@ -159,36 +159,36 @@ messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
             
         case PIP_REQUEST_TRANSACTION_INDEX:
             item = rlpEncodeList1 (coder.rlp,
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp)));
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_BLOCK_RECEIPTS:
             item = rlpEncodeList1 (coder.rlp,
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp)));
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_BLOCK_BODY:
             item = rlpEncodeList1 (coder.rlp,
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.blockBody.blockHash, coder.rlp)));
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.blockBody.blockHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_ACCOUNT:
             item = rlpEncodeList2 (coder.rlp,
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.account.blockHash, coder.rlp)),
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.account.addressHash, coder.rlp)));
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.account.blockHash, coder.rlp)),
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.account.addressHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_STORAGE:
             item = rlpEncodeList (coder.rlp, 3,
-                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.blockHash, coder.rlp)),
-                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.addressHash, coder.rlp)),
-                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.storageRootHash, coder.rlp)));
+                                  loose (coder.rlp, 0, ethHashRlpEncode (input.u.storage.blockHash, coder.rlp)),
+                                  loose (coder.rlp, 0, ethHashRlpEncode (input.u.storage.addressHash, coder.rlp)),
+                                  loose (coder.rlp, 0, ethHashRlpEncode (input.u.storage.storageRootHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_CODE:
             item = rlpEncodeList2 (coder.rlp,
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.code.blockHash, coder.rlp)),
-                                   loose (coder.rlp, 0, hashRlpEncode (input.u.code.codeHash, coder.rlp)));
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.code.blockHash, coder.rlp)),
+                                   loose (coder.rlp, 0, ethHashRlpEncode (input.u.code.codeHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_EXECUTION:
@@ -288,7 +288,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 PIP_REQUEST_HEADER_PROOF,
                 { .headerProof = {
                     path,
-                    hashRlpDecode(outputItems[1], coder.rlp),
+                    ethHashRlpDecode(outputItems[1], coder.rlp),
                     rlpDecodeUInt256 (coder.rlp, outputItems[2], 1)
                 }}
             };
@@ -303,7 +303,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 PIP_REQUEST_TRANSACTION_INDEX,
                 { .transactionIndex = {
                     rlpDecodeUInt64 (coder.rlp, outputItems[0], 1),
-                    hashRlpDecode(outputItems[1], coder.rlp),
+                    ethHashRlpDecode(outputItems[1], coder.rlp),
                     rlpDecodeUInt64 (coder.rlp, outputItems[2], 1)
                 }}
             };
@@ -339,8 +339,8 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 { .account = {
                     rlpDecodeUInt64 (coder.rlp, outputItems[1], 1),
                     rlpDecodeUInt256 (coder.rlp, outputItems[2], 1),
-                    hashRlpDecode (outputItems[3], coder.rlp),
-                    hashRlpDecode (outputItems[4], coder.rlp) }}
+                    ethHashRlpDecode (outputItems[3], coder.rlp),
+                    ethHashRlpDecode (outputItems[4], coder.rlp) }}
             };
         }
 

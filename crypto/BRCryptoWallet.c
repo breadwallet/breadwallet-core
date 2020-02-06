@@ -154,7 +154,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = wallet->u.btc.wid;
 
-            UInt256 value = createUInt256 (BRWalletBalance (wid));
+            UInt256 value = uint256Create (BRWalletBalance (wid));
             BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
@@ -179,10 +179,10 @@ extern BRCryptoAmount /* nullable */
 cryptoWalletGetBalanceMinimum (BRCryptoWallet wallet) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, uint256Create(0));
 
         case BLOCK_CHAIN_TYPE_ETH:
-            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, createUInt256(0));
+            return cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, uint256Create(0));
 
         case BLOCK_CHAIN_TYPE_GEN: {
             BRCryptoBoolean hasLimit = 0;
@@ -334,7 +334,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             assert (CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT == addressScheme);
             BREthereumEWM ewm = wallet->u.eth.ewm;
 
-            BREthereumAddress ethAddress = accountGetPrimaryAddress (ewmGetAccount(ewm));
+            BREthereumAddress ethAddress = ethAccountGetPrimaryAddress (ewmGetAccount(ewm));
             return cryptoAddressCreateAsETH (ethAddress);
         }
 
@@ -627,8 +627,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             UInt256 ethValue  = cryptoAmountGetValue (amount);
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
-                                          : amountCreateEther (etherCreate (ethValue)));
+                                          ? ethAmountCreateToken (ethTokenQuantityCreate (ethToken, ethValue))
+                                          : ethAmountCreateEther (ethEtherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
             char *addr = cryptoAddressAsString(target); // Target address
@@ -801,7 +801,7 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
 
             // Expect all other fields in `value` to be zero
             value.u32[0] = 0;
-            if (!eqUInt256 (value, UINT256_ZERO)) return NULL;
+            if (!uint256EQL (value, UINT256_ZERO)) return NULL;
 
             uint32_t sizeInBytes = (uint32_t) (1000 * costFactor);
 
@@ -809,8 +809,8 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {
-            BREthereumGas gas = gasCreate((uint64_t) costFactor);
-            BREthereumGasPrice gasPrice = gasPriceCreate (etherCreate(value));
+            BREthereumGas gas = ethGasCreate((uint64_t) costFactor);
+            BREthereumGasPrice gasPrice = ethGasPriceCreate (ethEtherCreate(value));
 
             return cryptoFeeBasisCreateAsETH (wallet->unitForFee, gas, gasPrice);
         }
@@ -1037,7 +1037,7 @@ cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper) {
 
     switch (sweeper->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
-            UInt256 value = createUInt256 (BRWalletSweeperGetBalance (sweeper->u.btc.sweeper));
+            UInt256 value = uint256Create (BRWalletSweeperGetBalance (sweeper->u.btc.sweeper));
             amount = cryptoAmountCreate (sweeper->unit, CRYPTO_FALSE, value);
             break;
         }

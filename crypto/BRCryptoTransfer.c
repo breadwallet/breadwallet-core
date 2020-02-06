@@ -179,7 +179,7 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
 
     // cache the values that require the ewm
     BREthereumAccount account = ewmGetAccount (ewm);
-    transfer->u.eth.accountAddress = accountGetPrimaryAddress (account);
+    transfer->u.eth.accountAddress = ethAccountGetPrimaryAddress (account);
 
     // This function `cryptoTransferCreateAsETH()` includes an argument as
     // `BRCryptoFeeBasis feeBasisEstimated` whereas the analogous function
@@ -292,19 +292,19 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                 case CRYPTO_TRANSFER_RECOVERED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(send));
+                                                 uint256Create(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(send - fee - recv));
+                                                 uint256Create(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 createUInt256(recv));
+                                                 uint256Create(recv));
                     break;
 
                 default: assert(0);
@@ -315,17 +315,17 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumAmount ethAmount = ewmTransferGetAmount (transfer->u.eth.ewm,
                                                                transfer->u.eth.tid);
-            switch (amountGetType(ethAmount)) {
+            switch (ethAmountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
                     amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
-                                                 etherGetValue(amountGetEther(ethAmount), WEI));
+                                                 ethEtherGetValue(ethAmountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
                     amount = cryptoAmountCreate (transfer->unit,
                                                isNegative,
-                                               amountGetTokenQuantity(ethAmount).valueAsInteger);
+                                               ethAmountGetTokenQuantity(ethAmount).valueAsInteger);
                     break;
 
                 default: assert(0);
@@ -466,11 +466,11 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
                 case CRYPTO_TRANSFER_RECOVERED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               createUInt256(fee));
+                                               uint256Create(fee));
                 case CRYPTO_TRANSFER_SENT:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
-                                               createUInt256(fee));
+                                               uint256Create(fee));
                 case CRYPTO_TRANSFER_RECEIVED:
                     return cryptoAmountCreate (transfer->currency,
                                                CRYPTO_FALSE,
@@ -570,8 +570,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             BREthereumAddress source = ewmTransferGetSource (ewm, tid);
             BREthereumAddress target = ewmTransferGetTarget (ewm, tid);
 
-            BREthereumBoolean accountIsSource = addressEqual (source, transfer->u.eth.accountAddress);
-            BREthereumBoolean accountIsTarget = addressEqual (target, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsSource = ethAddressEqual (source, transfer->u.eth.accountAddress);
+            BREthereumBoolean accountIsTarget = ethAddressEqual (target, transfer->u.eth.accountAddress);
 
             if (accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_TRUE) {
                 return CRYPTO_TRANSFER_RECOVERED;
@@ -609,7 +609,7 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
             BREthereumTransfer tid = transfer->u.eth.tid;
 
             BREthereumHash hash = ewmTransferGetOriginatingTransactionHash (ewm, tid);
-            return (ETHEREUM_BOOLEAN_TRUE == hashEqual(hash, hashCreateEmpty())
+            return (ETHEREUM_BOOLEAN_TRUE == ethHashEqual(hash, ethHashCreateEmpty())
                     ? NULL
                     : cryptoHashCreateAsETH (hash));
         }

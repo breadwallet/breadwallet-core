@@ -524,22 +524,22 @@ extern int testFrameCoderInitiator(BREthereumLESFrameCoder fCoder) {
 
     //Check to ensure AES_SECRET is valid
     uint8_t aesSecret[32];
-    decodeHex(aesSecret, 32, AES_SECRET, 64);
+    hexDecode(aesSecret, 32, AES_SECRET, 64);
     assert(memcmp(aesSecret, fCoder->aesDecryptKey, 32) == 0);
 
     
     //MAC_SECRET
     uint8_t macSecret[32];
-    decodeHex(macSecret, 32, MAC_SECRET, 64);
+    hexDecode(macSecret, 32, MAC_SECRET, 64);
     assert(memcmp(macSecret, fCoder->macSecretKey.u8, 32) == 0);
 
     //TOKEN
     //uint8_t token[32];
-    //decodeHex(token, 32, TOKEN, 64);
+    //hexDecode(token, 32, TOKEN, 64);
     
     //INITIAL_EGRESS_MAC
     uint8_t initialEgressMac[32];
-    decodeHex(initialEgressMac, 32, INITIAL_EGRESS_MAC, 64);
+    hexDecode(initialEgressMac, 32, INITIAL_EGRESS_MAC, 64);
     uint8_t egressDigest[32];
     
     keccak_digest(fCoder->egressMac, egressDigest);
@@ -548,7 +548,7 @@ extern int testFrameCoderInitiator(BREthereumLESFrameCoder fCoder) {
 
     //INITIAL_INGRESS_MAC
     uint8_t initialIngressMac[32];
-    decodeHex(initialIngressMac, 32, INITIAL_INGRESS_MAC, 64);
+    hexDecode(initialIngressMac, 32, INITIAL_INGRESS_MAC, 64);
     uint8_t ingressDigest[32];
     keccak_digest(fCoder->ingressMac, ingressDigest);
     
@@ -560,22 +560,22 @@ extern int testFrameCoderReceiver(BREthereumLESFrameCoder fCoder) {
 
     //Check to ensure AES_SECRET is valid
     uint8_t aesSecret[32];
-    decodeHex(aesSecret, 32, AES_SECRET, 64);
+    hexDecode(aesSecret, 32, AES_SECRET, 64);
     assert(memcmp(aesSecret, fCoder->aesDecryptKey, 32) == 0);
 
     
     //MAC_SECRET
     uint8_t macSecret[32];
-    decodeHex(macSecret, 32, MAC_SECRET, 64);
+    hexDecode(macSecret, 32, MAC_SECRET, 64);
     assert(memcmp(macSecret, fCoder->macSecretKey.u8, 32) == 0);
 
     //TOKEN
     //uint8_t token[32];
-    //decodeHex(token, 32, TOKEN, 64);
+    //hexDecode(token, 32, TOKEN, 64);
     
     //INITIAL_EGRESS_MAC
     uint8_t initialEgressMac[32];
-    decodeHex(initialEgressMac, 32, INITIAL_INGRESS_MAC, 64);
+    hexDecode(initialEgressMac, 32, INITIAL_INGRESS_MAC, 64);
     uint8_t egressDigest[32];
     keccak_digest(fCoder->egressMac, egressDigest);
     assert(memcmp(initialEgressMac,egressDigest, 32) == 0);
@@ -583,7 +583,7 @@ extern int testFrameCoderReceiver(BREthereumLESFrameCoder fCoder) {
 
     //INITIAL_INGRESS_MAC
     uint8_t initialIngressMac[32];
-    decodeHex(initialIngressMac, 32, INITIAL_EGRESS_MAC, 64);
+    hexDecode(initialIngressMac, 32, INITIAL_EGRESS_MAC, 64);
     uint8_t ingressDigest[32];
     keccak_digest(fCoder->ingressMac , ingressDigest);
     assert(memcmp(initialIngressMac,ingressDigest, 32) == 0);

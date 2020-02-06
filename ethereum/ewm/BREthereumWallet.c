@@ -141,16 +141,16 @@ walletCreateDetailed (BREthereumAccount account,
     
     wallet->token = optionalToken;
     wallet->balance = (AMOUNT_ETHER == type
-                       ? amountCreateEther(etherCreate(UINT256_ZERO))
-                       : amountCreateToken(createTokenQuantity (wallet->token, UINT256_ZERO)));
+                       ? ethAmountCreateEther(ethEtherCreate(UINT256_ZERO))
+                       : ethAmountCreateToken(ethTokenQuantityCreate (wallet->token, UINT256_ZERO)));
     
     wallet->defaultGasLimit = AMOUNT_ETHER == type
     ? walletCreateDefaultGasLimit(wallet)
-    : tokenGetGasLimit (optionalToken);
+    : ethTokenGetGasLimit (optionalToken);
     
     wallet->defaultGasPrice = AMOUNT_ETHER == type
     ? walletCreateDefaultGasPrice(wallet)
-    : tokenGetGasPrice (optionalToken);
+    : ethTokenGetGasPrice (optionalToken);
     
     array_new(wallet->transfers, DEFAULT_TRANSFER_CAPACITY);
     return wallet;
@@ -161,7 +161,7 @@ walletCreate(BREthereumAccount account,
              BREthereumNetwork network)
 {
     return walletCreateDetailed (account,
-                                 accountGetPrimaryAddress(account),
+                                 ethAccountGetPrimaryAddress(account),
                                  network,
                                  AMOUNT_ETHER,
                                  NULL);
@@ -172,7 +172,7 @@ walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumNetwork network,
                          BREthereumToken token) {
     return walletCreateDetailed (account,
-                                 accountGetPrimaryAddress(account),
+                                 ethAccountGetPrimaryAddress(account),
                                  network,
                                  AMOUNT_TOKEN,
                                  token);
@@ -207,7 +207,7 @@ walletEstimateTransferFee (BREthereumWallet wallet,
     return walletEstimateTransferFeeDetailed (wallet,
                                               amount,
                                               wallet->defaultGasPrice,
-                                              amountGetGasEstimate(amount),
+                                              ethAmountGetGasEstimate(amount),
                                               overflow);
 }
 
@@ -220,8 +220,8 @@ walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
                                    BREthereumGasPrice price,
                                    BREthereumGas gas,
                                    int *overflow) {
-    return etherCreate (mulUInt256_Overflow (price.etherPerGas.valueInWEI,
-                                             createUInt256(gas.amountOfGas),
+    return ethEtherCreate (uint256Mul_Overflow (price.etherPerGas.valueInWEI,
+                                             uint256Create(gas.amountOfGas),
                                              overflow));
 }
 
@@ -384,35 +384,35 @@ walletUpdateBalance (BREthereumWallet wallet) {
     for (size_t index = 0; index < array_count (wallet->transfers); index++) {
         BREthereumTransfer transfer = wallet->transfers[index];
         BREthereumAmount   amount = transferGetAmount(transfer);
-        assert (amountGetType(wallet->balance) == amountGetType(amount));
-        UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
-                         ? amountGetEther(amount).valueInWEI
-                         : amountGetTokenQuantity(amount).valueAsInteger);
+        assert (ethAmountGetType(wallet->balance) == ethAmountGetType(amount));
+        UInt256 value = (AMOUNT_ETHER == ethAmountGetType(amount)
+                         ? ethAmountGetEther(amount).valueInWEI
+                         : ethAmountGetTokenQuantity(amount).valueAsInteger);
 
-        if (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
-            sent = addUInt256_Overflow(sent, value, &overflow);
+        if (ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
+            sent = uint256Add_Overflow(sent, value, &overflow);
 
             BREthereumEther fee = transferGetFee(transfer, &fee_overflow);
-            fees = addUInt256_Overflow(fees, fee.valueInWEI, &fee_overflow);
+            fees = uint256Add_Overflow(fees, fee.valueInWEI, &fee_overflow);
         }
         else
-            recv = addUInt256_Overflow(recv, value, &overflow);
+            recv = uint256Add_Overflow(recv, value, &overflow);
 
         assert (!overflow);
     }
 
-    UInt256 balance = subUInt256_Negative(recv, sent, &negative);
+    UInt256 balance = uint256Sub_Negative(recv, sent, &negative);
 
     // If we are going to be changing the balance here then 1) shouldn't we call walletSetBalance()
     // and shouldn't we also ensure that an event is generated (like all calls to
     // walletSetBalance() ensure)?
 
-    if (AMOUNT_ETHER == amountGetType(wallet->balance)) {
-        balance = subUInt256_Negative(balance, fees, &negative);
-        wallet->balance = amountCreateEther (etherCreate(balance));
+    if (AMOUNT_ETHER == ethAmountGetType(wallet->balance)) {
+        balance = uint256Sub_Negative(balance, fees, &negative);
+        wallet->balance = ethAmountCreateEther (ethEtherCreate(balance));
     }
     else
-        wallet->balance = amountCreateToken (createTokenQuantity(amountGetToken (wallet->balance), balance));
+        wallet->balance = ethAmountCreateToken (ethTokenQuantityCreate(ethAmountGetToken (wallet->balance), balance));
 }
 // Gas Limit
 
@@ -429,7 +429,7 @@ walletSetDefaultGasLimit(BREthereumWallet wallet,
 
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet) {
-    return amountGetGasEstimate(wallet->balance);
+    return ethAmountGetGasEstimate(wallet->balance);
 }
 
 // Gas Price
@@ -447,13 +447,13 @@ walletSetDefaultGasPrice(BREthereumWallet wallet,
 
 static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
-    switch (amountGetType(wallet->balance)) {
+    switch (ethAmountGetType(wallet->balance)) {
         case AMOUNT_ETHER:
-            return gasPriceCreate(etherCreateNumber
+            return ethGasPriceCreate(ethEtherCreateNumber
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                                    DEFAULT_ETHER_GAS_PRICE_UNIT));
         case AMOUNT_TOKEN:
-            return tokenGetGasPrice (wallet->token);
+            return ethTokenGetGasPrice (wallet->token);
     }
 }
 
@@ -488,11 +488,11 @@ walletWalkTransfers (BREthereumWallet wallet,
 extern BREthereumTransfer
 walletGetTransferByIdentifier (BREthereumWallet wallet,
                                BREthereumHash hash) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))) return NULL;
+    if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, EMPTY_HASH_INIT))) return NULL;
 
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumHash identifier = transferGetIdentifier (wallet->transfers[i]);
-        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, identifier)))
+        if (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, identifier)))
             return wallet->transfers[i];
     }
     return NULL;
@@ -503,7 +503,7 @@ walletGetTransferByOriginatingHash (BREthereumWallet wallet,
                                     BREthereumHash hash) {
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumTransaction transaction = transferGetOriginatingTransaction (wallet->transfers[i]);
-        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, transactionGetHash (transaction))))
+        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (hash, transactionGetHash (transaction))))
             return wallet->transfers[i];
     }
     return NULL;
@@ -515,7 +515,7 @@ walletGetTransferByNonce(BREthereumWallet wallet,
                          uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transfers); i++)
         if (nonce == transferGetNonce (wallet->transfers[i])
-            && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transferGetSourceAddress(wallet->transfers[i]))))
+            && ETHEREUM_BOOLEAN_IS_TRUE(ethAddressEqual(sourceAddress, transferGetSourceAddress(wallet->transfers[i]))))
             return wallet->transfers [i];
     return NULL;
 }
@@ -641,11 +641,11 @@ walletStateCreate (const BREthereumWallet wallet) {
 
     if (NULL == token) {
         state->address = FAKE_ETHER_ADDRESS_INIT;
-        state->amount  = etherGetValue (amountGetEther(balance), WEI);
+        state->amount  = ethEtherGetValue (ethAmountGetEther(balance), WEI);
     }
     else {
-        state->address = tokenGetAddressRaw(token);
-        state->amount  = amountGetTokenQuantity(balance).valueAsInteger;
+        state->address = ethTokenGetAddressRaw(token);
+        state->amount  = ethAmountGetTokenQuantity(balance).valueAsInteger;
     }
 
     return state;
@@ -658,7 +658,7 @@ walletStateRelease (BREthereumWalletState state) {
 
 extern BREthereumAddress
 walletStateGetAddress (const BREthereumWalletState walletState) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
+    return (ETHEREUM_BOOLEAN_IS_TRUE (ethAddressEqual (FAKE_ETHER_ADDRESS_INIT, walletState->address))
             ? EMPTY_ADDRESS_INIT
             : walletState->address);
 }
@@ -683,7 +683,7 @@ extern BRRlpItem
 walletStateEncode (const BREthereumWalletState state,
                    BRRlpCoder coder) {
     return rlpEncodeList (coder, 3,
-                          addressRlpEncode (state->address, coder),
+                          ethAddressRlpEncode (state->address, coder),
                           rlpEncodeUInt256 (coder, state->amount, 0),
                           rlpEncodeUInt64  (coder, state->nonce, 0));
 }
@@ -697,7 +697,7 @@ walletStateDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    state->address = addressRlpDecode (items[0], coder);
+    state->address = ethAddressRlpDecode (items[0], coder);
     state->amount  = rlpDecodeUInt256 (coder, items[1], 0);
     state->nonce   = rlpDecodeUInt64  (coder, items[2], 0);
 
@@ -706,18 +706,18 @@ walletStateDecode (BRRlpItem item,
 
 extern BREthereumHash
 walletStateGetHash (const BREthereumWalletState state) {
-    return addressGetHash (state->address);
+    return ethAddressGetHash (state->address);
 }
 
 static inline size_t
 walletStateHashValue (const void *t)
 {
-    return addressHashValue(((BREthereumWalletState) t)->address);
+    return ethAddressHashValue(((BREthereumWalletState) t)->address);
 }
 
 static inline int
 walletStateHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || addressHashEqual (((BREthereumWalletState) t1)->address,
+    return t1 == t2 || ethAddressHashEqual (((BREthereumWalletState) t1)->address,
                                          ((BREthereumWalletState) t2)->address);
 }
 

@@ -173,7 +173,7 @@ nodeEndpointCreateEnode (const char *enode) {
     memset (&key, 0, sizeof(BRKey));
     key.pubKey[0] = 0x04;
     key.compressed = 0;
-    decodeHex(&key.pubKey[1], 64, id, 128);
+    hexDecode(&key.pubKey[1], 64, id, 128);
 
     return nodeEndpointCreate((BREthereumDISNeighbor) { disEndpoint, key });
 }
@@ -238,13 +238,13 @@ nodeEndpointGetNonce (BREthereumNodeEndpoint endpoint) {
 // Support BRSet
 extern size_t
 nodeEndpointHashValue (const void *h) {
-    return hashSetValue(&((BREthereumNodeEndpoint) h)->hash);
+    return ethHashSetValue(&((BREthereumNodeEndpoint) h)->hash);
 }
 
 // Support BRSet
 extern int
 nodeEndpointHashEqual (const void *h1, const void *h2) {
-    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint) h1)->hash,
+    return h1 == h2 || ethHashSetEqual (&((BREthereumNodeEndpoint) h1)->hash,
                                      &((BREthereumNodeEndpoint) h2)->hash);
 }
 
@@ -464,7 +464,7 @@ nodeEndpointSendData (BREthereumNodeEndpoint endpoint,
 #if defined (NEED_TO_PRINT_SEND_DATA)
     {
         char hex[1 + 2 * bytesCount];
-        encodeHex(hex, 1 + 2 * bytesCount, bytes, bytesCount);
+        hexEncode(hex, 1 + 2 * bytesCount, bytes, bytesCount);
         printf ("Bytes: %s\n", hex);
     }
 #endif

@@ -132,7 +132,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData  data  = (BRRlpData) { bytesCount, bytes };
-    BRRlpItem  item  = rlpGetItem (coder, data);
+    BRRlpItem  item  = rlpDataGetItem (coder, data);
 
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
@@ -151,12 +151,12 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     BRGenericHash *hash = (BRGenericHash*) hashData.bytes;
     char *strHash   = genericHashAsString (*hash);
 
-    char *strAmount = coerceString (amount, 10);
+    char *strAmount = uint256CoerceString (amount, 10);
 
     int overflow = 0;
     UInt256 fee = genFeeBasisGetFee (&feeBasis, &overflow);
     assert (!overflow);
-    char *strFee = coerceString (fee,    10);
+    char *strFee = uint256CoerceString (fee,    10);
 
     uint64_t timestamp = (GENERIC_TRANSFER_STATE_INCLUDED == state.type
                           ? state.u.included.timestamp
@@ -191,7 +191,7 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
     free (strSource);
     free (strUids);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
     rlpCoderRelease(coder);
 
     return transfer;
@@ -228,9 +228,9 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     genTransferStateEncode (state, coder),
                                     genTransferAttributesEncode (transfer->attributes, coder));
 
-    BRRlpData data = rlpGetData (coder, item);
+    BRRlpData data = rlpItemGetData (coder, item);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
     rlpCoderRelease (coder);
 
     free (strSource); genAddressRelease (source);

@@ -153,7 +153,7 @@ extern BRCryptoKey
 cryptoKeyCreateFromStringPublic (const char *string) {
     size_t  targetLen = strlen (string) / 2;
     uint8_t target [targetLen];
-    decodeHex(target, targetLen, string, strlen (string));
+    hexDecode(target, targetLen, string, strlen (string));
 
     BRKey core;
     BRCryptoKey result = (1 == BRKeySetPubKey (&core, target, targetLen)
@@ -317,7 +317,7 @@ cryptoKeyEncodePublic (BRCryptoKey key) {
     uint8_t encoded[encodedLength];
 
     BRKeyPubKey(&key->core, encoded, encodedLength);
-    return encodeHexCreate (NULL, encoded, encodedLength);
+    return hexEncodeCreate (NULL, encoded, encodedLength);
 }
 
 extern BRCryptoSecret

@@ -16,10 +16,10 @@
 // Signature
 //
 extern BREthereumSignature
-signatureCreate(BREthereumSignatureType type,
-                uint8_t *bytes,
-                size_t bytesCount,
-                BRKey privateKeyUncompressed) {
+ethSignatureCreate(BREthereumSignatureType type,
+                   uint8_t *bytes,
+                   size_t bytesCount,
+                   BRKey privateKeyUncompressed) {
     BREthereumSignature signature;
 
     // Save the type.
@@ -87,7 +87,7 @@ signatureCreate(BREthereumSignatureType type,
 }
 
 extern BREthereumBoolean
-signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
+ethSignatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
     return (s1.type == s2.type &&
             s1.sig.vrs.v == s2.sig.vrs.v &&
             0 == memcmp (s1.sig.vrs.r, s2.sig.vrs.r, 32) &&
@@ -97,10 +97,10 @@ signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
 }
 
 extern BREthereumAddress
-signatureExtractAddress(const BREthereumSignature signature,
-                        const uint8_t *bytes,
-                        size_t bytesCount,
-                        int *success) {
+ethSignatureExtractAddress(const BREthereumSignature signature,
+                           const uint8_t *bytes,
+                           size_t bytesCount,
+                           int *success) {
     assert (NULL != success);
 
     UInt256 digest;
@@ -123,12 +123,12 @@ signatureExtractAddress(const BREthereumSignature signature,
 
     return (0 == *success
             ? (BREthereumAddress) EMPTY_ADDRESS_INIT
-            : addressCreateKey(&key));
+            : ethAddressCreateKey(&key));
 }
 
 extern void
-signatureClear (BREthereumSignature *s,
-                BREthereumSignatureType type) {
+ethSignatureClear (BREthereumSignature *s,
+                   BREthereumSignatureType type) {
     memset (s, 0, sizeof (BREthereumSignature));
     s->type = type;
 }

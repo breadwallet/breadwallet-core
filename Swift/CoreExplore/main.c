@@ -46,8 +46,8 @@ handlePaperKeyToAccount (void) {
 
     printf ("Read: %s\n", paperKey);
 
-    BREthereumAccount account = createAccount(paperKey);
-    char *publicAddress = accountGetPrimaryAddressString(account);
+    BREthereumAccount account = ethAccountCreate (paperKey);
+    char *publicAddress = ethAccountGetPrimaryAddressString(account);
     printf ("Public Address: %s\n", publicAddress);
     free (publicAddress);
 
@@ -63,12 +63,12 @@ handleTrans (BRRlpCoder coder, const char *input) {
         input = &input[2];
 
     // Fill `data` and `item`
-    data.bytes = decodeHexCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
-    rlpShow(data, "Trans:");
+    data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
+    item = rlpDataGetItem (coder, data);
+    rlpDataShow(data, "Trans:");
 
     // Extract a transaction
-    BREthereumTransaction transaction = transactionRlpDecode (item, ethereumTestnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction transaction = transactionRlpDecode (item, ethNetworkTestnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     transactionShow(transaction, "EXP");
     eth_log ("EXP", "    Raw   : %s", input);
@@ -86,10 +86,10 @@ handleRLP (BRRlpCoder coder, const char *input) {
         input = &input[2];
 
     // Fill `data` and `item`
-    data.bytes = decodeHexCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
-    rlpShowItem (coder, item, "RLP");
-    rlpReleaseItem (coder, item);
+    data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
+    item = rlpDataGetItem (coder, data);
+    rlpItemShow (coder, item, "RLP");
+    rlpItemRelease (coder, item);
     rlpDataRelease(data);
 }
 
@@ -102,7 +102,7 @@ if (bytesCount > 2 * 1024 * 1024) {
     FILE *foo = fopen ("/Users/ebg/les-item.txt", "w");
 
     BRRlpData data = rlpGetDataSharedDontRelease (node->coder.rlp, item);
-    char *dataAsHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    char *dataAsHex = hexEncodeCreate(NULL, data.bytes, data.bytesCount);
 
     size_t written = fwrite (dataAsHex , sizeof(char), strlen(dataAsHex), foo);
     assert (strlen(dataAsHex) == written);
@@ -125,8 +125,8 @@ handleRLPHuge (BRRlpCoder coder, const char *filename) {
         input = &input[2];
 
     // Fill `data` and `item`
-    data.bytes = decodeHexCreate(&data.bytesCount, input, strlen (input));
-    item = rlpGetItem (coder, data);
+    data.bytes = hexDecodeCreate(&data.bytesCount, input, strlen (input));
+    item = rlpDataGetItem (coder, data);
 
 #if 0
     // use to debug sub-itens
@@ -161,7 +161,7 @@ handleRLPHuge (BRRlpCoder coder, const char *filename) {
     eth_log("EXP", "L6...%s", "");
 #endif
     //    rlpShow(data, "RLP:");
-    rlpReleaseItem(coder, item);
+    rlpItemRelease(coder, item);
     eth_log("EXP", "released%s", "");
 }
 
@@ -171,7 +171,7 @@ handleRLPHuge (BRRlpCoder coder, const char *filename) {
 static void
 handleBitconTransactionHashReverse (const char *chars) {
     size_t bytesLen;
-    uint8_t *bytes = decodeHexCreate (&bytesLen, chars, strlen(chars));
+    uint8_t *bytes = hexDecodeCreate (&bytesLen, chars, strlen(chars));
     assert (bytesLen == 32);
 
     UInt256 hash;
@@ -179,14 +179,14 @@ handleBitconTransactionHashReverse (const char *chars) {
 
     UInt256 hashReversed = UInt256Reverse(hash);
     printf ("Hash Forward: %s\n", chars);
-    printf ("Hash Reverse: %s\n", encodeHexCreate(NULL, hashReversed.u8, 32));
+    printf ("Hash Reverse: %s\n", hexEncodeCreate(NULL, hashReversed.u8, 32));
 }
 
 #define BITCOIN_TX_PARSE_N "0100000000010195603c95b906c613da65825ae978d396027d3afba127ccb3e17f168250acc93600000000232200201f7babec88c8bd38c26a41abada201282b95cdd448c407af01529a0edb0b8101ffffffff02ce0acf010000000017a91425dba4104eeaf2a6c18888cc98e74e33ce58579a87a8932700000000001976a914bebb7325352454d51f430aedd584614dd0e5778d88ac0a0047304402204094574ae42312cacd982d467ab042d7247be753f44b679524e25b0ab20c7c9402203971031fffd999704f2e55977625be3363a0daefd16efb94deed72b305c3f73501483045022100cf88682953e6aca362e2f9c24a63ef1a2256e1ef81ab37151486e08f8183343702201b59a4db648f0645811d33558ceebbb43527b0d12766da1cebfb85e9f2a82c920169522103d46657769cefd69484dc2811ffdd355102c146b56a3097d79a96feca1e6375e621034aefa9486d6dd43506f3417dbd1fe062a7a4e6747ae1dccddbca29c951593ea2210229ee8d328be97fd28b1cc66a6febba28c38e3b61e0552a0a982b14ca6b93b72953ae000000009f7e0800720ddd21"
 static void
 handleBitcoinTransactionParse (const char *chars) {
     size_t bytesLen;
-    uint8_t *bytes = decodeHexCreate (&bytesLen, chars, strlen(chars));
+    uint8_t *bytes = hexDecodeCreate (&bytesLen, chars, strlen(chars));
     
     BRTransaction *tx = BRTransactionParse(bytes, bytesLen);
     assert (NULL != tx);
@@ -242,23 +242,23 @@ void *assertThread (void *ignore) {
 static BREthereumAddress
 handleEthTransactionDecode1 (BRRlpCoder coder, const char *rlpString) {
     size_t rlpBytesCount;
-    uint8_t *rlpBytes = decodeHexCreate (&rlpBytesCount, rlpString, strlen (rlpString));
+    uint8_t *rlpBytes = hexDecodeCreate (&rlpBytesCount, rlpString, strlen (rlpString));
 
     BRRlpData  data  = { rlpBytesCount, rlpBytes };
-    BRRlpItem  item  = rlpGetItem(coder, data);
-    rlpShowItem(coder, item, "FOO");
+    BRRlpItem  item  = rlpDataGetItem(coder, data);
+    rlpItemShow(coder, item, "FOO");
 
-    BREthereumTransaction transaction = transactionRlpDecode (item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumTransaction transaction = transactionRlpDecode (item, ethNetworkMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
     BREthereumSignature sig1 = transactionGetSignature(transaction);
-    BREthereumAddress   add1 = transactionExtractAddress (transaction, ethereumMainnet, coder);
+    BREthereumAddress   add1 = transactionExtractAddress (transaction, ethNetworkMainnet, coder);
 
     BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction, TRANSFER_BASIS_TRANSACTION);
-    BREthereumAccount  account = createAccount(ETH_PAPER_KEY);
-    BREthereumAddress  address = accountGetPrimaryAddress (account);
+    BREthereumAccount  account = ethAccountCreate (ETH_PAPER_KEY);
+    BREthereumAddress  address = ethAccountGetPrimaryAddress (account);
 
-    transferSign (transfer, ethereumMainnet, account, address, ETH_PAPER_KEY);
+    transferSign (transfer, ethNetworkMainnet, account, address, ETH_PAPER_KEY);
     BREthereumSignature sig2 = transactionGetSignature (transferGetOriginatingTransaction(transfer));
-    BREthereumAddress   add2 = transactionExtractAddress (transferGetOriginatingTransaction(transfer), ethereumMainnet, coder);
+    BREthereumAddress   add2 = transactionExtractAddress (transferGetOriginatingTransaction(transfer), ethNetworkMainnet, coder);
 
     return add2;
 }
@@ -268,7 +268,7 @@ handleEthTransactionDecode (BRRlpCoder coder) {
 
     BREthereumAddress addr1 = handleEthTransactionDecode1 (coder, ETH_TRANS1);
     BREthereumAddress addr2 = handleEthTransactionDecode1 (coder, ETH_TRANS2);
-    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addr1, addr2));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual (addr1, addr2));
 }
 
 //
@@ -336,7 +336,7 @@ handleRippleAccount (void) {
 
     // Expected result
     size_t pubKeyResultLen;
-    uint8_t *pubKeyResult = decodeHexCreate(&pubKeyResultLen, IAN_COLEMAN_RIPPLE_DEX0_PUBKEY, strlen(IAN_COLEMAN_RIPPLE_DEX0_PUBKEY));
+    uint8_t *pubKeyResult = hexDecodeCreate(&pubKeyResultLen, IAN_COLEMAN_RIPPLE_DEX0_PUBKEY, strlen(IAN_COLEMAN_RIPPLE_DEX0_PUBKEY));
     assert (33 == pubKeyResultLen);
 
     // Confirm
@@ -362,7 +362,7 @@ handleStringFromHex (const char *hex) {
         hex += 2;
 
     size_t   bytesCount;
-    uint8_t *bytes = decodeHexCreate(&bytesCount, hex, strlen(hex));
+    uint8_t *bytes = hexDecodeCreate(&bytesCount, hex, strlen(hex));
 
     char string[bytesCount + 1];
     for (size_t index = 0; index < bytesCount; index++)
@@ -374,11 +374,11 @@ handleStringFromHex (const char *hex) {
 
 static void
 handleAddressFromString (const char *hex, BRRlpCoder coder) {
-    BREthereumAddress address = addressCreate(hex);
+    BREthereumAddress address = ethAddressCreate(hex);
 
-    BRRlpItem item = addressRlpEncode(address, coder);
-    rlpShowItem(coder, item, "ADDR");
-    rlpReleaseItem(coder, item);
+    BRRlpItem item = ethAddressRlpEncode(address, coder);
+    rlpItemShow(coder, item, "ADDR");
+    rlpItemRelease(coder, item);
 }
 void handleLogDecode (BRRlpCoder coder) {
     FILE *foo = fopen ("/Users/ebg/log-item", "r");
@@ -390,11 +390,11 @@ void handleLogDecode (BRRlpCoder coder) {
 
     BRRlpData data = { bytesCount, bytes };
 
-    BRRlpItem  item  = rlpGetItem (coder, data);
+    BRRlpItem  item  = rlpDataGetItem (coder, data);
 
     BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
 
-    rlpReleaseItem (coder, item);
+    rlpItemRelease (coder, item);
 
     logRelease(log);
 }

@@ -43,12 +43,12 @@ parseInIntegerInBase (const char *number, int base) {
 }
 
 extern BRCoreParseStatus
-parseIsInteger(const char *number) {
+stringParseIsInteger(const char *number) {
     return parseInIntegerInBase (number, 10);
  }
 
 extern BRCoreParseStatus
-parseIsDecimal(const char *number) {
+stringParseIsDecimal(const char *number) {
     // Number contains one or more digits, a optional decimal point, and then digits.
     if (NULL == number || '\0' == *number || '.' == *number) return CORE_PARSE_STRANGE_DIGITS;
 
@@ -66,10 +66,10 @@ parseIsDecimal(const char *number) {
 #define SURELY_ENOUGH_CHARS 100     // No more than ~78 in UInt256
 
 extern UInt256
-createUInt256ParseDecimal (const char *string, int decimals, BRCoreParseStatus *status) {
+uint256CreateParseDecimal (const char *string, int decimals, BRCoreParseStatus *status) {
     // Check basic `string` content.
     *status = CORE_PARSE_OK;
-    if (CORE_PARSE_OK != parseIsDecimal(string))
+    if (CORE_PARSE_OK != stringParseIsDecimal(string))
         *status = CORE_PARSE_STRANGE_DIGITS;
     else if (strlen(string) >= SURELY_ENOUGH_CHARS)
         *status = CORE_PARSE_OVERFLOW;
@@ -118,7 +118,7 @@ createUInt256ParseDecimal (const char *string, int decimals, BRCoreParseStatus *
         *padding++ = '0';
     *padding = 0;
     
-    return createUInt256Parse(number, 10, status);
+    return uint256CreateParse(number, 10, status);
 }
 
 
@@ -180,7 +180,7 @@ parseUInt256Power (int base, int power, int *overflow) {
         result.u64[1] = 1;
         return result;
     }
-    else return createUInt256(value);
+    else return uint256Create(value);
 }
 
 // Compute (* value (expt base power))
@@ -189,7 +189,7 @@ parseUInt256ScaleByPower (UInt256 value, int base, int power, int *overflow) {
     UInt256 scale = parseUInt256Power(base, power, overflow);
     return (*overflow
             ? UINT256_ZERO
-            : mulUInt256_Overflow(value, scale, overflow));
+            : uint256Mul_Overflow(value, scale, overflow));
 }
 
 static UInt256
@@ -206,11 +206,11 @@ parseUInt64 (const char *string, int digits, int base) {
     uint64_t value = strtoull (number, &numberEnd, base);
     if (0 == errno && (*number == '\0' || numberEnd == NULL || *numberEnd != '\0'))
         errno = EINVAL;
-    return createUInt256 (value);
+    return uint256Create (value);
 }
 
 extern UInt256
-createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
+uint256CreateParse (const char *string, int base, BRCoreParseStatus *status) {
     assert (NULL != status);
 
     // Strip '0x'
@@ -285,7 +285,7 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
             value = parseUInt256ScaleByPower(value, base, scalingDigits, &scaleOverflow);
             
             // Add in the next chuck.
-            value = addUInt256_Overflow(value, parseUInt64(&string[index], stringChunks, base), &addOverflow);
+            value = uint256Add_Overflow(value, parseUInt64(&string[index], stringChunks, base), &addOverflow);
             if (scaleOverflow || addOverflow) {
                 *status = CORE_PARSE_OVERFLOW;
                 return UINT256_ZERO;
@@ -309,9 +309,9 @@ coerceReverseString (const char *s) {
 }
 
 extern char *
-coerceString (UInt256 x, int base) {
+uint256CoerceString (UInt256 x, int base) {
     // Handle 0 explicitly, rather than in each case
-    if (eqUInt256(x, UINT256_ZERO)) {
+    if (uint256EQL(x, UINT256_ZERO)) {
         char *result = calloc (2, 1);
         result[0] = '0';
         return result;
@@ -321,7 +321,7 @@ coerceString (UInt256 x, int base) {
             // We'll just hex encode the UInt256 based on the (little endian) bytes.  This WILL produce
             // a result with an even number of characters - as 15 becomes 0f (aka 0x0f).  This is
             // actually correct (or at least reasonably correct); if only because, if you want to convert
-            // back to a value, the decodeHex() WILL expect an even number of characters.
+            // back to a value, the hexDecode() WILL expect an even number of characters.
         case 16: {
             // Reverse and 'strip zeros'
             UInt256 xr = UInt256Reverse(x);  // TODO: LITTLE ENDIAN only
@@ -330,16 +330,16 @@ coerceString (UInt256 x, int base) {
             // eventually has a non-zero value.
             while (0 == xr.u8[xrIndex]) xrIndex++;
             // Encode
-            return encodeHexCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
+            return hexEncodeCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
         }
             
             // Repeatedly divide by 10; append the result with the remainder.
         case 10: {
             char r[257];
             memset (r, 0, 257);
-            for (int i = 0; i < 256 && !eqUInt256(x, UINT256_ZERO); i++) {
+            for (int i = 0; i < 256 && !uint256EQL(x, UINT256_ZERO); i++) {
                 uint32_t rem;
-                x = divUInt256_Small(x, base, &rem);
+                x = uint256Div_Small(x, base, &rem);
                 r[i] = '0' + rem;
             }
             return coerceReverseString(r);
@@ -353,7 +353,7 @@ coerceString (UInt256 x, int base) {
                 [ 8] = "1000", [ 9] = "1001", [10] = "1010", [11] = "1011",
                 [12] = "1100", [13] = "1101", [14] = "1110", [15] = "1111",
             };
-            char * base16    = coerceString (x, 16);
+            char * base16    = uint256CoerceString (x, 16);
             size_t base16Len = strlen (base16);
             
             char *r = malloc (4 * base16Len + 1);
@@ -370,8 +370,8 @@ coerceString (UInt256 x, int base) {
 }
 
 extern char *
-coerceStringPrefaced (UInt256 x, int base, const char *preface) {
-    char *string = coerceString (x, base);
+uint256CoerceStringPrefaced (UInt256 x, int base, const char *preface) {
+    char *string = uint256CoerceString (x, base);
     if (NULL == preface || 0 == strcmp ("", preface)) return string;
     char *stringToFree = string; // save the pointer to string
 
@@ -388,8 +388,8 @@ coerceStringPrefaced (UInt256 x, int base, const char *preface) {
 }
 
 extern char * 
-coerceStringDecimal (UInt256 x, int decimals) {
-    char *string = coerceString(x, 10);
+uint256CoerceStringDecimal (UInt256 x, int decimals) {
+    char *string = uint256CoerceString(x, 10);
     
     if (0 == decimals)
         return string;
@@ -423,7 +423,7 @@ coerceStringDecimal (UInt256 x, int decimals) {
 }
 
 extern char *
-coerceUInt256HashToString (UInt256 hash) {
+uint256CoerceHashToString (UInt256 hash) {
     char result[67];
     result[0] = '0';
     result[1] = 'x';

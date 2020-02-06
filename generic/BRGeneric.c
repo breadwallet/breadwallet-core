@@ -337,7 +337,7 @@ genTransferGetHashForSet (const void *transferPtr) {
 
 static int
 genTransferIsEqualForSet (const void *transferPtr1, const void *transferPtr2) {
-    return eqUInt256 (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
+    return uint256EQL (genTransferGetHash((BRGenericTransfer) transferPtr1).value,
                       genTransferGetHash((BRGenericTransfer) transferPtr2).value);
 }
 

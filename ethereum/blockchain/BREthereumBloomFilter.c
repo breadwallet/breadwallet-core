@@ -49,7 +49,7 @@ bloomFilterCreateHash (const BREthereumHash hash) {
 
 extern BREthereumBloomFilter
 bloomFilterCreateData (const BRRlpData data) {
-    return bloomFilterCreateHash(hashCreateFromData(data));
+    return bloomFilterCreateHash(ethHashCreateFromData(data));
 }
 
 extern BREthereumBloomFilter
@@ -57,14 +57,14 @@ bloomFilterCreateAddress (const BREthereumAddress address) {
     BRRlpData data;
     data.bytes = (uint8_t *)  address.bytes;
     data.bytesCount = sizeof (address.bytes);
-    return bloomFilterCreateHash(hashCreateFromData(data));
+    return bloomFilterCreateHash(ethHashCreateFromData(data));
 }
 
 extern BREthereumBloomFilter
 bloomFilterCreateString (const char *string) {
     BREthereumBloomFilter filter;
     if (0 == strncmp ("0x", string, 2)) string = &string[2];
-    decodeHex (filter.bytes, sizeof (filter.bytes), string, strlen(string));
+    hexDecode (filter.bytes, sizeof (filter.bytes), string, strlen(string));
     return filter;
 }
 
@@ -120,7 +120,7 @@ bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 //
 extern char *
 bloomFilterAsString (BREthereumBloomFilter filter) {
-    return encodeHexCreate(NULL, filter.bytes, sizeof (filter.bytes));
+    return hexEncodeCreate(NULL, filter.bytes, sizeof (filter.bytes));
 }
 
 //

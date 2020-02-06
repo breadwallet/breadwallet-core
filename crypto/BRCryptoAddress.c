@@ -110,9 +110,9 @@ static BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     assert (ethAddress);
     BRCryptoAddress address = NULL;
-    if (ETHEREUM_BOOLEAN_TRUE == addressValidateString (ethAddress)) {
+    if (ETHEREUM_BOOLEAN_TRUE == ethAddressValidateString (ethAddress)) {
         address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_ETH);
-        address->u.eth = addressCreate (ethAddress);
+        address->u.eth = ethAddressCreate (ethAddress);
     }
     return address;
 }
@@ -157,7 +157,7 @@ cryptoAddressAsString (BRCryptoAddress address) {
                 return result;
             }
         case BLOCK_CHAIN_TYPE_ETH:
-            return addressGetEncodedString(address->u.eth, 1);
+            return ethAddressGetEncodedString(address->u.eth, 1);
         case BLOCK_CHAIN_TYPE_GEN:
             return genAddressAsString (address->u.gen);
     }
@@ -171,7 +171,7 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
                                (a1->type == BLOCK_CHAIN_TYPE_BTC
                                 ? (0 == strcmp (a1->u.btc.addr.s, a2->u.btc.addr.s) && a1->u.btc.isBitcoinAddr == a2->u.btc.isBitcoinAddr)
                                 : ( a1->type == BLOCK_CHAIN_TYPE_ETH
-                                   ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
+                                   ? ETHEREUM_BOOLEAN_IS_TRUE (ethAddressEqual (a1->u.eth, a2->u.eth))
                                    : genAddressEqual (a1->u.gen, a2->u.gen)))));
 }
 

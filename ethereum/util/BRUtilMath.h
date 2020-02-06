@@ -34,22 +34,22 @@ typedef enum {
  * Create from a single uint64_t value.
  */
 extern UInt256
-createUInt256 (uint64_t value);
+uint256Create (uint64_t value);
 
 extern UInt256
-createUInt256Double (double value, int decimals, int *overflow);
+uint256CreateDouble (double value, int decimals, int *overflow);
 
 /**
  * Create as `(expt 10 power)` where power < 20 is required.
  */
 extern UInt256
-createUInt256Power (uint8_t power, int *overflow);
+uint256CreatePower (uint8_t power, int *overflow);
 
 /**
  * Create as (expt 2 power) where power < 256
  */
 extern UInt256
-createUInt256Power2 (uint8_t power);
+uint256CreatePower2 (uint8_t power);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
@@ -65,7 +65,7 @@ createUInt256Power2 (uint8_t power);
  * @param pointer to a boolean error
  */
 extern UInt256
-createUInt256Parse (const char *number, int base, BRCoreParseStatus *status);
+uint256CreateParse (const char *number, int base, BRCoreParseStatus *status);
 
 /**
  * Create from a string with the specificed number of decimals (values after a decimal point).
@@ -83,46 +83,46 @@ createUInt256Parse (const char *number, int base, BRCoreParseStatus *status);
  * @warn Requires stack size of at least 3 * (strlen(number) + digits). [We are sloppy]
  */
 extern UInt256
-createUInt256ParseDecimal (const char *number, int decimals, BRCoreParseStatus *status);
+uint256CreateParseDecimal (const char *number, int decimals, BRCoreParseStatus *status);
   
   /**
  * Return `x + y`
  */
 extern UInt512
-addUInt256 (UInt256 x, UInt256 y);
+uint256Add (UInt256 x, UInt256 y);
 
 /**
  * Return `x + y`.  If the result is too big then overflow is set to 1 and zero is returned.
  */
 extern UInt256
-addUInt256_Overflow (UInt256 x, UInt256 y, int *overflow);
+uint256Add_Overflow (UInt256 x, UInt256 y, int *overflow);
 
 /**
  * If `x >= y` return `x - y` and set `negative` to 0; otherwise, return `y - x` and set
  * `negative` to 1.
  */
 extern UInt256
-subUInt256_Negative (UInt256 x, UInt256 y, int *negative);
+uint256Sub_Negative (UInt256 x, UInt256 y, int *negative);
 
 /**
  * Return `x * y`
  */
 extern UInt512
-mulUInt256 (UInt256 x, UInt256 y);
+uint256Mul (UInt256 x, UInt256 y);
 
 /**
  * Multiply as `x * y`.  If the result is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern UInt256
-mulUInt256_Overflow (UInt256 x, UInt256 y, int *overflow);
+uint256Mul_Overflow (UInt256 x, UInt256 y, int *overflow);
 
 /**
  * Multiply as `x * y` where `y` is a small (aka uint32) number.  If the result is too big
  * then overflow is set to 1 and zero is returned
  */
 extern UInt256
-mulUInt256_Small (UInt256 x, uint32_t y, int *overflow);
+uint256Mul_Small (UInt256 x, uint32_t y, int *overflow);
 
 /**
  * Multiply as `x * y` where `y` is a postive double.  If `y` is negative, then this function
@@ -133,34 +133,34 @@ mulUInt256_Small (UInt256 x, uint32_t y, int *overflow);
  * for example, 1 * 0.123, rem will be 0.123.
  */
 extern UInt256
-mulUInt256_Double (UInt256 x, double y, int *overflow, int *negative, double *rem);
+uint256Mul_Double (UInt256 x, double y, int *overflow, int *negative, double *rem);
 
 extern UInt256
-divUInt256_Small (UInt256 x, uint32_t y, uint32_t *rem);
+uint256Div_Small (UInt256 x, uint32_t y, uint32_t *rem);
 
 /**
  * Coerce `x`, a UInt512, to a UInt256.  If `x` is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern UInt256
-coerceUInt256 (UInt512  x, int *overflow);
+uint256Coerce (UInt512  x, int *overflow);
 
 /**
  * Coerce `x`, a UInt256, to a uint64_t.  If `x` is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern uint64_t
-coerceUInt64 (UInt256 x, int *overflow);
+uint64Coerce (UInt256 x, int *overflow);
 
 /**
  * Coerce `x`, a UInt256, to a double.  If `x` is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern double
-coerceDouble (UInt256 value, int *overflow);
+uint256CoerceDouble (UInt256 value, int *overflow);
 
 extern long double
-coerceLongDouble (UInt256 value, int *overflow);
+uint256CoerceLongDouble (UInt256 value, int *overflow);
 
 /**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
@@ -171,10 +171,10 @@ coerceLongDouble (UInt256 value, int *overflow);
  * @warn YOU OWN THE RETURNED MEMORY
  */
 extern char *
-coerceString (UInt256 x, int base);
+uint256CoerceString (UInt256 x, int base);
 
 extern char *
-coerceStringPrefaced (UInt256 x, int base, const char *preface);
+uint256CoerceStringPrefaced (UInt256 x, int base, const char *preface);
 
 /**
  * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
@@ -183,14 +183,14 @@ coerceStringPrefaced (UInt256 x, int base, const char *preface);
  * @warn YOU OWN THE RETURNED MEMORY
  */
 extern char *
-coerceStringDecimal (UInt256 x, int decimals);
+uint256CoerceStringDecimal (UInt256 x, int decimals);
 
 
 /**
  * Returns a '0x' prefaced hex string
  */
 extern char *
-coerceUInt256HashToString (UInt256 hash);
+uint256CoerceHashToString (UInt256 hash);
 
 
 //  static UInt256
@@ -211,13 +211,13 @@ coerceUInt256HashToString (UInt256 hash);
 //    return NULL;
 //  }
 
-inline static int
-eqUInt256 (UInt256 x, UInt256 y) {
+inline static int // Avoid a case-insensitive conflict with UInt256Eq
+uint256EQL (UInt256 x, UInt256 y) {
   return UInt256Eq (x, y);
 }
 
 inline static int
-gtUInt256 (UInt256 x, UInt256 y) {
+uint256GT (UInt256 x, UInt256 y) {
   return x.u64[3] > y.u64[3]
   || (x.u64[3] == y.u64[3]
       && (x.u64[2] > y.u64[2]
@@ -228,12 +228,12 @@ gtUInt256 (UInt256 x, UInt256 y) {
 }
 
 inline static int
-geUInt256 (UInt256 x, UInt256 y) {
-  return eqUInt256 (x, y) || gtUInt256 (x, y);
+uint256GE (UInt256 x, UInt256 y) {
+  return uint256EQL (x, y) || uint256GT (x, y);
 }
 
 inline static int
-ltUInt256 (UInt256 x, UInt256 y) {
+uint256LT (UInt256 x, UInt256 y) {
   return x.u64[3] < y.u64[3]
   || (x.u64[3] == y.u64[3]
       && (x.u64[2] < y.u64[2]
@@ -244,8 +244,8 @@ ltUInt256 (UInt256 x, UInt256 y) {
 }
 
 inline static int
-leUInt256 (UInt256 x, UInt256 y) {
-  return eqUInt256 (x, y) || ltUInt256 (x, y);
+uint256LE (UInt256 x, UInt256 y) {
+  return uint256EQL (x, y) || uint256LT (x, y);
 }
 
 /**
@@ -255,16 +255,16 @@ leUInt256 (UInt256 x, UInt256 y) {
  * +1 -> x  > y
  */
 extern int
-compareUInt256 (UInt256 x, UInt256 y);
+uint256Compare (UInt256 x, UInt256 y);
 
 //
 // Parsing
 //
 extern BRCoreParseStatus
-parseIsInteger (const char *number);
+stringParseIsInteger (const char *number);
 
 extern BRCoreParseStatus
-parseIsDecimal (const char *number);
+stringParseIsDecimal (const char *number);
 
 #ifdef __cplusplus
 }

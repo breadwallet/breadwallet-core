@@ -99,7 +99,7 @@ cryptoNetworkFeeAsBTC (BRCryptoNetworkFee networkFee) {
 private_extern BREthereumGasPrice
 cryptoNetworkFeeAsETH (BRCryptoNetworkFee networkFee) {
     UInt256 value = cryptoAmountGetValue (networkFee->pricePerCostFactor);
-    return gasPriceCreate (etherCreate(value));
+    return ethGasPriceCreate (ethEtherCreate(value));
 }
 
 private_extern uint64_t
@@ -264,7 +264,7 @@ cryptoNetworkIsMainnet (BRCryptoNetwork network) {
             return AS_CRYPTO_BOOLEAN (network->u.btc == BRMainNetParams ||
                                       network->u.btc == BRBCashParams);
         case BLOCK_CHAIN_TYPE_ETH:
-            return AS_CRYPTO_BOOLEAN (network->u.eth == ethereumMainnet);
+            return AS_CRYPTO_BOOLEAN (network->u.eth == ethNetworkMainnet);
         case BLOCK_CHAIN_TYPE_GEN:
             return AS_CRYPTO_BOOLEAN (genNetworkIsMainnet (network->u.gen));
     }
@@ -402,7 +402,7 @@ cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
         BRCryptoCurrency currency = network->associations[index].currency;
         const char *address = cryptoCurrencyGetIssuer (currency);
 
-        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address))) {
+        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (ethTokenHasAddress (token, address))) {
             tokenCurrency = cryptoCurrencyTake (currency);
             break;
         }
@@ -611,7 +611,7 @@ cryptoNetworkRequiresMigration (BRCryptoNetwork network) {
 extern const char *
 cryptoNetworkGetETHNetworkName (BRCryptoNetwork network) {
     BREthereumNetwork ethNetwork = cryptoNetworkAsETH(network);
-    return networkGetName(ethNetwork);
+    return ethNetworkGetName (ethNetwork);
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
@@ -658,11 +658,11 @@ cryptoNetworkCreateBuiltin (const char *symbol,
     else if (0 == strcmp ("bchTestnet", symbol))
         network = cryptoNetworkCreateAsBCH (uids, name, BRBCashTestNetParams);
     else if (0 == strcmp ("ethMainnet", symbol))
-        network = cryptoNetworkCreateAsETH (uids, name, ethereumMainnet);
+        network = cryptoNetworkCreateAsETH (uids, name, ethNetworkMainnet);
     else if (0 == strcmp ("ethRopsten", symbol))
-        network = cryptoNetworkCreateAsETH (uids, name, ethereumTestnet);
+        network = cryptoNetworkCreateAsETH (uids, name, ethNetworkTestnet);
     else if (0 == strcmp ("ethRinkeby", symbol))
-        network = cryptoNetworkCreateAsETH (uids, name, ethereumRinkeby);
+        network = cryptoNetworkCreateAsETH (uids, name, ethNetworkRinkeby);
     else if (0 == strcmp ("xrpMainnet", symbol))
         network = cryptoNetworkCreateAsGEN (uids, name, GEN_NETWORK_TYPE_XRP, 1, CRYPTO_NETWORK_TYPE_XRP);
     else if (0 == strcmp ("xrpTestnet", symbol))

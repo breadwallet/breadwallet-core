@@ -18,7 +18,7 @@
 // amount
 //
 extern BREthereumAmount
-amountCreateEther (BREthereumEther ether) {
+ethAmountCreateEther (BREthereumEther ether) {
     BREthereumAmount amount;
     amount.type = AMOUNT_ETHER;
     amount.u.ether = ether;
@@ -26,7 +26,7 @@ amountCreateEther (BREthereumEther ether) {
 }
 
 extern BREthereumAmount
-amountCreateToken (BREthereumTokenQuantity tokenQuantity) {
+ethAmountCreateToken (BREthereumTokenQuantity tokenQuantity) {
     BREthereumAmount amount;
     amount.type = AMOUNT_TOKEN;
     amount.u.tokenQuantity = tokenQuantity;
@@ -34,56 +34,56 @@ amountCreateToken (BREthereumTokenQuantity tokenQuantity) {
 }
 
 extern BREthereumAmountType
-amountGetType (BREthereumAmount amount) {
+ethAmountGetType (BREthereumAmount amount) {
     return amount.type;
 }
 
 extern BREthereumEther
-amountGetEther (BREthereumAmount amount) {
+ethAmountGetEther (BREthereumAmount amount) {
     assert (amount.type == AMOUNT_ETHER);
     return amount.u.ether;
 }
 
 extern BREthereumTokenQuantity
-amountGetTokenQuantity (BREthereumAmount amount) {
+ethAmountGetTokenQuantity (BREthereumAmount amount) {
     assert (amount.type == AMOUNT_TOKEN);
     return amount.u.tokenQuantity;
 }
 
 extern BREthereumToken
-amountGetToken (BREthereumAmount amount) {
+ethAmountGetToken (BREthereumAmount amount) {
     assert (amount.type == AMOUNT_TOKEN);
     return amount.u.tokenQuantity.token;
 }
 
 extern BREthereumComparison
-amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
+ethAmountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
     assert (NULL != typeMismatch);
     *typeMismatch = (a1.type != a2.type);
     if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
     switch (a1.type) {
         case AMOUNT_ETHER:
-            return etherCompare(a1.u.ether, a2.u.ether);
+            return ethEtherCompare(a1.u.ether, a2.u.ether);
         case AMOUNT_TOKEN:
-            return tokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
+            return ethTokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
     }
 }
 
 extern BREthereumGas
-amountGetGasEstimate (BREthereumAmount amount) {
+ethAmountGetGasEstimate (BREthereumAmount amount) {
     switch (amount.type) {
         case AMOUNT_ETHER:
-            return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
+            return ethGasCreate (DEFAULT_ETHER_GAS_LIMIT);
         case AMOUNT_TOKEN:
-            return tokenGetGasLimit (amount.u.tokenQuantity.token);
+            return ethTokenGetGasLimit (amount.u.tokenQuantity.token);
     }
 }
 
 extern BRRlpItem
-amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
+ethAmountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
     switch (amount.type) {
         case AMOUNT_ETHER:
-            return etherRlpEncode(amount.u.ether, coder);
+            return ethEtherRlpEncode(amount.u.ether, coder);
             
         case AMOUNT_TOKEN:
             // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
@@ -92,31 +92,31 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
 }
 
 extern BREthereumAmount
-amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
-    return amountCreateEther(etherRlpDecode(item, coder));
+ethAmountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
+    return ethAmountCreateEther(ethEtherRlpDecode(item, coder));
 }
 
 extern BREthereumAmount
-amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
-    return amountCreateToken(createTokenQuantity(token, rlpDecodeUInt256(coder, item, 1)));
+ethAmountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
+    return ethAmountCreateToken(ethTokenQuantityCreate(token, rlpDecodeUInt256(coder, item, 1)));
 }
- 
+
 //
 // Parse
 //
 extern BREthereumAmount
-amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
+ethAmountCreateEtherString (const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
     BREthereumAmount amount;
     amount.type = AMOUNT_ETHER;
-    amount.u.ether = etherCreateString(number, unit, status);
+    amount.u.ether = ethEtherCreateString(number, unit, status);
     return amount;
 }
 
 extern BREthereumAmount
-amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BRCoreParseStatus *status) {
+ethAmountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BRCoreParseStatus *status) {
     BREthereumAmount amount;
     amount.type = AMOUNT_TOKEN;
-    amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, status);
+    amount.u.tokenQuantity = ethTokenQuantityCreateString(token, number, unit, status);
     return amount;
 }
 

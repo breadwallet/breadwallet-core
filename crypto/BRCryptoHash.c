@@ -73,7 +73,7 @@ extern BRCryptoBoolean
 cryptoHashEqual (BRCryptoHash h1, BRCryptoHash h2) {
     return (h1->type == h2->type &&
             ((BLOCK_CHAIN_TYPE_BTC == h1->type && UInt256Eq (h1->u.btc, h2->u.btc)) ||
-             (BLOCK_CHAIN_TYPE_ETH == h1->type && ETHEREUM_BOOLEAN_TRUE ==  hashEqual (h1->u.eth, h2->u.eth)) ||
+             (BLOCK_CHAIN_TYPE_ETH == h1->type && ETHEREUM_BOOLEAN_TRUE ==  ethHashEqual (h1->u.eth, h2->u.eth)) ||
              (BLOCK_CHAIN_TYPE_GEN == h1->type && genericHashEqual (h1->u.gen, h2->u.gen)))
             ? CRYPTO_TRUE
             : CRYPTO_FALSE);
@@ -93,10 +93,10 @@ cryptoHashString (BRCryptoHash hash) {
     switch (hash->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             UInt256 reversedHash = UInt256Reverse (hash->u.btc);
-            return _cryptoHashAddPrefix (encodeHexCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)), 1);
+            return _cryptoHashAddPrefix (hexEncodeCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8)), 1);
         }
         case BLOCK_CHAIN_TYPE_ETH: {
-            return hashAsString (hash->u.eth);
+            return ethHashAsString (hash->u.eth);
         }
         case BLOCK_CHAIN_TYPE_GEN: {
             return _cryptoHashAddPrefix (genericHashAsString(hash->u.gen), 1);
@@ -111,7 +111,7 @@ cryptoHashGetHashValue (BRCryptoHash hash) {
             return hash->u.btc.u32[0];
 
         case BLOCK_CHAIN_TYPE_ETH:
-            return hashSetValue (&hash->u.eth);
+            return ethHashSetValue (&hash->u.eth);
 
         case BLOCK_CHAIN_TYPE_GEN:
             return genericHashSetValue (hash->u.gen);

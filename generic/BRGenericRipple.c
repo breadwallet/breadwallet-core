@@ -137,14 +137,14 @@ genericRippleTransferGetTargetAddress (BRGenericTransferRef transfer) {
 static UInt256
 genericRippleTransferGetAmount (BRGenericTransferRef transfer) {
     BRRippleUnitDrops drops = rippleTransferGetAmount ((BRRippleTransfer) transfer);
-    return createUInt256(drops);
+    return uint256Create(drops);
 }
 
 static BRGenericFeeBasis
 genericRippleTransferGetFeeBasis (BRGenericTransferRef transfer) {
     BRRippleUnitDrops rippleFee = rippleTransferGetFee ((BRRippleTransfer) transfer);
     return (BRGenericFeeBasis) {
-        createUInt256 (rippleFee),
+        uint256Create (rippleFee),
         1
     };
 }
@@ -183,14 +183,14 @@ genericRippleWalletFree (BRGenericWalletRef wallet) {
 
 static UInt256
 genericRippleWalletGetBalance (BRGenericWalletRef wallet) {
-    return createUInt256 (rippleWalletGetBalance ((BRRippleWallet) wallet));
+    return uint256Create (rippleWalletGetBalance ((BRRippleWallet) wallet));
 }
 
 static UInt256
 genericRippleWalletGetBalanceLimit (BRGenericWalletRef wallet,
                                     int asMaximum,
                                     int *hasLimit) {
-    return createUInt256 (rippleWalletGetBalanceLimit ((BRRippleWallet) wallet, asMaximum, hasLimit));
+    return uint256Create (rippleWalletGetBalanceLimit ((BRRippleWallet) wallet, asMaximum, hasLimit));
 }
 
 static BRGenericAddressRef
@@ -363,7 +363,7 @@ genericRippleWalletValidateTransactionAttribute (BRGenericWalletRef wallet,
     }
     else if (genericRippleCompareFieldOption (key, FIELD_OPTION_INVOICE_ID)) {
         BRCoreParseStatus status;
-        createUInt256Parse(val, 10, &status);
+        uint256CreateParse(val, 10, &status);
         return CORE_PARSE_OK == status;
     }
     else return 0;
@@ -399,7 +399,7 @@ genericRippleWalletManagerRecoverTransfer (const char *hash,
     BRRippleAddress fromAddress = rippleAddressCreateFromString(from);
     // Convert the hash string to bytes
     BRRippleTransactionHash txId;
-    decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
+    hexDecode(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
     BRRippleTransfer transfer = rippleTransferCreate(fromAddress, toAddress, amountDrops, feeDrops, txId, timestamp, blockHeight, error);
 

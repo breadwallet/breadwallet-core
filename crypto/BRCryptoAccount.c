@@ -104,7 +104,7 @@ cryptoAccountCreateFromSeedInternal (UInt512 seed,
     cryptoAccountInstall();
 
     return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
-                                        createAccountWithBIP32Seed(seed),
+                                        ethAccountCreateWithBIP32Seed(seed),
                                         genAccountCreate (genericRippleHandlers->type, seed),
                                         genAccountCreate (genericHederaHandlers->type, seed),
                                         timestamp,
@@ -196,7 +196,7 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     BRKey ethPublicKey;
     BRKeySetPubKey(&ethPublicKey, bytesPtr, 65);
     BYTES_PTR_INCR_AND_CHECK (65);
-    BREthereumAccount eth = createAccountWithPublicKey(ethPublicKey);
+    BREthereumAccount eth = ethAccountCreateWithPublicKey(ethPublicKey);
 
     // XRP
     size_t xrpSize = UInt32GetBE(bytesPtr);
@@ -220,7 +220,7 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
 
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
-    accountFree(account->eth);
+    ethAccountRelease(account->eth);
     genAccountRelease(account->xrp);
     genAccountRelease(account->hbar);
 
@@ -258,7 +258,7 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     size_t mpkSize = BRBIP32SerializeMasterPubKey (NULL, 0, account->btc);
 
     // ETH
-    BRKey ethPublicKey = accountGetPrimaryAddressPublicKey (account->eth);
+    BRKey ethPublicKey = ethAccountGetPrimaryAddressPublicKey (account->eth);
     ethPublicKey.compressed = 0;
     size_t ethSize = BRKeyPubKey (&ethPublicKey, NULL, 0);
 
@@ -413,7 +413,7 @@ cryptoAccountAsGEN (BRCryptoAccount account,
 
 private_extern const char *
 cryptoAccountAddressAsETH (BRCryptoAccount account) {
-    return accountGetPrimaryAddressString (account->eth);
+    return ethAccountGetPrimaryAddressString (account->eth);
 }
 
 private_extern BRMasterPubKey
