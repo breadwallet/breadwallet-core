@@ -67,7 +67,8 @@ extern BRHederaTransaction hederaTransactionCreate (BRHederaAddress source,
                                                     BRHederaUnitTinyBar fee,
                                                     const char * txID,
                                                     BRHederaTransactionHash hash,
-                                                    uint64_t timestamp, uint64_t blockHeight)
+                                                    uint64_t timestamp, uint64_t blockHeight,
+                                                    int error)
 {
     // This is an existing transaction - it must have a transaction ID
     assert(source);

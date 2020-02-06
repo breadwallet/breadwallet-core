@@ -131,7 +131,6 @@ DEFINE_CURRENCY ("hedera-mainnet",     "hedera-mainnet:__native__",   NETWORK_NA
 DEFINE_ADDRESS_SCHEMES  ("hedera-mainnet", CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
 DEFINE_MODES            ("hedera-mainnet", CRYPTO_SYNC_MODE_API_ONLY)
 
-#define NETWORK_NAME    "Hedera"
 DEFINE_NETWORK (hbarTestnet,  "hedera-testnet", NETWORK_NAME, "testnet", false, 50000, 1)
 DEFINE_NETWORK_FEE_ESTIMATE ("hedera-testnet", "500000", "1m", 1 * 60 * 1000)
 DEFINE_CURRENCY ("hedera-testnet",     "hedera-testnet:__native__",   NETWORK_NAME,  "hbar",  "native",   NULL,   true)
@@ -139,6 +138,7 @@ DEFINE_CURRENCY ("hedera-testnet",     "hedera-testnet:__native__",   NETWORK_NA
     DEFINE_UNIT ("hedera-testnet:__native__",  NETWORK_NAME,  "hbar",   8,  "ℏ")
 DEFINE_ADDRESS_SCHEMES  ("hedera-testnet", CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
 DEFINE_MODES            ("hedera-testnet", CRYPTO_SYNC_MODE_API_ONLY)
+#undef NETWORK_NAME
 
 // MARK: XLM Mainnet
 
