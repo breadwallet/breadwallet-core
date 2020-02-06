@@ -132,7 +132,7 @@ genericHederaTransferGetTargetAddress (BRGenericTransferRef transfer) {
 static UInt256
 genericHederaTransferGetAmount (BRGenericTransferRef transfer) {
     BRHederaUnitTinyBar thbar = hederaTransactionGetAmount ((BRHederaTransaction) transfer);
-    return createUInt256(thbar);
+    return uint256Create(thbar);
 }
 
 static BRGenericFeeBasis
@@ -140,7 +140,7 @@ genericHederaTransferGetFeeBasis (BRGenericTransferRef transfer) {
     // TODO -
     BRHederaUnitTinyBar hederaFee = hederaTransactionGetFee ((BRHederaTransaction) transfer);
     return (BRGenericFeeBasis) {
-        createUInt256 (hederaFee),
+        uint256Create (hederaFee),
         1
     };
 }
@@ -174,14 +174,14 @@ genericHederaWalletFree (BRGenericWalletRef wallet) {
 
 static UInt256
 genericHederaWalletGetBalance (BRGenericWalletRef wallet) {
-    return createUInt256 (hederaWalletGetBalance ((BRHederaWallet) wallet));
+    return uint256Create (hederaWalletGetBalance ((BRHederaWallet) wallet));
 }
 
 static UInt256
 genericHederaWalletGetBalanceLimit (BRGenericWalletRef wallet,
                                     int asMaximum,
                                     int *hasLimit) {
-    return createUInt256(0);
+    return uint256Create(0);
 }
 
 static BRGenericAddressRef
@@ -230,7 +230,7 @@ genericHederaWalletCreateTransfer (BRGenericWalletRef wallet,
     BRHederaFeeBasis feeBasis;
     feeBasis.costFactor = estimatedFeeBasis.costFactor;
     int overflow = 0;
-    feeBasis.pricePerCostFactor = coerceUInt64(estimatedFeeBasis.pricePerCostFactor, &overflow);
+    feeBasis.pricePerCostFactor = uint64Coerce(estimatedFeeBasis.pricePerCostFactor, &overflow);
     assert(overflow == 0);
     return (BRGenericTransferRef) hederaTransactionCreateNew (source, (BRHederaAddress) target,
                                                            thbar, feeBasis, nodeAddress, NULL);
@@ -266,13 +266,13 @@ genericHederaWalletManagerRecoverTransfer (const char *hash,
     BRHederaAddress fromAddress = hederaAddressCreateFromString(from);
     // Convert the hash string to bytes
     BRHederaTransactionHash txId;
-    decodeHex(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
+    hexDecode(txId.bytes, sizeof(txId.bytes), hash, strlen(hash));
 
     BRHederaTransactionHash txHash;
     memset(txHash.bytes, 0x00, sizeof(txHash.bytes));
     if (hash != NULL) {
         assert(96 == strlen(hash));
-        decodeHex(txHash.bytes, sizeof(txHash.bytes), hash, strlen(hash));
+        hexDecode(txHash.bytes, sizeof(txHash.bytes), hash, strlen(hash));
     }
 
     BRHederaTransaction transfer = hederaTransactionCreate(fromAddress, toAddress, amountHbar,
