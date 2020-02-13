@@ -1,5 +1,7 @@
-package com.breadwallet.corecrypto;
+package com.breadwallet.sbi;
 
+import com.breadwallet.corecrypto.CryptoApiProvider;
+import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.Network;
@@ -21,9 +23,6 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerCreatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.Uninterruptibles;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -47,7 +46,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class SbiAIT {
+public class Main {
 
     // Configurable values
 
@@ -77,8 +76,11 @@ public class SbiAIT {
 
     // Test
 
-    @Before
-    public void setup() {
+    public static void main(String[] args) {
+        new Main().execute();
+    }
+
+    private Main() {
         // log everything at the "debug" level
         Logger rootLogger = LogManager.getLogManager().getLogger("");
         Handler[] handlers = rootLogger.getHandlers();
@@ -95,8 +97,7 @@ public class SbiAIT {
         }
     }
 
-    @Test
-    public void sbi() {
+    private void execute() {
         List<SbiSystem> sbiSystems = new ArrayList<>(SYSTEM_COUNT);
 
         log("Starting test");
@@ -272,7 +273,7 @@ public class SbiAIT {
 
     // Logging
 
-    private static final Logger LOG = Logger.getLogger(SbiAIT.class.getName());
+    private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
     private static void log(String prefix, String message) {
         log(String.format("%-12s -> %s", prefix, message));
