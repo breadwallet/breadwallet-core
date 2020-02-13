@@ -52,12 +52,7 @@ public class Main {
 
     private static final int SYSTEM_COUNT = 100;
 
-    private static final boolean IS_MAINNET = false;
-
-    private static final Date ACCOUNT_TIMESTAMP = new Date(0);
-
-    private static final byte[] ACCOUNT_KEY = "ginger settle marine tissue robot crane night number ramp coast roast critic"
-            .getBytes(StandardCharsets.UTF_8);
+    private static final boolean IS_MAINNET = true;
 
     private static final String BDB_AUTH_TOKEN = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9." +
             "eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1N" +
@@ -65,11 +60,8 @@ public class Main {
             "xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0." +
             "460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg";
 
-    // test runtime
-    private static final long RUN_TIME_MS = 8 * 60 * 60 * 1000; // 8 hours
-
     // period of time to wait before failing
-    private static final long FAIL_DELAY_MS = 10 * 60 * 1000; // 10 minutes
+    private static final long FAIL_DELAY_MS = 30 * 60 * 1000; // 30 minutes
 
     // period of time to check for events; system is deemed alive if a manager/wallet/transfer event was received in window
     private static final long ACTIVITY_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
@@ -115,23 +107,14 @@ public class Main {
         }
 
         // running
-        long endTimeMs = currentTime() + RUN_TIME_MS;
-        while (currentTime() <= endTimeMs) {
-            for (SbiSystem sbiSystem: sbiSystems) {
+        while (true) {
+            for (SbiSystem sbiSystem : sbiSystems) {
                 long ts = sbiSystem.lastActivity();
-                boolean alive = ts  >= (currentTime() - ACTIVITY_WINDOW_MS);
+                boolean alive = ts >= (currentTime() - ACTIVITY_WINDOW_MS);
                 log(sbiSystem.name, String.format("alive: %s (%s)", alive, new Date(ts)));
             }
             Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
         }
-
-        // stop systems
-        log("Stopping systems");
-        for (SbiSystem sbiSystem: sbiSystems) {
-            sbiSystem.stop();
-        }
-
-        log("Finishing test");
     }
 
     // System
@@ -248,7 +231,11 @@ public class Main {
     // Accounts
 
     private static Account createAccount() {
-        return Account.createFromPhrase(ACCOUNT_KEY, ACCOUNT_TIMESTAMP, UUID.randomUUID().toString());
+        return Account.createFromPhrase(
+                Account.generatePhrase(Bip39.WORDS_EN),
+                new Date(0),
+                UUID.randomUUID().toString()
+        );
     }
 
     // Helpers
