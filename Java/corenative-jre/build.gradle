@@ -22,7 +22,7 @@ static def jnaOsFromGradle(os) {
 
 static def jnaArchFromGradle(arch) {
     if (arch == 'x86-64') {
-        return 'amd64'
+        return arch
     } else if (arch == 'x86') {
         return arch
     }
@@ -76,6 +76,7 @@ model {
                 binaries.all {
                     // TODO(fix): Do we want to use this approach (config.h)?
                     cCompiler.define "_HAVE_SQLITE_CONFIG_H"
+                    cCompiler.args "-fPIC"
                 }
                 withType(StaticLibraryBinarySpec) {
                     buildable = false
@@ -109,6 +110,10 @@ model {
                     if (os == "osx") {
                         linker.args '-framework', 'Security'
                         linker.args '-lresolv'
+                    }
+
+                    if (os == "linux") {
+                        linker.args '-lbsd'
                     }
 
                     // Add a task to copy the resulting library file to the JAR's resources
@@ -155,6 +160,10 @@ model {
                     if (os == "osx") {
                         linker.args '-framework', 'Security'
                         linker.args '-lresolv'
+                    }
+
+                    if (os == "linux") {
+                        linker.args '-lbsd'
                     }
 
                     // Add a task to copy the resulting library file to the JAR's resources

@@ -166,7 +166,7 @@ typedef struct {
         struct {
             BREthereumNodeErrorType type;
             union {
-                int unix;
+                int nix;
                 BREthereumP2PDisconnectReason disconnect;
                 BREthereumNodeProtocolReason protocol;
             } u;
@@ -317,7 +317,7 @@ nodeHashEqual (const void *node1,
                const void *node2);
 
 /// MARK: - Node Message Send/Recv
-    
+
 typedef enum {
     NODE_STATUS_SUCCESS,
     NODE_STATUS_ERROR

@@ -47,7 +47,7 @@
 /// MARK: - Helpers
 
 static int _pthread_cond_timedwait_relative (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *reltime) {
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined (__linux__)
         struct timeval t;
         gettimeofday(&t, NULL);
 
@@ -95,11 +95,11 @@ static int _testComplete;
 static int _numOfTests;
 
 static void _initTestState() {
-    
+
     // Initializes the pthread variables
     pthread_mutex_init(&_testLock, NULL);
     pthread_cond_init(&_testCond, NULL);
-    
+
     pthread_mutex_lock(&_testLock);
     _testComplete = 0;
     pthread_mutex_unlock(&_testLock);
@@ -124,12 +124,12 @@ static void _waitForTests() {
 }
 
 static void _signalTestComplete() {
-    
+
     //Signal to the testing thread that this test is complete
     pthread_mutex_lock(&_testLock);
     _testComplete++;
     pthread_mutex_unlock(&_testLock);
-    
+
     pthread_cond_signal(&_testCond);
 }
 
@@ -183,7 +183,7 @@ static BlockHeaderTestData _blockHeaderTestData[5];
 #define BLOCK_4732522_IDX 2
 
 static void _initBlockHeaderTestData(void){
-    
+
     //Block Number: 4732524
     _blockHeaderTestData[0].hash = hashCreate("0x3a510c07862ebce419a14bfcd95620f924d188a935654c5ad0f4d5d7ee429193");
     _blockHeaderTestData[0].blockNum = 4732524;
@@ -192,7 +192,7 @@ static void _initBlockHeaderTestData(void){
     _blockHeaderTestData[0].parent = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[0].transactionCount = 331;
     _blockHeaderTestData[0].ommersCount = 0;
-    
+
     //Block Number: 4732523
     _blockHeaderTestData[1].hash = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[1].blockNum = 4732523;
@@ -201,7 +201,7 @@ static void _initBlockHeaderTestData(void){
     _blockHeaderTestData[1].parent = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[1].transactionCount = 193;
     _blockHeaderTestData[1].ommersCount = 0;
-    
+
     //Block Number: 4732522
     _blockHeaderTestData[2].hash = hashCreate("0xb812a7b4a96c87a3d7d572847b3dee352b395cc9cfe3b6f0d163bc54e7d8a78e");
     _blockHeaderTestData[2].blockNum = 4732522;
@@ -210,8 +210,8 @@ static void _initBlockHeaderTestData(void){
     _blockHeaderTestData[2].parent = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[2].transactionCount = 186;
     _blockHeaderTestData[2].ommersCount = 0;
-    
-    
+
+
     //Block Number: 4732521
     _blockHeaderTestData[3].hash = hashCreate("0x4b29fb30276713be22786a9bdd548d787e9a2ea10248669f189b3f57f86ebaf8");
     _blockHeaderTestData[3].blockNum = 4732521;
@@ -220,8 +220,8 @@ static void _initBlockHeaderTestData(void){
     _blockHeaderTestData[3].parent = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[3].transactionCount = 316;
     _blockHeaderTestData[3].ommersCount = 0;
-    
-    
+
+
     //Block Number: 4732520
     _blockHeaderTestData[4].hash = hashCreate("0x4abb508954ec5f827184fb0d8bc74b104094d4060a06cc2dd743e4bfeaf1d8af");
     _blockHeaderTestData[4].blockNum = 4732520;
@@ -238,20 +238,20 @@ static BREthereumBoolean _checkBlockHeader(BREthereumBlockHeader header,
                                            UInt256 expectedDifficulty,
                                            uint64_t expectedGasUsed,
                                            BREthereumHash expectedParenthash) {
-    
+
     BREthereumHash gotHash = blockHeaderGetHash(header);
     uint64_t gotBlockNumber = blockHeaderGetNumber(header);
     uint64_t gotGasUsed = blockHeaderGetGasUsed(header);
     BREthereumHash gotParentHash = blockHeaderGetParentHash(header);
-    
-    
+
+
     return (gotBlockNumber == expectedBlockNumber &&
             hashSetEqual(&gotHash, &expectedHash)  &&
             gotGasUsed == expectedGasUsed &&
             (hashSetEqual(&gotParentHash, &expectedParenthash)
              ? ETHEREUM_BOOLEAN_TRUE
              : ETHEREUM_BOOLEAN_FALSE));
-    
+
 }
 
 static BREthereumBoolean
@@ -301,10 +301,10 @@ void _GetBlockHeaders_Calllback_Test4 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
-    
+
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(context1 == &_GetBlockHeaders_Context4); //Check to make sure the context is correct
 
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context4], 2);
@@ -315,10 +315,10 @@ void _GetBlockHeaders_Calllback_Test3 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
-    
+
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(context1 == &_GetBlockHeaders_Context3); //Check to make sure the context is correct
 
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context3], 2);
@@ -328,12 +328,12 @@ void _GetBlockHeaders_Calllback_Test2 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
-    
+
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(context1 == &_GetBlockHeaders_Context2); //Check to make sure the context is correct
-    
+
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context2], 3);
     _signalTestComplete();
 }
@@ -342,10 +342,10 @@ void _GetBlockHeaders_Calllback_Test1 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
-    
+
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(context1 == &_GetBlockHeaders_Context1); //Check to make sure the context is correct
 
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context1], 3);
@@ -398,7 +398,7 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
 
     //Wait for tests to complete
     _waitForTests();
-    
+
     eth_log(TST_LOG_TOPIC, "GetBlockHeaders: %s", "Tests Successful");
 }
 
@@ -470,9 +470,9 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetTxStatus_Context2); //Check to make sure the context is correct
-    
+
     //Check to make sure we get back the right transaction
     BREthereumHash expectedTransactionHashes[] = {
         hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c"),
@@ -530,7 +530,7 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetTxStatus_Context1); //Check to make sure the context is correct
 
     BREthereumHash expectedTransactionHashes[] = {
@@ -567,32 +567,32 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
 
 static void
 run_GetTxStatus_Tests (BREthereumLES les) {
-    
+
     // Prepare values to be given to a send tranactions status message
     BREthereumHash transaction1Hash = hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c");
     BREthereumHash transaction2Hash = hashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5");
-    
+
     //Initilize testing state
     _initTest(2);
-    
+
     lesProvideTransactionStatusOne (les, NODE_REFERENCE_ANY,
                                     (void *)&_GetTxStatus_Context1,
                                     _GetTxStatus_Test1_Callback,
                                     transaction1Hash);
-    
+
     BREthereumHash* transactions;
     array_new(transactions, 2);
     array_add(transactions, transaction1Hash);
     array_add(transactions, transaction2Hash);
-    
+
     lesProvideTransactionStatus (les, NODE_REFERENCE_ANY,
                                  (void *)&_GetTxStatus_Context2,
                                  _GetTxStatus_Test2_Callback,
                                  transactions);
-    
+
     //Wait for tests to complete
     _waitForTests();
-    
+
     eth_log(TST_LOG_TOPIC, "GetTxStatus: %s", "Tests Successful");
 }
 
@@ -618,16 +618,16 @@ _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
-    
+
     //Check Block Hash
     assert(hashSetEqual(&hashes[0], &_blockHeaderTestData[_GetBlockBodies_Context1].hash));
-    
+
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(pairs[0].transactions) == _blockHeaderTestData[_GetBlockBodies_Context1].transactionCount);
     assert(array_count(pairs[0].uncles)       == _blockHeaderTestData[_GetBlockBodies_Context1].ommersCount);
-    
+
     //Signal to the testing thread that this test completed successfully
     _signalTestComplete();
 }
@@ -648,13 +648,13 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetBlockBodies_Context2); //Check to make sure the context is correct
 
     for (size_t index = 0; index < 2; index++) {
         //Check Block Hash
         assert(hashSetEqual(&hashes[index], &_blockHeaderTestData[_GetBlockBodies_Context2 + index].hash));
-    
+
         //Check to make sure we got back the right number of transactions and ommers
         assert(array_count(pairs[index].transactions) == _blockHeaderTestData[_GetBlockBodies_Context2 + index].transactionCount);
         assert(array_count(pairs[index].uncles)       == _blockHeaderTestData[_GetBlockBodies_Context2 + index].ommersCount);
@@ -666,32 +666,32 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
 
 static void
 run_GetBlockBodies_Tests (BREthereumLES les) {
-    
+
     //Initilize testing state
     _initTest(2);
-    
+
     //Request block bodies 4732522
     _GetBlockBodies_Context1 = BLOCK_4732522_IDX;
     lesProvideBlockBodiesOne (les, NODE_REFERENCE_ANY,
                               (void *)&_GetBlockBodies_Context1,
                               _GetBlockBodies_Callback_Test1,
                               _blockHeaderTestData[BLOCK_4732522_IDX].hash);
-    
+
     //Request block bodies 4732522, 4732521
     _GetBlockBodies_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
     array_new(blockHeaders, 2);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
-    
+
     lesProvideBlockBodies (les, NODE_REFERENCE_ANY,
                            (void *)&_GetBlockBodies_Context2,
                            _GetBlockBodies_Callback_Test2,
                            blockHeaders);
-    
+
     //Wait for tests to complete
     _waitForTests();
-    
+
     eth_log(TST_LOG_TOPIC, "GetBlockBlodies: %s", "Tests Successful");
 }
 
@@ -717,15 +717,15 @@ _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetReceipts_Context1); //Check to make sure the context is correct
-    
+
     //Check Block Hash
     assert(hashSetEqual(&hashes[0], &_blockHeaderTestData[_GetReceipts_Context1].hash));
-    
+
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(receiptsByHash[0]) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
-    
+
     //Signal to the testing thread that this test completed successfully
     _signalTestComplete();
 }
@@ -747,13 +747,13 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
 
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetReceipts_Context2); //Check to make sure the context is correct
 
     for (size_t index = 0; index < 2; index++) {
         //Check Block Hash
         assert(hashSetEqual(&hashes[index], &_blockHeaderTestData[_GetReceipts_Context2 + index].hash));
-    
+
         //Check to make sure we got back the right number of receipts
         assert(array_count(receiptsByHash[index]) == _blockHeaderTestData[_GetReceipts_Context2 + index].transactionCount);
     }
@@ -763,34 +763,34 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
 
 static void
 run_GetReceipts_Tests (BREthereumLES les) {
-    
+
     //Initilize testing state
     _initTest(2);
-    
+
     //Request receipts for block 4732522
     _GetReceipts_Context1 = BLOCK_4732522_IDX;
     lesProvideReceiptsOne (les, NODE_REFERENCE_ANY,
                            (void *) &_GetReceipts_Context1,
                            _GetReceipts_Callback_Test1,
                            _blockHeaderTestData[BLOCK_4732522_IDX].hash);
-    
+
     //Request receipts for block 4732522, 4732521
     _GetReceipts_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
     array_new(blockHeaders, 2);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
-    
+
     lesProvideReceipts (les, NODE_REFERENCE_ANY,
                         (void *)&_GetReceipts_Context2,
                         _GetReceipts_Callback_Test2,
                         blockHeaders);
-    
+
     //Wait for tests to complete
     _waitForTests();
-    
+
     eth_log(TST_LOG_TOPIC, "GetReceipts: %s", "Tests Successful");
-    
+
 }
 
 //
@@ -803,14 +803,14 @@ static void _GetProofs_Callback_Test1(BREthereumLESProvisionContext context,
                                       BREthereumHash blockHash,
                                       BRRlpData key1,
                                       BRRlpData key2) {
-    
+
     assert(context != NULL);
     int* context1 = (int *)context;
-    
+
     assert(*context1 == _GetProofsV2_Context1); //Check to make sure the context is correct
-    
+
     //Signal to the testing thread that this test completed successfully
-    _signalTestComplete(); 
+    _signalTestComplete();
 }
 
 static BREthereumHash blockHashes[] = {
@@ -826,31 +826,31 @@ static BREthereumHash blockHashes[] = {
 static size_t blockCount = sizeof (blockHashes) / sizeof(BREthereumHash);
 
 static void run_GetProofsV2_Tests(BREthereumLES les){
-    
+
     //Initilize testing state
     _initTest((int) blockCount);
-    
+
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    
+
     BREthereumHash addr  = addressGetHash(address);
-    
+
     // Have mucked with combinations of key1, key2 being: key1 empty, key2 empty, both key1 adn
     // key2 provided.  With key1, key2 being: the addres, the hash of address.
     //
     // Have mucked with the Go Ethereum test case - to explore the meanings of key1, key2.
     //
-    
+
     BRRlpData key1 = (BRRlpData) { 0, NULL };
     BRRlpData key2 = (BRRlpData) { sizeof (addr), addr.bytes };
-    
+
     for (size_t blockIndex = 0; blockIndex < blockCount; blockIndex++) {
         BREthereumHash block = blockHashes[blockIndex];
         lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
     }
-    
+
     //Wait for tests to complete
     _waitForTests();// sleep (5);
-    
+
     eth_log(TST_LOG_TOPIC, "GetProofsV2: %s", "Tests Successful");
 }
 #endif
@@ -1168,16 +1168,16 @@ run_GetSomeBlocks (BREthereumLES les) {
 
 extern void
 runLESTests (const char *paperKey) {
-    
+
     //Prepare values to be given to a LES context
     char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
     BREthereumHash headHash = hashCreate(headHashStr);
-    
+
     uint64_t headNumber = 0;
     UInt256 headTD = createUInt256 (0x400000000);
-    
+
     BREthereumHash genesisHash = hashCreate(headHashStr);
-    
+
     // Create an LES context
     BREthereumLES les = lesCreate (ethereumMainnet,
                                    NULL, _announceCallback, _statusCallback, _saveNodesCallback,
@@ -1188,13 +1188,13 @@ runLESTests (const char *paperKey) {
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(2);
-    
+
     //Initialize testing state
     _initTestState();
-    
+
     //Initialize data needed for tests
     _initBlockHeaderTestData();
-    
+
     // Run Tests on the LES messages
     run_GetBlockHeaders_Tests(les);
 //    run_GetBlookProofs_Tests(les);
@@ -1213,7 +1213,7 @@ runLESTests (const char *paperKey) {
     //
     // run_GetSomeHeaders (les);
     // run_GetSomeBlocks(les);
-    
+
     //    sleep (60);
     lesStop(les);
     lesRelease(les);

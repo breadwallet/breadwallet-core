@@ -10,10 +10,13 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <ftw.h>
 #include <errno.h>
 #include <unistd.h>
 #include <assert.h>
+
+#define __USE_XOPEN_EXTENDED 1
+#define _XOPEN_SOURCE 1
+#include <ftw.h>
 
 #include "support/BRFileService.h"
 #include "support/BRAssert.h"
@@ -23,7 +26,7 @@
 /// MARK: - Helpers
 
 static int _pthread_cond_timedwait_relative (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *reltime) {
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined (__linux__)
         struct timeval t;
         gettimeofday(&t, NULL);
 
@@ -253,7 +256,7 @@ supMainDisconnect (SupMain main) {
     printf ("Main (%p): Disconnect Workers\n", main);
    for (size_t index = 0; index < DEFAULT_WORKERS; index++)
         supWorkerDisconnect (main->workers[index], 1);
-    
+
     printf ("Main (%p): Disconnect Self\n", main);
     if (PTHREAD_NULL != main->thread) {
         pthread_cond_signal(&main->cond);

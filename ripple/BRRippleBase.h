@@ -11,6 +11,7 @@
 #ifndef BRRipple_base_h
 #define BRRipple_base_h
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 

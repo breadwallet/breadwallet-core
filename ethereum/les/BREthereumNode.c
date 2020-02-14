@@ -124,7 +124,7 @@ nodeStateCreateErrorUnix (int error) {
         NODE_ERROR,
         { .error = {
             NODE_ERROR_UNIX,
-            { .unix = error }}}
+            { .nix = error }}}
     };
 }
 
@@ -201,7 +201,7 @@ nodeStateDescribe (const BREthereumNodeState *state,
             switch (state->u.error.type) {
                 case NODE_ERROR_UNIX:
                     return strcat (strcpy (description, "Unix: "),
-                                   strerror (state->u.error.u.unix));
+                                   strerror (state->u.error.u.nix));
                 case NODE_ERROR_DISCONNECT:
                     return strcat (strcpy (description, "Disconnect : "),
                                    messageP2PDisconnectDescription(state->u.error.u.disconnect));
@@ -227,7 +227,7 @@ nodeStateEncode (const BREthereumNodeState *state,
             BRRlpItem reasonItem;
             switch (state->u.error.type) {
                 case NODE_ERROR_UNIX:
-                    reasonItem = rlpEncodeUInt64(coder, state->u.error.u.unix, 1);
+                    reasonItem = rlpEncodeUInt64(coder, state->u.error.u.nix, 1);
                     break;
                 case NODE_ERROR_DISCONNECT:
                     reasonItem = rlpEncodeUInt64(coder, state->u.error.u.disconnect, 1);
@@ -716,7 +716,7 @@ nodeCreate (BREthereumNodePriority priority,
 
     node->timeout = (time_t) -1;
     node->timeoutPingAllowed = ETHEREUM_BOOLEAN_TRUE;
-    
+
     {
         // The cacheLock is a normal, non-recursive lock
         pthread_mutexattr_t attr;
@@ -2023,7 +2023,7 @@ nodeSend (BREthereumNode node,
                 (MESSAGE_LES == message.identifier && LES_MESSAGE_SEND_TX  == message.u.les.identifier))
                 rlpShowItem (node->coder.rlp, item, "SEND");
 #endif
-            
+
             // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
             // RLP encoding of a list; thus we use `rlpDecodeList`.
             BRRlpData data = rlpDecodeListSharedDontRelease(node->coder.rlp, item);
@@ -2139,7 +2139,7 @@ nodeRecv (BREthereumNode node,
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
             eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: PayLoad: %u, Frame: %zu", headerCount, bytesCount);
 #endif
-            
+
             // get body/frame
             error = nodeEndpointRecvData (node->remote, route, bytes, &bytesCount, 1);
             if (error) return nodeRecvFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorUnix (error));
@@ -2182,7 +2182,7 @@ nodeRecv (BREthereumNode node,
                 MESSAGE_LES == message.identifier &&
                 messageLESHasUse (&message.u.les, LES_MESSAGE_USE_RESPONSE))
                 node->credits = messageLESGetCredits (&message.u.les);
-            
+
             rlpReleaseItem (node->coder.rlp, item);
             rlpReleaseItem (node->coder.rlp, identifierItem);
 
@@ -2371,7 +2371,7 @@ _sendAuthInitiator(BREthereumNode node) {
                                                     NULL, 0,
                                                     xorStaticNonce);
     assert (65 == signatureLen);
-    
+
     // Fill the signature
     BRKeyCompactSignEthereum (localEphemeral,
                               signature, signatureLen,

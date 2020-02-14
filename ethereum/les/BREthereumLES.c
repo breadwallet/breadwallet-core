@@ -309,7 +309,7 @@ struct BREthereumLESRecord {
     BRRlpCoder coder;
 
     BREthereumBoolean discoverNodes;
-    
+
     /** Callbacks */
     BREthereumLESCallbackContext callbackContext;
     BREthereumLESCallbackAnnounce callbackAnnounce;
@@ -525,7 +525,7 @@ lesCreate (BREthereumNetwork network,
            OwnershipGiven BRSetOf(BREthereumNodeConfig) configs,
            BREthereumBoolean discoverNodes,
            BREthereumBoolean handleSync) {
-    
+
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
 
@@ -556,7 +556,7 @@ lesCreate (BREthereumNetwork network,
     les->genesisHash = genesisHash;
 
     les->handleSync = handleSync;
-    
+
     // Our P2P capabilities - support subprotocols: LESv2 and/or PIPv1
     BRArrayOf (BREthereumP2PCapability) capabilities;
     array_new (capabilities, 2);
@@ -1142,7 +1142,7 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
 
 static void *
 lesThread (BREthereumLES les) {
-#if defined (__ANDROID__)
+#if defined (__ANDROID__) || defined (__linux__)
     pthread_setname_np (les->thread, LES_THREAD_NAME);
 #else
     pthread_setname_np (LES_THREAD_NAME);
@@ -1196,7 +1196,7 @@ lesThread (BREthereumLES les) {
                 array_clear (nodesToRemove);
             }
         }
-        
+
         //
         // Handle any/all pending requests by 'establishing a provision' in the requested node.  If
         // the requested node is not connected the request must fail.
@@ -1446,7 +1446,7 @@ lesThread (BREthereumLES les) {
                 // This blocks on Unix connect() and then loops on select() for EINPROGRESS.
                 // Really, really we need NODE_CONNECT_OPEN_SOCKET_IN_PROGRESS with a small
                 // timeout on connect().
-                
+
                 nodeConnect (node, NODE_ROUTE_TCP, now);
 
                 switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
@@ -1829,7 +1829,7 @@ lesRetryProvision (BREthereumLES les,
 //        BREthereumNode node = les->connectedNodes[index];
 //
 //        nodeEstablishProvisioner(node, &provisioner);
-//        
+//
 //        // And send the request's LES message
 //        BREthereumNodeStatus status = nodeSend (node,
 //                                                   NODE_ROUTE_TCP,

@@ -62,6 +62,8 @@
     #define SQLITE_MAX_VARIABLE_NUMBER                  500000
     #define SQLITE_STMTJRNL_SPILL                       131072
 
+#elif defined (__linux__)
+
 #else
 
     #error "Unsupported target"

@@ -132,7 +132,7 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
             eth_log ("EWM", "FileService Error: IMPL: %s", error.u.impl.reason);
             break;
         case FILE_SERVICE_UNIX:
-            eth_log ("EWM", "FileService Error: UNIX: %s", strerror(error.u.unix.error));
+            eth_log ("EWM", "FileService Error: UNIX: %s", strerror(error.u.nix.error));
             break;
         case FILE_SERVICE_ENTITY:
             // This is likely a coding error too.
@@ -447,7 +447,7 @@ ewmCreate (BREthereumNetwork network,
             // or b) if BlockSet, is down we hardcode the block height at the time of the software
             // distribution (See System.supportedBlockchains) - either way we have a better
             // current block height than any checkpoint.
-            
+
             ewmSignalBlockChain (ewm, EMPTY_HASH_INIT, ewm->blockHeight, 0);
 
             // ... and then just ignore nodes
@@ -1929,7 +1929,7 @@ ewmHandleLog (BREthereumEWM ewm,
     // Assert that we always have an identifier for `log`.
     BREthereumBoolean extractedIdentifier = logExtractIdentifier (log, &transactionHash, &logIndex);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (extractedIdentifier));
-    
+
     BREthereumToken token = ewmLookupToken (ewm, logGetAddress(log));
     if (NULL == token) { logRelease(log); return;}
 
@@ -2485,11 +2485,11 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                 BREthereumTransfer transfer,
                                 const char *prefix) {
     assert (walletHasTransfer(wallet, transfer));
-    
+
     pthread_mutex_lock (&ewm->lock);
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
     pthread_mutex_unlock (&ewm->lock);
-    
+
     return (NULL == transaction ? NULL
             : transactionGetRlpHexEncoded (transaction,
                                            ewm->network,

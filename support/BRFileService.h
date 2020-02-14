@@ -27,6 +27,7 @@
 #define BRFileService_h
 
 #include <stdlib.h>
+#include <string.h>
 #include "BRSet.h"
 #include "BRInt.h"
 
@@ -61,7 +62,7 @@ typedef struct {
 
         struct {
             int error;
-        } unix;
+        } nix;
 
         struct {
             int code;  // sqlite3_status_code

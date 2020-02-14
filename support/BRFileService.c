@@ -192,7 +192,7 @@ struct BRFileServiceRecord {
     char *network;
 
     pthread_mutex_t lock;
-    
+
     BRArrayOf(BRFileServiceEntityType) entityTypes;
     BRFileServiceContext context;
     BRFileServiceErrorHandler handler;
@@ -501,7 +501,7 @@ fileServiceFailedUnix(BRFileService fs,
     return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
                                       (BRFileServiceError) {
                                           FILE_SERVICE_UNIX,
-                                          { .unix = { error }}
+                                          { .nix = { error }}
                                       });
 }
 #pragma clang diagnostic pop
@@ -672,7 +672,7 @@ fileServiceLoad (BRFileService fs,
                                           "missed query `hash` or `data`");
 
         assert (64 == strlen (hash));
-        
+
         // Ensure `dataBytes` is large enough for hex-decoded `data`
         size_t dataCount = strlen (data);
         assert (0 == dataCount % 2);  // Surely 'even'
@@ -945,7 +945,7 @@ fileServiceDefineType (BRFileService fs,
     // If there is an entityHandler, update it.
     if (NULL != entityHandler)
         *entityHandler = newEntityHander;
-    
+
     // otherwise add one
     else {
         fileServiceEntityTypeAddHandler (entityType, &newEntityHander);

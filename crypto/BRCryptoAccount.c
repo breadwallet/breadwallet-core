@@ -402,7 +402,11 @@ checksumFletcher16(const uint8_t *data, size_t count )
     return (sum2 << 8) | sum1;
 }
 
-#if defined (__ANDROID__)
+#if defined (__linux__)
+#include <bsd/stdlib.h>
+#endif
+
+#if defined (__ANDROID__) || defined (__linux__)
 static void
 randomBytes (void *bytes, size_t bytesCount) {
     arc4random_buf (bytes, bytesCount);

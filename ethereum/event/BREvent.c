@@ -146,7 +146,7 @@ typedef void* (*ThreadRoutine) (void*);
 
 static void *
 eventHandlerThread (BREventHandler handler) {
-#if defined (__ANDROID__)
+#if defined (__ANDROID__) || defined (__linux__)
     pthread_setname_np (pthread_self(), handler->name);
 #else
     pthread_setname_np (handler->name);
@@ -166,7 +166,7 @@ eventHandlerThread (BREventHandler handler) {
                 // Yield here so that we don't have a situation where we repeatedly acquire
                 // the `lockOnDispatch`, thereby starving other threads, when there are many
                 // events queued (ex: on startup)
-#if defined (ANDROID)
+#if defined (ANDROID) || (__linux__)
                 nanosleep (&(struct timespec) {0, 1}, NULL); // pthread_yield() isn't POSIX standard :(
 #else
                 pthread_yield_np ();
