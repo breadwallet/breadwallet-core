@@ -25,6 +25,8 @@ import com.google.common.io.Files;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -73,12 +75,11 @@ public class Main {
     }
 
     private Main() {
-        // log everything at the "debug" level
-        Logger rootLogger = LogManager.getLogManager().getLogger("");
-        Handler[] handlers = rootLogger.getHandlers();
-        rootLogger.setLevel(Level.FINE);
-        for (Handler h : handlers) {
-            h.setLevel(Level.FINE);
+        // initialize the logger
+        try {
+            LogManager.getLogManager().readConfiguration(Main.class.getResourceAsStream("/logging.properties"));
+        } catch (IOException e) {
+            // ignore, good to go
         }
 
         // initialize the crypto provider
