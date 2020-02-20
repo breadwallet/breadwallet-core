@@ -460,7 +460,9 @@ genManagerRecoverTransfer (BRGenericManager gwm,
                          genTransferStateCreateIncluded (blockHeight,
                                                          GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
                                                          timestamp,
-                                                         feeBasis));
+                                                         feeBasis,
+                                                         0 == error,
+                                                         NULL));
 
     genAddressRelease (source);
     genAddressRelease (target);
@@ -472,7 +474,8 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                                               uint8_t *bytes,
                                               size_t   bytesCount,
                                               uint64_t timestamp,
-                                              uint64_t blockHeight) {
+                                              uint64_t blockHeight,
+                                              int error) {
     pthread_mutex_lock (&gwm->lock);
     BRArrayOf(BRGenericTransferRef) refs = gwm->handlers->manager.transfersRecoverFromRawTransaction (bytes, bytesCount);
     BRArrayOf(BRGenericTransfer) transfers;
@@ -483,7 +486,9 @@ genManagerRecoverTransfersFromRawTransaction (BRGenericManager gwm,
                              genTransferStateCreateIncluded (blockHeight,
                                                              GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
                                                              timestamp,
-                                                             genTransferGetFeeBasis (transfer)));
+                                                             genTransferGetFeeBasis (transfer),
+                                                             0 == error,
+                                                             NULL));
         array_add (transfers, transfer);
     }
     pthread_mutex_unlock (&gwm->lock);

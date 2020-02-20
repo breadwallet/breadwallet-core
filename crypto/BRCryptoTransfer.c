@@ -876,11 +876,28 @@ extern BRCryptoTransferState
 cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                  uint64_t transactionIndex,
                                  uint64_t timestamp,
-                                 BRCryptoFeeBasis feeBasis) {
-    return (BRCryptoTransferState) {
+                                 BRCryptoFeeBasis feeBasis,
+                                 BRCryptoBoolean success,
+                                 const char *error) {
+    BRCryptoTransferState result = (BRCryptoTransferState) {
         CRYPTO_TRANSFER_STATE_INCLUDED,
-        { .included = { blockNumber, transactionIndex, timestamp, cryptoFeeBasisTake(feeBasis) }}
+        { .included = {
+            blockNumber,
+            transactionIndex,
+            timestamp,
+            cryptoFeeBasisTake(feeBasis),
+            success
+        }}
     };
+
+    memset (result.u.included.error, 0, CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+    if (CRYPTO_FALSE == success) {
+        strlcpy (result.u.included.error,
+                 (NULL == error ? "unknown error" : error),
+                 CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+    }
+
+    return result;
 }
 
 extern BRCryptoTransferState

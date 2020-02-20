@@ -736,7 +736,9 @@ cryptoTransferStateCreateGEN (BRGenericTransferState generic,
             BRCryptoTransferState state = cryptoTransferStateIncludedInit (generic.u.included.blockNumber,
                                                                            generic.u.included.transactionIndex,
                                                                            generic.u.included.timestamp,
-                                                                           basis);
+                                                                           basis,
+                                                                           generic.u.included.success,
+                                                                           generic.u.included.error);
             cryptoFeeBasisGive (basis);
             return state;
         }

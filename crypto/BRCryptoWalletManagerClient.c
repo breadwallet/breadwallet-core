@@ -730,7 +730,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (event.u.updated.blockHeight,
                                                                                   0,
                                                                                   event.u.updated.timestamp,
-                                                                                  feeBasisConfirmed);
+                                                                                  feeBasisConfirmed,
+                                                                                  CRYPTO_TRUE,
+                                                                                  NULL);
 
                 cryptoFeeBasisGive(feeBasisConfirmed);
 
@@ -1306,7 +1308,9 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                 BRCryptoTransferState newState = cryptoTransferStateIncludedInit (blockNumber,
                                                                                   blockTransactionIndex,
                                                                                   blockTimestamp,
-                                                                                  feeBasisConfirmed);
+                                                                                  feeBasisConfirmed,
+                                                                                  CRYPTO_TRUE,
+                                                                                  NULL);
 
                 cryptoFeeBasisGive (feeBasisConfirmed);
                 cryptoUnitGive (unit);
@@ -2030,9 +2034,19 @@ cwmAnnounceGetTransferStateGEN (BRGenericTransfer transfer,
             return genTransferStateCreateIncluded (blockHeight,
                                                    GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
                                                    timestamp,
-                                                   genTransferGetFeeBasis (transfer));
+                                                   genTransferGetFeeBasis (transfer),
+                                                   CRYPTO_TRUE,
+                                                   NULL);
         case CRYPTO_TRANSFER_STATE_ERRORED:
-            return genTransferStateCreateErrored (GENERIC_TRANSFER_SUBMIT_ERROR_ONE);
+            if (BLOCK_HEIGHT_UNBOUND == blockHeight)
+                return genTransferStateCreateErrored (GENERIC_TRANSFER_SUBMIT_ERROR_ONE);
+            else
+                return genTransferStateCreateIncluded (blockHeight,
+                                                       GENERIC_TRANSFER_TRANSACTION_INDEX_UNKNOWN,
+                                                       timestamp,
+                                                       genTransferGetFeeBasis (transfer),
+                                                       CRYPTO_FALSE,
+                                                       NULL);
         case CRYPTO_TRANSFER_STATE_DELETED:
             return genTransferStateCreateOther (GENERIC_TRANSFER_STATE_DELETED);
     }
@@ -2052,7 +2066,8 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     BRArrayOf(BRGenericTransfer) transfers = genManagerRecoverTransfersFromRawTransaction (cwm->u.gen,
                                                                                            transaction, transactionLength,
                                                                                            timestamp,
-                                                                                           blockHeight);
+                                                                                           blockHeight,
+                                                                                           0); // no error, handle below
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
     // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
     // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.

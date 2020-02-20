@@ -313,7 +313,8 @@ extern "C" {
                                                   uint8_t *bytes,
                                                   size_t   bytesCount,
                                                   uint64_t timestamp,
-                                                  uint64_t blockHeight);
+                                                  uint64_t blockHeight,
+                                                  int error);
 
     extern int
     genManagerSignTransfer (BRGenericManager gwm,

@@ -269,6 +269,8 @@ public struct TransferConfirmation: Equatable {
     public let transactionIndex: UInt64
     public let timestamp: UInt64
     public let fee: Amount?  // Optional, for now
+    public let success: Bool
+    public let error: String?
 }
 
 ///
@@ -424,13 +426,21 @@ public enum TransferState {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
         case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed
         case CRYPTO_TRANSFER_STATE_SUBMITTED: self = .submitted
-        case CRYPTO_TRANSFER_STATE_INCLUDED:  self = .included (
-            confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
+        case CRYPTO_TRANSFER_STATE_INCLUDED:
+            var coreError = core.u.included.error
+            let error = CRYPTO_TRUE == core.u.included.success
+                ? nil
+                : asUTF8String ([CChar](UnsafeBufferPointer(start: &coreError.0, count: MemoryLayout.size(ofValue: coreError))))
+
+            self = .included (
+                confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
                                                 fee: core.u.included.feeBasis
                                                     .map { cryptoFeeBasisGetFee ($0) }
-                                                    .map { Amount (core: $0, take: false) }))
+                                                    .map { Amount (core: $0, take: false) },
+                                                success: CRYPTO_TRUE == core.u.included.success,
+                                                error: error))
         case CRYPTO_TRANSFER_STATE_ERRORED:   self = .failed(error: TransferSubmitError (core: core.u.errored.error))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; preconditionFailure()
