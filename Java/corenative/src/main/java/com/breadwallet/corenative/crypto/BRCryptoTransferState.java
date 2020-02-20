@@ -30,21 +30,25 @@ public class BRCryptoTransferState extends Structure {
             public long transactionIndex;
             public long timestamp;
             public BRCryptoFeeBasis feeBasis;
+            public boolean success;
+            public String error;
 
             public included_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis");
+                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis", "success", "error");
             }
 
-            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis) {
+            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis, int success, String error) {
                 super();
                 this.blockNumber = blockNumber;
                 this.transactionIndex = transactionIndex;
                 this.timestamp = timestamp;
                 this.feeBasis = feeBasis;
+                this.success = (success == BRCryptoBoolean.CRYPTO_TRUE);
+                this.error = this.success ? null : error.toLowerCase();  // copy, somehow
             }
 
             public included_struct(Pointer peer) {
