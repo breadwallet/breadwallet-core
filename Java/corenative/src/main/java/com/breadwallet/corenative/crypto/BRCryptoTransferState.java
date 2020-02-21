@@ -7,12 +7,15 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
 
 import java.util.Arrays;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class BRCryptoTransferState extends Structure {
 
@@ -30,8 +33,8 @@ public class BRCryptoTransferState extends Structure {
             public long transactionIndex;
             public long timestamp;
             public BRCryptoFeeBasis feeBasis;
-            public boolean success;
-            public String error;
+            public int success;
+            public byte[] error = new byte[1];
 
             public included_struct() {
                 super();
@@ -41,18 +44,26 @@ public class BRCryptoTransferState extends Structure {
                 return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis", "success", "error");
             }
 
-            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis, int success, String error) {
+            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis, int success, byte[] error) {
                 super();
                 this.blockNumber = blockNumber;
                 this.transactionIndex = transactionIndex;
                 this.timestamp = timestamp;
                 this.feeBasis = feeBasis;
-                this.success = (success == BRCryptoBoolean.CRYPTO_TRUE);
-                this.error = this.success ? null : error.toLowerCase();  // copy, somehow
+                this.success = success;
+                this.error = error;
             }
 
             public included_struct(Pointer peer) {
                 super(peer);
+            }
+
+            public @Nullable String getError () {
+                return getSuccess() ? null : Native.toString(this.error);
+            }
+
+            public boolean getSuccess () {
+                return BRCryptoBoolean.CRYPTO_TRUE == this.success;
             }
 
             public static class ByReference extends included_struct implements Structure.ByReference {

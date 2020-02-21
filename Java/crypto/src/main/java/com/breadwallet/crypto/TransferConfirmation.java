@@ -21,10 +21,10 @@ public final class TransferConfirmation {
     private final UnsignedLong transactionIndex;
     private final Date timestamp;
     private final Optional<Amount> fee;
-    private final Boolean success;
+    private final boolean success;
     private final Optional<String> error;
 
-    public TransferConfirmation(UnsignedLong blockNumber, UnsignedLong transactionIndex, UnsignedLong timestamp, Optional<Amount> fee, Boolean success, Optional<String> error) {
+    public TransferConfirmation(UnsignedLong blockNumber, UnsignedLong transactionIndex, UnsignedLong timestamp, Optional<Amount> fee, boolean success, Optional<String> error) {
         this.blockNumber = blockNumber;
         this.transactionIndex = transactionIndex;
         this.timestamp = new Date(TimeUnit.SECONDS.toMillis(timestamp.longValue()));

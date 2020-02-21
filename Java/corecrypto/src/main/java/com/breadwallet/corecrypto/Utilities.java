@@ -162,8 +162,8 @@ final class Utilities {
                             Optional.fromNullable(state.u.included.feeBasis)
                                     .transform(TransferFeeBasis::create)
                                     .transform(TransferFeeBasis::getFee),
-                            Boolean.valueOf(state.u.included.success),
-                            Optional.fromNullable(state.u.included.error)
+                            Boolean.valueOf(state.u.included.getSuccess()),
+                            Optional.fromNullable(state.u.included.getError())
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");
