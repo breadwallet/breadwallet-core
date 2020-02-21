@@ -41,14 +41,6 @@ static BRGenericFeeBasis
 genFeeBasisDecode (BRRlpItem item,
                    BRRlpCoder coder);
 
-static BRRlpItem
-genTransferStateEncode (BRGenericTransferState state,
-                        BRRlpCoder coder);
-
-static BRGenericTransferState
-genTransferStateDecode (BRRlpItem item,
-                        BRRlpCoder Coder);
-
 static OwnershipGiven BRArrayOf(BRGenericTransferAttribute)
 genTransferAttributesDecode (BRRlpItem item,
                              BRRlpCoder coder);
@@ -109,11 +101,12 @@ struct BRGenericManagerRecord {
 
 /// MARK: - File Service
 
-static const char *fileServiceTypeTransactions = "transactions";
+#define fileServiceTypeTransactions      "transactions"
 
-enum {
-    GENERIC_TRANSFER_VERSION_1
-};
+typedef enum {
+    GENERIC_TRANSFER_VERSION_1,
+    GENERIC_TRANSFER_VERSION_2,
+} BRGenericFileServiceTransferVersion;
 
 static UInt256
 fileServiceTypeTransferV1Identifier (BRFileServiceContext context,
@@ -198,10 +191,11 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
 }
 
 static uint8_t *
-fileServiceTypeTransferV1Writer (BRFileServiceContext context,
-                                 BRFileService fs,
-                                 const void* entity,
-                                 uint32_t *bytesCount) {
+fileServiceTypeTransferWriter (BRFileServiceContext context,
+                               BRFileService fs,
+                               const void* entity,
+                               uint32_t *bytesCount,
+                               BRGenericFileServiceTransferVersion version) {
     BRGenericTransfer transfer = (BRGenericTransfer) entity;
 
     BRGenericHash    hash   = genTransferGetHash (transfer);
@@ -217,6 +211,11 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     char *strSource = genAddressAsString(source);
     char *strTarget = genAddressAsString(target);
 
+    BRGenericTransferStateEncodeVersion stateEncodeVersion =
+        (GENERIC_TRANSFER_VERSION_1 == version ? GEN_TRANSFER_STATE_ENCODE_V1
+         : (GENERIC_TRANSFER_VERSION_2 == version ? GEN_TRANSFER_STATE_ENCODE_V2
+            : GEN_TRANSFER_STATE_ENCODE_V1));
+
     BRRlpItem item = rlpEncodeList (coder, 9,
                                     rlpEncodeBytes (coder, hash.value.u8, sizeof (hash.value.u8)),
                                     rlpEncodeString (coder, transfer->uids),
@@ -225,7 +224,7 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
                                     rlpEncodeUInt256 (coder, amount, 0),
                                     rlpEncodeString (coder, transfer->type),
                                     genFeeBasisEncode (feeBasis, coder),
-                                    genTransferStateEncode (state, coder),
+                                    genTransferStateEncode (state, stateEncodeVersion, coder),
                                     genTransferAttributesEncode (transfer->attributes, coder));
 
     BRRlpData data = rlpGetData (coder, item);
@@ -240,19 +239,45 @@ fileServiceTypeTransferV1Writer (BRFileServiceContext context,
     return data.bytes;
 }
 
-static void
-genManagerInitializeFileService (BRGenericManager gwm) {
-    if (1 != fileServiceDefineType (gwm->fileService, fileServiceTypeTransactions, GENERIC_TRANSFER_VERSION_1,
-                                    gwm,
-                                    fileServiceTypeTransferV1Identifier,
-                                    fileServiceTypeTransferV1Reader,
-                                    fileServiceTypeTransferV1Writer) ||
-
-        1 != fileServiceDefineCurrentVersion (gwm->fileService, fileServiceTypeTransactions,
-                                              GENERIC_TRANSFER_VERSION_1))
-
-        return; //  bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
+static uint8_t *
+fileServiceTypeTransferV1Writer (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void* entity,
+                                 uint32_t *bytesCount) {
+    return fileServiceTypeTransferWriter (context, fs, entity, bytesCount, GENERIC_TRANSFER_VERSION_1);
 }
+
+static uint8_t *
+fileServiceTypeTransferV2Writer (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void* entity,
+                                 uint32_t *bytesCount) {
+    return fileServiceTypeTransferWriter (context, fs, entity, bytesCount, GENERIC_TRANSFER_VERSION_2);
+}
+
+static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
+    {
+        fileServiceTypeTransactions,
+        GENERIC_TRANSFER_VERSION_2, // current version
+        2,
+        {
+            {
+                GENERIC_TRANSFER_VERSION_1,
+                fileServiceTypeTransferV1Identifier,
+                fileServiceTypeTransferV1Reader,
+                fileServiceTypeTransferV1Writer
+            },
+
+            {
+                GENERIC_TRANSFER_VERSION_2,
+                fileServiceTypeTransferV1Identifier,
+                fileServiceTypeTransferV1Reader,
+                fileServiceTypeTransferV2Writer
+            },
+        }
+    }
+};
+static size_t fileServiceSpecificationsCount = (sizeof (fileServiceSpecifications) / sizeof (BRFileServiceTypeSpecification));
 
 /// MARK: - Manager
 
@@ -305,8 +330,11 @@ genManagerCreate (BRGenericClient client,
     const char *networkName  = (genNetworkIsMainnet (gwm->network) ? "mainnet" : "testnet");
     const char *currencyCode = type;
 
-    gwm->fileService = fileServiceCreate (storagePath, currencyCode, networkName, gwm, NULL);
-    genManagerInitializeFileService (gwm);
+    gwm->fileService =  fileServiceCreateFromTypeSpecfications (storagePath, currencyCode, networkName,
+                                                   gwm,
+                                                   NULL,
+                                                   fileServiceSpecificationsCount,
+                                                   fileServiceSpecifications);
 
     // Wallet ??
 
@@ -658,17 +686,30 @@ genFeeBasisDecode (BRRlpItem item,
     };
 }
 
-static BRRlpItem
+extern BRRlpItem
 genTransferStateEncode (BRGenericTransferState state,
+                        BRGenericTransferStateEncodeVersion version,
                         BRRlpCoder coder) {
     switch (state.type) {
         case GENERIC_TRANSFER_STATE_INCLUDED:
-            return rlpEncodeList (coder, 5,
-                                  rlpEncodeUInt64  (coder, state.type, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
-                                  rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
-                                  genFeeBasisEncode (state.u.included.feeBasis, coder));
+            switch (version) {
+                case GEN_TRANSFER_STATE_ENCODE_V1:
+                    return rlpEncodeList (coder, 5,
+                                          rlpEncodeUInt64  (coder, state.type, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
+                                          genFeeBasisEncode (state.u.included.feeBasis, coder));
+                case GEN_TRANSFER_STATE_ENCODE_V2:
+                    return rlpEncodeList (coder, 7,
+                                          rlpEncodeUInt64  (coder, state.type, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.blockNumber, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.transactionIndex, 0),
+                                          rlpEncodeUInt64  (coder, state.u.included.timestamp, 0),
+                                          genFeeBasisEncode (state.u.included.feeBasis, coder),
+                                          rlpEncodeUInt64  (coder, state.u.included.success, 0),
+                                          rlpEncodeString  (coder, state.u.included.error));
+            }
 
         case GENERIC_TRANSFER_STATE_ERRORED:
             return rlpEncodeList2 (coder,
@@ -685,7 +726,7 @@ genTransferStateEncode (BRGenericTransferState state,
     }
 }
 
-static BRGenericTransferState
+extern BRGenericTransferState
 genTransferStateDecode (BRRlpItem item,
                         BRRlpCoder coder) {
     size_t itemsCount = 0;
@@ -694,8 +735,8 @@ genTransferStateDecode (BRRlpItem item,
 
     BRGenericTransferStateType type = (BRGenericTransferStateType) rlpDecodeUInt64 (coder, items[0], 0);
     switch (type) {
-        case GENERIC_TRANSFER_STATE_INCLUDED:
-            assert (5 == itemsCount);
+        case GENERIC_TRANSFER_STATE_INCLUDED: {
+            assert (5 == itemsCount || 7 == itemsCount);
 
             BRGenericTransferState state = (BRGenericTransferState) {
                 type,
@@ -704,13 +745,20 @@ genTransferStateDecode (BRRlpItem item,
                     rlpDecodeUInt64  (coder, items[2], 0),
                     rlpDecodeUInt64  (coder, items[3], 0),
                     genFeeBasisDecode (items[4], coder),
-                    CRYPTO_TRUE
+                    (5 == itemsCount ? CRYPTO_TRUE : ((BRCryptoBoolean) rlpDecodeUInt64(coder, items[5], 0)))
                 }}
             };
 
-            memcpy (state.u.included.error, 0, sizeof(state.u.included.error));
-            return state;
+            memset (state.u.included.error, 0, sizeof(state.u.included.error));
+            if (7 == itemsCount) {
+                char *error = rlpDecodeString(coder, items[6]);
+                strlcpy (state.u.included.error, error, sizeof(state.u.included.error));
+                free (error);
+            }
 
+            return state;
+        }
+            
         case GENERIC_TRANSFER_STATE_ERRORED: {
             assert (2 == itemsCount);
             return (BRGenericTransferState) {
