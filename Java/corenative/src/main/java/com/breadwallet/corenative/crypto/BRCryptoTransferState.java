@@ -28,13 +28,14 @@ public class BRCryptoTransferState extends Structure {
         public errored_struct errored;
 
         public static class included_struct extends Structure {
+            private static int CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE = 16;
 
             public long blockNumber;
             public long transactionIndex;
             public long timestamp;
             public BRCryptoFeeBasis feeBasis;
-            public int success;
-            public byte[] error = new byte[1];
+            public int success = BRCryptoBoolean.CRYPTO_TRUE;
+            public byte[] error = new byte[CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1];
 
             public included_struct() {
                 super();
