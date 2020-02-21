@@ -697,15 +697,19 @@ genTransferStateDecode (BRRlpItem item,
         case GENERIC_TRANSFER_STATE_INCLUDED:
             assert (5 == itemsCount);
 
-            return (BRGenericTransferState) {
+            BRGenericTransferState state = (BRGenericTransferState) {
                 type,
                 { .included = {
                     rlpDecodeUInt64  (coder, items[1], 0),
                     rlpDecodeUInt64  (coder, items[2], 0),
                     rlpDecodeUInt64  (coder, items[3], 0),
-                    genFeeBasisDecode (items[4], coder)
+                    genFeeBasisDecode (items[4], coder),
+                    CRYPTO_TRUE
                 }}
             };
+
+            memcpy (state.u.included.error, 0, sizeof(state.u.included.error));
+            return state;
 
         case GENERIC_TRANSFER_STATE_ERRORED: {
             assert (2 == itemsCount);
