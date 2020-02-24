@@ -173,6 +173,10 @@ fileServiceTypeTransferV1Reader (BRFileServiceContext context,
                                                             blockHeight,
                                                             GENERIC_TRANSFER_STATE_ERRORED == state.type);
 
+    // Set the transfer's `state` and `attributes` from the read values.  For`state`, this will
+    // overwrite what `genManagerRecoverTransfer()` assigned but will be correct with the saved
+    // values.  Later, perhaps based on a BlocksetDB query, the state change to 'included error'.
+    genTransferSetState (transfer, state);
     genTransferSetAttributes (transfer, attributes);
 
     genTransferAttributeReleaseAll(attributes);
