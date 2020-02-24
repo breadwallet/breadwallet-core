@@ -136,6 +136,8 @@ extern "C" {
         GENERIC_TRANSFER_STATE_DELETED,
     } BRGenericTransferStateType;
 
+#define GENERIC_TRANSFER_INCLUDED_ERROR_SIZE     16
+
     typedef struct {
         BRGenericTransferStateType type;
         union {
@@ -144,6 +146,8 @@ extern "C" {
                 uint64_t transactionIndex;
                 uint64_t timestamp;
                 BRGenericFeeBasis feeBasis;
+                BRCryptoBoolean success;
+                char error [GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1];
             } included;
             BRGenericTransferSubmitError errored;
         } u;
@@ -157,11 +161,29 @@ extern "C" {
     genTransferStateCreateIncluded (uint64_t blockNumber,
                                     uint64_t transactionIndex,
                                     uint64_t timestamp,
-                                    BRGenericFeeBasis feeBasis) {
-        return (BRGenericTransferState) {
+                                    BRGenericFeeBasis feeBasis,
+                                    BRCryptoBoolean success,
+                                    const char *error) {
+        BRGenericTransferState result = (BRGenericTransferState) {
             GENERIC_TRANSFER_STATE_INCLUDED,
-            { .included = { blockNumber, transactionIndex, timestamp, feeBasis }}
+            { .included = {
+                blockNumber,
+                transactionIndex,
+                timestamp,
+                feeBasis,
+                success
+            }}
         };
+
+        memset (result.u.included.error, 0, GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+        if (CRYPTO_FALSE == success) {
+            strlcpy (result.u.included.error,
+                     (NULL == error ? "unknown error" : error),
+                     GENERIC_TRANSFER_INCLUDED_ERROR_SIZE + 1);
+        }
+
+        return result;
+
     }
 
     static inline BRGenericTransferState

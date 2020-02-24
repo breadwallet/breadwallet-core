@@ -161,7 +161,9 @@ final class Utilities {
                             UnsignedLong.fromLongBits(state.u.included.timestamp),
                             Optional.fromNullable(state.u.included.feeBasis)
                                     .transform(TransferFeeBasis::create)
-                                    .transform(TransferFeeBasis::getFee)
+                                    .transform(TransferFeeBasis::getFee),
+                            Boolean.valueOf(state.u.included.getSuccess()),
+                            Optional.fromNullable(state.u.included.getError())
                     )
             );
             default: throw new IllegalArgumentException("Unsupported state");

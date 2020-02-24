@@ -14,6 +14,7 @@
 
 #include "BRGeneric.h"
 #include "BRGenericHandlers.h"
+#include "ethereum/rlp/BRRlp.h"
 
 #if !defined(private_extern)
 #define private_extern extern
@@ -81,6 +82,20 @@ struct BRGenericWalletRecord {
 private_extern BRGenericWallet
 genWalletAllocAndInit (const char *type,
                        BRGenericWalletRef ref);
+
+typedef enum {
+    GEN_TRANSFER_STATE_ENCODE_V1,
+    GEN_TRANSFER_STATE_ENCODE_V2
+} BRGenericTransferStateEncodeVersion;
+
+extern BRRlpItem
+genTransferStateEncode (BRGenericTransferState state,
+                        BRGenericTransferStateEncodeVersion version,
+                        BRRlpCoder coder);
+
+extern BRGenericTransferState
+genTransferStateDecode (BRRlpItem item,
+                        BRRlpCoder coder);
 
 //DECLARE_GENERIC_TYPE(Manager)
 

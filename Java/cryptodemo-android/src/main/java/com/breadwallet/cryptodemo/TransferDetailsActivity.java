@@ -28,6 +28,7 @@ import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferAttribute;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
+import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
@@ -251,6 +252,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
             this.transfer = transfer;
 
             Optional<TransferConfirmation> conf = transfer.getConfirmation();
+            TransferState state = transfer.getState();
 
             this.amountText = transfer.getAmountDirected().toString();
             this.feeText = transfer.getFee().toString();
@@ -261,7 +263,12 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
             this.confirmationCountText = transfer.getConfirmations().transform(String::valueOf).or("");
             this.dateText = conf.transform((c) -> DATE_FORMAT.get().format(c.getConfirmationTime())).or("<pending>");
             this.confirmationCountVisible = conf.isPresent();
-            this.stateText = transfer.getState().toString();
+            this.stateText = conf.transform((c) ->
+                    state.toString() +
+                            (c.getSuccess()
+                                ? ""
+                                : String.format (" (%s)", c.getError().or("err"))))
+                .or(state.toString());
             this.directionText = transfer.getDirection().toString();
 
             StringBuffer sb = new StringBuffer();

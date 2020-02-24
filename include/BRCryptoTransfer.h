@@ -66,6 +66,7 @@ extern "C" {
     extern const char *
     cryptoTransferStateTypeString (BRCryptoTransferStateType type);
 
+#define CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE     16
     typedef struct {
         BRCryptoTransferStateType type;
         union {
@@ -76,6 +77,10 @@ extern "C" {
                 // timestamp which varies depending on how the transaction was discovered.
                 uint64_t timestamp;
                 BRCryptoFeeBasis feeBasis;
+
+                // transfer that have failed can be included too
+                BRCryptoBoolean success;
+                char error[CRYPTO_TRANSFER_INCLUDED_ERROR_SIZE + 1];
             } included;
 
             struct {
@@ -91,7 +96,9 @@ extern "C" {
     cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                      uint64_t transactionIndex,
                                      uint64_t timestamp,
-                                     BRCryptoFeeBasis feeBasis);
+                                     BRCryptoFeeBasis feeBasis,
+                                     BRCryptoBoolean success,
+                                     const char *error);
 
     extern BRCryptoTransferState
     cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error);

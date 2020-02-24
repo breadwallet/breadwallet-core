@@ -455,7 +455,12 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
 
             this.amountText = Suppliers.memoize(() -> transfer.getAmountDirected().toString());
             this.feeText = Suppliers.memoize(() -> String.format("Fee: %s", transfer.getFee()));
-            this.stateText = Suppliers.memoize(() -> String.format("State: %s", state()));
+            this.stateText = Suppliers.memoize(() -> {
+                        String text = String.format("State: %s", state());
+                        return confirmation().transform((c) -> text +
+                                (c.getSuccess() ? "" : String.format(" (%s)", c.getError().or("<err>"))))
+                                .or(text);
+                    });
             this.dateText = Suppliers.memoize(() -> confirmation()
                     .transform(TransferConfirmation::getConfirmationTime)
                     .transform(t -> DATE_FORMAT.get().format(t))
