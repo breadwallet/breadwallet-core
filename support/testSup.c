@@ -14,6 +14,9 @@
 #include <errno.h>
 #include <unistd.h>
 #include <assert.h>
+#include <string.h>
+
+typedef void* (*ThreadRoutine) (void*);         // pthread_create
 
 #include "support/BRFileService.h"
 #include "support/BRAssert.h"
@@ -61,6 +64,57 @@ fileServiceTestDone (char *path, int success) {
     return success;
 }
 
+static BRFileService
+fileServiceSetupError (const char *path, BRFileService fs) {
+    struct stat dirStat;
+
+    if (NULL != fs) fileServiceRelease(fs);
+    if (0 == stat  (path, &dirStat)) _rmdir ((char *) path);
+    return NULL;
+}
+
+static void
+fileServiceErrorHandler (BRFileServiceContext context,
+                            BRFileService fs,
+                            BRFileServiceError error) {
+    //BREthereumEWM ewm = (BREthereumEWM) context;
+
+    switch (error.type) {
+        case FILE_SERVICE_IMPL:
+            // This actually a FATAL - an unresolvable coding error.
+            printf ("  supFileServiceThread: FileService Error: IMPL: %s\n", error.u.impl.reason);
+            break;
+        case FILE_SERVICE_UNIX:
+            printf ("  supFileServiceThread: FileService Error: UNIX: %s\n", strerror(error.u.unix.error));
+            break;
+        case FILE_SERVICE_ENTITY:
+            // This is likely a coding error too.
+            printf ("  supFileServiceThread: FileService Error: ENTITY (%s): %s\n",
+                     error.u.entity.type,
+                     error.u.entity.reason);
+            break;
+        case FILE_SERVICE_SDB:
+            printf ("  supFileServiceThread: FileService Error: SDB: (%d): %s\n",
+                     error.u.sdb.code,
+                     error.u.sdb.reason);
+            break;
+    }
+}
+
+static BRFileService
+fileServiceSetup (const char *path, const char *currency, const char *network, const char *type1) {
+    BRFileService fs = fileServiceCreate(path, currency, network, NULL, fileServiceErrorHandler);
+    if (NULL == fs) return fileServiceSetupError (path, fs);
+
+    if (1 != fileServiceDefineType(fs, type1, 0, NULL, NULL, NULL, NULL))
+        return fileServiceSetupError (path, fs);
+
+    if (1 != fileServiceDefineCurrentVersion(fs, type1, 0))
+        return fileServiceSetupError (path, fs);
+
+
+    return fs;
+}
 /// MARK: - File Service Tests
 
 static int runSupFileServiceTests (void) {
@@ -107,14 +161,95 @@ static int runSupFileServiceTests (void) {
     return fileServiceTestDone(path, 1);
 }
 
+typedef struct {
+    pthread_t thread;
+    BRFileService fs;
+    int done;
+    int success;
+} BRFileServiceHelper;
+
+static void *
+supFileServiceThread (BRFileServiceHelper *fsh) {
+    for (size_t i = 0; i < 100; i++) {
+        int success = fileServiceReplace (fsh->fs, "foo", NULL, 0); // 1 on success
+        if (!success) {
+            printf ("  supFileServiceThread: Replace Error\n");
+            fsh->success = 0;
+            break;
+        }
+    }
+    fsh->done = 1;
+    return NULL;
+}
+
+static void
+supFileServiceConnect (BRFileServiceHelper *fsh) {
+    fsh->done    = 0;
+    fsh->success = 1;
+    {
+        pthread_attr_t attr;
+        pthread_attr_init (&attr);
+        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setstacksize (&attr, 1024 * 1024);
+        pthread_create(&fsh->thread, &attr, (ThreadRoutine) supFileServiceThread, fsh);
+        pthread_attr_destroy(&attr);
+    }
+}
+
+static int runSupFileServiceMultiTests (void) {
+    printf ("==== SUP:FileServiceMulti\n");
+
+    struct stat dirStat;
+
+    BRFileService fs1, fs2;
+    char *path;
+    char *currency = "btc", *network = "mainnet";
+    char *type1 = "foo";
+    //
+    // Try to create a directory that is not writable; expect fileServiceCreate() to fail.
+    //
+    path = "private";
+
+    if (0 == stat  (path, &dirStat)) _rmdir (path);
+    if (0 != mkdir (path, 0700)) return 0;
+
+    fs1 = fileServiceSetup (path, currency, network, type1);
+    fs2 = fileServiceSetup (path, currency, network, type1);
+    if (NULL == fs1 || NULL == fs2) return fileServiceTestDone(path, 0);
+
+#define FS_HELPER_COUNT         10
+
+    BRFileServiceHelper fsh[FS_HELPER_COUNT];
+    for (size_t i = 0; i < FS_HELPER_COUNT; i++) {
+        fsh[i].fs = fs1; // (0 == i % 2 ? fs1 : fs2);
+        fsh[i].done = 0;
+        supFileServiceConnect (&fsh[i]);
+    }
+
+    struct timespec ts = { 0, 1e8 };
+    int done = 0;
+    while (FS_HELPER_COUNT != done) {
+        done = 0;
+        for (size_t i = 0; i < FS_HELPER_COUNT; i++) {
+            done += fsh[i].done;
+            nanosleep(&ts, NULL);
+        }
+    }
+
+    int success = 1;
+
+    for (size_t i = 0; i < FS_HELPER_COUNT; i++)
+        success &= fsh[i].success;
+
+    fileServiceRelease(fs1);
+    fileServiceRelease(fs2);
+    return fileServiceTestDone(path, success);
+}
 /// MARK: - Assert Tests
 
-#include <pthread.h>
 
 #define DEFAULT_WORKERS     (5)
 #define SUP_MAIN_COUNT      (3)
-
-typedef void* (*ThreadRoutine) (void*);         // pthread_create
 
 ///
 /// Worker
@@ -408,6 +543,7 @@ int BRRunSupTests (void) {
     int success = 1;
 
     success &= runSupFileServiceTests();
+    success &= runSupFileServiceMultiTests ();
     success &= runSupAssertTests();
 
     return success;

@@ -806,18 +806,18 @@ fileServiceClearForType (BRFileService fs,
 
     if (needLock) pthread_mutex_lock (&fs->lock);
     if (fs->sdbClosed)
-        return fileServiceFailedImpl (fs, 1, NULL, NULL, "closed");
+        return fileServiceFailedImpl (fs, needLock, NULL, NULL, "closed");
 
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
     sqlite3_clear_bindings (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, 1, status);
+        return fileServiceFailedSDB (fs, needLock, status);
 
     status = sqlite3_step (fs->sdbDeleteAllTypeStmt);
     if (SQLITE_DONE != status)
-        return fileServiceFailedSDB (fs, 1, status);
+        return fileServiceFailedSDB (fs, needLock, status);
 
     // Ensure the 'implicit DB transaction' is committed.
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
