@@ -7,11 +7,17 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.corenative.cleaner.ReferenceCleaner;
 import com.breadwallet.corenative.crypto.BRCryptoWalletMigrator;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
+
+//
+// This migrator requires a 'release' in order to fully relinquish migrator resources
+// in a timely manner.  Specifically the migrator writes data to a SQLite DB (in Core)
+// that is also used by a WalletManager.  In our implementation, there can not be two
+// SQLite DB connections to the same DB file.
+//
 
 /* package */
 final class WalletMigrator {
@@ -25,9 +31,7 @@ final class WalletMigrator {
 
     /* package */
     static WalletMigrator create(BRCryptoWalletMigrator core) {
-        WalletMigrator migrator = new WalletMigrator(core);
-        ReferenceCleaner.register(migrator, core::give);
-        return migrator;
+        return new WalletMigrator(core);
     }
 
     private final BRCryptoWalletMigrator core;
@@ -49,5 +53,11 @@ final class WalletMigrator {
     /* package */
     boolean handlePeerAsBtc(UnsignedInteger address, UnsignedInteger port, UnsignedLong services, UnsignedInteger timestamp) {
         return core.handlePeerAsBtc(address, port, services, timestamp);
+    }
+
+    // This must be called explicitly once migration is complete.  After `release`,
+    // `this` must not be used again.
+    void release () {
+        core.give();
     }
 }

@@ -615,54 +615,58 @@ final class System implements com.breadwallet.crypto.System {
 
         WalletMigrator migrator = maybeMigrator.get();
 
-        for (TransactionBlob blob: transactionBlobs) {
-            Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigrateTransactionError();
+        try {
+            for (TransactionBlob blob : transactionBlobs) {
+                Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigrateTransactionError();
+                }
+
+                TransactionBlob.Btc btc = maybeBtc.get();
+
+                if (!migrator.handleTransactionAsBtc(
+                        btc.bytes,
+                        btc.blockHeight,
+                        btc.timestamp)) {
+                    throw new MigrateTransactionError();
+                }
             }
 
-            TransactionBlob.Btc btc = maybeBtc.get();
+            for (BlockBlob blob : blockBlobs) {
+                Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigrateBlockError();
+                }
 
-            if (!migrator.handleTransactionAsBtc(
-                    btc.bytes,
-                    btc.blockHeight,
-                    btc.timestamp)) {
-                throw new MigrateTransactionError();
-            }
-        }
+                BlockBlob.Btc btc = maybeBtc.get();
 
-        for (BlockBlob blob: blockBlobs) {
-            Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigrateBlockError();
-            }
-
-            BlockBlob.Btc btc = maybeBtc.get();
-
-            if (!migrator.handleBlockAsBtc(
-                    btc.block,
-                    btc.height)) {
-                throw new MigrateBlockError();
-            }
-        }
-
-        for (PeerBlob blob: peerBlobs) {
-            Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
-            if (!maybeBtc.isPresent()) {
-                throw new MigratePeerError();
+                if (!migrator.handleBlockAsBtc(
+                        btc.block,
+                        btc.height)) {
+                    throw new MigrateBlockError();
+                }
             }
 
-            PeerBlob.Btc btc = maybeBtc.get();
-            // On a `nil` timestamp, by definition skip out, don't migrate this blob
-            if (btc.timestamp == null) continue;
+            for (PeerBlob blob : peerBlobs) {
+                Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
+                if (!maybeBtc.isPresent()) {
+                    throw new MigratePeerError();
+                }
 
-            if (!migrator.handlePeerAsBtc(
-                    btc.address,
-                    btc.port,
-                    btc.services,
-                    btc.timestamp)) {
-                throw new MigratePeerError();
+                PeerBlob.Btc btc = maybeBtc.get();
+                // On a `nil` timestamp, by definition skip out, don't migrate this blob
+                if (btc.timestamp == null) continue;
+
+                if (!migrator.handlePeerAsBtc(
+                        btc.address,
+                        btc.port,
+                        btc.services,
+                        btc.timestamp)) {
+                    throw new MigratePeerError();
+                }
             }
+        } finally {
+            migrator.release();
         }
     }
 
