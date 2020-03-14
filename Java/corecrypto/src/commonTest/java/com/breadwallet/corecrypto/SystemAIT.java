@@ -432,6 +432,9 @@ public class SystemAIT {
 
         try {
             system.migrateStorage(network, transactionBlobs, blockBlobs, peerBlobs);
+            // Migrate storage again - this confirms that the SQLite DB holding the migrated
+            // data, produced in the above statement, has released the migrator.
+            system.migrateStorage(network, transactionBlobs, blockBlobs, peerBlobs);
         } catch (MigrateError e) {
             fail();
         }
