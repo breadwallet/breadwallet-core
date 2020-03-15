@@ -967,6 +967,9 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     
     if (needsUpdate) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
+    if (needsUpdate && wallet->balanceChanged) {
+        wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
+    }
     if (j > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, j, blockHeight, timestamp);
 }
 
@@ -991,6 +994,9 @@ void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight)
     
     if (count > 0) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
+    if (count > 0 && wallet->balanceChanged) {
+        wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
+    }
     if (count > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, count, TX_UNCONFIRMED, 0);
 }
 
