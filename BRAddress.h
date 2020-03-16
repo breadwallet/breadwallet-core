@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
 #pragma message "testnet build"
 #endif
 
