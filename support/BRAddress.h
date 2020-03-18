@@ -79,11 +79,17 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen);
 // returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
 
+// returns true if script contains a known valid scriptPubKey
+int BRScriptPubKeyIsValid(const uint8_t *script, size_t scriptLen);
+
 // returns a pointer to the 20byte pubkey hash, or NULL if none
 const uint8_t *BRScriptPKH(const uint8_t *script, size_t scriptLen);
   
-// returns true if script contains a known valid scriptPubKey
-int BRScriptPubKeyIsValid(const uint8_t *script, size_t scriptLen);
+// writes the 20byte pubkey hash from signature to pkh20 and returns the number of bytes written
+size_t BRSignaturePKH(uint8_t *pkh20, const uint8_t *signature, size_t sigLen);
+  
+// writes the 20byte pubkey hash from witness to pkh20 and returns the number of bytes written
+size_t BRWitnessPKH(uint8_t *pkh20, const uint8_t *witness, size_t witLen);
    
 typedef struct {
     uint8_t pubKeyPrefix;

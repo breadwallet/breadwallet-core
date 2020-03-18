@@ -136,6 +136,7 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 {
     int r = 0;
     const uint8_t *pkh;
+    UInt160 hash;
     
     for (size_t i = 0; ! r && i < tx->outCount; i++) {
         pkh = BRScriptPKH(tx->outputs[i].script, tx->outputs[i].scriptLen);
@@ -150,6 +151,13 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
         if (pkh && BRSetContains(wallet->allPKH, pkh)) r = 1;
     }
     
+    for (size_t i = 0; ! r && i < tx->inCount; i++) {
+        size_t l = (tx->inputs[i].witLen > 0) ? BRWitnessPKH(hash.u8, tx->inputs[i].witness, tx->inputs[i].witLen)
+                                              : BRSignaturePKH(hash.u8, tx->inputs[i].signature, tx->inputs[i].sigLen);
+
+        if (l > 0 && BRSetContains(wallet->allPKH, &hash)) r = 1;
+    }
+
     return r;
 }
 
