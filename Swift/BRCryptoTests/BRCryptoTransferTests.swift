@@ -82,7 +82,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
                                                                 timestamp: (mode == .p2p_only // ?? 2019-08-16T16:53:30Z ??
                                                                     ? 1565974068
                                                                     : 1565974410),
-                                                                fee: nil),
+                                                                fee: nil,
+                                                                success: true,
+                                                                error: nil),
                             hash: "0xf6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
                             amount: UInt64(1000000))
         ]
@@ -197,7 +199,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     func testTransferBCH_P2P () {
         isMainnet = true
         currencyCodesToMode = ["bch":WalletManagerMode.p2p_only]
-        prepareAccount (identifier: "loan")
+        prepareAccount (identifier: "loan(C)")
         prepareSystem()
 
         let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
@@ -312,7 +314,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         let confirmation = TransferConfirmation (blockNumber: 1,
                                                  transactionIndex: 2,
                                                  timestamp: 3,
-                                                 fee: nil)
+                                                 fee: nil,
+                                                 success: true,
+                                                 error: nil)
         XCTAssertEqual(1, confirmation.blockNumber)
         XCTAssertEqual(2, confirmation.transactionIndex)
         XCTAssertEqual(3, confirmation.timestamp)

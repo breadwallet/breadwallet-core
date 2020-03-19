@@ -136,6 +136,7 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 {
     int r = 0;
     const uint8_t *pkh;
+    UInt160 hash;
     
     for (size_t i = 0; ! r && i < tx->outCount; i++) {
         pkh = BRScriptPKH(tx->outputs[i].script, tx->outputs[i].scriptLen);
@@ -150,6 +151,13 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
         if (pkh && BRSetContains(wallet->allPKH, pkh)) r = 1;
     }
     
+    for (size_t i = 0; ! r && i < tx->inCount; i++) {
+        size_t l = (tx->inputs[i].witLen > 0) ? BRWitnessPKH(hash.u8, tx->inputs[i].witness, tx->inputs[i].witLen)
+                                              : BRSignaturePKH(hash.u8, tx->inputs[i].signature, tx->inputs[i].sigLen);
+
+        if (l > 0 && BRSetContains(wallet->allPKH, &hash)) r = 1;
+    }
+
     return r;
 }
 
@@ -999,6 +1007,44 @@ int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
         }
     }
     
+    return r;
+}
+
+static int _BRWalletContainsTxInput(BRWallet *wallet, const BRTransaction *tx, const BRTxInput *txInput)
+{
+    const uint8_t *pkh;
+    UInt160 hash;
+
+    BRTransaction *t = BRSetGet(wallet->allTx, &txInput->txHash);
+    uint32_t n = txInput->index;
+
+    pkh = (t && n < t->outCount) ? BRScriptPKH(t->outputs[n].script, t->outputs[n].scriptLen) : NULL;
+    if (pkh && BRSetContains(wallet->allPKH, pkh)) return 1;
+
+    size_t l = ((txInput->witLen > 0)
+                ? BRWitnessPKH(hash.u8, txInput->witness, txInput->witLen)
+                : BRSignaturePKH(hash.u8, txInput->signature, txInput->sigLen));
+
+    if (l > 0 && BRSetContains(wallet->allPKH, &hash)) return 1;
+
+    return 0;
+}
+
+// true if all tx inputs that are contained in wallet have txs in wallet
+int BRWalletTransactionIsResolved (BRWallet *wallet, const BRTransaction *tx) {
+    int r = 1;
+
+    assert(wallet != NULL);
+    assert(tx != NULL && BRTransactionIsSigned(tx));
+
+    pthread_mutex_lock(&wallet->lock);
+    for (size_t i = 0; r && i < tx->inCount; i++) {
+        if (_BRWalletContainsTxInput (wallet, tx, &tx->inputs[i]) &&
+            NULL == BRSetGet(wallet->allTx, &tx->inputs[i].txHash))
+            r = 0;
+    }
+    pthread_mutex_unlock(&wallet->lock);
+
     return r;
 }
 

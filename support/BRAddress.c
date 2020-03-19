@@ -229,29 +229,6 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
     return (! script || len <= scriptLen) ? len : 0;
 }
 
-// returns a pointer to the 20byte pubkey-hash, or NULL if none
-const uint8_t *BRScriptPKH(const uint8_t *script, size_t scriptLen)
-{
-    assert(script != NULL || scriptLen == 0);
-    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return NULL;
-
-    const uint8_t *elems[BRScriptElements(NULL, 0, script, scriptLen)], *r = NULL;
-    size_t l, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen);
-    
-    if (count == 5 && *elems[0] == OP_DUP && *elems[1] == OP_HASH160 && *elems[2] == 20 &&
-        *elems[3] == OP_EQUALVERIFY && *elems[4] == OP_CHECKSIG) {
-        r = BRScriptData(elems[2], &l); // pay-to-pubkey-hash
-    }
-    else if (count == 3 && *elems[0] == OP_HASH160 && *elems[1] == 20 && *elems[2] == OP_EQUAL) {
-        r = BRScriptData(elems[1], &l); // pay-to-script-hash
-    }
-    else if (count == 2 && (*elems[0] == OP_0 || (*elems[0] >= OP_1 && *elems[0] <= OP_16)) && *elems[1] == 20) {
-        r = BRScriptData(elems[1], &l); // pay-to-witness
-    }
-    
-    return r;
-}
-
 // returns true if script contains a known valid scriptPubKey
 int BRScriptPubKeyIsValid(const uint8_t *script, size_t scriptLen)
 {
@@ -275,6 +252,75 @@ int BRScriptPubKeyIsValid(const uint8_t *script, size_t scriptLen)
     else if (count == 2 && ((*elems[0] == OP_0 && (*elems[1] == 20 || *elems[1] == 32)) ||
                             (*elems[0] >= OP_1 && *elems[0] <= OP_16 && *elems[1] >= 2 && *elems[1] <= 40))) {
         r = 1; // pay-to-witness scriptPubKey
+    }
+    
+    return r;
+}
+
+// returns a pointer to the 20byte pubkey-hash, or NULL if none
+const uint8_t *BRScriptPKH(const uint8_t *script, size_t scriptLen)
+{
+    assert(script != NULL || scriptLen == 0);
+    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return NULL;
+
+    const uint8_t *elems[BRScriptElements(NULL, 0, script, scriptLen)], *r = NULL;
+    size_t l, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen);
+    
+    if (count == 5 && *elems[0] == OP_DUP && *elems[1] == OP_HASH160 && *elems[2] == 20 &&
+        *elems[3] == OP_EQUALVERIFY && *elems[4] == OP_CHECKSIG) {
+        r = BRScriptData(elems[2], &l); // pay-to-pubkey-hash
+    }
+    else if (count == 3 && *elems[0] == OP_HASH160 && *elems[1] == 20 && *elems[2] == OP_EQUAL) {
+        r = BRScriptData(elems[1], &l); // pay-to-script-hash
+    }
+    else if (count == 2 && (*elems[0] == OP_0 || (*elems[0] >= OP_1 && *elems[0] <= OP_16)) && *elems[1] == 20) {
+        r = BRScriptData(elems[1], &l); // pay-to-witness
+    }
+    
+    return r;
+}
+
+// writes the 20byte pubkey hash from signature to pkh20 and returns the number of bytes written
+size_t BRSignaturePKH(uint8_t *pkh20, const uint8_t *signature, size_t sigLen)
+{
+    assert(pkh20 != NULL);
+    assert(signature != NULL || sigLen == 0);
+    if (! signature || sigLen == 0 || sigLen > MAX_SCRIPT_LENGTH) return 0;
+    
+    const uint8_t *d = NULL, *elems[BRScriptElements(NULL, 0, signature, sigLen)];
+    size_t r = 0, l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), signature, sigLen);
+    
+    if (count == 2 && *elems[0] <= OP_PUSHDATA4 && (*elems[1] == 65 || *elems[1] == 33)) {
+        // pay-to-pubkey-hash scriptSig
+        d = BRScriptData(elems[1], &l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(pkh20, d, l), r = 20;
+    }
+    else if (count >= 1 && *elems[count - 1] <= OP_PUSHDATA4 && *elems[count - 1] > 0 &&
+             (count >= 2 || ((d = BRScriptData(elems[0], &l)) && (d[0] == OP_0 || (d[0] >= OP_1 && d[0] <= OP_16))))) {
+        // pay-to-script-hash scriptSig
+        d = BRScriptData(elems[count - 1], &l);
+        if (d) BRHash160(pkh20, d, l), r = 20;
+    }
+    
+    return r;
+}
+
+// writes the 20byte pubkey hash from witness to pkh20 and returns the number of bytes written
+size_t BRWitnessPKH(uint8_t *pkh20, const uint8_t *witness, size_t witLen)
+{
+    assert(pkh20 != NULL);
+    assert(witness != NULL || witLen == 0);
+    if (! witness || witLen == 0 || witLen > MAX_SCRIPT_LENGTH) return 0;
+    
+    const uint8_t *d = NULL, *elems[BRScriptElements(NULL, 0, witness, witLen)];
+    size_t r = 0, l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), witness, witLen);
+    
+    if (count == 2 && *elems[0] <= OP_PUSHDATA4 && *elems[0] > 0 && (*elems[1] == 65 || *elems[1] == 33)) {
+        // pay-to-witness-pubkey-hash
+        d = BRScriptData(elems[count - 1], &l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(pkh20, d, l), r = 20;
     }
     
     return r;
