@@ -183,6 +183,9 @@ int BRWalletTransactionIsPending(BRWallet *wallet, const BRTransaction *tx);
 // true if tx is considered 0-conf safe (valid and not pending, timestamp is greater than 0, and no unverified inputs)
 int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx);
 
+// true if all tx inputs that are contained in wallet have txs in wallet
+int BRWalletTransactionIsResolved (BRWallet *wallet, const BRTransaction *tx);
+
 // set the block heights and timestamps for the given transactions
 // use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
 void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,

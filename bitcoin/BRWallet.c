@@ -1010,6 +1010,44 @@ int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
     return r;
 }
 
+static int _BRWalletContainsTxInput(BRWallet *wallet, const BRTransaction *tx, const BRTxInput *txInput)
+{
+    const uint8_t *pkh;
+    UInt160 hash;
+
+    BRTransaction *t = BRSetGet(wallet->allTx, &txInput->txHash);
+    uint32_t n = txInput->index;
+
+    pkh = (t && n < t->outCount) ? BRScriptPKH(t->outputs[n].script, t->outputs[n].scriptLen) : NULL;
+    if (pkh && BRSetContains(wallet->allPKH, pkh)) return 1;
+
+    size_t l = ((txInput->witLen > 0)
+                ? BRWitnessPKH(hash.u8, txInput->witness, txInput->witLen)
+                : BRSignaturePKH(hash.u8, txInput->signature, txInput->sigLen));
+
+    if (l > 0 && BRSetContains(wallet->allPKH, &hash)) return 1;
+
+    return 0;
+}
+
+// true if all tx inputs that are contained in wallet have txs in wallet
+int BRWalletTransactionIsResolved (BRWallet *wallet, const BRTransaction *tx) {
+    int r = 1;
+
+    assert(wallet != NULL);
+    assert(tx != NULL && BRTransactionIsSigned(tx));
+
+    pthread_mutex_lock(&wallet->lock);
+    for (size_t i = 0; r && i < tx->inCount; i++) {
+        if (_BRWalletContainsTxInput (wallet, tx, &tx->inputs[i]) &&
+            NULL == BRSetGet(wallet->allTx, &tx->inputs[i].txHash))
+            r = 0;
+    }
+    pthread_mutex_unlock(&wallet->lock);
+
+    return r;
+}
+
 // set the block heights and timestamps for the given transactions
 // use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
 void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
