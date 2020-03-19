@@ -197,7 +197,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     func testTransferBCH_P2P () {
         isMainnet = true
         currencyCodesToMode = ["bch":WalletManagerMode.p2p_only]
-        prepareAccount (identifier: "loan")
+        prepareAccount (identifier: "loan(C)")
         prepareSystem()
 
         let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
