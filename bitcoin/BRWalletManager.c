@@ -1361,17 +1361,21 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     pthread_mutex_lock (&manager->lock);
     BRTransaction *transaction = BRWalletCreateTransactionWithFeePerKb (wallet, feePerKb, amount, addr.s);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
-    pthread_mutex_unlock (&manager->lock);
 
+    BRTransaction *ownedTransaction = NULL;
     if (NULL != txnWithState) {
         BRTransactionWithStateSetResolved (txnWithState);  // Always resolved if created
+        ownedTransaction = BRTransactionWithStateGetOwned (txnWithState);
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != ownedTransaction)
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  ownedTransaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
                                   });
-    }
 
     return transaction;
 }
@@ -1392,17 +1396,21 @@ BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
     BRWalletSweeperCreateTransaction (sweeper, wallet, feePerKb, &transaction);
 
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
-    pthread_mutex_unlock (&manager->lock);
 
+    BRTransaction *ownedTransaction = NULL;
     if (NULL != txnWithState) {
         BRTransactionWithStateSetResolved (txnWithState);  // Always resolved if created
+        ownedTransaction = BRTransactionWithStateGetOwned (txnWithState);
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != ownedTransaction)
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  ownedTransaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
                                   });
-    }
 
     return transaction;
 }
@@ -1418,17 +1426,21 @@ BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
     pthread_mutex_lock (&manager->lock);
     BRTransaction *transaction = BRWalletCreateTxForOutputsWithFeePerKb (wallet, feePerKb, outputs, outputsLen);
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddTransaction (manager, transaction, NULL) : NULL;
-    pthread_mutex_unlock (&manager->lock);
 
+    BRTransaction *ownedTransaction = NULL;
     if (NULL != txnWithState) {
         BRTransactionWithStateSetResolved (txnWithState);  // Always resolved if created
+        ownedTransaction = BRTransactionWithStateGetOwned (txnWithState);
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != ownedTransaction)
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  ownedTransaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
                                   });
-    }
 
     return transaction;
 }
@@ -1443,19 +1455,20 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    BRTransaction *ownedTransaction = NULL == txnWithState ? NULL : BRTransactionWithStateGetOwned (txnWithState);
     pthread_mutex_unlock (&manager->lock);
 
     int success = 0;
-    if (NULL != txnWithState &&
+    if (NULL != ownedTransaction &&
         1 == BRWalletSignTransaction (wallet,
-                                      BRTransactionWithStateGetOwned (txnWithState),
+                                      ownedTransaction,
                                       manager->chainParams->forkId,
                                       seed,
                                       seedLen)) {
         success = 1;
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  ownedTransaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_SIGNED
                                   });
@@ -1473,18 +1486,19 @@ BRWalletManagerSignTransactionForKey (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    BRTransaction *ownedTransaction = NULL == txnWithState ? NULL : BRTransactionWithStateGetOwned (txnWithState);
     pthread_mutex_unlock (&manager->lock);
 
     int success = 0;
-    if (NULL != txnWithState &&
-        1 == BRTransactionSign (BRTransactionWithStateGetOwned (txnWithState),
+    if (NULL != ownedTransaction &&
+        1 == BRTransactionSign (ownedTransaction,
                                 manager->chainParams->forkId,
                                 key,
                                 1)) {
         success = 1;
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  ownedTransaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_SIGNED
                                   });
