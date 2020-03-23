@@ -130,7 +130,7 @@ int BRPrivKeyIsValid(const char *privKey)
     strLen = strlen(privKey);
     
     if (dataLen == 33 || dataLen == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
         r = (data[0] == BITCOIN_PRIVKEY_TEST);
 #else
         r = (data[0] == BITCOIN_PRIVKEY);
@@ -172,7 +172,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
     uint8_t data[34], version = BITCOIN_PRIVKEY;
     int r = 0;
     
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
     version = BITCOIN_PRIVKEY_TEST;
 #endif
 
@@ -233,7 +233,7 @@ size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
     
     if (secp256k1_ec_seckey_verify(_ctx, key->secret.u8)) {
         data[0] = BITCOIN_PRIVKEY;
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
         data[0] = BITCOIN_PRIVKEY_TEST;
 #endif
         
@@ -292,7 +292,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
     
     hash = BRKeyHash160(key);
     data[0] = BITCOIN_PUBKEY_ADDRESS;
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
     UInt160Set(&data[1], hash);

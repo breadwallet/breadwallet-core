@@ -52,7 +52,7 @@
 extern "C" {
 #endif
 
-#if BITCOIN_TESTNET
+#if LITECOIN_TESTNET
 #define STANDARD_PORT 19335
 #else
 #define STANDARD_PORT 9333
