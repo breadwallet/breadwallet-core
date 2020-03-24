@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -43,6 +44,12 @@ public class TransferApi {
                              UnsignedLong endBlockNumber,
                              @Nullable Integer maxPageSize,
                              CompletionHandler<List<Transfer>, QueryError> handler) {
+        // if we have no addresses to query, bail out with no transfers
+        if (addresses.size() == 0) {
+            handler.handleData(Collections.emptyList());
+            return;
+        }
+
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transfer> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
