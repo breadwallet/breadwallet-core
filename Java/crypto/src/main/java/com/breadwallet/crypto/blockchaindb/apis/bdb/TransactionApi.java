@@ -22,6 +22,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -49,6 +50,12 @@ public class TransactionApi {
                                 boolean includeProof,
                                 @Nullable Integer maxPageSize,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
+        // if we have no addresses to query, bail out with no transactions
+        if (addresses.size() == 0) {
+            handler.handleData(Collections.emptyList());
+            return;
+        }
+
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transaction> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
