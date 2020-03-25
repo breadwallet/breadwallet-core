@@ -76,8 +76,8 @@ extension WalletManagerEvent: MatchableEvent {
         case (let .walletDeleted (wallet1), let .walletDeleted(wallet2)):
             return !strict || (wallet1 == wallet2)
         case (.syncStarted, .syncStarted): return true
-        case (let .syncProgress (progress1), let .syncProgress (progress2)):
-            return !strict || (progress1 == progress2)
+        case (let .syncProgress (ts1, pc1), let .syncProgress (ts2, pc2)):
+            return !strict || (ts1 == ts2 && pc1 == pc2)
         case (let .syncRecommended (depth1), let .syncRecommended (depth2)):
             return !strict || (depth1 == depth2)
         case (let .syncEnded (error1), let .syncEnded (error2)):
