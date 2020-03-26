@@ -614,7 +614,7 @@ final class System implements com.breadwallet.crypto.System {
 
         WalletMigrator migrator = maybeMigrator.get();
 
-        for (TransactionBlob blob: transactionBlobs) {
+        for (TransactionBlob blob : transactionBlobs) {
             Optional<TransactionBlob.Btc> maybeBtc = blob.asBtc();
             if (!maybeBtc.isPresent()) {
                 throw new MigrateTransactionError();
@@ -630,7 +630,7 @@ final class System implements com.breadwallet.crypto.System {
             }
         }
 
-        for (BlockBlob blob: blockBlobs) {
+        for (BlockBlob blob : blockBlobs) {
             Optional<BlockBlob.Btc> maybeBtc = blob.asBtc();
             if (!maybeBtc.isPresent()) {
                 throw new MigrateBlockError();
@@ -645,7 +645,7 @@ final class System implements com.breadwallet.crypto.System {
             }
         }
 
-        for (PeerBlob blob: peerBlobs) {
+        for (PeerBlob blob : peerBlobs) {
             Optional<PeerBlob.Btc> maybeBtc = blob.asBtc();
             if (!maybeBtc.isPresent()) {
                 throw new MigratePeerError();
@@ -1620,14 +1620,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: missing manager");
-                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMBtcGetBlockNumberCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetBlockNumberCallback: missing system");
-                    coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMBtcGetBlockNumberCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -1690,14 +1691,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback: missing manager");
-                        coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMBtcGetTransactionsCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback: missing system");
-                    coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMBtcGetTransactionsCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -1733,14 +1735,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: missing manager");
-                        coreWalletManager.announceSubmitTransferFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMBtcSubmitTransactionCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMBtcSubmitTransactionCallback: missing system");
-                    coreWalletManager.announceSubmitTransferFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMBtcSubmitTransactionCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -1778,14 +1781,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetEtherBalanceCallback: missing manager");
-                        coreWalletManager.announceGetBalanceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetEtherBalanceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetEtherBalanceCallback: missing system");
-                    coreWalletManager.announceGetBalanceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetEtherBalanceCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBalanceFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -1821,14 +1825,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: missing manager");
-                        coreWalletManager.announceGetBalanceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetTokenBalanceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetTokenBalanceCallback: missing system");
-                    coreWalletManager.announceGetBalanceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetTokenBalanceCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBalanceFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -1864,14 +1869,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetGasPriceCallback: missing manager");
-                        coreWalletManager.announceGetGasPriceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetGasPriceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetGasPriceCallback: missing sytem");
-                    coreWalletManager.announceGetGasPriceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetGasPriceCallback: missing sytem");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetGasPriceFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -1910,17 +1916,18 @@ final class System implements com.breadwallet.crypto.System {
                         // using the CRYPTO_ERROR_FAILED status code as this represents a situation where the system that this estimation
                         // was queued for, is now GC'ed. As a result, no one is really listening for this estimation so return an error
                         // code indicating failure and leave it at that.
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthEstimateGasCallback: missing manager");
-                        coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
+                        throw new IllegalStateException("BRCryptoCWMEthEstimateGasCallback: missing manager");
                     }
 
                 } else {
                     // using the CRYPTO_ERROR_FAILED status code as this represents a situation where the system that this estimation
                     // was queued for, is now GC'ed. As a result, no one is really listening for this estimation so return an error
                     // code indicating failure and leave it at that.
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthEstimateGasCallback: missing system");
-                    coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
+                    throw new IllegalStateException("BRCryptoCWMEthEstimateGasCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
             } finally {
                 coreWalletManager.give();
             }
@@ -1956,14 +1963,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthSubmitTransactionCallback: missing manager");
-                        coreWalletManager.announceSubmitTransferFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthSubmitTransactionCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthSubmitTransactionCallback: missing system");
-                    coreWalletManager.announceSubmitTransferFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthSubmitTransactionCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2020,14 +2028,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetTransactionsCallback: missing manager");
-                        coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMEthGetTransactionsCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetTransactionsCallback: missing system");
-                    coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMEthGetTransactionsCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2079,14 +2088,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetLogsCallback: missing manager");
-                        coreWalletManager.announceGetLogsComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMEthGetLogsCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetLogsCallback: missing system");
-                    coreWalletManager.announceGetLogsComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMEthGetLogsCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetLogsComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2125,14 +2135,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlocksCallback: missing manager");
-                        coreWalletManager.announceGetBlocksFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetBlocksCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlocksCallback: missing system");
-                    coreWalletManager.announceGetBlocksFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetBlocksCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlocksFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2178,14 +2189,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BREthereumClientHandlerGetTokens: missing manager");
-                        coreWalletManager.announceGetTokensComplete(callbackState, false);
+                        throw new IllegalStateException("BREthereumClientHandlerGetTokens: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BREthereumClientHandlerGetTokens: missing system");
-                    coreWalletManager.announceGetTokensComplete(callbackState, false);
+                    throw new IllegalStateException("BREthereumClientHandlerGetTokens: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTokensComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2221,14 +2233,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlockNumberCallback: missing manager");
-                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetBlockNumberCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetBlockNumberCallback: missing system");
-                    coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetBlockNumberCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2264,14 +2277,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMEthGetNonceCallback: missing manager");
-                        coreWalletManager.announceGetNonceFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMEthGetNonceCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMEthGetNonceCallback: missing system");
-                    coreWalletManager.announceGetNonceFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMEthGetNonceCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetNonceFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2315,14 +2329,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetBlockNumberCallback: missing manager");
-                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMGenGetBlockNumberCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetBlockNumberCallback: missing system");
-                    coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMGenGetBlockNumberCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetBlockNumberFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
@@ -2386,14 +2401,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback : missing manager");
-                        coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMGenGetTransactionsCallback : missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback : missing system");
-                    coreWalletManager.announceGetTransactionsComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMGenGetTransactionsCallback : missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransactionsComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2457,14 +2473,15 @@ final class System implements com.breadwallet.crypto.System {
                                 });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing manager");
-                        coreWalletManager.announceGetTransfersComplete(callbackState, false);
+                        throw new IllegalStateException("BRCryptoCWMGenGetTransfersCallback : missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransfersCallback : missing system");
-                    coreWalletManager.announceGetTransfersComplete(callbackState, false);
+                    throw new IllegalStateException("BRCryptoCWMGenGetTransfersCallback : missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceGetTransfersComplete(callbackState, false);
             } finally {
                 coreWalletManager.give();
             }
@@ -2584,14 +2601,15 @@ final class System implements com.breadwallet.crypto.System {
                         });
 
                     } else {
-                        Log.log(Level.SEVERE, "BRCryptoCWMGenSubmitTransactionCallback: missing manager");
-                        coreWalletManager.announceSubmitTransferFailure(callbackState);
+                        throw new IllegalStateException("BRCryptoCWMGenSubmitTransactionCallback: missing manager");
                     }
 
                 } else {
-                    Log.log(Level.SEVERE, "BRCryptoCWMGenSubmitTransactionCallback: missing system");
-                    coreWalletManager.announceSubmitTransferFailure(callbackState);
+                    throw new IllegalStateException("BRCryptoCWMGenSubmitTransactionCallback: missing system");
                 }
+            } catch (RuntimeException e) {
+                Log.log(Level.SEVERE, e.getMessage());
+                coreWalletManager.announceSubmitTransferFailure(callbackState);
             } finally {
                 coreWalletManager.give();
             }
