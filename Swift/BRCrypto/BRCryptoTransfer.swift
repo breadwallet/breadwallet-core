@@ -430,7 +430,7 @@ public enum TransferState {
             var coreError = core.u.included.error
             let error = CRYPTO_TRUE == core.u.included.success
                 ? nil
-                : asUTF8String ([CChar](UnsafeBufferPointer(start: &coreError.0, count: MemoryLayout.size(ofValue: coreError))))
+                : asUTF8String(&coreError.0)
 
             self = .included (
                 confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,

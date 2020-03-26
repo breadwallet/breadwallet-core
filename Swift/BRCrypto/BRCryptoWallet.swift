@@ -137,7 +137,7 @@ public final class Wallet: Equatable {
         var validates: BRCryptoBoolean = CRYPTO_TRUE
         let error = cryptoWalletValidateTransferAttributes (core,
                                                             coreAttributesCount,
-                                                            UnsafeMutablePointer (&coreAttributes),
+                                                            &coreAttributes,
                                                             &validates)
         return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
     }
@@ -215,7 +215,7 @@ public final class Wallet: Equatable {
         return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core,
                                                   estimatedFeeBasis.core,
                                                   coreAttributesCount,
-                                                  UnsafeMutablePointer (&coreAttributes))
+                                                  &coreAttributes)
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)
