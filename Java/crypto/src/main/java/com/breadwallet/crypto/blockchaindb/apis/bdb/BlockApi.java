@@ -9,10 +9,11 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.apis.PagedData;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -53,7 +54,7 @@ public class BlockApi {
         if (null != maxPageSize) paramsBuilder.put("max_page_size", maxPageSize.toString());
         ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-        PagedCompletionHandler<List<Block>, QueryError> pagedHandler = createPagedResultsHandler(handler);
+        CompletionHandler<PagedData<Block>, QueryError> pagedHandler = createPagedResultsHandler(handler);
         jsonClient.sendGetForArrayWithPaging("blocks", params, Block.class, pagedHandler);
     }
 
@@ -72,23 +73,24 @@ public class BlockApi {
         jsonClient.sendGetWithId("blocks", id, params, Block.class, handler);
     }
 
-    private void submitGetNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
+    private void submitGetNextBlocks(String nextUrl, CompletionHandler<PagedData<Block>, QueryError> handler) {
         executorService.submit(() -> getNextBlocks(nextUrl, handler));
     }
 
-    private void getNextBlocks(String nextUrl, PagedCompletionHandler<List<Block>, QueryError> handler) {
+    private void getNextBlocks(String nextUrl, CompletionHandler<PagedData<Block>, QueryError> handler) {
         jsonClient.sendGetForArrayWithPaging("blocks", nextUrl, Block.class, handler);
     }
 
-    private PagedCompletionHandler<List<Block>, QueryError> createPagedResultsHandler(CompletionHandler<List<Block>, QueryError> handler) {
+    private CompletionHandler<PagedData<Block>, QueryError> createPagedResultsHandler(CompletionHandler<List<Block>, QueryError> handler) {
         List<Block> allResults = new ArrayList<>();
-        return new PagedCompletionHandler<List<Block>, QueryError>() {
+        return new CompletionHandler<PagedData<Block>, QueryError>() {
             @Override
-            public void handleData(List<Block> results, String prevUrl, String nextUrl) {
-                allResults.addAll(results);
+            public void handleData(PagedData<Block> results) {
+                Optional<String> nextUrl = results.getNextUrl();
+                allResults.addAll(results.getData());
 
-                if (nextUrl != null) {
-                    submitGetNextBlocks(nextUrl, this);
+                if (nextUrl.isPresent()) {
+                    submitGetNextBlocks(nextUrl.get(), this);
 
                 } else {
                     handler.handleData(allResults);
