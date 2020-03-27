@@ -1669,7 +1669,6 @@ final class System implements com.breadwallet.crypto.System {
                                                 Optional<byte[]> optRaw = transaction.getRaw();
                                                 if (!optRaw.isPresent()) {
                                                     Log.log(Level.SEVERE, "BRCryptoCWMBtcGetTransactionsCallback completing with missing raw bytes");
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
                                                     return;
                                                 }
 
@@ -2408,7 +2407,6 @@ final class System implements com.breadwallet.crypto.System {
                                                 Optional<byte[]> optRaw = transaction.getRaw();
                                                 if (!optRaw.isPresent()) {
                                                     Log.log(Level.SEVERE, "BRCryptoCWMGenGetTransactionsCallback  completing with missing raw bytes");
-                                                    walletManager.getCoreBRCryptoWalletManager().announceGetTransactionsComplete(callbackState, false);
                                                     return;
                                                 }
 
