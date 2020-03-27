@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "BRGenericPrivate.h"
 
@@ -94,7 +95,8 @@ struct BRGenericManagerRecord {
 
         int rid;
 
-        int completed:1;
+        bool completed;
+        bool success;
     } brdSync;
 };
 
@@ -349,7 +351,8 @@ genManagerCreate (BRGenericClient client,
     gwm->brdSync.rid = -1;
     gwm->brdSync.begBlockNumber = earliestBlockNumber;
     gwm->brdSync.endBlockNumber = MAX (earliestBlockNumber, blockHeight);
-    gwm->brdSync.completed = 0;
+    gwm->brdSync.completed = false;
+    gwm->brdSync.success = false;
 
     eventHandlerSetTimeoutDispatcher (gwm->handler,
                                       1000 * syncPeriodInSeconds,
@@ -563,8 +566,8 @@ genManagerPeriodicDispatcher (BREventHandler handler,
 
     // Handle a BRD Sync:
 
-    // 1) check if the prior sync has completed.
-    if (gwm->brdSync.completed) {
+    // 1) check if the prior sync has completed successfully
+    if (gwm->brdSync.completed && gwm->brdSync.success) {
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         gwm->brdSync.begBlockNumber = (gwm->brdSync.endBlockNumber >=  GWM_BRD_SYNC_START_BLOCK_OFFSET
                                        ? gwm->brdSync.endBlockNumber - GWM_BRD_SYNC_START_BLOCK_OFFSET
@@ -579,8 +582,10 @@ genManagerPeriodicDispatcher (BREventHandler handler,
         BRGenericAddress accountAddress = genManagerGetAccountAddress(gwm);
         char *address = genAddressAsString (accountAddress);
         
-        // 3a) Save the current requestId
+        // 3a) Save the current requestId and mark as not completed.
         gwm->brdSync.rid = gwm->requestId;
+        gwm->brdSync.completed = false;
+        gwm->brdSync.success = false;
 
         // 3b) Query all transactions; each one found will have bwmAnnounceTransaction() invoked
         // which will process the transaction into the wallet.
@@ -594,22 +599,21 @@ genManagerPeriodicDispatcher (BREventHandler handler,
                                       address,
                                       gwm->brdSync.begBlockNumber,
                                       gwm->brdSync.endBlockNumber,
-                                      gwm->requestId++);
+                                      gwm->brdSync.rid);
         } else {
             gwm->client.getTransactions (gwm->client.context,
                                          gwm,
                                          address,
                                          gwm->brdSync.begBlockNumber,
                                          gwm->brdSync.endBlockNumber,
-                                         gwm->requestId++);
+                                         gwm->brdSync.rid);
         }
 
+        // 3c) On to the next rid
+        gwm->requestId += 1;
 
         free (address);
         genAddressRelease(accountAddress);
-
-        // 3c) Mark as not completed
-        gwm->brdSync.completed = 0;
     }
 
     // End handling a BRD Sync
@@ -654,8 +658,10 @@ genManagerAnnounceTransferComplete (BRGenericManager manager,
                                     int rid,
                                     int success) {
     pthread_mutex_lock (&manager->lock);
-    if (rid == manager->brdSync.rid)
-        manager->brdSync.completed = success;
+    if (rid == manager->brdSync.rid) {
+        manager->brdSync.completed = true;
+        manager->brdSync.success = (bool) success;
+    }
     pthread_mutex_unlock (&manager->lock);
 }
 
