@@ -9,10 +9,11 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.apis.PagedData;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -22,11 +23,10 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-
-import static com.google.common.base.Preconditions.checkState;
 
 public class TransactionApi {
 
@@ -49,6 +49,12 @@ public class TransactionApi {
                                 boolean includeProof,
                                 @Nullable Integer maxPageSize,
                                 CompletionHandler<List<Transaction>, QueryError> handler) {
+        // if we have no addresses to query, bail out with no transactions
+        if (addresses.size() == 0) {
+            handler.handleData(Collections.emptyList());
+            return;
+        }
+
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transaction> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
@@ -65,7 +71,7 @@ public class TransactionApi {
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            PagedCompletionHandler<List<Transaction>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
+            CompletionHandler<PagedData<Transaction>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
             jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction.class, pagedHandler);
         }
     }
@@ -93,16 +99,17 @@ public class TransactionApi {
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
 
-    private PagedCompletionHandler<List<Transaction>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transaction> coordinator,
-                                                                                            List<String> chunkedAddresses) {
+    private CompletionHandler<PagedData<Transaction>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transaction> coordinator,
+                                                                                       List<String> chunkedAddresses) {
         List<Transaction> allResults = new ArrayList<>();
-        return new PagedCompletionHandler<List<Transaction>, QueryError>() {
+        return new CompletionHandler<PagedData<Transaction>, QueryError>() {
             @Override
-            public void handleData(List<Transaction> results, String prevUrl, String nextUrl) {
-                allResults.addAll(results);
+            public void handleData(PagedData<Transaction> results) {
+                Optional<String> nextUrl = results.getNextUrl();
+                allResults.addAll(results.getData());
 
-                if (nextUrl != null) {
-                    submitGetNextTransactions(nextUrl, this);
+                if (nextUrl.isPresent()) {
+                    submitGetNextTransactions(nextUrl.get(), this);
 
                 } else {
                     coordinator.handleChunkData(chunkedAddresses, allResults);
@@ -117,12 +124,12 @@ public class TransactionApi {
     }
 
     private void submitGetNextTransactions(String nextUrl,
-                                           PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+                                           CompletionHandler<PagedData<Transaction>, QueryError> handler) {
         executorService.submit(() -> getNextTransactions(nextUrl, handler));
     }
 
     private void getNextTransactions(String nextUrl,
-                                     PagedCompletionHandler<List<Transaction>, QueryError> handler) {
+                                     CompletionHandler<PagedData<Transaction>, QueryError> handler) {
         jsonClient.sendGetForArrayWithPaging("transactions", nextUrl, Transaction.class, handler);
     }
 }

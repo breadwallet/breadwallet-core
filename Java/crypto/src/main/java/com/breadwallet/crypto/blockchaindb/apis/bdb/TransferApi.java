@@ -9,16 +9,18 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.apis.PagedData;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -43,6 +45,12 @@ public class TransferApi {
                              UnsignedLong endBlockNumber,
                              @Nullable Integer maxPageSize,
                              CompletionHandler<List<Transfer>, QueryError> handler) {
+        // if we have no addresses to query, bail out with no transfers
+        if (addresses.size() == 0) {
+            handler.handleData(Collections.emptyList());
+            return;
+        }
+
         List<List<String>> chunkedAddressesList = Lists.partition(addresses, ADDRESS_COUNT);
         GetChunkedCoordinator<String, Transfer> coordinator = new GetChunkedCoordinator<>(chunkedAddressesList, handler);
 
@@ -57,7 +65,7 @@ public class TransferApi {
             for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            PagedCompletionHandler<List<Transfer>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
+            CompletionHandler<PagedData<Transfer>, QueryError> pagedHandler = createPagedResultsHandler(coordinator, chunkedAddresses);
             jsonClient.sendGetForArrayWithPaging("transfers", params, Transfer.class, pagedHandler);
         }
     }
@@ -68,25 +76,26 @@ public class TransferApi {
     }
 
     private void submitGetNextTransfers(String nextUrl,
-                                        PagedCompletionHandler<List<Transfer>, QueryError> handler) {
+                                        CompletionHandler<PagedData<Transfer>, QueryError> handler) {
         executorService.submit(() -> getNextTransfers(nextUrl, handler));
     }
 
     private void getNextTransfers(String nextUrl,
-                                  PagedCompletionHandler<List<Transfer>, QueryError> handler) {
+                                  CompletionHandler<PagedData<Transfer>, QueryError> handler) {
         jsonClient.sendGetForArrayWithPaging("transfers", nextUrl, Transfer.class, handler);
     }
 
-    private PagedCompletionHandler<List<Transfer>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transfer> coordinator,
+    private CompletionHandler<PagedData<Transfer>, QueryError> createPagedResultsHandler(GetChunkedCoordinator<String, Transfer> coordinator,
                                                                                          List<String> chunkedAddresses) {
         List<Transfer> allResults = new ArrayList<>();
-        return new PagedCompletionHandler<List<Transfer>, QueryError>() {
+        return new CompletionHandler<PagedData<Transfer>, QueryError>() {
             @Override
-            public void handleData(List<Transfer> results, String prevUrl, String nextUrl) {
-                allResults.addAll(results);
+            public void handleData(PagedData<Transfer> results) {
+                Optional<String> nextUrl = results.getNextUrl();
+                allResults.addAll(results.getData());
 
-                if (nextUrl != null) {
-                    submitGetNextTransfers(nextUrl, this);
+                if (nextUrl.isPresent()) {
+                    submitGetNextTransfers(nextUrl.get(), this);
 
                 } else {
                     coordinator.handleChunkData(chunkedAddresses, allResults);

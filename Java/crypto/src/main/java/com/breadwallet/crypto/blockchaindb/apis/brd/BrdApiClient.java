@@ -68,8 +68,13 @@ public class BrdApiClient {
     void sendJsonRequest(String networkName,
                          Map json,
                          CompletionHandler<String, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "proxy"), ImmutableMultimap.of(), json, "POST",
-                new BrdResponseHandler<>(coder, String.class, handler));
+        makeAndSendRequest(
+                Arrays.asList("ethq", getNetworkName(networkName), "proxy"),
+                ImmutableMultimap.of(),
+                json,
+                "POST",
+                new BrdResponseParser<>(coder, String.class),
+                handler);
     }
 
     /* package */
@@ -77,8 +82,13 @@ public class BrdApiClient {
                           Multimap<String, String> params,
                           Map json,
                           CompletionHandler<String, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new BrdResponseHandler<>(coder, String.class, handler));
+        makeAndSendRequest(
+                Arrays.asList("ethq", getNetworkName(networkName), "query"),
+                params,
+                json,
+                "POST",
+                new BrdResponseParser<>(coder, String.class),
+                handler);
     }
 
     /* package */
@@ -87,15 +97,25 @@ public class BrdApiClient {
                                       Map json,
                                       Class<T> clazz,
                                       CompletionHandler<List<T>, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new BrdResponseWithStatusHandler<>(coder, clazz, handler));
+        makeAndSendRequest(
+                Arrays.asList("ethq", getNetworkName(networkName), "query"),
+                params,
+                json,
+                "POST",
+                new BrdResponseWithStatusParser<>(coder, clazz),
+                handler);
     }
 
     /* package */
     <T> void sendTokenRequest(Class<T> clazz,
                               CompletionHandler<List<T>, QueryError> handler) {
-        makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
-                new ListResponseHandler<>(coder, clazz, handler));
+        makeAndSendRequest(
+                Collections.singletonList("currencies"),
+                ImmutableMultimap.of("type", "erc20"),
+                null,
+                "GET",
+                new ListResponseParser<>(coder, clazz),
+                handler);
     }
 
     private String getNetworkName(String networkName) {
@@ -107,7 +127,8 @@ public class BrdApiClient {
                                         Multimap<String, String> params,
                                         @Nullable Map json,
                                         String httpMethod,
-                                        ResponseHandler handler) {
+                                        ResponseParser<T> parser,
+                                        CompletionHandler<T, QueryError> handler) {
         RequestBody httpBody;
         if (json == null) {
             httpBody = null;
@@ -145,31 +166,46 @@ public class BrdApiClient {
         requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, httpBody);
 
-        sendRequest(requestBuilder.build(), dataTask, handler);
+        sendRequest(requestBuilder.build(), dataTask, parser, handler);
     }
 
-    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler handler) {
+    private <T> void sendRequest(Request request,
+                                 DataTask dataTask,
+                                 ResponseParser<T> parser,
+                                 CompletionHandler<T, QueryError> handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                int responseCode = response.code();
-                if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
-                    try (ResponseBody responseBody = response.body()) {
+                T data = null;
+                QueryError error = null;
+                RuntimeException exception = null;
+
+                try (ResponseBody responseBody = response.body()) {
+                    int responseCode = response.code();
+                    if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                         if (responseBody == null) {
-                            Log.log(Level.SEVERE, "response failed with null body");
-                            handler.handleError(new QueryNoDataError());
+                            throw new QueryNoDataError();
                         } else {
-                            try {
-                                handler.handleResponse(responseBody.string());
-                            } catch (ObjectCoderException e) {
-                                Log.log(Level.SEVERE, "response failed parsing json", e);
-                                handler.handleError(new QueryJsonParseError(e.getMessage()));
-                            }
+                            data = parser.parseResponse(responseBody.string());
                         }
+                    } else {
+                        throw new QueryResponseError(responseCode);
                     }
+                } catch (QueryError e) {
+                    error = e;
+                } catch (RuntimeException e) {
+                    exception = e;
+                }
+
+                // if anything goes wrong, make sure we report as an error
+                if (exception != null) {
+                    Log.log(Level.SEVERE, "response failed with runtime exception", exception);
+                    handler.handleError(new QuerySubmissionError(exception.getMessage()));
+                } else if (error != null) {
+                    Log.log(Level.SEVERE, "response failed with error", error);
+                    handler.handleError(error);
                 } else {
-                    Log.log(Level.SEVERE, "response failed with status " + responseCode);
-                    handler.handleError(new QueryResponseError(responseCode));
+                    handler.handleData(data);
                 }
             }
 
@@ -181,109 +217,85 @@ public class BrdApiClient {
         });
     }
 
-    private interface ResponseHandler {
-        void handleResponse(String responseData) throws ObjectCoderException;
-        void handleError(QueryError error);
+    private interface ResponseParser<T> {
+        @Nullable
+        T parseResponse(String responseData) throws QueryError;
     }
 
-    private static class BrdResponseHandler<T> implements ResponseHandler {
+    private static class BrdResponseParser<T> implements ResponseParser<T> {
 
         final ObjectCoder coder;
         final Class<T> clazz;
-        final CompletionHandler<T, QueryError> handler;
 
-        BrdResponseHandler(ObjectCoder coder, Class<T> clazz, CompletionHandler<T, QueryError> handler) {
+        BrdResponseParser(ObjectCoder coder, Class<T> clazz) {
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            BrdJsonRpcResponse resp = coder.deserializeJson(BrdJsonRpcResponse.class, responseData);
-            T data = (resp == null || resp.getResult() == null) ?
-                    null :
-                    coder.deserializeObject(clazz, resp.getResult());
-            if (data == null) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-                return;
+        public T parseResponse(String responseData) throws QueryError {
+            try {
+                BrdJsonRpcResponse resp = coder.deserializeJson(BrdJsonRpcResponse.class, responseData);
+                T data = (resp == null || resp.getResult() == null) ?
+                        null : coder.deserializeObject(clazz, resp.getResult());
+                if (data == null) {
+                    throw new QueryModelError("Transform error");
+                }
+
+                return data;
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-
-            handler.handleData(data);
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 
-    private static class BrdResponseWithStatusHandler<T> implements ResponseHandler {
-
+    private static class BrdResponseWithStatusParser<T> implements ResponseParser<List<T>> {
         final ObjectCoder coder;
         final Class<T> clazz;
-        final CompletionHandler<List<T>, QueryError> handler;
 
-        BrdResponseWithStatusHandler(ObjectCoder coder, Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
+        BrdResponseWithStatusParser(ObjectCoder coder, Class<T> clazz) {
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            BrdJsonRpcResponse resp = coder.deserializeJson(BrdJsonRpcResponse.class, responseData);
-            List<T> data = (resp == null || resp.getResult() == null) ?
-                    Collections.emptyList() :
-                    coder.deserializeObjectList(clazz, resp.getResult());
+        public List<T> parseResponse(String responseData) throws QueryError {
+            try {
+                BrdJsonRpcResponse resp = coder.deserializeJson(BrdJsonRpcResponse.class, responseData);
+                List<T> data = (resp == null || resp.getResult() == null) ?
+                        Collections.emptyList() :
+                        coder.deserializeObjectList(clazz, resp.getResult());
+                if (data == null) {
+                    throw new QueryModelError("Transform error");
+                }
 
-            if (data == null) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-                return;
+                return data;
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-
-            handler.handleData(data);
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 
-    private static class ListResponseHandler<T> implements ResponseHandler {
-
+    private static class ListResponseParser<T> implements ResponseParser<List<T>> {
         final ObjectCoder coder;
         final Class<T> clazz;
-        final CompletionHandler<List<T>, QueryError> handler;
 
-        ListResponseHandler(ObjectCoder coder, Class<T> clazz, CompletionHandler<List<T>, QueryError> handler) {
+        ListResponseParser(ObjectCoder coder, Class<T> clazz) {
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            List<T> data = coder.deserializeJsonList(clazz, responseData);
-
-            if (null == data) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-                return;
+        public List<T> parseResponse(String responseData) throws QueryError {
+            try {
+                List<T> data = coder.deserializeJsonList(clazz, responseData);
+                if (null == data) {
+                    throw new QueryModelError("Transform error");
+                }
+                return data;
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-
-            handler.handleData(data);
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 }

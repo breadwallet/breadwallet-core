@@ -13,7 +13,7 @@ import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.ObjectCoder;
 import com.breadwallet.crypto.blockchaindb.ObjectCoder.ObjectCoderException;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
-import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.apis.PagedData;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
@@ -22,7 +22,6 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.breadwallet.crypto.utility.CompletionHandler;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Multimap;
 
 import java.io.IOException;
@@ -72,7 +71,8 @@ public class BdbApiClient {
                 params,
                 body,
                 "POST",
-                new EmptyResponseHandler(handler));
+                new EmptyResponseParser(),
+                handler);
     }
 
     <T> void sendPost(String resource,
@@ -85,7 +85,8 @@ public class BdbApiClient {
                 params,
                 body,
                 "POST",
-                new RootObjectResponseHandler<>(coder, clazz, handler));
+                new RootObjectResponseParser<>(coder, clazz),
+                handler);
     }
 
     // Read (cRud)
@@ -100,7 +101,8 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(coder, clazz, handler));
+                new RootObjectResponseParser<>(coder, clazz),
+                handler);
     }
 
     /* package */
@@ -113,31 +115,34 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new EmbeddedArrayResponseHandler<>(resource, coder, clazz, handler));
+                new EmbeddedArrayResponseParser<>(resource, coder, clazz),
+                handler);
     }
 
     /* package */
     <T> void sendGetForArrayWithPaging(String resource,
                                        Multimap<String, String> params,
                                        Class<T> clazz,
-                                       PagedCompletionHandler<List<T>, QueryError> handler) {
+                                       CompletionHandler<PagedData<T>, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
                 null,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz),
+                handler);
     }
 
     /* package */
     <T> void sendGetForArrayWithPaging(String resource,
                                        String url,
                                        Class<T> clazz,
-                                       PagedCompletionHandler<List<T>, QueryError> handler) {
+                                       CompletionHandler<PagedData<T>, QueryError> handler) {
         makeAndSendRequest(
                 url,
                 "GET",
-                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, coder, clazz),
+                handler);
     }
 
     /* package */
@@ -151,7 +156,8 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new RootObjectResponseHandler<>(coder, clazz, handler));
+                new RootObjectResponseParser<>(coder, clazz),
+                handler);
     }
 
     // Update (crUd)
@@ -166,7 +172,8 @@ public class BdbApiClient {
                 params,
                 body,
                 "PUT",
-                new RootObjectResponseHandler<>(coder, clazz, handler));
+                new RootObjectResponseParser<>(coder, clazz),
+                handler);
     }
 
     <T> void sendPutWithId(String resource,
@@ -180,7 +187,8 @@ public class BdbApiClient {
                 params,
                 json,
                 "PUT",
-                new RootObjectResponseHandler<>(coder, clazz, handler));
+                new RootObjectResponseParser<>(coder, clazz),
+                handler);
     }
 
     // Delete (crdD)
@@ -195,12 +203,14 @@ public class BdbApiClient {
                 params,
                 null,
                 "DELETE",
-                new EmptyResponseHandler(handler));
+                new EmptyResponseParser(),
+                handler);
     }
 
     private <T> void makeAndSendRequest(String fullUrl,
                                         String httpMethod,
-                                        ResponseHandler handler) {
+                                        ResponseParser<T> parser,
+                                        CompletionHandler<T, QueryError> handler) {
         HttpUrl url = HttpUrl.parse(fullUrl);
         if (null == url) {
             handler.handleError(new QueryUrlError("Invalid base URL " + fullUrl));
@@ -216,14 +226,15 @@ public class BdbApiClient {
         requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, null);
 
-        sendRequest(requestBuilder.build(), dataTask, handler);
+        sendRequest(requestBuilder.build(), dataTask, parser, handler);
     }
 
     private <T> void makeAndSendRequest(List<String> pathSegments,
                                         Multimap<String, String> params,
                                         @Nullable Object json,
                                         String httpMethod,
-                                        ResponseHandler handler) {
+                                        ResponseParser<T> parser,
+                                        CompletionHandler<T, QueryError> handler) {
         RequestBody httpBody;
         if (json == null) {
             httpBody = null;
@@ -261,31 +272,46 @@ public class BdbApiClient {
         requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, httpBody);
 
-        sendRequest(requestBuilder.build(), dataTask, handler);
+        sendRequest(requestBuilder.build(), dataTask, parser, handler);
     }
 
-    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler handler) {
+    private <T> void sendRequest(Request request,
+                                 DataTask dataTask,
+                                 ResponseParser<T> parser,
+                                 CompletionHandler<T, QueryError> handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                int responseCode = response.code();
-                if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
-                    try (ResponseBody responseBody = response.body()) {
+                T data = null;
+                QueryError error = null;
+                RuntimeException exception = null;
+
+                try (ResponseBody responseBody = response.body()) {
+                    int responseCode = response.code();
+                    if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                         if (responseBody == null) {
-                            Log.log(Level.SEVERE, "response failed with null body");
-                            handler.handleError(new QueryNoDataError());
+                            throw new QueryNoDataError();
                         } else {
-                            try {
-                                handler.handleResponse(responseBody.string());
-                            } catch (ObjectCoderException e) {
-                                Log.log(Level.SEVERE, "response failed parsing json", e);
-                                handler.handleError(new QueryJsonParseError(e.getMessage()));
-                            }
+                            data = parser.parseResponse(responseBody.string());
                         }
+                    } else {
+                        throw new QueryResponseError(responseCode);
                     }
+                } catch (QueryError e) {
+                    error = e;
+                } catch (RuntimeException e) {
+                    exception = e;
+                }
+
+                // if anything goes wrong, make sure we report as an error
+                if (exception != null) {
+                    Log.log(Level.SEVERE, "response failed with runtime exception", exception);
+                    handler.handleError(new QuerySubmissionError(exception.getMessage()));
+                } else if (error != null) {
+                    Log.log(Level.SEVERE, "response failed with error", error);
+                    handler.handleError(error);
                 } else {
-                    Log.log(Level.SEVERE, "response failed with status " + responseCode);
-                    handler.handleError(new QueryResponseError(responseCode));
+                    handler.handleData(data);
                 }
             }
 
@@ -297,144 +323,108 @@ public class BdbApiClient {
         });
     }
 
-    private interface ResponseHandler {
-        void handleResponse(String response) throws ObjectCoderException;
-        void handleError(QueryError error);
+    private interface ResponseParser<T> {
+        @Nullable
+        T parseResponse(String responseData) throws QueryError;
     }
 
-    private static class EmptyResponseHandler implements ResponseHandler {
-
-        private final CompletionHandler<Void, QueryError> handler;
-
-        EmptyResponseHandler(CompletionHandler<Void, QueryError> handler) {
-            this.handler = handler;
-        }
+    private static class EmptyResponseParser implements ResponseParser<Void> {
 
         @Override
-        public void handleResponse(String response) {
-            handler.handleData(null);
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
+        public Void parseResponse(String responseData) {
+            return null;
         }
     }
 
-    private static class RootObjectResponseHandler<T> implements ResponseHandler {
+    private static class RootObjectResponseParser<T> implements ResponseParser<T> {
 
         private final ObjectCoder coder;
         private final Class<T> clazz;
-        private final CompletionHandler<T, QueryError> handler;
 
-        RootObjectResponseHandler(ObjectCoder coder,
-                                  Class<T> clazz,
-                                  CompletionHandler<T, QueryError> handler) {
+        RootObjectResponseParser(ObjectCoder coder,
+                                 Class<T> clazz) {
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            T resp = coder.deserializeJson(clazz, responseData);
+        public T parseResponse(String responseData) throws QueryError {
+            try {
+                T resp = coder.deserializeJson(clazz, responseData);
+                if (resp == null) {
+                    throw new QueryModelError("Transform error");
+                }
 
-            if (resp == null) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-
-            } else {
-                handler.handleData(resp);
+                return resp;
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 
-    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler {
+    private static class EmbeddedArrayResponseParser<T> implements ResponseParser<List<T>> {
 
         private final String path;
         private final ObjectCoder coder;
         private final Class<T> clazz;
-        private final CompletionHandler<List<T>, QueryError> handler;
 
-        EmbeddedArrayResponseHandler(String path,
-                                     ObjectCoder coder,
-                                     Class<T> clazz,
-                                     CompletionHandler<List<T>, QueryError> handler) {
+        EmbeddedArrayResponseParser(String path,
+                                    ObjectCoder coder,
+                                    Class<T> clazz) {
             this.path = path;
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
-            List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
-                    Collections.emptyList() :
-                    coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
-            if (data == null) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-                return;
+        public List<T> parseResponse(String responseData) throws QueryError {
+            try {
+                BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
+                List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
+                        Collections.emptyList() :
+                        coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
+                if (data == null) {
+                    throw new QueryModelError("Transform error");
+                }
+
+                return data;
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-
-            handler.handleData(data);
-        }
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 
-    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler {
+    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseParser<PagedData<T>> {
 
         private final String path;
         private final ObjectCoder coder;
         private final Class<T> clazz;
-        private final PagedCompletionHandler<List<T>, QueryError> handler;
-
 
         EmbeddedPagedArrayResponseHandler(String path,
                                           ObjectCoder coder,
-                                          Class<T> clazz,
-                                          PagedCompletionHandler<List<T>, QueryError> handler) {
+                                          Class<T> clazz) {
             this.path = path;
             this.coder = coder;
             this.clazz = clazz;
-            this.handler = handler;
         }
 
         @Override
-        public void handleResponse(String responseData) throws ObjectCoderException {
-            BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
-            List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
-                    Collections.emptyList() :
-                    coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
-            if (data == null) {
-                QueryError e = new QueryModelError("Transform error");
-                Log.log(Level.SEVERE, "parsing error", e);
-                handler.handleError(e);
-                return;
+        public PagedData<T> parseResponse(String responseData) throws QueryError {
+            try {
+                BdbEmbeddedResponse resp = coder.deserializeJson(BdbEmbeddedResponse.class, responseData);
+                List<T> data = (resp == null || !resp.containsEmbedded(path)) ?
+                        Collections.emptyList() :
+                        coder.deserializeObjectList(clazz, resp.getEmbedded(path).get());
+                if (data == null) {
+                    throw new QueryModelError("Transform error");
+                }
+
+                String prevUrl = resp == null ? null : resp.getPreviousUrl().orNull();
+                String nextUrl = resp == null ? null : resp.getNextUrl().orNull();
+                return new PagedData<>(data, prevUrl, nextUrl);
+            } catch (ObjectCoderException e) {
+                throw new QueryJsonParseError(e.getMessage());
             }
-
-            String prevUrl = resp == null ? null : resp.getPreviousUrl().orNull();
-            String nextUrl = resp == null ? null : resp.getNextUrl().orNull();
-            handler.handleData(data, prevUrl, nextUrl);
-        }
-
-
-
-        @Override
-        public void handleError(QueryError error) {
-            handler.handleError(error);
         }
     }
 
