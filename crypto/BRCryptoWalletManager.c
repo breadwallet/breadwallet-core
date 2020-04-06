@@ -314,7 +314,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                    { .balanceUpdated = { balance }}
                                                });
-
             break;
         }
     }
@@ -835,6 +834,13 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
                                                CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                { .balanceUpdated = { balance }}
                                            });
+
+        cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                  cryptoWalletManagerTake (cwm),
+                                                  (BRCryptoWalletManagerEvent) {
+            CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+            { .wallet = cryptoWalletTake (cwm->wallet) }
+        });
     }
 
     pthread_mutex_unlock (&cwm->lock);
@@ -1494,6 +1500,22 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                            (BRCryptoWalletEvent) {
             CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
             { .transfer = { cryptoTransferTake (transfer) }}
+        });
+
+        BRCryptoAmount balance = cryptoWalletGetBalance(wallet);
+        cwm->listener.walletEventCallback (cwm->listener.context,
+                                           cryptoWalletManagerTake (cwm),
+                                           cryptoWalletTake (cwm->wallet),
+                                           (BRCryptoWalletEvent) {
+                                               CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                               { .balanceUpdated = { balance }}
+                                           });
+
+        cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                  cryptoWalletManagerTake (cwm),
+                                                  (BRCryptoWalletManagerEvent) {
+            CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+            { .wallet = cryptoWalletTake (cwm->wallet) }
         });
     }
 

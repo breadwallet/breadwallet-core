@@ -307,14 +307,9 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
     }
 
     func testWalletXRP() {
-        isMainnet = false
+        isMainnet = true
         currencyCodesToMode = ["xrp":WalletManagerMode.api_only]
-        prepareAccount (AccountSpecification (dict: [
-            "identifier": "ginger",
-            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-            "timestamp":  "2018-01-01",
-            "network":    (isMainnet ? "mainnet" : "testnet")
-            ]))
+        prepareAccount (identifier: "loan(C)")
 
         prepareSystem()
 
