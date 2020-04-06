@@ -98,6 +98,9 @@ struct BRGenericManagerRecord {
         bool completed;
         bool success;
     } brdSync;
+
+    BRGenericManagerSyncContext  syncContext;
+    BRGenericManagerSyncCallback syncCallback;
 };
 
 
@@ -295,6 +298,8 @@ genManagerCreate (BRGenericClient client,
                   uint64_t accountTimestamp,
                   const char *storagePath,
                   uint32_t syncPeriodInSeconds,
+                  BRGenericManagerSyncContext  syncContext,
+                  BRGenericManagerSyncCallback syncCallback,
                   uint64_t blockHeight) {
     BRGenericManager gwm = calloc (1, sizeof (struct BRGenericManagerRecord));
 
@@ -354,6 +359,9 @@ genManagerCreate (BRGenericClient client,
     gwm->brdSync.completed = false;
     gwm->brdSync.success = false;
 
+    gwm->syncContext  = syncContext;
+    gwm->syncCallback = syncCallback;
+    
     eventHandlerSetTimeoutDispatcher (gwm->handler,
                                       1000 * syncPeriodInSeconds,
                                       (BREventDispatcher) genManagerPeriodicDispatcher,
@@ -413,9 +421,39 @@ genManagerDisconnect (BRGenericManager gwm) {
                            // Event
 }
 
+extern int
+genManagerIsConnected (BRGenericManager gwm) {
+    return eventHandlerIsRunning (gwm->handler);
+}
+
 extern void
 genManagerSync (BRGenericManager gwm) {
-    return;
+    genManagerSyncToDepth (gwm, CRYPTO_SYNC_DEPTH_FROM_CREATION);
+}
+
+extern void
+genManagerSyncToDepth (BRGenericManager gwm,
+                       BRCryptoSyncDepth depth) {
+    pthread_mutex_lock (&gwm->lock);
+
+    // Abort an ongoing sync by incrementing the `rid` - any callback for an in-progress
+    // client callback will be ignored.
+    gwm->brdSync.rid += 1;
+
+    // Avoid the periodic dispatcher from mucking with the 'begBlockNumber' - which it might
+    // do if success is `true`.
+    gwm->brdSync.completed = false;
+    gwm->brdSync.success = false;
+
+    // For a GEN sync, just start at 0 always.
+    switch (depth) {
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND:
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK:
+        case CRYPTO_SYNC_DEPTH_FROM_CREATION:
+            gwm->brdSync.begBlockNumber = 0;
+            break;
+    }
+    pthread_mutex_unlock (&gwm->lock);
 }
 
 extern BRGenericAddress
@@ -615,6 +653,14 @@ genManagerPeriodicDispatcher (BREventHandler handler,
         free (address);
         genAddressRelease(accountAddress);
     }
+
+    if (NULL != gwm->syncCallback)
+        gwm->syncCallback (gwm->syncContext,
+                           gwm,
+                           gwm->brdSync.begBlockNumber,
+                           gwm->brdSync.endBlockNumber,
+                           // lots of incremental sync 'slop'
+                           2 * GWM_BRD_SYNC_START_BLOCK_OFFSET);
 
     // End handling a BRD Sync
 }
