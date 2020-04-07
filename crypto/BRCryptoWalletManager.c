@@ -677,6 +677,7 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             ewmConnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            pthread_mutex_lock (&cwm->lock);
             if (!genManagerIsConnected (cwm->u.gen)) {
                 BRCryptoWalletManagerState oldState = cwm->state;
                 BRCryptoWalletManagerState newState = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
@@ -684,6 +685,8 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
                 // assert oldState != CRYPTO_WALLET_MANAGER_STATE_CONNECTED
                 genManagerConnect(cwm->u.gen);
                 cryptoWalletManagerSetState (cwm, newState);
+                pthread_mutex_unlock (&cwm->lock);
+
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
                                                           (BRCryptoWalletManagerEvent) {
@@ -691,6 +694,7 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
                     { .state = { oldState, newState }}
                 });
             }
+            else pthread_mutex_unlock (&cwm->lock);
             break;
     }
 }
@@ -705,6 +709,7 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
             ewmDisconnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            pthread_mutex_lock (&cwm->lock);
             if (genManagerIsConnected (cwm->u.gen)) {
                 BRCryptoWalletManagerState oldState = cwm->state;
                 BRCryptoWalletManagerState newState = cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonRequested());
@@ -712,6 +717,8 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
                 // assert oldState != CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED
                 genManagerDisconnect (cwm->u.gen);
                 cryptoWalletManagerSetState (cwm, newState);
+                pthread_mutex_unlock (&cwm->lock);
+
                 cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                           cryptoWalletManagerTake (cwm),
                                                           (BRCryptoWalletManagerEvent) {
@@ -719,6 +726,7 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
                     { .state = { oldState, newState }}
                 });
             }
+            else pthread_mutex_unlock (&cwm->lock);
             break;
     }
 }
