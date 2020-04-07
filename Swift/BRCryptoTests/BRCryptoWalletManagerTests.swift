@@ -209,6 +209,90 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
             ]))
     }
 
+    func testWalletManagerXRP() {
+        isMainnet = true
+        currencyCodesToMode = ["xrp":WalletManagerMode.api_only]
+        prepareAccount (identifier: "loan(C)")
+        prepareSystem()
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        let walletManagerConnectExpectation    = XCTestExpectation (description: "Wallet Manager Connect")
+        let walletManagerSyncDoneExpectation   = XCTestExpectation (description: "Wallet Manager Sync Done")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+                else if case let .changed(oldState, newState) = event, case .syncing = oldState, case .connected = newState {
+                    walletManagerSyncDoneExpectation.fulfill()
+                }
+                else if case let .changed(_, newState) = event, case .connected = newState {
+                    walletManagerConnectExpectation.fulfill()
+                }
+            }]
+
+        let network: Network! = system.networks.first { "xrp" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        let wallet = manager.primaryWallet
+
+        XCTAssertNotNil (manager)
+        XCTAssertTrue  (system  === manager.system)
+        XCTAssertTrue  (self.query === manager.query)
+        XCTAssertEqual (network, manager.network)
+
+        XCTAssertEqual (WalletManagerState.created, manager.state)
+        XCTAssertTrue  (manager.height > 0)
+        XCTAssertEqual (manager.primaryWallet.manager, manager)
+        XCTAssertEqual (1, manager.wallets.count)
+        XCTAssertTrue  (manager.wallets.contains(manager.primaryWallet))
+        XCTAssertTrue  (network.fees.contains(manager.defaultNetworkFee))
+
+        XCTAssertTrue  (network.supportedModes.contains(manager.mode))
+        XCTAssertEqual (network.defaultAddressScheme, manager.addressScheme)
+
+        XCTAssertNotNil (manager.baseUnit)
+        XCTAssertNotNil (manager.defaultUnit)
+        XCTAssertFalse (manager.isActive)
+        XCTAssertEqual (manager, manager)
+
+        XCTAssertEqual("xrp", manager.description)
+
+        XCTAssertFalse (system.wallets.isEmpty)
+
+        // Events
+
+        XCTAssertTrue (listener.checkSystemEventsCommonlyWith (network: network,
+                                                               manager: manager))
+
+        XCTAssertTrue (listener.checkManagerEvents(
+            [WalletManagerEvent.created,
+             WalletManagerEvent.walletAdded(wallet: wallet)],
+            strict: true))
+
+        XCTAssertTrue (listener.checkWalletEvents(
+            [WalletEvent.created],
+            strict: true))
+
+        XCTAssertTrue (listener.checkTransferEvents(
+            [],
+            strict: true))
+
+        // Connect
+        manager.connect()
+        wait (for: [walletManagerConnectExpectation], timeout: 15)
+
+        // Wait for sync complete...
+        wait (for: [walletManagerSyncDoneExpectation], timeout: 30)
+
+        manager.disconnect()
+        wait (for: [walletManagerDisconnectExpectation], timeout: 15)
+
+        XCTAssertTrue (listener.checkManagerEventsCommonlyWith (mode: manager.mode,
+                                                               wallet: wallet))
+    }
+
     func testWalletManagerMigrateBTC () {
         isMainnet = false
         currencyCodesToMode = ["btc":WalletManagerMode.api_only]

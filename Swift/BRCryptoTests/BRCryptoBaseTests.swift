@@ -337,7 +337,7 @@ class CryptoTestSystemListener: SystemListener {
             EventMatcher (event: WalletManagerEvent.changed (oldState: WalletManagerState.connected,
                                                              newState: WalletManagerState.disconnected (reason: disconnectReason)),
                           strict: !lenientDisconnect,
-                          scan: false)
+                          scan: true)       // block height updates might intervene.
 
         return checkManagerEvents(
             [EventMatcher (event: WalletManagerEvent.created),

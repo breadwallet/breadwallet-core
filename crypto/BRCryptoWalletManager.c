@@ -34,6 +34,13 @@
 static void
 cryptoWalletManagerInstallETHTokensForCurrencies (BRCryptoWalletManager cwm);
 
+static void
+cryptoWalletManagerSyncCallbackGEN (BRGenericManagerSyncContext context,
+                                    BRGenericManager manager,
+                                    uint64_t begBlockHeight,
+                                    uint64_t endBlockHeight,
+                                    uint64_t fullSyncIncrement);
+
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 
 /// =============================================================================================
@@ -247,6 +254,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                            cryptoAccountGetTimestamp(account),
                                            cwmPath,
                                            GEN_DISPATCHER_PERIOD,
+                                           cwm,
+                                           cryptoWalletManagerSyncCallbackGEN,
                                            cryptoNetworkGetHeight(network));
             if (NULL == cwm->u.gen) {
                 pthread_mutex_unlock (&cwm->lock);
@@ -305,7 +314,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                    { .balanceUpdated = { balance }}
                                                });
-
             break;
         }
     }
@@ -669,7 +677,24 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm,
             ewmConnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            genManagerConnect(cwm->u.gen);
+            pthread_mutex_lock (&cwm->lock);
+            if (!genManagerIsConnected (cwm->u.gen)) {
+                BRCryptoWalletManagerState oldState = cwm->state;
+                BRCryptoWalletManagerState newState = cryptoWalletManagerStateInit (CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
+
+                // assert oldState != CRYPTO_WALLET_MANAGER_STATE_CONNECTED
+                genManagerConnect(cwm->u.gen);
+                cryptoWalletManagerSetState (cwm, newState);
+                pthread_mutex_unlock (&cwm->lock);
+
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+                    { .state = { oldState, newState }}
+                });
+            }
+            else pthread_mutex_unlock (&cwm->lock);
             break;
     }
 }
@@ -684,7 +709,24 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
             ewmDisconnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            genManagerDisconnect (cwm->u.gen);
+            pthread_mutex_lock (&cwm->lock);
+            if (genManagerIsConnected (cwm->u.gen)) {
+                BRCryptoWalletManagerState oldState = cwm->state;
+                BRCryptoWalletManagerState newState = cryptoWalletManagerStateDisconnectedInit (cryptoWalletManagerDisconnectReasonRequested());
+
+                // assert oldState != CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED
+                genManagerDisconnect (cwm->u.gen);
+                cryptoWalletManagerSetState (cwm, newState);
+                pthread_mutex_unlock (&cwm->lock);
+
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                    CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+                    { .state = { oldState, newState }}
+                });
+            }
+            else pthread_mutex_unlock (&cwm->lock);
             break;
     }
 }
@@ -715,8 +757,7 @@ cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
             ewmSyncToDepth (cwm->u.eth, ETHEREUM_BOOLEAN_FALSE, depth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
-            // TODO(fix): Implement this
-            assert (0);
+            genManagerSyncToDepth(cwm->u.gen, depth);
             break;
     }
 }
@@ -801,6 +842,13 @@ cryptoWalletManagerSetTransferStateGEN (BRCryptoWalletManager cwm,
                                                CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                { .balanceUpdated = { balance }}
                                            });
+
+        cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                  cryptoWalletManagerTake (cwm),
+                                                  (BRCryptoWalletManagerEvent) {
+            CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+            { .wallet = cryptoWalletTake (cwm->wallet) }
+        });
     }
 
     pthread_mutex_unlock (&cwm->lock);
@@ -1461,6 +1509,22 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
             CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
             { .transfer = { cryptoTransferTake (transfer) }}
         });
+
+        BRCryptoAmount balance = cryptoWalletGetBalance(wallet);
+        cwm->listener.walletEventCallback (cwm->listener.context,
+                                           cryptoWalletManagerTake (cwm),
+                                           cryptoWalletTake (cwm->wallet),
+                                           (BRCryptoWalletEvent) {
+                                               CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                               { .balanceUpdated = { balance }}
+                                           });
+
+        cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                  cryptoWalletManagerTake (cwm),
+                                                  (BRCryptoWalletManagerEvent) {
+            CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+            { .wallet = cryptoWalletTake (cwm->wallet) }
+        });
     }
 
     // If the state is not created and changed, announce a transfer state change.
@@ -1484,6 +1548,83 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     cryptoTransferGive(transfer);
     cryptoWalletGive (wallet);
     cryptoCurrencyGive(currency);
+}
+
+static void
+cryptoWalletManagerSyncCallbackGEN (BRGenericManagerSyncContext context,
+                                    BRGenericManager manager,
+                                    uint64_t begBlockHeight,
+                                    uint64_t endBlockHeight,
+                                    uint64_t fullSyncIncrement) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTakeWeak ((BRCryptoWalletManager) context);
+    if (NULL == cwm) return;
+
+    // If the sync block range is larger than fullSyncIncrement, then this is a full sync.
+    // Otherwise this is an ongoing, periodic sync - which we do not report.  It is as if in
+    // P2P mode, a new block is announced.
+    int fullSync = (endBlockHeight - begBlockHeight > fullSyncIncrement);
+
+    pthread_mutex_lock (&cwm->lock);
+
+    // If an ongoing sync, we are simply CONNECTED.
+    BRCryptoWalletManagerState oldState = cwm->state;
+    BRCryptoWalletManagerState newState = cryptoWalletManagerStateInit (fullSync
+                                                                        ? CRYPTO_WALLET_MANAGER_STATE_SYNCING
+                                                                        : CRYPTO_WALLET_MANAGER_STATE_CONNECTED);
+
+    // Callback a Wallet Manager Event, but only on state changes.  We won't announce incremental
+    // progress (with a blockHeight and timestamp.
+    if (newState.type != oldState.type) {
+
+        // Update the CWM state before any event callbacks.
+        cryptoWalletManagerSetState (cwm, newState);
+
+        pthread_mutex_unlock (&cwm->lock);
+
+        if (fullSync) {
+            // Generate a SYNC_STARTED...
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED
+            });
+
+            // ... and then a SYNC_CONTINUES at %100
+            //            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+            //                                                      cryptoWalletManagerTake (cwm),
+            //                                                      (BRCryptoWalletManagerEvent) {
+            //                CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
+            //                { .syncContinues = { NO_CRYPTO_SYNC_TIMESTAMP, 0 }}
+            //            });
+        }
+        else {
+            // Generate a SYNC_CONTINUES at %100...
+            //            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+            //                                                      cryptoWalletManagerTake (cwm),
+            //                                                      (BRCryptoWalletManagerEvent) {
+            //                CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
+            //                { .syncContinues = { NO_CRYPTO_SYNC_TIMESTAMP, 100 }}
+            //            });
+
+            // ... and then a CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+                { .syncStopped = { CRYPTO_SYNC_STOPPED_REASON_COMPLETE }}
+            });
+        }
+
+        cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                  cryptoWalletManagerTake (cwm),
+                                                  (BRCryptoWalletManagerEvent) {
+            CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+            { .state = { oldState, newState }}
+        });
+    }
+    else pthread_mutex_unlock (&cwm->lock);
+
+    cryptoWalletManagerGive (cwm);
 }
 
 extern const char *

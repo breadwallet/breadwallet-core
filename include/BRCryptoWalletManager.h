@@ -133,8 +133,6 @@ extern "C" {
         } u;
     } BRCryptoWalletManagerEvent;
 
-#define CRYPTO_NO_SYNC_TIMESTAMP        (NO_SYNC_TIMESTAMP)
-
     /// MARK: Listener
 
     typedef void *BRCryptoCWMListenerContext;
