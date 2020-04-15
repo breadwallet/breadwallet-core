@@ -32,7 +32,7 @@
 #include <assert.h>
 
 #define MAX_PROOF_OF_WORK 0x1e0fffff    // highest value for difficulty target (higher values are less difficult)
-#define TARGET_TIMESPAN   302400        // the targeted timespan between difficulty target adjustments (3.5*24*60*60)
+#define TARGET_TIMESPAN   302400        // = 3.5*24*60*60; the targeted timespan between difficulty target adjustments
 
 inline static int _ceil_log2(int x)
 {
@@ -81,6 +81,19 @@ BRMerkleBlock *BRMerkleBlockNew(void)
     
     block->height = BLOCK_UNKNOWN_HEIGHT;
     return block;
+}
+
+// returns a deep copy of block and that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCopy(const BRMerkleBlock *block)
+{
+    BRMerkleBlock *cpy = BRMerkleBlockNew();
+
+    assert(block != NULL);
+    *cpy = *block;
+    cpy->hashes = NULL;
+    cpy->flags = NULL;
+    BRMerkleBlockSetTxHashes(cpy, block->hashes, block->hashesCount, block->flags, block->flagsLen);
+    return cpy;
 }
 
 // buf must contain either a serialized merkleblock or header
@@ -321,13 +334,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     
     if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
-    
-#if LITECOIN_TESTNET
-    // TODO: implement testnet difficulty rule check
-    return r; // don't worry about difficulty on testnet for now
-#endif
 
-    // TODO: fix difficulty target check for Litecoin
     // if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
     //     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
     //     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits

@@ -29,6 +29,7 @@
 #include "BRMerkleBlock.h"
 #include "BRTransaction.h"
 #include "BRWallet.h"
+#include "BRChainParams.h"
 #include <stddef.h>
 #include <inttypes.h>
 
@@ -41,8 +42,8 @@ extern "C" {
 typedef struct BRPeerManagerStruct BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
-                                const BRPeer peers[], size_t peersCount);
+BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
+                                BRMerkleBlock *blocks[], size_t blocksCount, const BRPeer peers[], size_t peersCount);
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
@@ -68,8 +69,8 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // set address to UINT128_ZERO to revert to default behavior
 void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t port);
 
-// true if currently connected to at least one peer
-int BRPeerManagerIsConnected(BRPeerManager *manager);
+// current connect status
+BRPeerStatus BRPeerManagerConnectStatus(BRPeerManager *manager);
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
