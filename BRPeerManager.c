@@ -1632,6 +1632,15 @@ void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t
     pthread_mutex_unlock(&manager->lock);
 }
 
+uint16_t BRPeerManagerStandardPort(BRPeerManager *manager)
+{
+    assert(manager != NULL);
+    pthread_mutex_lock(&manager->lock);
+    uint16_t port = manager->params->standardPort;
+    pthread_mutex_unlock(&manager->lock);
+    return port;
+}
+
 // current connect status
 BRPeerStatus BRPeerManagerConnectStatus(BRPeerManager *manager)
 {

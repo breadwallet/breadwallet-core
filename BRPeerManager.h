@@ -72,6 +72,9 @@ void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t
 // current connect status
 BRPeerStatus BRPeerManagerConnectStatus(BRPeerManager *manager);
 
+// returns the standard port used for BRChainParams
+uint16_t BRPeerManagerStandardPort(BRPeerManager *manager);
+
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
 
