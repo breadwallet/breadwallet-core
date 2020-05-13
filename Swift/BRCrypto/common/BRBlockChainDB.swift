@@ -596,14 +596,24 @@ public class BlockChainDB {
         }
     }
 
-    public func getCurrencies (blockchainId: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
-        bdbMakeRequest (path: "currencies", query: blockchainId.map { zip(["blockchain_id"], [$0]) }) {
-            (more: URL?, res: Result<[JSON], QueryError>) in
-            precondition (nil == more)
-            completion (res.flatMap {
-                BlockChainDB.getManyExpected(data: $0, transform: Model.asCurrency)
-            })
-        }
+    public func getCurrencies (blockchainId: String? = nil, verified: Bool = true, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
+        let queryKeysBase = [
+             blockchainId.map { (_) in "blockchain_id" },
+             "verified"]
+             .compactMap { $0 } // Remove `nil` from blockchainId
+
+         let queryValsBase: [String] = [
+             blockchainId,
+             verified.description]
+             .compactMap { $0 }  // Remove `nil` from blockchainId
+
+         bdbMakeRequest (path: "currencies", query: zip (queryKeysBase, queryValsBase)) {
+             (more: URL?, res: Result<[JSON], QueryError>) in
+             precondition (nil == more)
+             completion (res.flatMap {
+                 BlockChainDB.getManyExpected(data: $0, transform: Model.asCurrency)
+             })
+         }
     }
 
     public func getCurrency (currencyId: String, completion: @escaping (Result<Model.Currency,QueryError>) -> Void) {
@@ -1712,7 +1722,7 @@ public class BlockChainDB {
         let path = "/currencies"
         makeRequest (apiDataTaskFunc, apiBaseURL,
                      path: path,
-                     query: zip(["type"], ["erc20"]),
+                     query: zip(["type", "verified"], ["erc20", "true"]),
                      data: nil,
                      httpMethod: "GET",
                      completion: completion)
