@@ -25,6 +25,7 @@ import android.widget.Toast;
 import com.breadwallet.crypto.Address;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferAttribute;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
@@ -88,6 +89,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
     private View confirmationContainerView;
     private TextView stateView;
     private TextView directionView;
+    private TextView attributesView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +125,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
         confirmationContainerView = findViewById(R.id.confirmation_count_container_view);
         stateView = findViewById(R.id.state_view);
         directionView = findViewById(R.id.direction_view);
+        // attributesView = findViewById(R.id.attributes_view);
 
         Toolbar toolbar = findViewById(R.id.toolbar_view);
         setSupportActionBar(toolbar);
@@ -205,6 +208,9 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
 
         String directionText = viewModel.directionText();
         directionView.setText(directionText);
+
+        String attributesText = viewModel.attributesText();
+        // attributesView.setText(attributesText);
     }
 
     private void copyPlaintext(String label, CharSequence value) {
@@ -239,6 +245,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
         final boolean confirmationCountVisible;
         final String stateText;
         final String directionText;
+        final String attributesText;
 
         TransferViewModel(Transfer transfer) {
             this.transfer = transfer;
@@ -256,6 +263,25 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
             this.confirmationCountVisible = conf.isPresent();
             this.stateText = transfer.getState().toString();
             this.directionText = transfer.getDirection().toString();
+
+            StringBuffer sb = new StringBuffer();
+            String prefix = "";
+            for (TransferAttribute a : transfer.getAttributes()) {
+                sb.append(prefix);
+                sb.append(String.format("%s(%s):%s",
+                        ((TransferAttribute) a).getKey(),
+                        (((TransferAttribute) a).isRequired() ? "R" : "O"),
+                        ((TransferAttribute) a).getValue().or("")));
+                prefix = ", ";
+            }
+            this.attributesText = sb.toString();
+
+//            this.attributesText = transfer.getAttributes().stream()
+//                    .map(a -> String.format ("%s(%s):%s",
+//                            ((TransferAttribute) a).getKey(),
+//                            (((TransferAttribute) a).isRequired() ? "R" : "O"),
+//                            ((TransferAttribute) a).getValue().or("")))
+//                    .collect(Collectors.joining(", "));
         }
 
         String amountText() {
@@ -300,6 +326,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements Defaul
 
         String directionText() {
             return directionText;
+        }
+
+        String attributesText () {
+            return attributesText;
         }
     }
 }

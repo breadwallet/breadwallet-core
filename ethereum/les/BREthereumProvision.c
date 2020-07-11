@@ -350,23 +350,23 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
                     if (ETHEREUM_BOOLEAN_IS_TRUE (isValid)) {
                         // When valid extract [hash, totalDifficulty] from the MPT proof's value
-                        BRRlpItem item = rlpGetItem(coder, data);
+                        BRRlpItem item = rlpDataGetItem(coder, data);
 
                         size_t itemsCount = 0;
                         const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
                         assert (2 == itemsCount);
 
-                        proof->hash = hashRlpDecode(items[0], coder);
+                        proof->hash = ethHashRlpDecode(items[0], coder);
                         proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
 
-                        rlpReleaseItem(coder, item);
+                        rlpItemRelease(coder, item);
                         rlpDataRelease(data);
                     }
                     else {
                         proof->hash = EMPTY_HASH_INIT;
                         proof->totalDifficulty = UINT256_ZERO;
                     }
-                    dataRelease(key);
+                    ethDataRelease(key);
                 }
                 rlpCoderRelease(coder);
             }
@@ -422,7 +422,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
-            BREthereumHash hash = addressGetHash(provision->address);
+            BREthereumHash hash = ethAddressGetHash(provision->address);
             BREthereumData key  = { sizeof(BREthereumHash), hash.bytes };
 
             // We'll fill this - at the proper index if a multiple provision.
@@ -453,9 +453,9 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                     BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
                     BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
                     if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
-                        BRRlpItem item = rlpGetItem (coder, data);
+                        BRRlpItem item = rlpDataGetItem (coder, data);
                         provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
-                        rlpReleaseItem (coder, item);
+                        rlpItemRelease (coder, item);
                     }
                     else provisionAccounts[offset + index] = accountStateCreateEmpty();
                     rlpDataRelease(data);
@@ -639,7 +639,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
 
-            BREthereumHash addressHash = addressGetHash(provision->address);
+            BREthereumHash addressHash = ethAddressGetHash(provision->address);
             BRArrayOf(BREthereumHash) hashes = provision->hashes;
             size_t hashesCount = array_count(hashes);
 
@@ -805,7 +805,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
                     // The MPT 'key' is the RLP encoding of the block number
                     BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
-                    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+                    BRRlpData data = rlpItemGetDataSharedDontRelease (coder, item);
                     BREthereumData key = { data.bytesCount, data.bytes };
 
                     BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
@@ -821,7 +821,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                         provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
                     }
 
-                    rlpReleaseItem (coder, item);
+                    rlpItemRelease (coder, item);
                     mptNodePathRelease (path);
                 }
                 rlpCoderRelease(coder);
@@ -893,7 +893,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                     assert (PIP_REQUEST_ACCOUNT == outputs[index].identifier);
                     provisionAccounts[offset + index] =
                     accountStateCreate (outputs[index].u.account.nonce,
-                                        etherCreate(outputs[index].u.account.balance),
+                                        ethEtherCreate(outputs[index].u.account.balance),
                                         outputs[index].u.account.storageRootHash,
                                         outputs[index].u.account.codeHash);
                 }
@@ -940,7 +940,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                                                      outputs[index].u.transactionIndex.blockNumber,
                                                      outputs[index].u.transactionIndex.transactionIndex,
                                                      TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
-                                                     gasCreate(0));
+                                                     ethGasCreate(0));
 
                 }
             }
@@ -966,7 +966,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                                                      outputs[0].u.transactionIndex.blockNumber,
                                                      outputs[0].u.transactionIndex.transactionIndex,
                                                      TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
-                                                     gasCreate (0));
+                                                     ethGasCreate (0));
                     break;
 
                 default:
@@ -1043,7 +1043,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .bodies = {
-                    hashesCopy(provision->u.bodies.hashes),
+                    ethHashesCopy(provision->u.bodies.hashes),
                     NULL }}
             };
 
@@ -1052,7 +1052,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .receipts = {
-                    hashesCopy(provision->u.receipts.hashes),
+                    ethHashesCopy(provision->u.receipts.hashes),
                     NULL }}
             };
 
@@ -1062,7 +1062,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->type,
                 { .accounts = {
                     provision->u.accounts.address,
-                    hashesCopy(provision->u.accounts.hashes),
+                    ethHashesCopy(provision->u.accounts.hashes),
                     NULL }}
             };
 
@@ -1071,7 +1071,7 @@ provisionCopy (BREthereumProvision *provision,
                 provision->identifier,
                 provision->type,
                 { .statuses = {
-                    hashesCopy(provision->u.statuses.hashes),
+                    ethHashesCopy(provision->u.statuses.hashes),
                     NULL }}
             };
 

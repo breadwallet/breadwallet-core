@@ -30,56 +30,55 @@ typedef enum {
  * An Ethereum Wallet holds a specific amount of ETHER or TOKENs
  */
 typedef struct BREthereumAmountRecord {
-  BREthereumAmountType type;
-  union {
-    BREthereumEther ether;
-    BREthereumTokenQuantity tokenQuantity;
-  } u;
+    BREthereumAmountType type;
+    union {
+        BREthereumEther ether;
+        BREthereumTokenQuantity tokenQuantity;
+    } u;
 } BREthereumAmount;
 
 extern BREthereumAmount
-amountCreateEther (BREthereumEther ether);
+ethAmountCreateEther (BREthereumEther ether);
 
-// TODO: what is 'scale' - replace with 'decimals'?
 extern BREthereumAmount
-amountCreateToken (BREthereumTokenQuantity tokenQuantity);
+ethAmountCreateToken (BREthereumTokenQuantity tokenQuantity);
 
 extern BREthereumAmountType
-amountGetType (BREthereumAmount amount);
+ethAmountGetType (BREthereumAmount amount);
 
 /**
  * The amount's ether if holding ETHER; otherwise fatal.
  */
 extern BREthereumEther
-amountGetEther (BREthereumAmount amount);
+ethAmountGetEther (BREthereumAmount amount);
 
 /**
  * The amount's tokenQuantity if holding TOKEN; otherwise fatal.
  */
 extern BREthereumTokenQuantity
-amountGetTokenQuantity (BREthereumAmount amount);
+ethAmountGetTokenQuantity (BREthereumAmount amount);
 
 extern BREthereumToken
-amountGetToken (BREthereumAmount amount);
-    
+ethAmountGetToken (BREthereumAmount amount);
+
 extern BREthereumComparison
-amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch);
+ethAmountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch);
 
 /**
  * An estimate of the Gas required to transfer amount.  For ETHER this is 'fixed' as 22000; for
  * TOKEN this is derived from the token's properties.
  */
 extern BREthereumGas
-amountGetGasEstimate (BREthereumAmount amount);
+ethAmountGetGasEstimate (BREthereumAmount amount);
 
 extern BRRlpItem
-amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
+ethAmountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
 
 extern BREthereumAmount
-amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder);
+ethAmountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder);
 
 extern BREthereumAmount
-amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token);
+ethAmountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token);
 
 //
 // Parsing
@@ -104,9 +103,9 @@ amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token)
  *
  */
 extern BREthereumAmount
-amountCreateEtherString (const char *number,
-                          BREthereumEtherUnit unit,
-                          BRCoreParseStatus *status);
+ethAmountCreateEtherString (const char *number,
+                            BREthereumEtherUnit unit,
+                            BRCoreParseStatus *status);
 
 /**
  *
@@ -127,10 +126,10 @@ amountCreateEtherString (const char *number,
  *
  */
 extern BREthereumAmount
-amountCreateTokenQuantityString (BREthereumToken token,
-                                const char *number,
-                                 BREthereumTokenQuantityUnit unit,
-                                 BRCoreParseStatus *status);
+ethAmountCreateTokenQuantityString (BREthereumToken token,
+                                    const char *number,
+                                    BREthereumTokenQuantityUnit unit,
+                                    BRCoreParseStatus *status);
 
 #ifdef __cplusplus
 }

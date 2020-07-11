@@ -12,16 +12,15 @@
 #include <stdlib.h>
 
 #include "BRCryptoSigner.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoKeyP.h"
 #include "support/BRCrypto.h"
-
-static void
-cryptoSignerRelease (BRCryptoSigner signer);
 
 struct BRCryptoSignerRecord {
     BRCryptoSignerType type;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoSigner, cryptoSigner);
 
 extern BRCryptoSigner
 cryptoSignerCreate(BRCryptoSignerType type) {
@@ -170,5 +169,3 @@ cryptoSignerRecover (BRCryptoSigner signer,
 
     return key;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoSigner, cryptoSigner);

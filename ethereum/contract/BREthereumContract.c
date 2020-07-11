@@ -70,7 +70,7 @@ static void argumentEncodeAddress (uint8_t *bytes, size_t bytesCount, uint8_t *t
     memset (target, 0, targetCount);
 
     uint8_t decodedBytes[bytesCount/2];
-    decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
+    hexDecode(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
 
     memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
 }
@@ -136,9 +136,9 @@ static void
 topicDecodeUInt256 (void) {}
 
 private_extern char *
-eventERC20TransferDecodeAddress (BREthereumContractEvent event,
-                                 const char *topic) {
-    assert (event == eventERC20Transfer);
+ethEventERC20TransferDecodeAddress (BREthereumContractEvent event,
+                                    const char *topic) {
+    assert (event == ethEventERC20Transfer);
     // Second argument - skip selector + 1st argument
     char result[2 + 40 + 1];
     result[0] = '0';
@@ -149,9 +149,9 @@ eventERC20TransferDecodeAddress (BREthereumContractEvent event,
 }
 
 private_extern char *
-eventERC20TransferEncodeAddress (BREthereumContractEvent event,
-                                 const char *address) {
-    assert (event == eventERC20Transfer);
+ethEventERC20TransferEncodeAddress (BREthereumContractEvent event,
+                                    const char *address) {
+    assert (event == ethEventERC20Transfer);
     assert ('0' == address[0] && 'x' == address[1] && 42 == strlen (address));
 
     address = &address[2];
@@ -169,14 +169,14 @@ eventERC20TransferEncodeAddress (BREthereumContractEvent event,
 }
 
 private_extern UInt256
-eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
-                                 const char *number,
-                                 BRCoreParseStatus *status) {
-    return createUInt256Parse(number, 16, status);
+ethEventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
+                                    const char *number,
+                                    BRCoreParseStatus *status) {
+    return uint256CreateParse(number, 16, status);
 }
 
 extern const char *
-eventGetSelector (BREthereumContractEvent event) {
+ethEventGetSelector (BREthereumContractEvent event) {
     return event->selector;
 }
 
@@ -312,12 +312,12 @@ static struct BREthereumContractRecord contractRecordERC20 = {
     }
 };
 
-BREthereumContract contractERC20 = &contractRecordERC20;
-BREthereumContractFunction functionERC20Transfer = &contractRecordERC20.functions[2];
-BREthereumContractEvent eventERC20Transfer = &contractRecordERC20.events[0];
+BREthereumContract ethContractERC20 = &contractRecordERC20;
+BREthereumContractFunction ethFunctionERC20Transfer = &contractRecordERC20.functions[2];
+BREthereumContractEvent ethEventERC20Transfer = &contractRecordERC20.events[0];
 
 extern BREthereumContractFunction
-contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
+ethContractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
     for (int i = 0; i < contract->functionsCount; i++)
         if (functionIsEncodedInData(&contract->functions[i], encoding))
             return &contract->functions[i];
@@ -325,7 +325,7 @@ contractLookupFunctionForEncoding (BREthereumContract contract, const char *enco
 }
 
 extern BREthereumContractEvent
-contractLookupEventForTopic (BREthereumContract contract, const char *topic) {
+ethContractLookupEventForTopic (BREthereumContract contract, const char *topic) {
     for (int i = 0; i < contract->eventsCount; i++)
         if (0 == strcmp (topic, contract->events[i].selector))
             return &contract->events[i];
@@ -333,19 +333,19 @@ contractLookupEventForTopic (BREthereumContract contract, const char *topic) {
 }
 
 private_extern UInt256
-functionERC20TransferDecodeAmount (BREthereumContractFunction function,
-                                   const char *data,
-                                   BRCoreParseStatus *status) {
-    assert (function == functionERC20Transfer);
+ethFunctionERC20TransferDecodeAmount (BREthereumContractFunction function,
+                                      const char *data,
+                                      BRCoreParseStatus *status) {
+    assert (function == ethFunctionERC20Transfer);
     // Second argument - skip selector + 1st argument
     data = &data [strlen(function->selector) + 1 * 64];
-    return createUInt256Parse(data, 16, status);
+    return uint256CreateParse(data, 16, status);
 }
 
 private_extern char *
-functionERC20TransferDecodeAddress (BREthereumContractFunction function,
-                                    const char *data) {
-    assert (function == functionERC20Transfer);
+ethFunctionERC20TransferDecodeAddress (BREthereumContractFunction function,
+                                       const char *data) {
+    assert (function == ethFunctionERC20Transfer);
     // Second argument - skip selector + 1st argument
     char result[2 + 40 + 1];
     result[0] = '0';
@@ -358,7 +358,7 @@ functionERC20TransferDecodeAddress (BREthereumContractFunction function,
 /**
  */
 extern const char *
-contractEncode (BREthereumContract contract, BREthereumContractFunction function, ...) {
+ethContractEncode (BREthereumContract contract, BREthereumContractFunction function, ...) {
     // We'll require VAR ARGS
     unsigned int argsCount = function->argumentCount;
     
@@ -382,7 +382,7 @@ contractEncode (BREthereumContract contract, BREthereumContractFunction function
         size_t  bytesCount = va_arg (args, size_t);
         (*function->argumentEncoders[i]) (bytes, bytesCount, targetBytes, 32);
         
-        encodeHex(&encoding[encodingIndex], 65, targetBytes, 32);
+        hexEncode(&encoding[encodingIndex], 65, targetBytes, 32);
         encodingIndex += 64;
     }
     encoding[encodingIndex] = '\0';

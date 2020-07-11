@@ -46,7 +46,7 @@ import static org.junit.Assert.*;
 
 public class BlockchainDbIT {
 
-    private static final String API_BASE_URL = "https://stage2.breadwallet.com";
+    private static final String API_BASE_URL = "https://api.breadwallet.com";
     private static final String BDB_BASE_URL = "https://api.blockset.com";
     private static final String BRD_AUTH_TOKEN = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9." +
             "eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1N" +
@@ -430,7 +430,7 @@ public class BlockchainDbIT {
          blockchainDb.getLogsAsEth(
                  "mainnet",
                  null,
-                 "0x04d542459de6765682d21771d1ba23dc30fb675f",
+                 "0x00000000000000000000000004d542459de6765682d21771d1ba23dc30fb675f",
                  "0xa9059cbb",
                  UnsignedLong.ZERO,
                  UnsignedLong.valueOf(7778000),

@@ -22,6 +22,37 @@
 #include "BRArray.h"
 #include "BRInt.h"
 
+static VLBytes *
+rippleVLBytesClone (VLBytes *bytes) {
+    if (NULL == bytes) return NULL;
+
+    VLBytes *clone = createVLBytes (bytes->length);
+    clone->length = bytes->length;
+    memcpy (clone->value, bytes->value, clone->length);
+
+    return clone;
+}
+
+static BRRippleMemo
+rippleMemoClone (BRRippleMemo memo) {
+    return (BRRippleMemo) {
+        rippleVLBytesClone (memo.memoType),
+        rippleVLBytesClone (memo.memoData),
+        rippleVLBytesClone (memo.memoFormat)
+    };
+}
+
+static BRRippleMemoNode *
+rippleMemoNodeClone (BRRippleMemoNode *node) {
+    if (NULL == node) return NULL;
+
+    BRRippleMemoNode *clone = calloc (1, sizeof (BRRippleMemoNode));
+    clone->memo = rippleMemoClone (node->memo);
+    clone->next = rippleMemoNodeClone (node->next);
+
+    return NULL;
+}
+
 typedef struct _txPaymentRecord {
     // The address to whom the payment is being sent
     BRRippleAddress targetAddress;
@@ -59,6 +90,16 @@ struct BRRippleSerializedTransactionRecord {
 };
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
 
+extern BRRippleSerializedTransaction
+rippleSerializedTransactionClone (const BRRippleSerializedTransaction transaction) {
+    BRRippleSerializedTransaction clone = calloc (1, sizeof (struct BRRippleSerializedTransactionRecord));
+    memcpy (clone, transaction, sizeof (struct BRRippleSerializedTransactionRecord));
+
+    clone->buffer = malloc (clone->size);
+    memcpy (clone->buffer, transaction->buffer, clone->size);
+    return clone;
+}
+
 struct BRRippleTransactionRecord {
     
     // COMMON FIELDS
@@ -70,7 +111,7 @@ struct BRRippleTransactionRecord {
     BRRippleTransactionType transactionType;
 
     // The base fee according to the Ripple network.
-    BRRippleAmount feeBasis;
+    BRRippleFeeBasis feeBasis;
 
     BRRippleUnitDrops fee; // The actual fee sent in the tx
     
@@ -133,16 +174,15 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     BRRippleTransaction transaction = createTransactionObject();
 
     // Common fields
-    transaction->feeBasis.currencyType = 0; // XRP
-    transaction->feeBasis.amount.u64Amount = feeBasis; // NOTE: the actual fee will be calculated during serialization
+    transaction->feeBasis = feeBasis;
     transaction->fee = 0; // Don't know it yet
-    transaction->sourceAddress = sourceAddress;
+    transaction->sourceAddress = rippleAddressClone (sourceAddress);
     transaction->transactionType = RIPPLE_TX_TYPE_PAYMENT;
     transaction->flags = 0x80000000; // tfFullyCanonicalSig
     transaction->lastLedgerSequence = 0;
 
     // Payment information
-    transaction->payment.targetAddress = targetAddress;
+    transaction->payment.targetAddress = rippleAddressClone (targetAddress);
     transaction->payment.amount.currencyType = 0; // XRP
     transaction->payment.amount.amount.u64Amount = amount; // XRP only
     
@@ -151,10 +191,36 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     return transaction;
 }
 
+extern BRRippleTransaction
+rippleTransactionClone (BRRippleTransaction transaction) {
+    BRRippleTransaction clone = createTransactionObject();
+    memcpy (clone, transaction, sizeof(struct BRRippleTransactionRecord));
+
+    if (transaction->payment.targetAddress)
+        clone->payment.targetAddress = rippleAddressClone (transaction->payment.targetAddress);
+
+    if (transaction->sourceAddress)
+        clone->sourceAddress = rippleAddressClone (transaction->sourceAddress);
+
+    if (transaction->signedBytes)
+        clone->signedBytes = rippleSerializedTransactionClone (transaction->signedBytes);
+
+    if (transaction->memos)
+        clone->memos = rippleMemoNodeClone (transaction->memos);
+
+    return clone;
+}
 
 extern void rippleTransactionFree(BRRippleTransaction transaction)
 {
     assert(transaction);
+
+    if (transaction->payment.targetAddress) {
+        rippleAddressFree(transaction->payment.targetAddress);
+    }
+    if (transaction->sourceAddress) {
+        rippleAddressFree(transaction->sourceAddress);
+    }
 
     if (transaction->signedBytes) {
         rippleSerializedTransactionRecordFree(&transaction->signedBytes);
@@ -206,6 +272,13 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
     fields[index].fieldCode = 2;
     fields[index++].data.i32 = transaction->flags;
 
+    // Always add in the destination tag - the Ripple system will ignore it
+    // but exchanges use it to identify internally hosted accounts that share
+    // a single ripple address.
+    fields[index].typeCode = 2;
+    fields[index].fieldCode = 14;
+    fields[index++].data.i32 = transaction->payment.destinationTag;
+
     if (signature) {
         fields[index].typeCode = 7;
         fields[index].fieldCode = 4;
@@ -229,7 +302,7 @@ static uint64_t calculateFee(BRRippleTransaction transaction)
     // the fee = baseFee * numSignatures and since we only support a single
     // signature there is nothing to do here yet.
     // See https://xrpl.org/transaction-cost.html for the calculations required
-    return transaction->feeBasis.amount.u64Amount;
+    return transaction->feeBasis.pricePerCostFactor * transaction->feeBasis.costFactor;
 }
 
 /*
@@ -244,7 +317,10 @@ rippleTransactionSerializeImpl (BRRippleTransaction transaction,
 {
     assert(transaction);
     assert(transaction->transactionType == RIPPLE_TX_TYPE_PAYMENT);
-    BRRippleField fields[10];
+    // NOTE - the address fields will hold a BRRippleAddress pointer BUT
+    // they are owned by the the transaction or transfer so we don't need
+    // to worry about the memory.
+    BRRippleField fields[11];
 
     transaction->fee = calculateFee(transaction);
     int num_fields = setFieldInfo(fields, transaction, signature, sig_length);
@@ -306,14 +382,14 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     // Add the public key to the transaction
     transaction->publicKey = *publicKey;
     
-    // Serialize the bytes
+    // Serialize and sign the tx bytes
     BRRippleSerializedTransaction serializedBytes = rippleTransactionSerializeImpl (transaction, 0, 0);
-    
-    // Sign the bytes and get signature
     BRRippleSignature sig = signBytes(privateKey, serializedBytes->buffer, serializedBytes->size);
 
-    // Re-serialize with signature
     transaction->signedBytes = rippleTransactionSerializeImpl(transaction, sig->signature, sig->sig_length);
+    
+    rippleSignatureDelete(sig);
+    rippleSerializedTransactionRecordFree(&serializedBytes);
 
     // If we got a valid result then generate a hash
     if (transaction->signedBytes) {
@@ -323,7 +399,7 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     }
 
     // Return the pointer to the signed byte object (or perhaps NULL)
-    return transaction->signedBytes->size;
+    return (NULL == transaction->signedBytes ? 0 : transaction->signedBytes->size);
 }
 
 extern uint8_t* rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize)
@@ -398,12 +474,12 @@ extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction)
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->sourceAddress;
+    return rippleAddressClone (transaction->sourceAddress);
 }
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->payment.targetAddress;
+    return rippleAddressClone (transaction->payment.targetAddress);
 }
 
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction)
@@ -427,6 +503,10 @@ extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction)
     return bytes;
 }
 
+extern void rippleTransactionSetInvoiceID (BRRippleTransaction transaction, UInt256 invoiceId) {
+    memcpy (transaction->payment.invoiceId, invoiceId.u8, sizeof (transaction->payment.invoiceId));
+}
+
 extern BRRippleSourceTag rippleTransactionGetSourceTag(BRRippleTransaction transaction)
 {
     assert(transaction);
@@ -437,6 +517,10 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 {
     assert(transaction);
     return transaction->payment.destinationTag;
+}
+
+extern void rippleTransactionSetDestinationTag (BRRippleTransaction transaction, BRRippleDestinationTag tag) {
+    transaction->payment.destinationTag = tag;
 }
 
 extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction)
@@ -556,6 +640,8 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
             // An array of Memos
             transaction->memos = field->memos;
         }
+        // NOTE - the deserialization process created BRRippleAddress objects
+        // but in the call above to getFieldInfo the transaction object now owns the memory
     }
     array_free(fieldArray);
 
@@ -571,7 +657,7 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
 extern BRRippleFeeBasis rippleTransactionGetFeeBasis(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return (BRRippleFeeBasis)transaction->feeBasis.amount.u64Amount;
+    return transaction->feeBasis;
 }
 
 static size_t
@@ -591,3 +677,4 @@ rippleTransactionHashEqual (const void *h1, const void *h2) {
 extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize) {
     return BRSetNew (rippleTransactionHashValue, rippleTransactionHashEqual, initialSize);
 }
+

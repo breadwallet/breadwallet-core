@@ -154,36 +154,34 @@ public class BlockChainDB {
     ///       which suffices for DEBUG builds.
     ///
     public init (session: URLSession = URLSession (configuration: .default),
-                 bdbBaseURL: String = "https://api.blockset.com", // "http://blockchain-db.us-east-1.elasticbeanstalk.com",
+                 bdbBaseURL: String = "https://api.blockset.com",
                  bdbDataTaskFunc: DataTaskFunc? = nil,
                  apiBaseURL: String = "https://api.breadwallet.com",
                  apiDataTaskFunc: DataTaskFunc? = nil) {
 
         self.session = session
 
-        #if DEBUG
-        self.bdbBaseURL = "https://api.blockset.com" // pending
-        self.apiBaseURL = "https://stage2.breadwallet.com"
-        #else
         self.bdbBaseURL = bdbBaseURL
         self.apiBaseURL = apiBaseURL
-        #endif
 
         self.bdbDataTaskFunc = bdbDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }
 
+    // this token has no expiration - testing only.
+    public static let createForTestBDBBaseURL = "https://api.blockset.com"
+    public static let createForTestBDBToken   = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
+
     ///
     /// Create a BlockChainDB using a specified Authorization token.  This is declared 'public'
     /// so that the Crypto Demo can use it.
     ///
-    public static func createForTest (bdbBaseURL: String = "https://api.blockset.com") -> BlockChainDB {
+    public static func createForTest (bdbBaseURL: String = BlockChainDB.createForTestBDBBaseURL,
+                                      bdbToken:   String = BlockChainDB.createForTestBDBToken) -> BlockChainDB {
         return BlockChainDB (bdbBaseURL: bdbBaseURL,
                              bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
-                                // this token has no expiration - testing only.
-                                let token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzQ5NTA2ZS02MWUzLTRjM2UtYWNiNS00OTY5NTM2ZmRhMTAiLCJpYXQiOjE1NzI1NDY1MDAuODg3LCJleHAiOjE4ODAxMzA1MDAuODg3LCJicmQ6Y3QiOiJ1c3IiLCJicmQ6Y2xpIjoiZGViNjNlMjgtMDM0NS00OGY2LTlkMTctY2U4MGNiZDYxN2NiIn0.460_GdAWbONxqOhWL5TEbQ7uEZi3fSNrl0E_Zg7MAg570CVcgO7rSMJvAPwaQtvIx1XFK_QZjcoNULmB8EtOdg"
                                 var decoratedReq = request
-                                decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                                decoratedReq.setValue ("Bearer \(bdbToken)", forHTTPHeaderField: "Authorization")
                                 return session.dataTask (with: decoratedReq, completionHandler: completion)
         })
     }
@@ -270,19 +268,6 @@ public class BlockChainDB {
                     confirmationsUntilFinal: confirmationsUntilFinal)
         }
 
-        static internal func updateBlockchainModelHeight (model: Model.Blockchain, height: UInt64) -> Model.Blockchain {
-            guard nil == model.blockHeight else { return model }
-
-            return (id: model.id,
-                    name: model.name,
-                    network: model.network,
-                    isMainnet: model.isMainnet,
-                    currency: model.currency,
-                    blockHeight: height,
-                    feeEstimates: model.feeEstimates,
-                    confirmationsUntilFinal: model.confirmationsUntilFinal)
-        }
-
         /// Currency & CurrencyDenomination
 
         public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)
@@ -310,7 +295,7 @@ public class BlockChainDB {
 
         static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
         static internal func lookupSymbol (_ code: String) -> String {
-            return currencySymbols[code] ?? code
+            return currencySymbols[code] ?? code.uppercased()
         }
 
         static private let currencyInternalAddress = "__native__"
@@ -354,7 +339,8 @@ public class BlockChainDB {
             acknowledgements: UInt64,
             index: UInt64,
             transactionId: String?,
-            blockchainId: String)
+            blockchainId: String,
+            metaData: Dictionary<String,String>?)
 
         static internal func asTransfer (json: JSON) -> Model.Transfer? {
             guard let id   = json.asString (name: "transfer_id"),
@@ -370,11 +356,13 @@ public class BlockChainDB {
             let source = json.asString (name: "from_address")
             let target = json.asString (name: "to_address")
             let tid    = json.asString (name: "transaction_id")
+            let meta   = json.asDict(name: "meta")?.mapValues { return $0 as! String }
 
             return (id: id, source: source, target: target,
                     amountValue: amountValue, amountCurrency: amountCurrency,
                     acknowledgements: acks, index: index,
-                    transactionId: tid, blockchainId: bid)
+                    transactionId: tid, blockchainId: bid,
+                    metaData: meta)
         }
 
         /// Transaction

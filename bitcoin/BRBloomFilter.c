@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRBloomFilter.h"
+#include "BRBase.h"
 #include "BRCrypto.h"
 #include "BRAddress.h"
 #include "BRInt.h"
@@ -86,7 +87,7 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t bufLen)
         filter->tweak = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
         off += sizeof(uint32_t);
         filter->flags = (off + sizeof(uint8_t) <= bufLen) ? buf[off] : 0;
-        off += sizeof(uint8_t);
+        off += sizeof(uint8_t); ANALYZER_IGNORE_UNREAD_VARIABLE(off);
     }
     
     if (! filter->filter) {
@@ -115,7 +116,7 @@ size_t BRBloomFilterSerialize(const BRBloomFilter *filter, uint8_t *buf, size_t 
         UInt32SetLE(&buf[off], filter->tweak);
         off += sizeof(uint32_t);
         buf[off] = filter->flags;
-        off += sizeof(uint8_t);
+        off += sizeof(uint8_t); ANALYZER_IGNORE_UNREAD_VARIABLE(off);
     }
     
     return (! buf || len <= bufLen) ? len : 0;

@@ -26,17 +26,17 @@ extern "C" {
  * @return
  */
 extern BREthereumAccount
-createAccount(const char *paperKey);
+ethAccountCreate (const char *paperKey);
 
 /**
  * Create a new account using the 65 bytes, 0x04-prefixed, uncompressed public key (as returned
  * by addressGetPublicKey())
  */
 extern BREthereumAccount
-createAccountWithPublicKey (const BRKey publicKey);
+ethAccountCreateWithPublicKey (const BRKey publicKey);
 
 extern BREthereumAccount
-createAccountWithBIP32Seed (UInt512 seed);
+ethAccountCreateWithBIP32Seed (UInt512 seed);
 
 /**
  * Create a new account using paperKey and the provided wordList
@@ -47,10 +47,10 @@ createAccountWithBIP32Seed (UInt512 seed);
  * @return
  */
 extern BREthereumAccount
-createAccountDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
+ethAccountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
 
 extern void
-accountFree (BREthereumAccount account);
+ethAccountRelease (BREthereumAccount account);
 
 /**
  * The account's primary address (aka 'address[0]').
@@ -59,32 +59,32 @@ accountFree (BREthereumAccount account);
  * @return
  */
 extern BREthereumAddress
-accountGetPrimaryAddress(BREthereumAccount account);
+ethAccountGetPrimaryAddress(BREthereumAccount account);
 
 extern char *
-accountGetPrimaryAddressString (BREthereumAccount account);
+ethAccountGetPrimaryAddressString (BREthereumAccount account);
 
 /**
  * the public key for the account's primary address
  */
 extern BRKey
-accountGetPrimaryAddressPublicKey (BREthereumAccount account);
+ethAccountGetPrimaryAddressPublicKey (BREthereumAccount account);
 
 /**
  * the privateKey for the account's primary address
  */
 extern BRKey
-accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
-                                    const char *paperKey);
+ethAccountGetPrimaryAddressPrivateKey (BREthereumAccount account,
+                                       const char *paperKey);
 
 #if defined (DEBUG)
 extern const char *
-accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed);
+ethAccountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed);
 #endif
 
 extern BREthereumBoolean
-accountHasAddress(BREthereumAccount account,
-                  BREthereumAddress address);
+ethAccountHasAddress(BREthereumAccount account,
+                     BREthereumAddress address);
 
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm
@@ -97,20 +97,20 @@ accountHasAddress(BREthereumAccount account,
  * @return
  */
 extern BREthereumSignature
-accountSignBytesWithPrivateKey(BREthereumAccount account,
-                               BREthereumAddress address,
-                               BREthereumSignatureType type,
-                               uint8_t *bytes,
-                               size_t bytesCount,
-                               BRKey privateKey);
+ethAccountSignBytesWithPrivateKey(BREthereumAccount account,
+                                  BREthereumAddress address,
+                                  BREthereumSignatureType type,
+                                  uint8_t *bytes,
+                                  size_t bytesCount,
+                                  BRKey privateKey);
 
 extern BREthereumSignature
-accountSignBytes(BREthereumAccount account,
-                 BREthereumAddress address,
-                 BREthereumSignatureType type,
-                 uint8_t *bytes,
-                 size_t bytesCount,
-                 const char *paperKey);
+ethAccountSignBytes(BREthereumAccount account,
+                    BREthereumAddress address,
+                    BREthereumSignatureType type,
+                    uint8_t *bytes,
+                    size_t bytesCount,
+                    const char *paperKey);
 
 //
 // Support (quasi-private)
@@ -126,25 +126,25 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
 // New
 //
 extern uint32_t
-accountGetAddressIndex (BREthereumAccount account,
-                        BREthereumAddress address);
+ethAccountGetAddressIndex (BREthereumAccount account,
+                           BREthereumAddress address);
 
 extern uint64_t
-accountGetAddressNonce (BREthereumAccount account,
-                        BREthereumAddress address);
+ethAccountGetAddressNonce (BREthereumAccount account,
+                           BREthereumAddress address);
 
 //
 // Private
 //
 private_extern void
-accountSetAddressNonce(BREthereumAccount account,
-                       BREthereumAddress address,
-                       uint64_t nonce,
-                       BREthereumBoolean force);
+ethAccountSetAddressNonce(BREthereumAccount account,
+                          BREthereumAddress address,
+                          uint64_t nonce,
+                          BREthereumBoolean force);
 
 private_extern uint64_t
-accountGetThenIncrementAddressNonce(BREthereumAccount account,
-                                    BREthereumAddress address);
+ethAccountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                       BREthereumAddress address);
 
 #ifdef __cplusplus
 }

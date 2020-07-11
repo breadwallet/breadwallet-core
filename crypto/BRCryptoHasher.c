@@ -14,13 +14,12 @@
 #include "BRCryptoHasher.h"
 #include "support/BRCrypto.h"
 
-static void
-cryptoHasherRelease (BRCryptoHasher hasher);
-
 struct BRCryptoHasherRecord {
     BRCryptoHasherType type;
     BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);
 
 extern BRCryptoHasher
 cryptoHasherCreate(BRCryptoHasherType type) {
@@ -191,5 +190,3 @@ cryptoHasherHash (BRCryptoHasher hasher,
 
     return result;
 }
-
-IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoHasher, cryptoHasher);

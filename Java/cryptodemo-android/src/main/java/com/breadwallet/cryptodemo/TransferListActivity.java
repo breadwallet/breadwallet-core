@@ -38,6 +38,7 @@ import android.widget.Toast;
 import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.NetworkPeer;
+import com.breadwallet.crypto.NetworkType;
 import com.breadwallet.crypto.PaymentProtocolRequestType;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -105,8 +106,9 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             return;
         }
 
-        String currencyCode = wallet.getCurrency().getCode();
-        isBitcoin = Currency.CODE_AS_BTC.equals(currencyCode) || Currency.CODE_AS_BCH.equals(currencyCode);
+        String currencyCode = wallet.getCurrency().getCode().toLowerCase();
+        NetworkType networkType = wallet.getWalletManager().getNetwork().getType();
+        isBitcoin = NetworkType.BTC == networkType || NetworkType.BCH == networkType;
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
         Button sendView = findViewById(R.id.send_view);
@@ -317,7 +319,7 @@ public class TransferListActivity extends AppCompatActivity implements DefaultSy
             WalletManager wm = wallet.getWalletManager();
             System system = wm.getSystem();
             Network network = wm.getNetwork();
-            List<WalletManagerMode> modes = system.getSupportedWalletManagerModes(network);
+            List<WalletManagerMode> modes = network.getSupportedWalletManagerModes();
 
             String[] itemTexts = new String[modes.size()];
             WalletManagerMode[] itemModes = new WalletManagerMode[modes.size()];

@@ -10,7 +10,6 @@
 //
 import Foundation // Data
 import BRCryptoC
-import BRCryptoC.Impl
 
 ///
 /// A WallettManager manages one or more wallets one of which is designated the `primaryWallet`.
@@ -47,7 +46,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     public var mode: WalletManagerMode {
         get { return WalletManagerMode (core: cryptoWalletManagerGetMode (core)) }
         set {
-            assert (system.supportsMode(network: network, newValue))
+            assert (network.supportsMode(newValue))
             cryptoWalletManagerSetMode (core, newValue.core)
         }
     }
@@ -159,7 +158,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     public var addressScheme: AddressScheme {
         get { return AddressScheme (core: cryptoWalletManagerGetAddressScheme (core)) }
         set {
-            assert (system.supportsAddressScheme(network: network, newValue))
+            assert (network.supportsAddressScheme(newValue))
             cryptoWalletManagerSetAddressScheme (core, newValue.core)
         }
     }
@@ -263,7 +262,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                 currencies: Set<Currency>,
                                 storagePath: String,
                                 listener: BRCryptoCWMListener,
-                                client: BRCryptoCWMClient) {
+                                client: BRCryptoClient) {
         guard let core = cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
@@ -388,8 +387,8 @@ public final class WalletSweeper {
             return
         }
 
-        switch wallet.currency.code {
-        case Currency.codeAsBTC:
+        switch cryptoNetworkGetCanonicalType (wallet.manager.network.core) {
+        case CRYPTO_NETWORK_TYPE_BTC:
             // handle as BTC, creating the underlying BRCryptoWalletSweeper and initializing it
             // using the BlockchainDB
             createAsBtc(wallet: wallet,
@@ -494,16 +493,16 @@ public enum WalletManagerDisconnectReason: Equatable {
     case unknown
     case posix(errno: Int32, message: String?)
 
-    internal init (core: BRDisconnectReason) {
+    internal init (core: BRCryptoWalletManagerDisconnectReason) {
         switch core.type {
-        case DISCONNECT_REASON_REQUESTED:
+        case CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_REQUESTED:
             self = .requested
-        case DISCONNECT_REASON_UNKNOWN:
+        case CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_UNKNOWN:
             self = .unknown
-        case DISCONNECT_REASON_POSIX:
+        case CRYPTO_WALLET_MANAGER_DISCONNECT_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRDisconnectReasonGetMessage(&c).map{ asUTF8String($0, true) })
+                          message: cryptoWalletManagerDisconnectReasonGetMessage(&c).map{ asUTF8String($0, true) })
         default: self = .unknown; preconditionFailure()
         }
     }
@@ -571,22 +570,22 @@ public enum WalletManagerMode: Equatable {
         }
     }
 
-    internal init (core: BRSyncMode) {
+    internal init (core: BRCryptoSyncMode) {
         switch core {
-        case SYNC_MODE_BRD_ONLY: self = .api_only
-        case SYNC_MODE_BRD_WITH_P2P_SEND: self = .api_with_p2p_submit
-        case SYNC_MODE_P2P_WITH_BRD_SYNC: self = .p2p_with_api_sync
-        case SYNC_MODE_P2P_ONLY: self = .p2p_only
+        case CRYPTO_SYNC_MODE_API_ONLY: self = .api_only
+        case CRYPTO_SYNC_MODE_API_WITH_P2P_SEND: self = .api_with_p2p_submit
+        case CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC: self = .p2p_with_api_sync
+        case CRYPTO_SYNC_MODE_P2P_ONLY: self = .p2p_only
         default: self = .api_only; preconditionFailure()
         }
     }
 
-    internal var core: BRSyncMode {
+    internal var core: BRCryptoSyncMode {
         switch self {
-        case .api_only: return SYNC_MODE_BRD_ONLY
-        case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
-        case .p2p_with_api_sync: return SYNC_MODE_P2P_WITH_BRD_SYNC
-        case .p2p_only: return SYNC_MODE_P2P_ONLY
+        case .api_only: return CRYPTO_SYNC_MODE_API_ONLY
+        case .api_with_p2p_submit: return CRYPTO_SYNC_MODE_API_WITH_P2P_SEND
+        case .p2p_with_api_sync: return CRYPTO_SYNC_MODE_P2P_WITH_API_SYNC
+        case .p2p_only: return CRYPTO_SYNC_MODE_P2P_ONLY
         }
     }
 
@@ -627,20 +626,20 @@ public enum WalletManagerSyncDepth: Equatable {
         }
     }
 
-    internal init (core: BRSyncDepth) {
+    internal init (core: BRCryptoSyncDepth) {
         switch core {
-        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: self = .fromLastConfirmedSend
-        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: self = .fromLastTrustedBlock
-        case SYNC_DEPTH_FROM_CREATION: self = .fromCreation
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: self = .fromLastConfirmedSend
+        case CRYPTO_SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: self = .fromLastTrustedBlock
+        case CRYPTO_SYNC_DEPTH_FROM_CREATION: self = .fromCreation
         default: self = .fromCreation; preconditionFailure()
         }
     }
 
-    internal var core: BRSyncDepth {
+    internal var core: BRCryptoSyncDepth {
         switch self {
-        case .fromLastConfirmedSend: return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND
-        case .fromLastTrustedBlock: return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK
-        case .fromCreation: return SYNC_DEPTH_FROM_CREATION
+        case .fromLastConfirmedSend: return CRYPTO_SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND
+        case .fromLastTrustedBlock: return CRYPTO_SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK
+        case .fromCreation: return CRYPTO_SYNC_DEPTH_FROM_CREATION
         }
     }
 
@@ -669,18 +668,18 @@ public enum WalletManagerSyncStoppedReason: Equatable {
     case unknown
     case posix(errno: Int32, message: String?)
 
-    internal init (core: BRSyncStoppedReason) {
+    internal init (core: BRCryptoSyncStoppedReason) {
         switch core.type {
-        case SYNC_STOPPED_REASON_COMPLETE:
+        case CRYPTO_SYNC_STOPPED_REASON_COMPLETE:
             self = .complete
-        case SYNC_STOPPED_REASON_REQUESTED:
+        case CRYPTO_SYNC_STOPPED_REASON_REQUESTED:
             self = .requested
-        case SYNC_STOPPED_REASON_UNKNOWN:
+        case CRYPTO_SYNC_STOPPED_REASON_UNKNOWN:
             self = .unknown
-        case SYNC_STOPPED_REASON_POSIX:
+        case CRYPTO_SYNC_STOPPED_REASON_POSIX:
             var c = core
             self = .posix(errno: core.u.posix.errnum,
-                          message: BRSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0, true) })
+                          message: cryptoSyncStoppedReasonGetMessage(&c).map{ asUTF8String($0, true) })
         default: self = .unknown; preconditionFailure()
         }
     }

@@ -14,11 +14,12 @@
 #include <string.h>
 
 #include "BRCryptoBase.h"
-#include "BRCryptoAddress.h"
-#include "BRCryptoAmount.h"
-#include "BRCryptoCurrency.h"
-#include "BRCryptoPrivate.h"
-#include "BRCryptoNetwork.h"
+
+#include "BRCryptoNetworkP.h"
+#include "BRCryptoAmountP.h"
+#include "BRCryptoTransferP.h"
+#include "BRCryptoAddressP.h"
+#include "BRCryptoWalletP.h"
 
 #include "bcash/BRBCashAddr.h"
 #include "bitcoin/BRPaymentProtocol.h"
@@ -34,9 +35,6 @@ static BRCryptoPaymentProtocolRequest
 cryptoPaymentProtocolRequestCreateForBitPay (BRCryptoPaymentProtocolRequestBitPayBuilder builder);
 
 /// MARK: - BitPay Payment Protocol Request Builder Implementation
-
-static void
-cryptoPaymentProtocolRequestBitPayBuilderRelease (BRCryptoPaymentProtocolRequestBitPayBuilder builder);
 
 struct BRCryptoPaymentProtocolRequestBitPayBuilderRecord {
     BRCryptoNetwork cryptoNetwork;
@@ -405,7 +403,7 @@ cryptoPaymentProtocolRequestGetTotalAmount (BRCryptoPaymentProtocolRequest proto
             }
 
             BRCryptoUnit baseUnit = cryptoNetworkGetUnitAsBase (protoReq->cryptoNetwork, protoReq->cryptoCurrency);
-            amount = cryptoAmountCreate (baseUnit, CRYPTO_FALSE, createUInt256 (satoshis));
+            amount = cryptoAmountCreate (baseUnit, CRYPTO_FALSE, uint256Create (satoshis));
             cryptoUnitGive (baseUnit);
             break;
         }
@@ -778,7 +776,7 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
                 uint8_t *transactionBuf = malloc (transactionBufLen);
                 BRTransactionSerialize (protoPay->u.btcBitPay.transaction, transactionBuf, transactionBufLen);
                 size_t transactionHexLen = 0;
-                char *transactionHex = encodeHexCreate (&transactionHexLen, transactionBuf, transactionBufLen);
+                char *transactionHex = hexEncodeCreate (&transactionHexLen, transactionBuf, transactionBufLen);
 
                 array_add_array (encodedArray, transactionHex, transactionHexLen - 1);
 

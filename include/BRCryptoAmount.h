@@ -114,6 +114,9 @@ extern "C" {
     cryptoAmountIsCompatible (BRCryptoAmount a1,
                               BRCryptoAmount a2);
 
+    extern BRCryptoBoolean
+    cryptoAmountIsZero (BRCryptoAmount amount);
+
     extern BRCryptoComparison
     cryptoAmountCompare (BRCryptoAmount a1,
                          BRCryptoAmount a2);
@@ -171,6 +174,11 @@ extern "C" {
     extern uint64_t
     cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                                BRCryptoBoolean *overflow);
+
+    extern char *
+    cryptoAmountGetStringPrefaced (BRCryptoAmount amount,
+                                   int base,
+                                   const char *preface);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 

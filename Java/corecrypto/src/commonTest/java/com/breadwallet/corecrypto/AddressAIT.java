@@ -27,33 +27,19 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsEthOnMainnet() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
+        Network network = Network.findBuiltin("ethereum-mainnet").get();
 
-        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
-
-        NetworkAssociation association_eth = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(eth, association_eth);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> oe1 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe1.isPresent());
         Address e1 = oe1.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.toString());
 
-        Optional<Address> oe2 = network.addressFor("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
+        Optional<Address> oe2 = Address.create("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network);
         assertTrue(oe2.isPresent());
         Address e2 = oe2.get();
         assertEquals("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2.toString());
 
-        Optional<Address> oe3 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe3 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe3.isPresent());
         Address e3 = oe3.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e3.toString());
@@ -68,59 +54,33 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtcOnMainnet() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
+        Network network = Network.findBuiltin("bitcoin-mainnet").get();
 
-        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_btc, btc_btc, new HashSet<>(Arrays.asList(satoshi_btc, btc_btc)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(btc, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> ob1 = network.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
+        Optional<Address> ob1 = Address.create("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network);
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", b1.toString());
 
-        assertFalse(network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v").isPresent());
-        assertFalse(network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v").isPresent());
+        assertFalse(Address.create("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network).isPresent());
+        assertFalse(Address.create("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network).isPresent());
     }
 
     @Test
     public void testAddressCreateAsBchOnMainnet() {
-        Currency bch = Currency.create("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", null);
+        Network network = Network.findBuiltin("bitcoincash-mainnet").get();
 
-        Unit satoshi_bch = Unit.create(bch, "BCH-SAT", "Satoshi", "SAT");
-        Unit btc_bch = Unit.create(bch, "BCH-BTC", "Bitcoin", "B", satoshi_bch, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_bch, btc_bch, new HashSet<>(Arrays.asList(satoshi_bch, btc_bch)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(bch, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, bch, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> ob1 = network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v");
+        Optional<Address> ob1 = Address.create("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network);
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
         assertEquals("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", b1.toString());
 
-        ob1 = network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v");
+        ob1 = Address.create("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", network);
         assertTrue(ob1.isPresent());
         b1 = ob1.get();
         assertEquals("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", b1.toString());
 
-        assertFalse(network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").isPresent());
-        assertFalse(network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2").isPresent());
+        assertFalse(Address.create("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", network).isPresent());
+        assertFalse(Address.create("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2", network).isPresent());
     }
 
     @Test
@@ -128,44 +88,15 @@ public class AddressAIT {
         //
         // BTC
         //
-
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
-
-        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_btc, btc_btc, new HashSet<>(Arrays.asList(satoshi_btc, btc_btc)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(btc, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network_btc = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
+        Network network_btc = Network.findBuiltin("bitcoin-mainnet").get();
 
         //
         // ETH
         //
+        Network network_eth = Network.findBuiltin("ethereum-mainnet").get();
 
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
-
-        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
-
-        NetworkAssociation association_eth = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
-
-        associations = new HashMap<>();
-        associations.put(eth, association_eth);
-
-        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
-        fees = Collections.singletonList(fee);
-
-        Network network_eth = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Address e1 = network_eth.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
-        Address b1 = network_btc.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj").get();
+        Address e1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network_eth).get();
+        Address b1 = Address.create("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network_btc).get();
 
         assertNotEquals(e1, b1);
         assertNotEquals(b1, e1);
@@ -173,33 +104,19 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsEthOnTestnet() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
+        Network network = Network.findBuiltin("ethereum-ropsten").get();
 
-        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
-
-        NetworkAssociation association_eth = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(eth, association_eth);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> oe1 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe1.isPresent());
         Address e1 = oe1.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.toString());
 
-        Optional<Address> oe2 = network.addressFor("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
+        Optional<Address> oe2 = Address.create("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network);
         assertTrue(oe2.isPresent());
         Address e2 = oe2.get();
         assertEquals("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2.toString());
 
-        Optional<Address> oe3 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe3 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network);
         assertTrue(oe3.isPresent());
         Address e3 = oe3.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e3.toString());
@@ -214,22 +131,9 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtcOnTestnet() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
+        Network network = Network.findBuiltin("bitcoin-testnet").get();
 
-        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_btc, btc_btc, new HashSet<>(Arrays.asList(satoshi_btc, btc_btc)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(btc, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> ob1 = network.addressFor("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq");
+        Optional<Address> ob1 = Address.create("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", network);
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
         assertEquals("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", b1.toString());
@@ -239,32 +143,19 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBchOnTestnet() {
-        Currency bch = Currency.create("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", null);
+        Network network = Network.findBuiltin("bitcoincash-testnet").get();
 
-        Unit satoshi_bch = Unit.create(bch, "BCH-SAT", "Satoshi", "SAT");
-        Unit btc_bch = Unit.create(bch, "BCH-BTC", "Bitcoin", "B", satoshi_bch, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_bch, btc_bch, new HashSet<>(Arrays.asList(satoshi_bch, btc_bch)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(bch, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", false, bch, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Optional<Address> ob1 = network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t");
+        Optional<Address> ob1 = Address.create("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", network);
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
         assertEquals("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", b1.toString());
 
-        ob1 = network.addressFor("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t");
+        ob1 = Address.create("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", network);
         assertTrue(ob1.isPresent());
         b1 = ob1.get();
         assertEquals("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", b1.toString());
 
-        assertFalse(network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").isPresent());
+        assertFalse(Address.create("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", network).isPresent());
     }
 
     @Test
@@ -272,44 +163,15 @@ public class AddressAIT {
         //
         // BTC
         //
-
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
-
-        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
-
-        NetworkAssociation association = new NetworkAssociation(satoshi_btc, btc_btc, new HashSet<>(Arrays.asList(satoshi_btc, btc_btc)));
-
-        Map<Currency, NetworkAssociation> associations = new HashMap<>();
-        associations.put(btc, association);
-
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
-        List<NetworkFee> fees = Collections.singletonList(fee);
-
-        Network network_btc = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
+        Network network_btc = Network.findBuiltin("bitcoin-testnet").get();
 
         //
         // ETH
         //
+        Network network_eth = Network.findBuiltin("ethereum-ropsten").get();
 
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
-
-        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
-
-        NetworkAssociation association_eth = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
-
-        associations = new HashMap<>();
-        associations.put(eth, association_eth);
-
-        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
-        fees = Collections.singletonList(fee);
-
-        Network network_eth = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
-
-        Address e1 = network_eth.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
-        Address b1 = network_btc.addressFor("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq").get();
+        Address e1 = Address.create("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network_eth).get();
+        Address b1 = Address.create("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", network_btc).get();
 
         assertNotEquals(e1, b1);
         assertNotEquals(b1, e1);

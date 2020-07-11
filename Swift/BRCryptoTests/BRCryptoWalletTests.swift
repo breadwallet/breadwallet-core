@@ -57,6 +57,8 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (wallet.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (wallet.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (wallet.balance, Amount.create(integer: 0, unit: wallet.unit))
+        XCTAssertEqual (wallet.balanceMinimum, Amount.create(integer: 0, unit: wallet.unit));
+        XCTAssertNil   (wallet.balanceMaximum)
         XCTAssertEqual (wallet.state, WalletState.created)
         XCTAssertEqual (wallet.target, wallet.targetForScheme(manager.addressScheme))
         XCTAssertEqual (wallet, wallet)
@@ -187,7 +189,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
                 }
             }]
 
-        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .bch == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
@@ -197,8 +199,9 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil(wallet)
 
         // Checking the wallet address as BCHH
-        let walletAddress = wallet.source
+        let walletAddress = wallet.target
         XCTAssertTrue (walletAddress.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+        XCTAssertTrue (wallet.hasAddress(walletAddress))
     }
 
     func testWalletETH() {
@@ -232,7 +235,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         prepareSystem(listener: listener)
 
-        let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
+        let network: Network! = system.networks.first { .eth == $0.type && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
@@ -281,9 +284,12 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (walletETH.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletETH.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletETH.balance, Amount.create(integer: 0, unit: walletETH.unit))
+        XCTAssertEqual (walletETH.balanceMinimum, Amount.create(integer: 0, unit: walletETH.unit));
+        XCTAssertNil   (walletETH.balanceMaximum)
         XCTAssertEqual (walletETH.state, WalletState.created)
         XCTAssertEqual (walletETH.target, walletETH.targetForScheme(manager.addressScheme))
         XCTAssertEqual (walletETH, walletETH)
+        XCTAssertTrue  (walletETH.hasAddress(walletETH.target));
 
 
         XCTAssertTrue  (system === walletBRD.system)
@@ -293,8 +299,138 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotEqual (walletBRD.unit,       network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletBRD.unitForFee, network.defaultUnitFor(currency: network.currency))
         XCTAssertEqual (walletBRD.balance, Amount.create(integer: 0, unit: walletBRD.unit))
+        XCTAssertEqual (walletBRD.balanceMinimum, Amount.create(integer: 0, unit: walletBRD.unit));
+        XCTAssertNil   (walletBRD.balanceMaximum)
         XCTAssertEqual (walletBRD.state, WalletState.created)
         XCTAssertEqual (walletBRD.target, walletBRD.targetForScheme(manager.addressScheme))
+        XCTAssertTrue  (walletBRD.hasAddress(walletBRD.target))
+    }
 
+    func testWalletXRP() {
+        isMainnet = false
+        currencyCodesToMode = ["xrp":WalletManagerMode.api_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+
+        prepareSystem()
+
+        // Connect and wait for a number of transfers
+        let network: Network! = system.networks.first { "xrp" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+
+        let wallet = manager.primaryWallet
+        XCTAssertNotNil(wallet)
+
+        XCTAssertTrue  (system === wallet.system)
+        XCTAssertEqual (manager, wallet.manager)
+        XCTAssertEqual (network.currency, wallet.currency)
+        XCTAssertEqual (wallet.unit, manager.unit)
+        XCTAssertEqual (wallet.unit,       network.defaultUnitFor(currency: network.currency))
+        XCTAssertEqual (wallet.unitForFee, network.defaultUnitFor(currency: network.currency))
+        XCTAssertEqual (wallet.balance,        Amount.create(integer:  0, unit: wallet.unit))
+        XCTAssertEqual (wallet.balanceMinimum, Amount.create(integer: 20, unit: wallet.unit));
+        XCTAssertNil   (wallet.balanceMaximum)
+        XCTAssertEqual (wallet.state, WalletState.created)
+        XCTAssertEqual (wallet.target, wallet.targetForScheme(manager.addressScheme))
+        XCTAssertEqual (wallet, wallet)
+
+        var attributes: Set<TransferAttribute> = wallet.transferAttributes
+        XCTAssertEqual(2, attributes.count)
+        for key in ["DestinationTag", "InvoiceId"] {
+            XCTAssertTrue(attributes.contains { key == $0.key })
+        }
+        XCTAssertTrue (attributes.reduce(true) { $0 && !$1.isRequired })
+        XCTAssertNil (wallet.validateTransferAttributes(attributes))
+
+        // Destination Tag parses
+        attributes = Set(wallet.transferAttributes.map {
+            switch $0.key {
+            case "DestinationTag":
+                $0.value = "1234567"
+            default:
+                break
+            }
+            return $0
+        })
+        XCTAssertNil (wallet.validateTransferAttributes(attributes))
+
+        // DestinationTag does not parse
+        attributes = Set(wallet.transferAttributes.map {
+            switch $0.key {
+            case "DestinationTag":
+                $0.value = "x123.4567x"
+            default:
+                break
+            }
+            return $0
+        })
+        if case .mismatchedType = wallet.validateTransferAttributes(attributes) {}
+        else { XCTAssert (false ) }
+
+        let coinbase = Address.create(string: "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w", network: network)!
+        attributes = wallet.transferAttributesFor (target: coinbase)
+        XCTAssertEqual(2, attributes.count)
+        for key in ["DestinationTag", "InvoiceId"] {
+            XCTAssertTrue(attributes.contains { key == $0.key })
+        }
+        if let attrDestination = attributes.first(where: { "DestinationTag" == $0.key }) {
+            XCTAssertTrue (attrDestination.isRequired)
+        }
+        else { XCTAssert (false) }
+
+        if let attrDestination = attributes.first(where: { "InvoiceId" == $0.key }) {
+            XCTAssertFalse (attrDestination.isRequired)
+        }
+        else { XCTAssert (false) }
+
+        // DestinationTag required but not provided
+        attributes = Set(wallet.transferAttributesFor(target: coinbase)
+            .map {
+                var attribute: TransferAttribute = $0
+                switch attribute.key {
+                case "DestinationTag":
+                    attribute.value = nil
+                default:
+                    break
+                }
+                return attribute
+        })
+        if case .requiredButNotProvided = wallet.validateTransferAttributes(attributes) {}
+        else { XCTAssert (false ) }
+
+        /// Transfer
+        let feeBasisPricePerCostFactor = Amount.create (integer: 10, unit: network.baseUnitFor(currency: network.currency)!)
+        let feeBasisCostFactor = 1.0
+        let feeBasis: TransferFeeBasis! =
+            wallet.createTransferFeeBasis (pricePerCostFactor: feeBasisPricePerCostFactor,
+                                           costFactor: feeBasisCostFactor)
+
+        attributes = Set(wallet.transferAttributesFor(target: coinbase)
+            .compactMap {
+                switch $0.key {
+                case "DestinationTag":
+                    var attribute = $0
+                    attribute.value = "1234567"
+                    return attribute
+                default:
+                    return nil
+                }
+        })
+
+        if let transfer = wallet.createTransfer (target: coinbase,
+                                                 amount: Amount.create(integer: 20, unit: wallet.unit),
+                                                 estimatedFeeBasis: feeBasis,
+                                                 attributes: attributes) {
+            let transferAttributes = transfer.attributes
+            XCTAssertTrue (attributes.subtracting(transferAttributes).isEmpty)
+        }
+        else { XCTAssert (false) }
     }
 }

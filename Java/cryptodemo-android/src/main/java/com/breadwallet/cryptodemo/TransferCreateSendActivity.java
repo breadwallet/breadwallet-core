@@ -28,18 +28,29 @@ import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferAttribute;
 import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.errors.LimitEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+
+import java.security.cert.PKIXRevocationChecker;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class TransferCreateSendActivity extends AppCompatActivity {
 
     private static final double MIN_VALUE = 0.0;
-    private static final double MAX_VALUE = 0.001;
 
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferCreateSendActivity.EXTRA_WALLET_NAME";
 
@@ -68,11 +79,14 @@ public class TransferCreateSendActivity extends AppCompatActivity {
     @Nullable
     private TransferFeeBasis feeBasis;
 
-    private double maxValue;
+    private Amount minValue;
+    private Amount maxValue;
 
     private EditText receiverView;
     private SeekBar amountView;
     private TextView amountValueView;
+    private TextView amountMinView;
+    private TextView amountMaxView;
     private TextView feeView;
     private Button submitView;
 
@@ -92,18 +106,16 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         network = walletManager.getNetwork();
         fee = walletManager.getDefaultNetworkFee();
         baseUnit = wallet.getUnit();
-        maxValue = wallet.getBalance().doubleAmount(baseUnit).or(MAX_VALUE);
+        minValue = Amount.create(0, baseUnit);
+        maxValue = wallet.getBalance();
 
         receiverView = findViewById(R.id.receiver_view);
         amountView = findViewById(R.id.amount_view);
         amountValueView = findViewById(R.id.amount_value_view);
         feeView = findViewById(R.id.fee_view);
         submitView = findViewById(R.id.submit_view);
-        TextView amountMinView = findViewById(R.id.amount_min_view);
-        TextView amountMaxView = findViewById(R.id.amount_max_view);
-
-        amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).toString());
-        amountMaxView.setText(Amount.create(maxValue, baseUnit).toString());
+        amountMinView = findViewById(R.id.amount_min_view);
+        amountMaxView = findViewById(R.id.amount_max_view);
 
         int amountViewProgress = 50;
         amountView.setProgress(amountViewProgress);
@@ -128,6 +140,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         receiverView.addTextChangedListener(new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
+                updateLimit();
                 updateFee();
                 updateViewOnChange(s);
             }
@@ -143,7 +156,7 @@ public class TransferCreateSendActivity extends AppCompatActivity {
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
-            Optional<? extends Address> target = network.addressFor(addressStr);
+            Optional<? extends Address> target = Address.create(addressStr, network);
             if (!target.isPresent()) {
                 showError("Invalid target address");
                 return;
@@ -155,25 +168,60 @@ public class TransferCreateSendActivity extends AppCompatActivity {
                 return;
             }
 
-            Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
+            Amount amount = calculateValue(amountView.getProgress());
             showConfirmTransfer(target.get(), amount, feeBasis);
         });
 
         Toolbar toolbar = findViewById(R.id.toolbar_view);
         setSupportActionBar(toolbar);
 
+        updateLimit();
         updateFee();
         updateView(amountViewProgress, receiverViewText);;
     }
 
-    private void updateFee() {
+    private void updateLimit() {
         String addressStr = receiverView.getText().toString();
         Optional<? extends Address> target = network.addressFor(addressStr);
         if (!target.isPresent()) {
             return;
         }
 
-        Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
+        wallet.estimateLimitMinimum(target.get(), fee, new CompletionHandler<Amount, LimitEstimationError>() {
+            @Override
+            public void handleData(Amount amount) {
+                minValue = amount;
+                updateViewOnLimitEstimate();
+            }
+
+            @Override
+            public void handleError(LimitEstimationError error) {
+                // do nothing
+            }
+        });
+
+        wallet.estimateLimitMaximum(target.get(), fee, new CompletionHandler<Amount, LimitEstimationError>() {
+            @Override
+            public void handleData(Amount amount) {
+                maxValue = amount;
+                updateViewOnLimitEstimate();
+            }
+
+            @Override
+            public void handleError(LimitEstimationError error) {
+                // do nothing
+            }
+        });
+    }
+
+    private void updateFee() {
+        String addressStr = receiverView.getText().toString();
+        Optional<? extends Address> target = Address.create(addressStr, network);
+        if (!target.isPresent()) {
+            return;
+        }
+
+        Amount amount = calculateValue(amountView.getProgress());
         wallet.estimateFee(target.get(), amount, fee, new CompletionHandler<TransferFeeBasis,
                 FeeEstimationError>() {
             @Override
@@ -194,6 +242,10 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         });
     }
 
+    private void updateViewOnLimitEstimate() {
+        updateView(amountView.getProgress(), receiverView.getText());
+    }
+
     private void updateViewOnFeeEstimate() {
         updateView(amountView.getProgress(), receiverView.getText());
     }
@@ -207,12 +259,13 @@ public class TransferCreateSendActivity extends AppCompatActivity {
     }
 
     private void updateView(int progress, CharSequence receiver) {
-        double value = calculateValue(progress);
+        Amount amount = calculateValue(progress);
+        Optional<? extends Address> target = Address.create(receiver.toString(), network);
 
-        Amount amount = Amount.create(value, baseUnit);
-        Optional<? extends Address> target = network.addressFor(receiver.toString());
+        amountMinView.setText(minValue.toStringAsUnit(baseUnit).or(""));
+        amountMaxView.setText(maxValue.toStringAsUnit(baseUnit).or(""));
 
-        if (value == 0) {
+        if (amount.isZero()) {
             // we have a valid amount but it is zero...
             submitView.setEnabled(false);
             amountValueView.setText(amount.toString());
@@ -235,21 +288,58 @@ public class TransferCreateSendActivity extends AppCompatActivity {
         }
     }
 
-    private double calculateValue(int percentage) {
-        return ((maxValue - MIN_VALUE) * percentage / 100) + MIN_VALUE;
+    private Amount calculateValue(int percentage) {
+        Optional<Double> minDoubleAsBase = minValue.doubleAmount(baseUnit);
+        checkState(minDoubleAsBase.isPresent());
+
+        Optional<Double> maxDoubleAsBase = maxValue.doubleAmount(baseUnit);
+        checkState(maxDoubleAsBase.isPresent());
+
+        double deltaDouble = maxDoubleAsBase.get() - minDoubleAsBase.get();
+        double valueDouble = (deltaDouble * percentage / 100) + minDoubleAsBase.get();
+
+        return Amount.create(valueDouble, baseUnit);
     }
 
     private void showConfirmTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
-        String escapedTarget = Html.escapeHtml(target.toString());
+        String targetAsString = target.toString();
+
+        String escapedTarget = Html.escapeHtml(targetAsString);
         String escapedAmount = Html.escapeHtml(amount.toString());
         Spanned message = Html.fromHtml(String.format("Send <b>%s</b> to <b>%s</b>?", escapedAmount, escapedTarget));
+
+        // Assign transfer attributes, if required
+        Set<TransferAttribute> attributes = new HashSet<>();
+        Set<? extends TransferAttribute> walletAttributes = wallet.getTransferAttributesFor(target);
+        for (TransferAttribute attribute : walletAttributes) {
+            // For the Demo, only consider required attributes.
+            if (attribute.isRequired()) {
+                // If it is a 'DestinationTag' attribute and Coinbase, give it a destination
+                if (attribute.getKey().equals("DestinationTag") &&
+                        targetAsString.equals("rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg")) // Coinbase
+                    attribute.setValue("739376465");                    // My Address
+                attributes.add(attribute);
+            }
+        }
 
         new AlertDialog.Builder(this)
                 .setTitle("Confirmation")
                 .setMessage(message)
-                .setNegativeButton("Cancel", (dialog, which) -> {})
+                .setNegativeButton("Cancel",   (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis);
+                    boolean haveRequiredAttributes = true;
+                    for (TransferAttribute attribute : attributes) {
+                        haveRequiredAttributes &=
+                                attribute.isRequired() && attribute.getValue().isPresent();
+                    }
+
+                    if (!haveRequiredAttributes) {
+                        showError("Missed Required Attribute");
+                        return;
+                    }
+
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis, attributes);
+
                     if (!transfer.isPresent()) {
                         showError("Balance too low?");
                     } else {

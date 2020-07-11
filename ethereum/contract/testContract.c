@@ -35,7 +35,7 @@ static BRSetOf(BREthereumToken) tokens;
 
 extern BREthereumToken
 tokenLookupTest (const char *address) {
-    BREthereumAddress addr = addressCreate(address);
+    BREthereumAddress addr = ethAddressCreate(address);
     return BRSetGet (tokens, &addr);
 }
 
@@ -45,14 +45,14 @@ installTokensForTest (void) {
     if (!needInstall) return;
     needInstall = 0;
     
-    BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
-    BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    BREthereumGas defaultGasLimit = ethGasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+    BREthereumGasPrice defaultGasPrice = ethGasPriceCreate(ethEtherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
 
-    tokens = tokenSetCreate(10);
+    tokens = ethTokenSetCreate(10);
 
     BREthereumToken token;
 
-    token = tokenCreate (tokenBRDAddress,
+    token = ethTokenCreate (tokenBRDAddress,
                          "BRD",
                          "BRD Token",
                          "",
@@ -62,7 +62,7 @@ installTokensForTest (void) {
     BRSetAdd (tokens, token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenCreate (tokenTSTAddress,
+    token = ethTokenCreate (tokenTSTAddress,
                          "TST",
                          "Test Standard Token",
                          "TeST Standard Token (TST) for TeSTing (TST)",
@@ -72,7 +72,7 @@ installTokensForTest (void) {
     BRSetAdd (tokens, token);
 
 #endif
-    token = tokenCreate (tokenEOSAddress,
+    token = ethTokenCreate (tokenEOSAddress,
                          "EOS",
                          "EOS Token",
                          "",
@@ -81,7 +81,7 @@ installTokensForTest (void) {
                          defaultGasPrice);
     BRSetAdd (tokens, token);
 
-    token = tokenCreate (tokenKNCAddress,
+    token = ethTokenCreate (tokenKNCAddress,
                          "KNC",
                          "KNC token",
                          "",
@@ -94,20 +94,20 @@ installTokensForTest (void) {
 static void
 runTokenParseTests () {
     BRCoreParseStatus status = CORE_PARSE_OK;
-    UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
+    UInt256 value = uint256CreateParse ("5968770000000000000000", 10, &status);
 
     //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
     //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
 
     BREthereumAddress address;
 
-    address = addressCreate (tokenBRDAddress);
+    address = ethAddressCreate (tokenBRDAddress);
     BREthereumToken token = BRSetGet (tokens, &address);
-    BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
-    assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
+    BREthereumTokenQuantity valueInt = ethTokenQuantityCreateString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
+    assert (CORE_PARSE_OK == status && uint256EQL(value, valueInt.valueAsInteger));
 
-    BREthereumTokenQuantity valueDec = createTokenQuantityString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
-    assert (CORE_PARSE_OK == status && eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
+    BREthereumTokenQuantity valueDec = ethTokenQuantityCreateString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
+    assert (CORE_PARSE_OK == status && uint256EQL(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 
 void runTokenLookupTests () {
@@ -116,19 +116,19 @@ void runTokenLookupTests () {
     BREthereumToken token;
     BREthereumAddress address;
 
-    address = addressCreate (tokenBRDAddress);
+    address = ethAddressCreate (tokenBRDAddress);
 
     token = BRSetGet (tokens, &address); // BRD
     assert (NULL != token);
 
 #if defined (BITCOIN_DEBUG)
-    address = addressCreate (tokenTSTAddress);
+    address = ethAddressCreate (tokenTSTAddress);
     token = BRSetGet (tokens, &address); // TST
     assert (NULL != token);
 #endif
 
 #if !defined(BITCOIN_TESTNET)
-    address = addressCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0");
+    address = ethAddressCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0");
     token = BRSetGet (tokens, &address); // EOI
     assert (NULL != token);
 #endif

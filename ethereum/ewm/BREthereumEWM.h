@@ -27,7 +27,7 @@ extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BRSyncMode mode,
+           BRCryptoSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
            uint64_t blockHeight,
@@ -37,7 +37,7 @@ extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
-                       BRSyncMode mode,
+                       BRCryptoSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
                        uint64_t blockHeight,
@@ -47,7 +47,7 @@ extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRKey publicKey,
                         BREthereumTimestamp accountTimestamp,
-                        BRSyncMode mode,
+                        BRCryptoSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
                         uint64_t blockHeight,
@@ -119,14 +119,14 @@ ewmSync (BREthereumEWM ewm,
 extern BREthereumBoolean
 ewmSyncToDepth (BREthereumEWM ewm,
                 BREthereumBoolean pendExistingTransfers,
-                BRSyncDepth depth);
+                BRCryptoSyncDepth depth);
 
-extern BRSyncMode
+extern BRCryptoSyncMode
 ewmGetMode (BREthereumEWM ewm);
 
 extern void
 ewmUpdateMode (BREthereumEWM ewm,
-               BRSyncMode mode);
+               BRCryptoSyncMode mode);
 
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
@@ -151,6 +151,15 @@ ewmGetWalletHoldingToken(BREthereumEWM ewm,
                          BREthereumToken token);
 
 /// MARK: - Wallet
+
+extern BREthereumAddress
+ewmWalletGetAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet);
+
+extern BREthereumBoolean
+ewmWalletHasAddress (BREthereumEWM ewm,
+                     BREthereumWallet wallet,
+                     BREthereumAddress address);
 
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdatomic.h>
+#include <memory.h>
 
 // temporary
 
@@ -44,14 +45,6 @@ extern "C" {
 
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
-
-    // Private-ish
-    typedef enum {
-        BLOCK_CHAIN_TYPE_BTC,
-        BLOCK_CHAIN_TYPE_ETH,
-        BLOCK_CHAIN_TYPE_GEN
-    } BRCryptoBlockChainType;
-
     // Only for use in Swift/Java
     typedef size_t BRCryptoCount;
 
@@ -61,7 +54,30 @@ extern "C" {
         free (memory);
     }
 
-    /// MARK: Reference Counting
+#if !defined(BLOCK_HEIGHT_UNBOUND)
+// See BRBase.h
+#define BLOCK_HEIGHT_UNBOUND       (UINT64_MAX)
+#endif
+
+    /// MARK: - Data32 / Data16
+
+    typedef struct {
+        uint8_t data[256/8];
+    } BRCryptoData32;
+
+    static inline void cryptoData32Clear (BRCryptoData32 *data32) {
+        memset (data32, 0, sizeof (BRCryptoData32));
+    }
+
+    typedef struct {
+        uint8_t data[128/8];
+    } BRCryptoData16;
+
+    static inline void cryptoData16Clear (BRCryptoData16 *data16) {
+        memset (data16, 0, sizeof (BRCryptoData16));
+    }
+
+    /// MARK: - Reference Counting
 
     typedef struct {
         _Atomic(unsigned int) count;
@@ -83,6 +99,7 @@ static int cryptoRefDebug = 0;
   extern void preface##Give (type obj)
 
 #define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface)                                 \
+  static void preface##Release (type obj);                                        \
   extern type                                                                     \
   preface##Take (type obj) {                                                      \
     unsigned int _c = atomic_fetch_add (&obj->ref.count, 1);                      \

@@ -59,54 +59,54 @@ typedef struct {
  * begin with '0x'.
  */
 extern BREthereumHash
-hashCreate (const char *string);
+ethHashCreate (const char *string);
 
 /**
  * Create an empty (all zeros) Hash
  */
 extern BREthereumHash
-hashCreateEmpty (void);
+ethHashCreateEmpty (void);
 
 /**
  * Creata a Hash by computing it, using Keccak256, from a arbitrary data set
  */
 extern BREthereumHash
-hashCreateFromData (BRRlpData data);
+ethHashCreateFromData (BRRlpData data);
 
 /**
  * Return the hex-encoded string
  */
 extern char *
-hashAsString (BREthereumHash hash);
+ethHashAsString (BREthereumHash hash);
 
 extern BREthereumHash
-hashCopy(BREthereumHash hash);
+ethHashCopy(BREthereumHash hash);
 
 extern BREthereumComparison
-hashCompare(BREthereumHash hash1, BREthereumHash hash2);
+ethHashCompare(BREthereumHash hash1, BREthereumHash hash2);
 
 extern BREthereumBoolean
-hashEqual (BREthereumHash hash1, BREthereumHash hash2);
+ethHashEqual (BREthereumHash hash1, BREthereumHash hash2);
 
 extern BRRlpItem
-hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
+ethHashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
 
 extern BREthereumHash
-hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
+ethHashRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 extern BRRlpItem
-hashEncodeList (BRArrayOf(BREthereumHash) hashes, BRRlpCoder coder);
+ethHashEncodeList (BRArrayOf(BREthereumHash) hashes, BRRlpCoder coder);
 
 // BRSet Support
 inline static int
-hashSetValue (const BREthereumHash *hash) {
+ethHashSetValue (const BREthereumHash *hash) {
     return ((UInt256 *) hash->bytes)->u32[0];
 }
 
 // BRSet Support
 inline static int
-hashSetEqual (const BREthereumHash *hash1,
-              const BREthereumHash *hash2) {
+ethHashSetEqual (const BREthereumHash *hash1,
+                 const BREthereumHash *hash2) {
     return hash1 == hash2 || 0 == memcmp (hash1->bytes, hash2->bytes, ETHEREUM_HASH_BYTES);
 }
 
@@ -116,18 +116,18 @@ hashSetEqual (const BREthereumHash *hash1,
 typedef char BREthereumHashString[2 * ETHEREUM_HASH_BYTES + 3];
 
 extern void
-hashFillString (BREthereumHash hash,
-                BREthereumHashString string);
+ethHashFillString (BREthereumHash hash,
+                   BREthereumHashString string);
 
 //
 // Hash Array
 //
 extern BRArrayOf(BREthereumHash)
-hashesCopy (BRArrayOf(BREthereumHash) hashes);
+ethHashesCopy (BRArrayOf(BREthereumHash) hashes);
 
 extern ssize_t
-hashesIndex (BRArrayOf(BREthereumHash) hashes,
-             BREthereumHash hash);
+ethHashesIndex (BRArrayOf(BREthereumHash) hashes,
+                BREthereumHash hash);
 
 #ifdef __cplusplus
 }

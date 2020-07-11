@@ -12,6 +12,7 @@
 #define BR_Ethereum_Client_H
 
 #include "BREthereumBase.h"
+#include "BRCryptoSync.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,7 +112,9 @@ extern "C" {
                                                  BREthereumEWM ewm,
                                                  BREthereumWallet wid,
                                                  BREthereumTransfer tid,
-                                                 const char *transaction,
+                                                 OwnershipKept const uint8_t *transactionBytes,
+                                                 size_t transactionBytesCount,
+                                                 OwnershipKept const char *transactionHash,
                                                  int rid);
 
     /**
@@ -305,9 +308,9 @@ extern "C" {
 #define WALLET_NUMBER_OF_EVENT_TYPES  (1 + WALLET_EVENT_DELETED)
 
     extern BREthereumWalletEvent
-    walletEventCreateError (BREthereumWalletEventType type,
-                            BREthereumStatus status,
-                            const char *errorDescription);
+    ethWalletEventCreateError (BREthereumWalletEventType type,
+                               BREthereumStatus status,
+                               const char *errorDescription);
     
     typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
                                                         BREthereumEWM ewm,
@@ -363,9 +366,9 @@ extern "C" {
     } BREthereumTransferEvent;
 
     extern BREthereumTransferEvent
-    transferEventCreateError (BREthereumTransferEventType type,
-                              BREthereumStatus status,
-                              const char *errorDescription);
+    ethTransferEventCreateError (BREthereumTransferEventType type,
+                                 BREthereumStatus status,
+                                 const char *errorDescription);
 
     typedef void (*BREthereumClientHandlerTransferEvent) (BREthereumClientContext context,
                                                           BREthereumEWM ewm,
@@ -440,8 +443,8 @@ extern "C" {
                 BREthereumEWMState newState;
             } changed;
             struct {
-                BRSyncTimestamp timestamp;
-                BRSyncPercentComplete percentComplete;
+                BRCryptoSyncTimestamp timestamp;
+                BRCryptoSyncPercentComplete percentComplete;
             } syncProgress;
             struct {
                 uint64_t value;

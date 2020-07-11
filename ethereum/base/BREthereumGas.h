@@ -27,16 +27,16 @@ typedef struct BREthereumGasStruct {
 } BREthereumGas;
 
 extern BREthereumGas
-gasCreate(uint64_t gas);
+ethGasCreate(uint64_t gas);
 
 extern BREthereumComparison
-gasCompare (BREthereumGas e1, BREthereumGas e2);
+ethGasCompare (BREthereumGas e1, BREthereumGas e2);
 
 extern BRRlpItem
-gasRlpEncode (BREthereumGas gas, BRRlpCoder coder);
+ethGasRlpEncode (BREthereumGas gas, BRRlpCoder coder);
 
 extern BREthereumGas
-gasRlpDecode (BRRlpItem item, BRRlpCoder coder);
+ethGasRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 /**
  * Ethereum Gas Price is the amount of Ether for one Gas - aka Ether/Gas.  The total cost for
@@ -57,10 +57,10 @@ typedef struct BREthereumGasPriceStruct {
  * @return
  */
 extern BREthereumGasPrice
-gasPriceCreate(BREthereumEther ether);
+ethGasPriceCreate(BREthereumEther ether);
 
 extern BREthereumComparison
-gasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2);
+ethGasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2);
 
 /**
  * Compute the Gas Cost (in Ether) for a given Gas Price and Gas.  This can overflow; on overflow
@@ -72,13 +72,13 @@ gasPriceCompare (BREthereumGasPrice e1, BREthereumGasPrice e2);
  * @return
  */
 extern BREthereumEther
-gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow);
+ethGasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow);
 
 extern BRRlpItem
-gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder);
+ethGasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder);
 
 extern BREthereumGasPrice
-gasPriceRlpDecode (BRRlpItem item, BRRlpCoder coder);
+ethGasPriceRlpDecode (BRRlpItem item, BRRlpCoder coder);
     
 #ifdef __cplusplus
 }

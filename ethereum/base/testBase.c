@@ -18,63 +18,63 @@ runEtherParseTests () {
     BRCoreParseStatus status;
     BREthereumEther e;
 
-    e = etherCreateString("1", WEI, &status);
+    e = ethEtherCreateString("1", WEI, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(1, WEI)));
 
-    e = etherCreateString("100", WEI, &status);
+    e = ethEtherCreateString("100", WEI, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(100, WEI)));
 
-    e = etherCreateString("100.0000", WEI, &status);
+    e = ethEtherCreateString("100.0000", WEI, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(100, WEI)));
 
-    e = etherCreateString("0.001", WEI+1, &status);
+    e = ethEtherCreateString("0.001", WEI+1, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(1, WEI)));
 
-    e = etherCreateString("0.00100", WEI+1, &status);
+    e = ethEtherCreateString("0.00100", WEI+1, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(1, WEI)));
 
-    e = etherCreateString("0.001002", ETHER, &status);
+    e = ethEtherCreateString("0.001002", ETHER, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1002, ETHER-2)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(1002, ETHER-2)));
 
-    e = etherCreateString("12.03", ETHER, &status);
+    e = ethEtherCreateString("12.03", ETHER, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(12030, ETHER-1)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ(e, ethEtherCreateNumber(12030, ETHER-1)));
 
-    e = etherCreateString("12.03", WEI, &status);
+    e = ethEtherCreateString("12.03", WEI, &status);
     //  assert (ETHEREUM_ETHER_PARSE_UNDERFLOW == status);
     assert (CORE_PARSE_OK != status);
 
-    e = etherCreateString("100000000000000000000000000000000000000000000000000000000000000000000000000000000", WEI, &status);
+    e = ethEtherCreateString("100000000000000000000000000000000000000000000000000000000000000000000000000000000", WEI, &status);
     //  assert (ETHEREUM_ETHER_PARSE_OVERFLOW == status);
     assert (CORE_PARSE_OK != status);
 
-    e = etherCreateString("1000000000000000000000", WEI, &status);
+    e = ethEtherCreateString("1000000000000000000000", WEI, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(1, KETHER)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (e, ethEtherCreateNumber(1, KETHER)));
 
-    e = etherCreateString("2000000000000000000000.000000", WEI, &status);
+    e = ethEtherCreateString("2000000000000000000000.000000", WEI, &status);
     assert (CORE_PARSE_OK == status
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(2, KETHER)));
+            && ETHEREUM_BOOLEAN_TRUE == ethEtherIsEQ (e, ethEtherCreateNumber(2, KETHER)));
 
     char *s;
-    e = etherCreateString("123", WEI, &status);
-    s = etherGetValueString(e, WEI);
+    e = ethEtherCreateString("123", WEI, &status);
+    s = ethEtherGetValueString(e, WEI);
     assert (0 == strcmp (s, "123"));
     free (s);
 
-    e = etherCreateString("1234", WEI, &status);
-    s = etherGetValueString(e, WEI+1);
+    e = ethEtherCreateString("1234", WEI, &status);
+    s = ethEtherGetValueString(e, WEI+1);
     assert (0 == strcmp (s, "1.234"));
     free (s);
 
-    e = etherCreateString("123", WEI, &status);
-    s = etherGetValueString(e, WEI+2);
+    e = ethEtherCreateString("123", WEI, &status);
+    s = ethEtherGetValueString(e, WEI+2);
     assert (0 == strcmp (s, "0.000123"));
     free (s);
 }
@@ -134,11 +134,11 @@ static void runSignatureTests1 (void) {
     char *signingHash = SIGNATURE_SIGNING_HASH;
 
     size_t   signingBytesCount = 0;
-    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+    uint8_t *signingBytes = hexDecodeCreate(&signingBytesCount, signingData, strlen (signingData));
 
     BRKeccak256(&digest, signingBytes, signingBytesCount);
 
-    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    char *digestString = hexEncodeCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
     printf ("      Hex: %s\n", digestString);
     assert (0 == strcmp (digestString, signingHash));
 
@@ -156,7 +156,7 @@ static void runSignatureTests1 (void) {
                                     digest);
     assert (65 == signatureLen);
 
-    char *signatureHex = encodeHexCreate(NULL, signatureBytes, signatureLen);
+    char *signatureHex = hexEncodeCreate(NULL, signatureBytes, signatureLen);
     printf ("      SigRaw: %s\n", signatureHex);
     assert (130 == strlen(signatureHex));
     assert (0 == strncmp (&signatureHex[ 0], SIGNATURE_V, 2));
@@ -168,13 +168,13 @@ static void runSignatureTests1 (void) {
     size_t sigRDataLen, sigSDataLen;
     uint8_t *sigRData, *sigSData;
 
-    sigRData = decodeHexCreate(&sigRDataLen, SIGNATURE_R, strlen (SIGNATURE_R));
-    sigSData = decodeHexCreate(&sigSDataLen, SIGNATURE_S, strlen (SIGNATURE_S));
+    sigRData = hexDecodeCreate(&sigRDataLen, SIGNATURE_R, strlen (SIGNATURE_R));
+    sigSData = hexDecodeCreate(&sigSDataLen, SIGNATURE_S, strlen (SIGNATURE_S));
     assert (32 == sigRDataLen & 32 == sigSDataLen);
 
     // VRS
     printf ("      SigVRS\n");
-    BREthereumSignature sigVRS = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
+    BREthereumSignature sigVRS = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                   signingBytes, signingBytesCount,
                                                   privateKeyUncompressed);
 
@@ -182,13 +182,13 @@ static void runSignatureTests1 (void) {
     assert (0 == memcmp (sigVRS.sig.vrs.r, sigRData, sigRDataLen));
     assert (0 == memcmp (sigVRS.sig.vrs.s, sigSData, sigSDataLen));
 
-    BREthereumAddress addrVRS = signatureExtractAddress (sigVRS, signingBytes, signingBytesCount, &success);
+    BREthereumAddress addrVRS = ethSignatureExtractAddress (sigVRS, signingBytes, signingBytesCount, &success);
     assert (1 ==  success);
 
 
     // RSV
     printf ("      SigRSV\n");
-    BREthereumSignature sigRSV = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
+    BREthereumSignature sigRSV = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
                                                   signingBytes, signingBytesCount,
                                                   privateKeyUncompressed);
 
@@ -196,10 +196,10 @@ static void runSignatureTests1 (void) {
     assert (0 == memcmp (sigRSV.sig.rsv.r, sigRData, sigRDataLen));
     assert (0 == memcmp (sigRSV.sig.rsv.s, sigSData, sigSDataLen));
 
-    BREthereumAddress addrRSV = signatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
+    BREthereumAddress addrRSV = ethSignatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
     assert (1 == success);
 
-    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addrVRS, addrRSV));
+    assert (ETHEREUM_BOOLEAN_TRUE == ethAddressEqual (addrVRS, addrRSV));
 
 }
 
@@ -212,11 +212,11 @@ static void runSignatureTests2 (void) {
     char *signingHash = SIGNING_HASH_2;
 
     size_t   signingBytesCount = 0;
-    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+    uint8_t *signingBytes = hexDecodeCreate(&signingBytesCount, signingData, strlen (signingData));
 
     BRKeccak256(&digest, signingBytes, signingBytesCount);
 
-    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    char *digestString = hexEncodeCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
     printf ("      Hex: %s\n", digestString);
     assert (0 == strcmp (digestString, signingHash));
 

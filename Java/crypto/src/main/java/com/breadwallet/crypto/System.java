@@ -207,18 +207,6 @@ public interface System {
 
     List<? extends Wallet> getWallets();
 
-    AddressScheme getDefaultAddressScheme(Network network);
-
-    List<AddressScheme> getSupportedAddressSchemes(Network network);
-
-    boolean supportsAddressScheme(Network network, AddressScheme addressScheme);
-
-    WalletManagerMode getDefaultWalletManagerMode(Network network);
-
-    List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
-
-    boolean supportsWalletManagerMode(Network network, WalletManagerMode mode);
-
     /**
      * If migration is required, return the currency code; otherwise, return nil.
      *

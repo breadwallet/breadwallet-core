@@ -8,8 +8,8 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRCryptoStatus.h"
-#include "BRCryptoPrivate.h"
+#include "BRCryptoStatusP.h"
+#include "ethereum/BREthereum.h"
 
 extern BRCryptoStatus
     cryptoStatusFromETH (BREthereumStatus status) {

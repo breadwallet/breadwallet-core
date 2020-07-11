@@ -11,249 +11,321 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
-#include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
-
-#include "support/BRBase.h"
+#include "BRCryptoSync.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef BRBlockHeight BRCryptoBlockChainHeight;
+    ///
+    /// Crypto Network Type
+    ///
+    /// Try as we might, there are certain circumstances where the type of the network needs to
+    /// be known.  Without this enumeration, one uses hack-arounds like:
+    ///    "btc" == network.currency.code
+    /// So, provide these and expect them to grow.
+    ///
+    /// Enumerations here need to be consistent with the networks defined in;
+    ///    crypto/BRCryptoConfig.h
+    ///
+    typedef enum {
+        CRYPTO_NETWORK_TYPE_BTC,
+        CRYPTO_NETWORK_TYPE_BCH,
+        CRYPTO_NETWORK_TYPE_ETH,
+        CRYPTO_NETWORK_TYPE_XRP,
+        CRYPTO_NETWORK_TYPE_HBAR,
+        // CRYPTO_NETWORK_TYPE_XLM,
+    } BRCryptoNetworkCanonicalType;
 
-/**
- *
- */
-typedef struct BRCryptoNetworkFeeRecord *BRCryptoNetworkFee;
+#  define NUMBER_OF_NETWORK_TYPES    (1 + CRYPTO_NETWORK_TYPE_XRP)
 
-extern BRCryptoNetworkFee
-cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
-                        BRCryptoAmount pricePerCostFactor,
-                        BRCryptoUnit   pricePerCostFactorUnit);
+    extern const char *
+    cryptoNetworkCanonicalTypeString (BRCryptoNetworkCanonicalType type);
 
+    /// MARK: - (Network) Address Scheme
 
-/**
- * The estimated time to confirm a transfer for this network fee
- *
- * @param networkFee the network fee
- *
- * @return time in milliseconds
- */
-extern uint64_t
-cryptoNetworkFeeGetConfirmationTimeInMilliseconds (BRCryptoNetworkFee networkFee);
+    typedef enum {
+        CRYPTO_ADDRESS_SCHEME_BTC_LEGACY,
+        CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT,
+        CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT,
+        CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
+    } BRCryptoAddressScheme;
 
-extern BRCryptoAmount
-cryptoNetworkFeeGetPricePerCostFactor (BRCryptoNetworkFee networkFee);
-
-extern BRCryptoUnit
-cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee);
-
-extern BRCryptoBoolean
-cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
-
-DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee);
-
-/**
- * A Crypto Network represents a Blockchain.  The blockchains are determined from the
- * BlockChainDB '/blockchains' query; however, networks for testnets are also defined.
- * Thus, the available networks are {btc,bch,eth,...} X {mainnet,testnet}
- *
- * A Crypto Network has a currency which represents the asset used to pay for network fees.
- * For Bitcoin the currency is 'bitcoin'; for Ethereum the currency is 'Ethereum'.
- *
- * A Crypto Network may support more than one currency.  For Ethereum additional currencies
- * include the ERC20 Smart Contracts of interest - for example, BRD.
- *
- * Every Crypto Network's currency has a defined base Unit, default Unit and an arbitrary
- * set of other units.  For Ethereum there are: WEI, ETHER, [WEI, GWEI, ..., ETHER, ...]
- * respectively.
- */
-typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
-
-typedef void *BRCryptoNetworkListener;
-
-extern BRCryptoBlockChainType
-cryptoNetworkGetType (BRCryptoNetwork network);
-
-extern const char *
-cryptoNetworkGetUids (BRCryptoNetwork network);
-
-extern const char *
-cryptoNetworkGetName (BRCryptoNetwork network);
-
-extern BRCryptoBoolean
-cryptoNetworkIsMainnet (BRCryptoNetwork network);
-
-/**
- * Returns the network's currency.  This is typically (always?) the currency used to pay
- * for network fees.
-
- @param network The network
- @return the network's currency w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoCurrency
-cryptoNetworkGetCurrency (BRCryptoNetwork network);
-
-extern void
-cryptoNetworkSetCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency);
-
-extern void
-cryptoNetworkAddCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency,
-                          BRCryptoUnit baseUnit,
-                          BRCryptoUnit defaultUnit);
+#define NUMBER_OF_ADDRESS_SCHEMES   (1 + CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
 
 
-extern const char *
-cryptoNetworkGetCurrencyCode (BRCryptoNetwork network);
+    // Same as: BRBlockHeight
+    typedef uint64_t BRCryptoBlockChainHeight;
 
-/**
- * Returns the currency's default unit or NULL
- *
- * @param network the network
- * @param currency the currency desired for the default unit
- *
- * @return the currency's default unit or NULL w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoUnit
-cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
+    typedef struct BRCryptoNetworkFeeRecord *BRCryptoNetworkFee;
+
+    extern BRCryptoNetworkFee
+    cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
+                            BRCryptoAmount pricePerCostFactor,
+                            BRCryptoUnit   pricePerCostFactorUnit);
+
+
+    /**
+     * The estimated time to confirm a transfer for this network fee
+     *
+     * @param networkFee the network fee
+     *
+     * @return time in milliseconds
+     */
+    extern uint64_t
+    cryptoNetworkFeeGetConfirmationTimeInMilliseconds (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoAmount
+    cryptoNetworkFeeGetPricePerCostFactor (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoUnit
+    cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoBoolean
+    cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee);
+
+    /**
+     * A Crypto Network represents a Blockchain.  The blockchains are determined from the
+     * BlockChainDB '/blockchains' query; however, networks for testnets are also defined.
+     * Thus, the available networks are {btc,bch,eth,...} X {mainnet,testnet}
+     *
+     * A Crypto Network has a currency which represents the asset used to pay for network fees.
+     * For Bitcoin the currency is 'bitcoin'; for Ethereum the currency is 'Ethereum'.
+     *
+     * A Crypto Network may support more than one currency.  For Ethereum additional currencies
+     * include the ERC20 Smart Contracts of interest - for example, BRD.
+     *
+     * Every Crypto Network's currency has a defined base Unit, default Unit and an arbitrary
+     * set of other units.  For Ethereum there are: WEI, ETHER, [WEI, GWEI, ..., ETHER, ...]
+     * respectively.
+     */
+    typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
+
+    typedef void *BRCryptoNetworkListener;
+
+    extern BRCryptoNetworkCanonicalType
+    cryptoNetworkGetCanonicalType (BRCryptoNetwork network);
+
+    extern const char *
+    cryptoNetworkGetUids (BRCryptoNetwork network);
+
+    extern const char *
+    cryptoNetworkGetName (BRCryptoNetwork network);
+
+    extern BRCryptoBoolean
+    cryptoNetworkIsMainnet (BRCryptoNetwork network);
+
+    /**
+     * Returns the network's currency.  This is typically (always?) the currency used to pay
+     * for network fees.
+     
+     @param network The network
+     @return the network's currency w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrency (BRCryptoNetwork network);
+
+    extern void
+    cryptoNetworkSetCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
+
+    extern void
+    cryptoNetworkAddCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency,
+                              BRCryptoUnit baseUnit,
+                              BRCryptoUnit defaultUnit);
+
+
+    extern const char *
+    cryptoNetworkGetCurrencyCode (BRCryptoNetwork network);
+
+    /**
+     * Returns the currency's default unit or NULL
+     *
+     * @param network the network
+     * @param currency the currency desired for the default unit
+     *
+     * @return the currency's default unit or NULL w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
+                                   BRCryptoCurrency currency);
+
+    /**
+     * Returns the currency's base unit or NULL
+     *
+     * @param network the network
+     * @param currency the currency desired for the base unit
+     *
+     * @return the currency's base unit or NULL w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
+                                BRCryptoCurrency currency);
+
+    extern void
+    cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
+                                  BRCryptoCurrency currency,
+                                  BRCryptoUnit unit);
+
+
+    extern BRCryptoBlockChainHeight
+    cryptoNetworkGetHeight (BRCryptoNetwork network);
+
+    extern void
+    cryptoNetworkSetHeight (BRCryptoNetwork network,
+                            BRCryptoBlockChainHeight height);
+
+    extern uint32_t
+    cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network);
+
+    /**
+     * Returns the number of network currencies.  This is the index exclusive limit to be used
+     * in `cryptoNetworkGetCurrencyAt()`.
+     *
+     * @param network the network
+     *
+     * @return number of network currencies.
+     */
+    extern size_t
+    cryptoNetworkGetCurrencyCount (BRCryptoNetwork network);
+
+    /**
+     * Returns the network's currency at `index`.  The index must satisfy [0, count) otherwise
+     * an assertion is signaled.
+     *
+     * @param network the network
+     * @param index the desired currency index
+     *
+     * @return The currency w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
+                                size_t index);
+
+    /**
+     * Return 'TRUE' is `network` has `currency`.
+     *
+     * @param network the network
+     *@param currency the currency
+     *
+     *@return CRYPTO_TRUE if `network` has `currency`.
+     */
+    extern BRCryptoBoolean
+    cryptoNetworkHasCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
+
+    /**
+     * Returns the network's currency with `symbol` or NULL.
+     *
+     * @param network the network
+     * @param index the desired currency's symbol
+     *
+     * @return The currency w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
+                                     const char *code);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForUids (BRCryptoNetwork network,
+                                     const char *uids);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForIssuer (BRCryptoNetwork network,
+                                       const char *issuer);
+
+    /**
+     * Returns the number of units for network's `currency`.  This is the index exclusive limit to
+     * be used in `cryptoNetworkGetUnitAt()`.
+     *
+     * @param network the network
+     * @param currency the currency
+     *
+     * @return the number of units for `currency`
+     */
+    extern size_t
+    cryptoNetworkGetUnitCount (BRCryptoNetwork network,
                                BRCryptoCurrency currency);
 
-/**
- * Returns the currency's base unit or NULL
- *
- * @param network the network
- * @param currency the currency desired for the base unit
- *
- * @return the currency's base unit or NULL w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoUnit
-cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
-                            BRCryptoCurrency currency);
-
-extern void
-cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
-                              BRCryptoCurrency currency,
-                              BRCryptoUnit unit);
-
-
-extern BRCryptoBlockChainHeight
-cryptoNetworkGetHeight (BRCryptoNetwork network);
-
-extern void
-cryptoNetworkSetHeight (BRCryptoNetwork network,
-                        BRCryptoBlockChainHeight height);
-
-extern uint32_t
-cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network);
-
-extern void
-cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
-                                         uint32_t confirmationsUntilFinal);
-
-/**
- * Returns the number of network currencies.  This is the index exclusive limit to be used
- * in `cryptoNetworkGetCurrencyAt()`.
- *
- * @param network the network
- *
- * @return number of network currencies.
- */
-extern size_t
-cryptoNetworkGetCurrencyCount (BRCryptoNetwork network);
-
-/**
- * Returns the network's currency at `index`.  The index must satisfy [0, count) otherwise
- * an assertion is signaled.
- *
- * @param network the network
- * @param index the desired currency index
- *
- * @return The currency w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoCurrency
-cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
+    /**
+     * Returns the currency's unit at `index`.  The index must satisfy [0, count) otherwise an
+     * assertion is signaled.
+     *
+     * @param network the network
+     * @param currency the currency
+     * @param index the desired unit's index
+     *
+     * @return the currency unit w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAt (BRCryptoNetwork network,
+                            BRCryptoCurrency currency,
                             size_t index);
 
-/**
- * Return 'TRUE' is `network` has `currency`.
- *
- * @param network the network
- *@param currency the currency
- *
- *@return CRYPTO_TRUE if `network` has `currency`.
- */
-extern BRCryptoBoolean
-cryptoNetworkHasCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency);
+    extern size_t
+    cryptoNetworkGetNetworkFeeCount (BRCryptoNetwork network);
 
-/**
- * Returns the network's currency with `symbol` or NULL.
- *
- * @param network the network
- * @param index the desired currency's symbol
- *
- * @return The currency w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoCurrency
-cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
-                                 const char *code);
+    extern BRCryptoNetworkFee
+    cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
+                                  size_t index);
 
-/**
- * Returns the number of units for network's `currency`.  This is the index exclusive limit to
- * be used in `cryptoNetworkGetUnitAt()`.
- *
- * @param network the network
- * @param currency the currency
- *
- * @return the number of units for `currency`
- */
-extern size_t
-cryptoNetworkGetUnitCount (BRCryptoNetwork network,
-                           BRCryptoCurrency currency);
+    extern BRCryptoNetworkFee *
+    cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
+                                 size_t *count);
 
-/**
- * Returns the currency's unit at `index`.  The index must satisfy [0, count) otherwise an
- * assertion is signaled.
- *
- * @param network the network
- * @param currency the currency
- * @param index the desired unit's index
- *
- * @return the currency unit w/ an incremented reference count (aka 'taken')
- */
-extern BRCryptoUnit
-cryptoNetworkGetUnitAt (BRCryptoNetwork network,
-                        BRCryptoCurrency currency,
-                        size_t index);
+    extern void
+    cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
+                                 const BRCryptoNetworkFee *fees,
+                                 size_t count);
 
-extern size_t
-cryptoNetworkGetNetworkFeeCount (BRCryptoNetwork network);
+    extern void
+    cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
+                                BRCryptoNetworkFee fee);
 
-extern BRCryptoNetworkFee
-cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
-                              size_t index);
+    // MARK: - Address Scheme
 
-extern BRCryptoNetworkFee *
-cryptoNetworkGetNetworkFees (BRCryptoNetwork network,
-                             size_t *count);
+    extern BRCryptoAddressScheme
+    cryptoNetworkGetDefaultAddressScheme (BRCryptoNetwork network);
 
-extern void
-cryptoNetworkSetNetworkFees (BRCryptoNetwork network,
-                             const BRCryptoNetworkFee *fees,
-                             size_t count);
+    extern const BRCryptoAddressScheme *
+    cryptoNetworkGetSupportedAddressSchemes (BRCryptoNetwork network,
+                                             BRCryptoCount *count);
 
-extern void
-cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
-                            BRCryptoNetworkFee fee);
+    extern BRCryptoBoolean
+    cryptoNetworkSupportsAddressScheme (BRCryptoNetwork network,
+                                        BRCryptoAddressScheme scheme);
 
-extern BRCryptoAddress
-cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
-                                      const char *string);
+    // MARK: - Sync Mode
 
-DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
+    extern BRCryptoSyncMode
+    cryptoNetworkGetDefaultSyncMode (BRCryptoNetwork network);
+
+    extern const BRCryptoSyncMode *
+    cryptoNetworkGetSupportedSyncModes (BRCryptoNetwork network,
+                                        BRCryptoCount *count);
+
+    extern BRCryptoBoolean
+    cryptoNetworkSupportsSyncMode (BRCryptoNetwork network,
+                                   BRCryptoSyncMode scheme);
+
+    extern BRCryptoBoolean
+    cryptoNetworkRequiresMigration (BRCryptoNetwork network);
+
+    //  TODO: Remove this once ETH uses the BlockSet API
+    extern const char *
+    cryptoNetworkGetETHNetworkName (BRCryptoNetwork network);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
+
+    extern BRCryptoNetwork *
+    cryptoNetworkInstallBuiltins (size_t *networksCount);
+
+    extern BRCryptoNetwork
+    cryptoNetworkFindBuiltin (const char *uids);
 
 #ifdef __cplusplus
 }

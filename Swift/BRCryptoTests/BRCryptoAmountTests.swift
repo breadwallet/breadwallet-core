@@ -47,8 +47,8 @@ class BRCryptoAmountTests: XCTestCase {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC", name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, code: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC     = BRCrypto.Unit (currency: btc, code: "BTC-BTC", name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
         XCTAssert (BTC_SATOSHI.currency.code == btc.code)
         XCTAssert (BTC_SATOSHI.name == "Satoshi")
@@ -64,7 +64,7 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertTrue  (BTC_BTC.isCompatible (with: BTC_SATOSHI))
         XCTAssertTrue  (BTC_SATOSHI.isCompatible (with: BTC_BTC))
 
-        let ETH_WEI = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI", symbol: "wei")
+        let ETH_WEI = BRCrypto.Unit (currency: eth, code: "ETH-WEI", name: "WEI", symbol: "wei")
         XCTAssertFalse (ETH_WEI.isCompatible (with: BTC_BTC))
         XCTAssertFalse (BTC_BTC.isCompatible (with: ETH_WEI))
 
@@ -83,12 +83,12 @@ class BRCryptoAmountTests: XCTestCase {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, code: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC     = BRCrypto.Unit (currency: btc, code: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
-        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
-        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
-        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
+        let ETH_WEI   = BRCrypto.Unit (currency: eth, code: "ETH-WEI", name: "WEI",   symbol: "wei")
+        let ETH_GWEI  = BRCrypto.Unit (currency: eth, code: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+        let ETH_ETHER = BRCrypto.Unit (currency: eth, code: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
 
         let btc1 = Amount.create (integer: 100000000, unit: BTC_SATOSHI)
         XCTAssert (100000000 == btc1.double (as: BTC_SATOSHI))
@@ -228,9 +228,9 @@ class BRCryptoAmountTests: XCTestCase {
         var result: String! = nil
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
-        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
-        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
-        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
+        let ETH_WEI   = BRCrypto.Unit (currency: eth, code: "ETH-WEI", name: "WEI",   symbol: "wei")
+        let ETH_GWEI  = BRCrypto.Unit (currency: eth, code: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+        let ETH_ETHER = BRCrypto.Unit (currency: eth, code: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
 
         let a1 = Amount.create(string:  "12.12345678", negative: false, unit: ETH_ETHER)
         XCTAssertNotNil(a1)
@@ -295,8 +295,8 @@ class BRCryptoAmountTests: XCTestCase {
     func testAmountBTC () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, code: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC     = BRCrypto.Unit (currency: btc, code: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
         XCTAssertEqual (btc, BTC_SATOSHI.currency)
 
@@ -309,8 +309,8 @@ class BRCryptoAmountTests: XCTestCase {
     func testAmountExtended () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",   name: "Satoshi",  symbol: "SAT")
-        let BTC_MONGO   = BRCrypto.Unit (currency: btc, uids: "BTC-MONGO", name: "BitMongo", symbol: "BM", base: BTC_SATOSHI, decimals: 70)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, code: "BTC-SAT",   name: "Satoshi",  symbol: "SAT")
+        let BTC_MONGO   = BRCrypto.Unit (currency: btc, code: "BTC-MONGO", name: "BitMongo", symbol: "BM", base: BTC_SATOSHI, decimals: 70)
 
         let btc1 = Amount.create (integer: 100000000, unit: BTC_SATOSHI)
         let btc2 = Amount.create (integer: 100000001, unit: BTC_SATOSHI)
@@ -335,13 +335,13 @@ class BRCryptoAmountTests: XCTestCase {
     func testCurrencyPair () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
-        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, code: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC     = BRCrypto.Unit (currency: btc, code: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
         let usd = Currency (uids: "USDollar", name: "USDollar", code: "USD", type: "fiat", issuer: nil)
 
-        let usd_cents  = BRCrypto.Unit (currency: usd, uids: "USD-Cents", name: "Cents", symbol: "c")
-        let usd_dollar = BRCrypto.Unit (currency: usd, uids: "USD-Dollar", name: "Dollars", symbol: "$", base: usd_cents, decimals: 2)
+        let usd_cents  = BRCrypto.Unit (currency: usd, code: "USD-Cents", name: "Cents", symbol: "c")
+        let usd_dollar = BRCrypto.Unit (currency: usd, code: "USD-Dollar", name: "Dollars", symbol: "$", base: usd_cents, decimals: 2)
 
         let pair = CurrencyPair (baseUnit: BTC_BTC, quoteUnit: usd_dollar, exchangeRate: 10000)
         XCTAssertEqual("Bitcoin/Dollars=10000.0", pair.description)

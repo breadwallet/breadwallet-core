@@ -12,24 +12,12 @@
 #define BRCryptoAccount_h
 
 #include "BRCryptoBase.h"
-#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoAccountRecord *BRCryptoAccount;
-
-    /**
-     * Given a phrase (A BIP-39 PaperKey) dervied the corresponding 'seed'.  This is used
-     * exclusive to sign transactions (BTC ones for sure).
-     *
-     * @param phrase A BIP-32 Paper Key
-     *
-     * @return A UInt512 seed
-     */
-    extern UInt512
-    cryptoAccountDeriveSeed (const char *phrase);
 
     /**
      * Generate a BIP-39 PaperKey from a BIP-39 word list
@@ -85,9 +73,27 @@ extern "C" {
     extern BRCryptoAccount
     cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount, const char *uids);
 
+    /*
+     * Serialize an account.
+     *
+     * @param bytesCount the serialized bytes count; must not be NULL
+     *
+     * @return An array of bytes holding the account serialization that is suitable for use
+     * by cryptoAccountCreateFromSerialization.  The returned array is owned by the caller and
+     * must be freed.
+     */
     extern uint8_t *
     cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount);
 
+    /*
+     * Validate that the serialization (represented with `bytes` and `bytesCount`) is consistent
+     * with `account`.  This does not serialize account and then compare with bytes; it simply
+     * checks that the serialization is for account.
+     *
+     * @param account the account
+     * @param bytes the serialization bytes
+     * @param bytesCount the count of serialization bytes
+     */
     extern BRCryptoBoolean
     cryptoAccountValidateSerialization (BRCryptoAccount account,
                                         const uint8_t *bytes,

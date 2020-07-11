@@ -85,6 +85,11 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
     }
 
     /* package */
+    Amount getPricePerCostFactor() {
+        return Amount.create(core.getPricePerCostFactor());
+    }
+
+    /* package */
     BRCryptoNetworkFee getCoreBRCryptoNetworkFee() {
         return core;
     }

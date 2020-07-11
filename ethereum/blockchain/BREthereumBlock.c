@@ -224,7 +224,7 @@ blockHeaderRelease (BREthereumBlockHeader header) {
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
         eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
 #endif
-        assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
+        assert (ETHEREUM_BOOLEAN_IS_FALSE(ethHashEqual(header->hash, ethHashCreateEmpty())));
         memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
         free (header);
     }
@@ -278,12 +278,12 @@ blockHeaderGetNonce (BREthereumBlockHeader header) {
 extern size_t
 blockHeaderHashValue (const void *h)
 {
-    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
+    return ethHashSetValue(&((BREthereumBlockHeader) h)->hash);
 }
 
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2) {
-    return h1 == h2 || hashSetEqual (&((BREthereumBlockHeader) h1)->hash,
+    return h1 == h2 || ethHashSetEqual (&((BREthereumBlockHeader) h1)->hash,
                                      &((BREthereumBlockHeader) h2)->hash);
 }
 
@@ -374,7 +374,7 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     uint32_t rem; int overflow = 0;
 
     // z = P(H)_Hd / 2048
-    UInt256 x = divUInt256_Small(parent->difficulty, 2048, &rem);
+    UInt256 x = uint256Div_Small(parent->difficulty, 2048, &rem);
 
     int64_t sigma_2 = blockHeaderCanonicalDifficulty_GetSigma2 (header->number,
                                                                 header->timestamp,
@@ -392,22 +392,22 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     // epsilon = floor (2 ^ epsilon_exponent)
      UInt256 epsilon = (epsilon_exponent < 0
                         ? UINT256_ZERO
-                        : createUInt256Power2 (epsilon_exponent));
+                        : uint256CreatePower2 (epsilon_exponent));
 
     // D(H) = P(H)d + x * sigma_2 + epsilon
 
-    UInt256 x_sigma = mulUInt256_Small(x, (uint32_t) xbs (sigma_2), &overflow);
+    UInt256 x_sigma = uint256Mul_Small(x, (uint32_t) xbs (sigma_2), &overflow);
     assert (0 == overflow);
 
     UInt256 r = (sigma_2 >= 0
-                 ? addUInt256_Overflow (parent->difficulty, x_sigma, &overflow)
-                 : subUInt256_Negative( parent->difficulty, x_sigma, &overflow));
+                 ? uint256Add_Overflow (parent->difficulty, x_sigma, &overflow)
+                 : uint256Sub_Negative( parent->difficulty, x_sigma, &overflow));
     assert (0 == overflow);
 
-    r = addUInt256_Overflow(r, epsilon, &overflow);
+    r = uint256Add_Overflow(r, epsilon, &overflow);
     assert (0 == overflow);
 
-    return gtUInt256 (r, Dzero) ? r : Dzero;
+    return uint256GT (r, Dzero) ? r : Dzero;
 }
 #endif
 
@@ -449,7 +449,7 @@ blockHeaderValidateDifficulty (BREthereumBlockHeader this,
                                BREthereumBlockHeader parent,
                                size_t parentOmmersCount,
                                BREthereumBlockHeader genesis) {
-    return eqUInt256 (this->difficulty,
+    return uint256EQL (this->difficulty,
                       blockHeaderCanonicalDifficulty (this, parent, parentOmmersCount, genesis));
 }
 #endif
@@ -457,8 +457,8 @@ blockHeaderValidateDifficulty (BREthereumBlockHeader this,
 static int
 blockHeaderValidatePoWMixHash (BREthereumBlockHeader this,
                                BREthereumHash mixHash) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (mixHash, EMPTY_HASH_INIT)) || // no POW
-            ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (mixHash, this->mixHash)));
+    return (ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (mixHash, EMPTY_HASH_INIT)) || // no POW
+            ETHEREUM_BOOLEAN_IS_TRUE (ethHashEqual (mixHash, this->mixHash)));
 }
 
 static int
@@ -476,7 +476,7 @@ blockHeaderValidatePoWNFactor (BREthereumBlockHeader this,
     // TODO: Does this account for '='?  What are the odds? (guaranteed to 'hit them')
 
     int overflow = 0;
-    mulUInt256_Overflow (powNFactor, this->difficulty, &overflow);
+    uint256Mul_Overflow (powNFactor, this->difficulty, &overflow);
     return 0 == overflow; /* || result == 2^256 */
 }
 
@@ -538,12 +538,12 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
     BRRlpItem items[15];
     size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? 15 : 13;
 
-    items[ 0] = hashRlpEncode(header->parentHash, coder);
-    items[ 1] = hashRlpEncode(header->ommersHash, coder);
-    items[ 2] = addressRlpEncode(header->beneficiary, coder);
-    items[ 3] = hashRlpEncode(header->stateRoot, coder);
-    items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
-    items[ 5] = hashRlpEncode(header->receiptsRoot, coder);
+    items[ 0] = ethHashRlpEncode(header->parentHash, coder);
+    items[ 1] = ethHashRlpEncode(header->ommersHash, coder);
+    items[ 2] = ethAddressRlpEncode(header->beneficiary, coder);
+    items[ 3] = ethHashRlpEncode(header->stateRoot, coder);
+    items[ 4] = ethHashRlpEncode(header->transactionsRoot, coder);
+    items[ 5] = ethHashRlpEncode(header->receiptsRoot, coder);
     items[ 6] = bloomFilterRlpEncode(header->logsBloom, coder);
     items[ 7] = rlpEncodeUInt256 (coder, header->difficulty, 0);
     items[ 8] = rlpEncodeUInt64(coder, header->number, 0);
@@ -553,7 +553,7 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
     items[12] = rlpEncodeBytes(coder, header->extraData, header->extraDataCount);
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
-        items[13] = hashRlpEncode(header->mixHash, coder);
+        items[13] = ethHashRlpEncode(header->mixHash, coder);
         items[14] = rlpEncodeUInt64(coder, header->nonce, 0);
     }
 
@@ -570,14 +570,14 @@ blockHeaderRlpDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (13 == itemsCount || 15 == itemsCount);
 
-    header->hash = hashCreateEmpty();
+    header->hash = ethHashCreateEmpty();
 
-    header->parentHash = hashRlpDecode(items[0], coder);
-    header->ommersHash = hashRlpDecode(items[1], coder);
-    header->beneficiary = addressRlpDecode(items[2], coder);
-    header->stateRoot = hashRlpDecode(items[3], coder);
-    header->transactionsRoot = hashRlpDecode(items[4], coder);
-    header->receiptsRoot = hashRlpDecode(items[5], coder);
+    header->parentHash = ethHashRlpDecode(items[0], coder);
+    header->ommersHash = ethHashRlpDecode(items[1], coder);
+    header->beneficiary = ethAddressRlpDecode(items[2], coder);
+    header->stateRoot = ethHashRlpDecode(items[3], coder);
+    header->transactionsRoot = ethHashRlpDecode(items[4], coder);
+    header->receiptsRoot = ethHashRlpDecode(items[5], coder);
     header->logsBloom = bloomFilterRlpDecode(items[6], coder);
     header->difficulty = rlpDecodeUInt256(coder, items[7], 0);
     header->number = rlpDecodeUInt64(coder, items[8], 0);
@@ -592,7 +592,7 @@ blockHeaderRlpDecode (BRRlpItem item,
     rlpDataRelease(extraData);
 
     if (15 == itemsCount) {
-        header->mixHash = hashRlpDecode(items[13], coder);
+        header->mixHash = ethHashRlpDecode(items[13], coder);
         header->nonce = rlpDecodeUInt64(coder, items[14], 0);
     }
 
@@ -600,8 +600,8 @@ blockHeaderRlpDecode (BRRlpItem item,
     eth_log ("MEM", "Block Header Create RLP: %d", ++blockHeaderAllocCount);
 #endif
 
-    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
-    header->hash = hashCreateFromData(data);
+    BRRlpData data = rlpItemGetDataSharedDontRelease(coder, item);
+    header->hash = ethHashCreateFromData(data);
     // Safe to ignore data release.
 
     return header;
@@ -800,7 +800,7 @@ blockGetTransactionTrieRoot (BREthereumBlock block) {
 
 extern BREthereumBoolean
 blockTransactionsAreValid (BREthereumBlock block) {
-    return (hashCompare(block->header->transactionsRoot, blockGetTransactionTrieRoot(block)));
+    return (ethHashCompare(block->header->transactionsRoot, blockGetTransactionTrieRoot(block)));
 }
 
 extern unsigned long
@@ -863,7 +863,7 @@ blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block) {
 
         // Note: on overflow the return value is UINT256_ZERO
         block->totalDifficulty = (NULL != block->next
-                                  ? addUInt256_Overflow (blockGetDifficulty (block),
+                                  ? uint256Add_Overflow (blockGetDifficulty (block),
                                                          blockRecursivelyPropagateTotalDifficulty (block->next),
                                                          &overflow)
                                   : UINT256_ZERO);
@@ -1063,12 +1063,12 @@ blockRlpDecode (BRRlpItem item,
 extern size_t
 blockHashValue (const void *b)
 {
-    return hashSetValue(& ((BREthereumBlock) b)->status.hash);
+    return ethHashSetValue(& ((BREthereumBlock) b)->status.hash);
 }
 
 extern int
 blockHashEqual (const void *b1, const void *b2) {
-    return b1 == b2 || hashSetEqual (& ((BREthereumBlock) b1)->status.hash,
+    return b1 == b2 || ethHashSetEqual (& ((BREthereumBlock) b1)->status.hash,
                                      & ((BREthereumBlock) b2)->status.hash);
 }
 
@@ -1318,7 +1318,7 @@ blockStatusRlpEncode (BREthereumBlockStatus status,
                       (status.accountStateRequest << 2) |
                       (status.headerProofRequest << 0));
 
-    items[0] = hashRlpEncode(status.hash, coder);
+    items[0] = ethHashRlpEncode(status.hash, coder);
     items[1] = rlpEncodeUInt64(coder, flags, 1);
 
     // TODO: Fill out
@@ -1342,7 +1342,7 @@ blockStatusRlpDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (8 == itemsCount);
 
-    status.hash = hashRlpDecode(items[0], coder);
+    status.hash = ethHashRlpDecode(items[0], coder);
 
     uint64_t flags = rlpDecodeUInt64(coder, items[1], 1);
     status.transactionRequest  = 0x3 & (flags >> 6);
@@ -1468,11 +1468,11 @@ networkGetGenesisBlockHeader (BREthereumNetwork network) {
     }
 
     BREthereumBlockHeader genesisHeader =
-    (network == ethereumMainnet
+    (network == ethNetworkMainnet
      ? ethereumMainnetBlockHeader
-     : (network == ethereumTestnet
+     : (network == ethNetworkTestnet
         ? ethereumTestnetBlockHeader
-        : (network == ethereumRinkeby
+        : (network == ethNetworkRinkeby
            ? ethereumRinkebyBlockHeader
            : NULL)));
 
@@ -1521,22 +1521,22 @@ initializeGenesisBlocks (void) {
         }}
      */
     header = &genesisMainnetBlockHeaderRecord;
-    header->hash = hashCreate("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
-    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
-    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
-    header->stateRoot = hashCreate("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544");
-    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
-    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->hash = ethHashCreate("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
+    header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = ethHashCreate("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544");
+    header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x400000000);
+    header->difficulty = uint256Create (0x400000000);
     header->number = 0x0;
     header->gasLimit = 0x1388;
     header->gasUsed = 0x0;
     header->timestamp = 0x0;
-    decodeHex(header->extraData, 32, "11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa", 64);
+    hexDecode(header->extraData, 32, "11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa", 64);
     header->extraDataCount = 32;
-    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->mixHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000042;
 
     // Testnet
@@ -1564,22 +1564,22 @@ initializeGenesisBlocks (void) {
             "uncles":[]}}
      */
     header = &genesisTestnetBlockHeaderRecord;
-    header->hash = hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
-    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
-    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
-    header->stateRoot = hashCreate("0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b");
-    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
-    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->hash = ethHashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
+    header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = ethHashCreate("0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b");
+    header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x100000);
+    header->difficulty = uint256Create (0x100000);
     header->number = 0x0;
     header->gasLimit = 0x1000000;
     header->gasUsed = 0x0;
     header->timestamp = 0x0;
-    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    hexDecode(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
     header->extraDataCount = 32;
-    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->mixHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000042;
 
     // Rinkeby
@@ -1607,23 +1607,23 @@ initializeGenesisBlocks (void) {
             "uncles":[]}}
      */
     header = &genesisRinkebyBlockHeaderRecord;
-    header->hash = hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
-    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
-    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
-    header->stateRoot = hashCreate("0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d");
-    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
-    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->hash = ethHashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+    header->parentHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = ethHashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = ethAddressCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = ethHashCreate("0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d");
+    header->transactionsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = ethHashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = createUInt256 (0x1);
+    header->difficulty = uint256Create (0x1);
     header->number = 0x0;
     header->gasLimit = 0x47b760;
     header->gasUsed = 0x0;
     header->timestamp = 0x58ee40ba;
     // TODO: Rinkeby ExtraData is oversized... ignore.
-    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    hexDecode(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
     header->extraDataCount = 32;
-    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->mixHash = ethHashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000000;
 }
 
@@ -1667,19 +1667,19 @@ static void blockCheckpointInitialize (void) {
 
         for (size_t index = 0; index < CHECKPOINT_MAINNET_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumMainnetCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
 
         for (size_t index = 0; index < CHECKPOINT_TESTNET_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumTestnetCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
 
         for (size_t index = 0; index < CHECKPOINT_RINKEBY_COUNT; index++) {
             BREthereumBlockCheckpoint *cp = &ethereumRinkebyCheckpoints[index];
-            cp->u.td = createUInt256Parse (cp->u.std, 0, &status);
+            cp->u.td = uint256CreateParse (cp->u.std, 0, &status);
             assert (CORE_PARSE_OK == status);
         }
     }
@@ -1691,17 +1691,17 @@ blockCheckpointFindForNetwork (BREthereumNetwork network,
     blockCheckpointInitialize();
     assert (NULL != count);
 
-    if (network == ethereumMainnet) {
+    if (network == ethNetworkMainnet) {
         *count = CHECKPOINT_MAINNET_COUNT;
         return ethereumMainnetCheckpoints;
     }
 
-    if (network == ethereumTestnet) {
+    if (network == ethNetworkTestnet) {
         *count = CHECKPOINT_TESTNET_COUNT;
         return ethereumTestnetCheckpoints;
     }
 
-    if (network == ethereumRinkeby) {
+    if (network == ethNetworkRinkeby) {
         *count = CHECKPOINT_RINKEBY_COUNT;
         return ethereumRinkebyCheckpoints;
     }

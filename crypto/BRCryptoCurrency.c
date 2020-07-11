@@ -14,9 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void
-cryptoCurrencyRelease (BRCryptoCurrency currency);
-
 struct BRCryptoCurrencyRecord {
     char *uids;
     char *name;

@@ -18,7 +18,6 @@
 #include "BRCryptoAmount.h"
 #include "BRCryptoCurrency.h"
 #include "BRCryptoNetwork.h"
-#include "BRCryptoPrivate.h"
 #include "BRCryptoUnit.h"
 
 // Bitcoin
@@ -59,6 +58,10 @@ extern BRCryptoBoolean runCryptoTestsWithAccountAndNetwork (BRCryptoAccount acco
 // Ripple
 extern void
 runRippleTest (void /* ... */);
+
+// Hedera
+extern void
+runHederaTest (void /* ... */);
 
 #include "test.h"
 

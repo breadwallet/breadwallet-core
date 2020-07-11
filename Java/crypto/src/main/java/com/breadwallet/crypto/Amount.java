@@ -63,6 +63,8 @@ public interface Amount extends Comparable<Amount> {
 
     boolean isNegative();
 
+    boolean isZero();
+
     Optional<? extends Amount> add(Amount o);
 
     Optional<? extends Amount> sub(Amount o);

@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.support.BRTransferSubmitError;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -30,22 +29,22 @@ public class BRCryptoTransferState extends Structure {
             public long blockNumber;
             public long transactionIndex;
             public long timestamp;
-            public BRCryptoAmount fee;
+            public BRCryptoFeeBasis feeBasis;
 
             public included_struct() {
                 super();
             }
 
             protected List<String> getFieldOrder() {
-                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "fee");
+                return Arrays.asList("blockNumber", "transactionIndex", "timestamp", "feeBasis");
             }
 
-            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoAmount fee) {
+            public included_struct(long blockNumber, long transactionIndex, long timestamp, BRCryptoFeeBasis feeBasis) {
                 super();
                 this.blockNumber = blockNumber;
                 this.transactionIndex = transactionIndex;
                 this.timestamp = timestamp;
-                this.fee = fee;
+                this.feeBasis = feeBasis;
             }
 
             public included_struct(Pointer peer) {
@@ -62,7 +61,7 @@ public class BRCryptoTransferState extends Structure {
 
         public static class errored_struct extends Structure {
 
-            public BRTransferSubmitError error;
+            public BRCryptoTransferSubmitError error;
 
             public errored_struct() {
                 super();
@@ -72,7 +71,7 @@ public class BRCryptoTransferState extends Structure {
                 return Arrays.asList("error");
             }
 
-            public errored_struct(BRTransferSubmitError error) {
+            public errored_struct(BRCryptoTransferSubmitError error) {
                 super();
                 this.error = error;
             }

@@ -13,4 +13,7 @@ public abstract class FeeEstimationError extends Exception {
     FeeEstimationError() {
         super();
     }
+
+    /* package */
+    abstract LimitEstimationError toLimitEstimationError();
 }

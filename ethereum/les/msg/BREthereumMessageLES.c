@@ -183,7 +183,7 @@ messageLESAnnounceDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (5 == itemsCount || 4 == itemsCount);
 
-    message.headHash = hashRlpDecode (items[0], coder.rlp);
+    message.headHash = ethHashRlpDecode (items[0], coder.rlp);
     message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
     message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
     message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
@@ -228,7 +228,7 @@ messageLESGetBlockHeadersEncode (BREthereumLESMessageGetBlockHeaders message,
                            rlpEncodeList (coder.rlp, 4,
                                           (message.useBlockNumber
                                            ? rlpEncodeUInt64 (coder.rlp, message.block.number, 1)
-                                           : hashRlpEncode (message.block.hash, coder.rlp)),
+                                           : ethHashRlpEncode (message.block.hash, coder.rlp)),
                                           rlpEncodeUInt64 (coder.rlp, message.maxHeaders, 1),
                                           rlpEncodeUInt64 (coder.rlp, message.skip, 1),
                                           rlpEncodeUInt64 (coder.rlp, message.reverse, 1)));
@@ -279,7 +279,7 @@ static BRRlpItem
 messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BREthereumMessageCoder coder) {
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                           hashEncodeList (message.hashes, coder.rlp));
+                           ethHashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES BlockBodies
@@ -329,7 +329,7 @@ static BRRlpItem
 messageLESGetReceiptsEncode (BREthereumLESMessageGetReceipts message, BREthereumMessageCoder coder) {
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                           hashEncodeList (message.hashes, coder.rlp));
+                           ethHashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES Receipts
@@ -374,9 +374,9 @@ static BRRlpItem
 proofsSpecEncode (BREthereumLESMessageGetProofsSpec spec,
                   BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 4,
-                          hashRlpEncode (spec.blockHash, coder.rlp),
+                          ethHashRlpEncode (spec.blockHash, coder.rlp),
                           rlpEncodeBytes(coder.rlp, NULL, 0),
-                          hashRlpEncode(addressGetHash(spec.address), coder.rlp),
+                          ethHashRlpEncode(ethAddressGetHash(spec.address), coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, spec.fromLevel, 1));
 }
 
@@ -596,7 +596,7 @@ static BRRlpItem
 messageLESGetTxStatusEncode (BREthereumLESMessageGetTxStatus message, BREthereumMessageCoder coder) {
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                           hashEncodeList (message.hashes, coder.rlp));
+                           ethHashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES TxStatus

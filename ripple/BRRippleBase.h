@@ -13,16 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-#define ADDRESS_BYTES   (20)
-
-// A Ripple Address - 20 bytes
-typedef struct {
-    uint8_t bytes[ADDRESS_BYTES];
-} BRRippleAddress;
-
-extern char *
-rippleAddressAsString (BRRippleAddress address);
+#include "BRCryptoBase.h"
 
 // Even though we only support the Payment type - plan for
 // the future
@@ -88,6 +79,5 @@ typedef uint32_t BRRippleLastLedgerSequence;
 typedef uint32_t BRRippleSourceTag;
 typedef uint32_t BRRippleDestinationTag;
 
-typedef BRRippleUnitDrops BRRippleFeeBasis;
-
+#define RIPPLE_XRP_TO_DROPS(xrp)   (1000000 * (xrp))   // 1e6 drops/xrp
 #endif

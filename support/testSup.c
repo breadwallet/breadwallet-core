@@ -18,6 +18,8 @@
 #include "support/BRFileService.h"
 #include "support/BRAssert.h"
 
+#define PTHREAD_NULL            ((pthread_t) NULL)
+
 /// MARK: - Helpers
 
 static int _pthread_cond_timedwait_relative (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *reltime) {
@@ -141,7 +143,7 @@ supWorkerDisconnect (SupWorker worker, int report) {
     pthread_cond_signal (&worker->cond);
     pthread_mutex_lock(&worker->lock);
     pthread_t thread = worker->thread;
-    worker->thread = NULL;
+    worker->thread = PTHREAD_NULL;
     pthread_mutex_unlock(&worker->lock);
     pthread_join(thread, NULL);
 }
@@ -151,7 +153,7 @@ static int
 supWorkerIsConnected (SupWorker worker) {
     int connected = 0;
     pthread_mutex_lock(&worker->lock);
-    connected = NULL != worker->thread;
+    connected = PTHREAD_NULL != worker->thread;
     pthread_mutex_unlock(&worker->lock);
     return connected;
 }
@@ -253,11 +255,11 @@ supMainDisconnect (SupMain main) {
         supWorkerDisconnect (main->workers[index], 1);
     
     printf ("Main (%p): Disconnect Self\n", main);
-    if (NULL != main->thread) {
+    if (PTHREAD_NULL != main->thread) {
         pthread_cond_signal(&main->cond);
         pthread_mutex_unlock (&main->lock);
         pthread_join(main->thread, NULL);
-        main->thread = NULL;
+        main->thread = PTHREAD_NULL;
     }
     else pthread_mutex_unlock (&main->lock);
 }
@@ -266,7 +268,7 @@ static int
 supMainIsConnected (SupMain main) {
     int connected;
     pthread_mutex_lock (&main->lock);
-    connected = NULL != main->thread;
+    connected = PTHREAD_NULL != main->thread;
     pthread_mutex_unlock (&main->lock);
     return connected;
 }

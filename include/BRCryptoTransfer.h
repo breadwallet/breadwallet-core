@@ -15,13 +15,44 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoFeeBasis.h"
-#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
+
+    /// MARK: Transfer Submission Result
+
+    typedef enum {
+        CRYPTO_TRANSFER_SUBMIT_ERROR_UNKNOWN,
+        CRYPTO_TRANSFER_SUBMIT_ERROR_POSIX,
+    } BRCryptoTransferSubmitErrorType;
+
+    typedef struct {
+        BRCryptoTransferSubmitErrorType type;
+        union {
+            struct {
+                int errnum;
+            } posix;
+        } u;
+    } BRCryptoTransferSubmitError;
+
+    extern BRCryptoTransferSubmitError
+    cryptoTransferSubmitErrorUnknown(void);
+
+    extern BRCryptoTransferSubmitError
+    cryptoTransferSubmitErrorPosix(int errnum);
+
+    /**
+     * Return a descriptive message as to why the error occurred.
+     *
+     *@return the detailed reason as a string or NULL
+     */
+    extern char *
+    cryptoTransferSubmitErrorGetMessage(BRCryptoTransferSubmitError *e);
+
+    /// MARK: - Transfer State
 
     typedef enum {
         CRYPTO_TRANSFER_STATE_CREATED,
@@ -32,18 +63,23 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferStateType;
 
+    extern const char *
+    cryptoTransferStateTypeString (BRCryptoTransferStateType type);
+
     typedef struct {
         BRCryptoTransferStateType type;
         union {
             struct {
                 uint64_t blockNumber;
                 uint64_t transactionIndex;
+                // This is not assuredly the including block's timestamp; it is the transaction's
+                // timestamp which varies depending on how the transaction was discovered.
                 uint64_t timestamp;
-                BRCryptoAmount fee;
+                BRCryptoFeeBasis feeBasis;
             } included;
 
             struct {
-                BRTransferSubmitError error;
+                BRCryptoTransferSubmitError error;
             } errored;
         } u;
     } BRCryptoTransferState;
@@ -55,16 +91,18 @@ extern "C" {
     cryptoTransferStateIncludedInit (uint64_t blockNumber,
                                      uint64_t transactionIndex,
                                      uint64_t timestamp,
-                                     BRCryptoAmount fee);
+                                     BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoTransferState
-    cryptoTransferStateErroredInit (BRTransferSubmitError error);
+    cryptoTransferStateErroredInit (BRCryptoTransferSubmitError error);
 
     extern BRCryptoTransferState
     cryptoTransferStateCopy (BRCryptoTransferState *state);
 
     extern void
     cryptoTransferStateRelease (BRCryptoTransferState *state);
+
+    /// MARK: - Transfer Event
 
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
@@ -73,7 +111,7 @@ extern "C" {
     } BRCryptoTransferEventType;
 
     extern const char *
-    BRCryptoTransferEventTypeString (BRCryptoTransferEventType t);
+    cryptoTransferEventTypeString (BRCryptoTransferEventType t);
 
     typedef struct {
         BRCryptoTransferEventType type;
@@ -85,15 +123,47 @@ extern "C" {
         } u;
     } BRCryptoTransferEvent;
 
+    /// MARK: - Transfer Direction
+
     typedef enum {
         CRYPTO_TRANSFER_SENT,
         CRYPTO_TRANSFER_RECEIVED,
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
 
+    /// MARK: - Transfer Attribute
 
-    extern BRCryptoBlockChainType
-    cryptoTransferGetType (BRCryptoTransfer transfer);
+    typedef struct BRCryptoTransferAttributeRecord *BRCryptoTransferAttribute;
+
+    extern const char *
+    cryptoTransferAttributeGetKey (BRCryptoTransferAttribute attribute);
+
+    extern const char * // nullable
+    cryptoTransferAttributeGetValue (BRCryptoTransferAttribute attribute);
+
+    extern void
+    cryptoTransferAttributeSetValue (BRCryptoTransferAttribute attribute, const char *value);
+
+    extern BRCryptoBoolean
+    cryptoTransferAttributeIsRequired (BRCryptoTransferAttribute attribute);
+
+    extern BRCryptoTransferAttribute
+    cryptoTransferAttributeCopy (BRCryptoTransferAttribute attribute);
+
+    private_extern BRCryptoTransferAttribute
+    cryptoTransferAttributeCreate (const char *key,
+                                   const char *val, // nullable
+                                   BRCryptoBoolean isRequired);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransferAttribute, cryptoTransferAttribute);
+
+    typedef enum {
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_REQUIRED_BUT_NOT_PROVIDED,
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_MISMATCHED_TYPE,
+        CRYPTO_TRANSFER_ATTRIBUTE_VALIDATION_ERROR_RELATIONSHIP_INCONSISTENCY
+    } BRCryptoTransferAttributeValidationError;
+
+    /// MARK: - Transfer
 
     /**
      * Returns the transfer's source address
@@ -139,6 +209,16 @@ extern "C" {
     cryptoTransferGetAmountDirected (BRCryptoTransfer transfer);
 
     /**
+     * Returns the transfers amount after considering the direction and fee
+     *
+     * @param transfer the transfer
+     *
+     * @return the signed, net amoount
+     */
+    extern BRCryptoAmount
+    cryptoTransferGetAmountDirectedNet (BRCryptoTransfer transfer);
+
+    /**
      * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different
      * currencies.
      *
@@ -155,6 +235,9 @@ extern "C" {
 //                                       uint64_t *transactionIndex,
 //                                       uint64_t *timestamp,
 //                                       BRCryptoAmount *fee);
+
+    extern BRCryptoTransferStateType
+    cryptoTransferGetStateType (BRCryptoTransfer transfer);
 
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);
@@ -197,6 +280,13 @@ extern "C" {
     extern BRCryptoFeeBasis
     cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
 
+    extern size_t
+    cryptoTransferGetAttributeCount (BRCryptoTransfer transfer);
+
+    extern BRCryptoTransferAttribute
+    cryptoTransferGetAttributeAt (BRCryptoTransfer transfer,
+                                  size_t index);
+
     extern BRCryptoBoolean
     cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
 
@@ -223,6 +313,14 @@ extern "C" {
     cryptoTransferCompare (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
+
+    extern void
+    cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                    uint8_t **bytes,
+                                    size_t   *bytesCount,
+                                    uint32_t *blockHeight,
+                                    uint32_t *timestamp);
+
 
 #ifdef __cplusplus
 }

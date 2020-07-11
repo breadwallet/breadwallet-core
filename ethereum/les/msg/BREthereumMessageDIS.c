@@ -165,7 +165,7 @@ neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 extern BREthereumHash
 neighborDISHash (BREthereumDISNeighbor neighbor) {
     BRRlpData data = { sizeof (BREthereumDISNeighbor), (uint8_t *) &neighbor };
-    return hashCreateFromData(data);
+    return ethHashCreateFromData(data);
 }
 
 extern UInt256
@@ -182,8 +182,8 @@ neighborDISDistance (BREthereumDISNeighbor n1,
     memcpy (val2.u8, &n2.key.pubKey[1], 64);
 
     // This hash is a 'Keccak256' hash.
-    BREthereumHash hash1 = hashCreateFromData((BRRlpData) { 64, val1.u8});
-    BREthereumHash hash2 = hashCreateFromData((BRRlpData) { 64, val2.u8});
+    BREthereumHash hash1 = ethHashCreateFromData((BRRlpData) { 64, val1.u8});
+    BREthereumHash hash2 = ethHashCreateFromData((BRRlpData) { 64, val2.u8});
 
     return uint256Bitwise (INT_BITWISE_XOR,
                            (UInt256*) hash1.bytes,
@@ -196,7 +196,7 @@ neighborDISAsEnode (BREthereumDISNeighbor neighbor,
     BREthereumDISNeighborEnode enode = { '\0' };
 
     char nodeID [129];
-    encodeHex(nodeID, 129, &neighbor.key.pubKey[1], 64);
+    hexEncode(nodeID, 129, &neighbor.key.pubKey[1], 64);
 
     char IP [39];
     if (neighbor.node.domain == AF_INET)
@@ -263,7 +263,7 @@ messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHa
 
         ping.hash = hash;
     }
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
     return ping;
 }
 
@@ -280,7 +280,7 @@ static BRRlpItem
 messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 3,
                           endpointDISEncode (&message.to, coder.rlp),
-                          hashRlpEncode (message.pingHash, coder.rlp),
+                          ethHashRlpEncode (message.pingHash, coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
@@ -293,11 +293,11 @@ messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseI
     if (3 != itemsCount) rlpCoderSetFailed(coder.rlp);
     else {
         pong.to = endpointDISDecode (items[0], coder.rlp);
-        pong.pingHash = hashRlpDecode (items[1], coder.rlp);
+        pong.pingHash = ethHashRlpDecode (items[1], coder.rlp);
         pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
     }
 
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
     return pong;
 }
 
@@ -354,7 +354,7 @@ messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int rel
         message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
     }
 
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
+    if (releaseItem) rlpItemRelease (coder.rlp, item);
 
     return message;
 }
@@ -408,7 +408,7 @@ messageDISDecode (BRRlpItem item,
 
     // Get the rlpItem from packet->data
     BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };
-    BRRlpItem messageItem = rlpGetItem (coder.rlp, messageData);
+    BRRlpItem messageItem = rlpDataGetItem (coder.rlp, messageData);
 
     switch (identifier) {
         case DIS_MESSAGE_PONG:
@@ -461,7 +461,7 @@ messageDISEncode (BREthereumDISMessage message,
     }
     BRKey key = message.privateKeyForSigning;
 
-    BRRlpData data = rlpGetDataSharedDontRelease (coder.rlp, bodyItem);
+    BRRlpData data = rlpItemGetDataSharedDontRelease (coder.rlp, bodyItem);
 
     // We are producing a 'packet' which as described above is a concatenation of a header and
     // data where the header IS NOT rlp encoded but the data IS rlp encoded.  We will take the
@@ -491,26 +491,26 @@ messageDISEncode (BREthereumDISMessage message,
     // Compute the signature over (identifier || data)
     size_t signatureSize = 65;
     BRRlpData signatureData = { 1 + data.bytesCount, (uint8_t *) &packet->identifier };
-    packet->signature = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
+    packet->signature = ethSignatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
                                          signatureData.bytes, signatureData.bytesCount,
                                          key).sig.rsv;
 
     // Compute the hash over ( signature || identifier || data )
     BRRlpData hashData = { signatureSize + 1 + data.bytesCount, (uint8_t*) &packet->signature };
-    packet->hash = hashCreateFromData (hashData);
+    packet->hash = ethHashCreateFromData (hashData);
 
 #if defined (NEED_TO_PRINT_DIS_HEADER_DETAILS)
     {
         size_t ignore;
-        printf ("DATA     : %s\n", encodeHexCreate(&ignore, data.bytes, data.bytesCount));
-        printf ("SIG      : %s\n", encodeHexCreate(&ignore, (uint8_t*) &packet->signature, 65));
+        printf ("DATA     : %s\n", hexEncodeCreate(&ignore, data.bytes, data.bytesCount));
+        printf ("SIG      : %s\n", hexEncodeCreate(&ignore, (uint8_t*) &packet->signature, 65));
 
-        printf ("HASH DATA: %s\n", encodeHexCreate(&ignore, hashData.bytes, hashData.bytesCount));
+        printf ("HASH DATA: %s\n", hexEncodeCreate(&ignore, hashData.bytes, hashData.bytesCount));
         printf ("HASH RSLT: %s\n", hashAsString(packet->hash));
-        printf ("PACKET: %s\n", encodeHexCreate(&ignore, packetMemory, packetSize));
+        printf ("PACKET: %s\n", hexEncodeCreate(&ignore, packetMemory, packetSize));
     }
 #endif
-    rlpReleaseItem(coder.rlp, bodyItem);
+    rlpItemRelease(coder.rlp, bodyItem);
 
     // Now, finally, `packet` and `packetMemory` are complete.
     return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);

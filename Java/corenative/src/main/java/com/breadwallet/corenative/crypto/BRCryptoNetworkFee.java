@@ -40,6 +40,12 @@ public class BRCryptoNetworkFee extends PointerType {
         return UnsignedLong.valueOf(CryptoLibraryDirect.cryptoNetworkFeeGetConfirmationTimeInMilliseconds(thisPtr));
     }
 
+    public BRCryptoAmount getPricePerCostFactor() {
+        Pointer thisPtr = this.getPointer();
+
+        return new BRCryptoAmount(CryptoLibraryDirect.cryptoNetworkFeeGetPricePerCostFactor(thisPtr));
+    }
+
     public boolean isIdentical(BRCryptoNetworkFee other) {
         Pointer thisPtr = this.getPointer();
 

@@ -49,23 +49,25 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
+    /// The maximum balance
+    public var balanceMaximum: Amount? {
+        return cryptoWalletGetBalanceMaximum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
+    /// The minimum balance
+    public var balanceMinimum: Amount? {
+        return cryptoWalletGetBalanceMinimum (core)
+            .map { Amount (core: $0, take: false) }
+    }
+
     /// The current state.
     public var state: WalletState {
         return WalletState (core: cryptoWalletGetState(core))
     }
 
-    /// The default TransferFeeBasis for created transfers.
-//    public var defaultFeeBasis: TransferFeeBasis {
-//        get {
-//            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-//        set {
-//            let defaultFeeBasis = newValue // rename, for clarity
-//            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-//        }
-//    }
-
     /// The default TransferFactory for creating transfers.
-    //    var transferFactory: TransferFactory { get set }
+    ///    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
@@ -76,15 +78,70 @@ public final class Wallet: Equatable {
         return Address (core: cryptoWalletGetAddress (core, scheme.core), take: false)
     }
 
-    /// TODO: `var targets: [Address]`
+    /// TODO: `var {targets,sources}: [Address]` - for query needs?
 
-    /// TODO: Remove `source
-    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
-    public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
+    ///
+    /// Check if `address` is in `wallet`.  The address is considered in wallet if: a) it
+    /// has been used in a transaction or b) is the target address
+    ///
+    /// - Parameter address: the address to check
+    ///
+    public func hasAddress (_ address: Address) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletHasAddress (core, address.core);
     }
 
-    /// TODO: `var sources: [Address]`
+    ///
+    /// The Set of TransferAttributes applicable to Transfers created for this Wallet.  Every
+    /// attribute in the returned Set has a `nil` value.  Pass a subset of these to the
+    /// `createTransfer()` function.  Transfer creation and attribute validation will fail if
+    /// any of the _required_ attributes have a `nil` value or if any `value` is not valid itself.
+    ///
+    public lazy private(set) var transferAttributes: Set<TransferAttribute> = {
+        return transferAttributesFor(target: nil)
+    }()
+
+    public func transferAttributesFor (target: Address?) -> Set<TransferAttribute> {
+        let coreAttributes = (0..<cryptoWalletGetTransferAttributeCount(core, target?.core))
+            .map { cryptoWalletGetTransferAttributeAt (core, target?.core, $0)! }
+        defer { coreAttributes.forEach (cryptoTransferAttributeGive) }
+
+        return Set (coreAttributes.map { TransferAttribute (core: cryptoTransferAttributeCopy($0), take: false) })
+    }
+    ///
+    /// Validate a TransferAttribute.  This returns `true` if the attributes value is valid and,
+    /// if the attribute's value is required, if is it not `nil`.
+    ///
+    /// - Parameter attribute: The attribute to validate
+    ///
+    public func validateTransferAttribute (_ attribute: TransferAttribute) -> TransferAttributeValidationError? {
+        let coreAttribute = attribute.core
+
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttribute (core, coreAttribute, &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
+    ///
+    /// Validate a Set of TransferAttributes.  This should be called prior to `createTransfer`
+    /// (otherwise `createTransfer` will fail).  This checks the Set as a whole given that their
+    /// might be relationships between the attributes
+    ///
+    /// - Note: Relationships between attributes are not explicitly provided in the interface
+    ///
+    /// - Parameter attributes: the set of attributes to validate
+    ///
+    public func validateTransferAttributes (_ attributes: Set<TransferAttribute>) -> TransferAttributeValidationError? {
+        let coreAttributesCount = attributes.count
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes.map { $0.core }
+
+        var validates: BRCryptoBoolean = CRYPTO_TRUE
+        let error = cryptoWalletValidateTransferAttributes (core,
+                                                            coreAttributesCount,
+                                                            UnsafeMutablePointer (&coreAttributes),
+                                                            &validates)
+        return CRYPTO_TRUE == validates ? nil : TransferAttributeValidationError (core: error)
+    }
+
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
@@ -129,7 +186,9 @@ public final class Wallet: Equatable {
     // address scheme
 
     ///
-    /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
+    /// Create a transfer for wallet.  If attributes are provided and they don't validate, then
+    /// `nil` is returned.  Creation will fail if the amount exceeds the wallet's balance.
+    ///
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
@@ -137,14 +196,26 @@ public final class Wallet: Equatable {
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
-    ///   - feeBasis: Teh basis for 'fee'
+    ///   - feeBasis: The basis for 'fee'
+    ///   - attributes: Optional transfer attributes.
     ///
     /// - Returns: A new transfer
     ///
     public func createTransfer (target: Address,
                                 amount: Amount,
-                                estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
-        return cryptoWalletCreateTransfer (core, target.core, amount.core, estimatedFeeBasis.core)
+                                estimatedFeeBasis: TransferFeeBasis,
+                                attributes: Set<TransferAttribute>? = nil) -> Transfer? {
+        if nil != attributes && nil != self.validateTransferAttributes(attributes!) {
+            return nil
+        }
+
+        let coreAttributesCount = attributes?.count ?? 0
+        var coreAttributes: [BRCryptoTransferAttribute?] = attributes?.map { $0.core } ?? []
+
+        return cryptoWalletManagerCreateTransfer (manager.core, core, target.core, amount.core,
+                                                  estimatedFeeBasis.core,
+                                                  coreAttributesCount,
+                                                  UnsafeMutablePointer (&coreAttributes))
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)
@@ -169,7 +240,254 @@ public final class Wallet: Equatable {
         }
     }
 
-    /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
+    /// MARK: Estimate Limit
+
+    ///
+    /// A `Wallet.EstimateLimitHandler` is a function th handle the result of `Wallet.estimateLimit`
+    /// with return type of `Amount`.
+    ///
+    public typealias EstimateLimitHandler = (Result<Amount,LimitEstimationError>) -> Void
+
+    ///
+    /// Estimate the maximum amount that can be transfered from Wallet.  This value does not
+    /// include the fee, however, a fee estimate has been performed and the maximum has been
+    /// adjusted to be (nearly) balance = amount + fee.  That is, the maximum amount is what you
+    /// can safe transfer to 'zero out' the wallet
+    ///
+    /// In cases where `balance < fee` then .insufficientFunds is returned.  This can occur for
+    /// an ERC20 transfer where the ETH wallet's balance is not enough to pay the fee.  That is,
+    /// the .insufficientFunds check respects the wallet from which fees are extracted.  Both
+    /// BTC and ETH transfer might have an insufficient balance to pay a fee.
+    ///
+    /// This is an synchronous function that returns immediately but will call `completion` once
+    /// the maximum has been determined.
+    ///
+    /// The returned Amount is always in the wallet's currencyh.
+    ///
+    /// - Parameters:
+    ///   - target: the target address
+    ///   - fee: the network fees
+    ///   - completion: the handler for the results
+    ///
+    public func estimateLimitMaximum (target: Address,
+                                      fee: NetworkFee,
+                                      completion: @escaping Wallet.EstimateLimitHandler) {
+        estimateLimit (asMaximum: true, target: target, fee: fee, completion: completion)
+    }
+
+    ///
+    /// Estimate the minimum amount that can be transfered from Wallet.  This value does not
+    /// include the fee, however, a fee estimate has been performed.  Generally the minimum
+    /// amount in zero; however, some currencies have minimum values, below which miners will
+    /// reject.  In those casaes the minimum amount is above zero.
+    ///
+    /// In cases where `balance < amount + fee` then .insufficientFunds is returned.  The
+    /// .insufficientFunds check respects the wallet from which fees are extracted.
+    ///
+    /// This is an synchronous function that returns immediately but will call `completion` once
+    /// the maximum has been determined.
+    ///
+    /// The returned Amount is always in the wallet's currencyh.
+    ///
+    /// - Parameters:
+    ///   - target: the target address
+    ///   - fee: the network fees
+    ///   - completion: the handler for the results
+    ///
+    public func estimateLimitMinimum (target: Address,
+                                      fee: NetworkFee,
+                                      completion: @escaping Wallet.EstimateLimitHandler) {
+        estimateLimit (asMaximum: false, target: target, fee: fee, completion: completion)
+    }
+
+    ///
+    /// Internal function to handle limit estimation
+    ///
+    internal func estimateLimit (asMaximum: Bool,
+                                 target: Address,
+                                 fee: NetworkFee,
+                                 completion: @escaping Wallet.EstimateLimitHandler) {
+        var needFeeEstimate: BRCryptoBoolean = CRYPTO_TRUE
+        var isZeroIfInsuffientFunds: BRCryptoBoolean = CRYPTO_FALSE;
+
+        // This `amount` is in the `unit` of `wallet`
+        guard let amount = cryptoWalletManagerEstimateLimit (self.manager.core,
+                                                             self.core,
+                                                             (asMaximum ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                                             target.core,
+                                                             fee.core,
+                                                             &needFeeEstimate,
+                                                             &isZeroIfInsuffientFunds)
+            .map ({ Amount (core: $0, take: false)})
+            else {
+                // This is extraneous as `cryptoWalletEstimateLimit()` always returns an amount
+                estimateLimitCompleteInQueue (completion,
+                                              Result.failure (LimitEstimationError.insufficientFunds))
+                return;
+        }
+
+        // If we don't need an estimate, then we invoke `completion` and skip out immediately.  But
+        // include a check on a zero amount - which indicates insufficient funds.
+        if CRYPTO_FALSE == needFeeEstimate {
+            estimateLimitCompleteInQueue (completion,
+                                          (CRYPTO_TRUE == isZeroIfInsuffientFunds && amount.isZero
+                                            ? Result.failure (LimitEstimationError.insufficientFunds)
+                                            : Result.success (amount)))
+            return
+        }
+
+        // We need an estimate of the fees.
+
+        // The currency for the fee
+        let currencyForFee = fee.pricePerCostFactor.currency
+
+        guard let walletForFee = self.manager.wallets
+            .first (where: { $0.currency == currencyForFee })
+            else {
+                estimateLimitCompleteInQueue(completion, Result.failure (LimitEstimationError.serviceError))
+                return
+
+        }
+
+        // Skip out immediately if we've no balance.
+        if walletForFee.balance.isZero {
+            estimateLimitCompleteInQueue (completion, Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+            return
+        }
+
+        //
+        // If the `walletForFee` differs from `wallet` then we just need to estimate the fee
+        // once.  Get the fee estimate and just ensure that walletForFee has sufficient balance
+        // to pay the fee.
+        //
+        if self != walletForFee {
+            // This `amount` will not unusually be zero.
+            // TODO: Does ETH fee estimation work if the ERC20 amount is zero?
+            self.estimateFee (target: target, amount: amount, fee: fee) {
+                (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+                switch res {
+                case .success (let feeBasis):
+                    completion (walletForFee.balance >= feeBasis.fee
+                        ? Result.success(amount)
+                        : Result.failure(LimitEstimationError.insufficientFunds))
+
+                case .failure (let error):
+                    completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+                }
+            }
+            return
+        }
+
+        // The `fee` is in the same unit as the `wallet`
+
+        //
+        // If we are estimating the minimum, then get the fee and ensure that the wallet's
+        // balance is enough to cover the (minimum) amount plus the fee
+        //
+        if !asMaximum {
+            self.estimateFee (target: target, amount: amount, fee: fee) {
+                (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+                switch res {
+                case .success (let feeBasis):
+                    guard let transactionAmount = amount + feeBasis.fee
+                        else { preconditionFailure() }
+
+                    completion (self.balance >= transactionAmount
+                        ? Result.success (amount)
+                        : Result.failure (LimitEstimationError.insufficientFunds))
+
+                case .failure (let error):
+                    completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+                }
+            }
+            return
+        }
+
+        // If the `walletForFee` and `wallet` are identical, then we need to iteratively estimate
+        // the fee and adjust the amount until the fee stabilizes.
+        var transferFee = Amount.create (integer: 0, unit: self.unit)
+
+        // We'll limit the number of iterations
+        let estimationCompleterRecurseLimit = 3
+        var estimationCompleterRecurseCount = 0
+
+        // This function will be recursively defined
+        func estimationCompleter (res: Result<TransferFeeBasis, Wallet.FeeEstimationError>) {
+            // Another estimation completed
+            estimationCompleterRecurseCount += 1
+
+            // Check the result
+            switch res {
+            case .success (let feeBasis):
+                // The estimated transfer fee
+                let newTransferFee = feeBasis.fee
+
+                // The estimated transfer amount, updated with the transferFee
+                guard let newTransferAmount = amount.sub (newTransferFee)
+                    else { preconditionFailure() }
+
+                // If the two transfer fees match, then we have converged
+                if transferFee == newTransferFee {
+                    guard let transactionAmount = newTransferAmount + newTransferFee
+                        else { preconditionFailure() }
+                    
+                    completion (self.balance >= transactionAmount
+                        ? Result.success (newTransferAmount)
+                        : Result.failure (Wallet.LimitEstimationError.insufficientFunds))
+
+                }
+
+                else if estimationCompleterRecurseCount < estimationCompleterRecurseLimit {
+                    // but is they haven't converged try again with the new amount
+                    transferFee = newTransferFee
+                    self.estimateFee (target: target, amount: newTransferAmount, fee: fee, completion: estimationCompleter)
+                }
+
+                else {
+                    // We've tried too many times w/o convergence; abort
+                    completion (Result.failure (Wallet.LimitEstimationError.serviceError))
+                }
+
+            case .failure (let error):
+                completion (Result.failure (LimitEstimationError.fromFeeEstimationError(error)))
+            }
+        }
+
+        estimateFee (target: target, amount: amount, fee: fee, completion: estimationCompleter)
+    }
+
+    private func estimateLimitCompleteInQueue (_ completion: @escaping Wallet.EstimateLimitHandler,
+                                               _ result: Result<Amount, Wallet.LimitEstimationError>) {
+        system.queue.async {
+            completion (result)
+        }
+    }
+
+    public enum LimitEstimationError: Error {
+        case serviceUnavailable
+        case serviceError
+        case insufficientFunds
+
+        static func fromStatus (_ status: BRCryptoStatus) -> LimitEstimationError {
+            switch status {
+            case CRYPTO_ERROR_FAILED: return .serviceError
+            default: return .serviceError // preconditionFailure ("Unknown FeeEstimateError")
+            }
+        }
+
+        static func fromFeeEstimationError (_ error: FeeEstimationError) -> LimitEstimationError{
+            switch error {
+            case .ServiceUnavailable: return .serviceUnavailable
+            case .ServiceError:       return .serviceError
+            case .InsufficientFunds:  return .insufficientFunds
+            }
+        }
+    }
+
+
+    /// MARK: Estimate Fee
+
+    /// A `Wallet.EstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
     public typealias EstimateFeeHandler = (Result<TransferFeeBasis,FeeEstimationError>) -> Void
 
     ///
@@ -177,38 +495,42 @@ public final class Wallet: Equatable {
     /// otherwise use the wallet's `defaultFeeBasis`
     ///
     /// - Parameters:
+    ///   - target: the transfer's target address
     ///   - amount: the transfer amount MUST BE GREATER THAN 0
-    ///   - feeBasis: the feeBasis to use, if provided
-    ///
-    /// - Returns: transfer fee
+    ///   - fee: the network fee (aka priority)
+    ///   - completion: handler function
     ///
     public func estimateFee (target: Address,
                              amount: Amount,
                              fee: NetworkFee,
                              completion: @escaping Wallet.EstimateFeeHandler) {
-        cryptoWalletEstimateFeeBasis (self.core,
-                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                      target.core,
-                                      amount.core,
-                                      fee.core)
+        // 'Redirect' up to the 'manager'
+        cryptoWalletManagerEstimateFeeBasis (self.manager.core,
+                                             self.core,
+                                             callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                             target.core,
+                                             amount.core,
+                                             fee.core)
     }
-
+    
     internal func estimateFee (sweeper: WalletSweeper,
                                fee: NetworkFee,
-                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
-                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                   sweeper.core,
-                                                   fee.core)
+                               completion: @escaping EstimateFeeHandler) {
+        cryptoWalletManagerEstimateFeeBasisForWalletSweep (self.manager.core,
+                                                           self.core,
+                                                           callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                           sweeper.core,
+                                                           fee.core)
     }
-
+    
     internal func estimateFee (request: PaymentProtocolRequest,
                                fee: NetworkFee,
-                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
-                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
-                                                              request.core,
-                                                              fee.core)
+                               completion: @escaping EstimateFeeHandler) {
+        cryptoWalletManagerEstimateFeeBasisForPaymentProtocolRequest (self.manager.core,
+                                                                      self.core,
+                                                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                                      request.core,
+                                                                      fee.core)
     }
 
     public enum FeeEstimationError: Error {

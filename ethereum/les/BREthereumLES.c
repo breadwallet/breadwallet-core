@@ -164,7 +164,7 @@ nodeConfigDecode (BRRlpItem item,
     config->state    = nodeStateDecode (items[2], coder);
     config->priority = (BREthereumNodePriority) rlpDecodeUInt64(coder, items[3], 0);
 
-    config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
+    config->hash = ethHashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
 
     return config;
 }
@@ -180,7 +180,7 @@ nodeConfigCreate (BREthereumNode node) {
     config->state = nodeGetState(node, NODE_ROUTE_TCP);
     config->priority = nodeGetPriority (node);
 
-    config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
+    config->hash = ethHashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
 
     return config;
 }
@@ -195,12 +195,12 @@ nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
 extern size_t
 nodeConfigHashValue (const void *t)
 {
-    return hashSetValue(&((BREthereumNodeConfig) t)->hash);
+    return ethHashSetValue(&((BREthereumNodeConfig) t)->hash);
 }
 
 extern int
 nodeConfigHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || hashSetEqual (&((BREthereumNodeConfig) t1)->hash,
+    return t1 == t2 || ethHashSetEqual (&((BREthereumNodeConfig) t1)->hash,
                                      &((BREthereumNodeConfig) t2)->hash);
 }
 
@@ -599,7 +599,7 @@ lesCreate (BREthereumNetwork network,
     // preserved.
     nodeEndpointSetStatus (les->localEndpoint,
                            messageP2PStatusCreate (0x00,  // ignored
-                                                   networkGetChainId(network),
+                                                   ethNetworkGetChainId(network),
                                                    les->head.number,
                                                    les->head.hash,
                                                    les->head.totalDifficulty,
@@ -1051,8 +1051,8 @@ lesHandleSelectError (BREthereumLES les,
 static void
 lesSeedQueryAll (BREthereumLES les) {
     // Create nodes from our network seeds.
-    const char **seeds = networkGetSeeds (les->network);
-    size_t seedsCount  = networkGetSeedsCount(les->network);
+    const char **seeds = ethNetworkGetSeeds (les->network);
+    size_t seedsCount  = ethNetworkGetSeedsCount(les->network);
 
     for (size_t i = 0; i < seedsCount; i++) {
         BREthereumLESSeedContext context = { les, seeds[i],
@@ -1096,7 +1096,7 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
         { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 1) },
         { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 0) },
 #elif defined (LES_BOOTSTRAP_BRD_ONLY)
-        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (les->network) },
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, ethNetworkGetEnodesBRD (les->network) },
 #else
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (les->network) },
 #endif
