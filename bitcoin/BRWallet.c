@@ -635,13 +635,19 @@ BRTransaction *BRWalletCreateTxForOutputsWithFeePerKb(BRWallet *wallet, uint64_t
     assert(wallet != NULL);
     assert(outputs != NULL && outCount > 0);
 
+    minAmount = BRWalletMinOutputAmountWithFeePerKb(wallet, MIN_FEE_PER_KB);
+
     for (i = 0; outputs && i < outCount; i++) {
         assert(outputs[i].script != NULL && outputs[i].scriptLen > 0);
         BRTransactionAddOutput(transaction, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
+        // Output below dust threshold
+        if (outputs[i].amount < minAmount) {
+            BRTransactionFree(transaction);
+            return NULL;
+        }
         amount += outputs[i].amount;
     }
     
-    minAmount = BRWalletMinOutputAmountWithFeePerKb(wallet, feePerKb);
     pthread_mutex_lock(&wallet->lock);
     feePerKb = UINT64_MAX == feePerKb ? wallet->feePerKb : feePerKb;
     feeAmount = _txFee(feePerKb, BRTransactionVSize(transaction) + TX_OUTPUT_SIZE);
@@ -666,7 +672,7 @@ BRTransaction *BRWalletCreateTxForOutputsWithFeePerKb(BRWallet *wallet, uint64_t
                                                   (outCount + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
             pthread_mutex_unlock(&wallet->lock);
 
-            if (outputs[outCount - 1].amount > amount + feeAmount + minAmount - balance) {
+            if (outputs[outCount - 1].amount > amount + feeAmount - balance) {
                 BRTxOutput newOutputs[outCount];
                 
                 for (j = 0; j < outCount; j++) {
@@ -696,7 +702,7 @@ BRTransaction *BRWalletCreateTxForOutputsWithFeePerKb(BRWallet *wallet, uint64_t
         // increase fee to round off remaining wallet balance to nearest 100 satoshi
         if (wallet->balance > amount + feeAmount) feeAmount += (wallet->balance - (amount + feeAmount)) % 100;
         
-        if (balance == amount + feeAmount || balance >= amount + feeAmount + minAmount) break;
+        if (balance >= amount + feeAmount) break;
     }
     
     pthread_mutex_unlock(&wallet->lock);
