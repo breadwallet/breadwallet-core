@@ -32,8 +32,11 @@ public class CurrencyApi {
 
     public void getCurrencies(@Nullable String id,
                               CompletionHandler<List<Currency>, QueryError> handler) {
-        Multimap<String, String> params = id == null ? ImmutableMultimap.of() : ImmutableListMultimap.of(
-                "blockchain_id", id);
+        ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+        if (id != null) paramsBuilder.put("blockchain_id", id);
+        paramsBuilder.put("verified", "true");
+        ImmutableMultimap<String, String> params = paramsBuilder.build();
+
         jsonClient.sendGetForArray("currencies", params, Currency.class, handler);
     }
 
