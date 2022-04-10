@@ -83,11 +83,13 @@ static const BRCheckPoint BRMainNetCheckpoints[] = {
     {  953568, uint256("e46e01cf1239cffa69408ac162d517bac5a4899972e0328fd0ba4d93e8ad3764"), 1457542869, 0x1b013c91 },
     { 1058400, uint256("76ce37c66d449a4ffbfc35674cf932da701066a001dc223754f9250dd2bdbc62"), 1473296285, 0x1b013ca7 },
     { 1260000, uint256("85a22b528d805bf7a641d1d7c6d96ef5054beda3dcab6be7b83f2e3df24b33a8"), 1502976600, 0x1a25a0d3 },
-    { 1411200, uint256("92c85b76f3d4bffca76b23717e4eb1b667c77c96fd52d4dd5dd843bbee64cd73"), 1524838967, 0x1a0203a7 }
+    { 1411200, uint256("92c85b76f3d4bffca76b23717e4eb1b667c77c96fd52d4dd5dd843bbee64cd73"), 1524838967, 0x1a0203a7 },
+	{ 2036160, uint256("97ab7a0bf3cd7d694c1b369090aea9449e93f92763808de2a073cc8ab0657292"), 1618643881, 0x1a01ab48 }
 };
 
 static const BRCheckPoint BRTestNetCheckpoints[] = {
-    {       0, uint256("4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"), 1486949366, 0x1e0ffff0 }
+    {       0, uint256("4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"), 1486949366, 0x1e0ffff0 },
+	{ 2282112, uint256("b64455a7630d72d982d7e00966e04e3c148a482d2f2b52e20bd7acc3aadbcd69"), 1649496420, 0x1e03ffff }
 };
 
 static int BRMainNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
